@@ -2,10 +2,13 @@
 
 Durable tracker (survives across sessions). Updated 2026-06-21.
 
-**15 / 20 tasks complete · 75%** — backend verified, data layer LIVE on Supabase, dashboard **DEPLOYED & PUBLIC** with AMC drill-down, search, and behavioural analytics.
+**17 / 20 tasks complete · 85%** — backend verified, data layer LIVE on Supabase, dashboard **DEPLOYED & PUBLIC** with drill-down, search, watchlist, real NAV-history sparklines, behavioural analytics, and **CI** on GitHub.
 
 ### 🌐 LIVE: https://frontend-six-beta-20.vercel.app
+### 📦 Repo: https://github.com/S-h-u-b-h-1/MF-Pulse
 Real AMFI scheme/NAV universe + (sample) monthly net-flow headline. Reads Supabase via PostgREST.
+
+**NAV history**: `ingestion/nav_history.py` (backfill from AMFI's date-range report) + `scripts/build_amc_trend.py` (per-AMC normalised equity index → `frontend/app/data/amc_trend.json`, real 30-day data, powers the AMC sparklines).
 
 **Live cloud DB:** Supabase project `FinPulse` (ref `autijihzocnxduipeaop`, region ap-northeast-2). 14,219 schemes + 14,219 NAVs served via PostgREST with the publishable key. Public read only; `user_events` public-insert. The `postgres` master password was deliberately **not** rotated (serving via PostgREST needs no DB password).
 
@@ -21,13 +24,13 @@ Real AMFI scheme/NAV universe + (sample) monthly net-flow headline. Reads Supaba
 - [x] **7. FastAPI REST endpoints** *(ahead of schedule)* — `api/main.py`. **Verified live**: `/health`, `/api/overview`, `/api/amcs`, `/api/events`.
 - [ ] **8. Redis caching** for heavy aggregations
 - [x] **9. user_events tracking end-to-end** — ✅ frontend logs `page_view`/`search`/`amc_view`/`search_click` to Supabase (`app/lib/track.js`); verified events land + are queryable by type/session.
-- [ ] **10. Data-quality tests in CI** — parser tests pass (4/4); add GitHub Actions
+- [x] **10. Data-quality tests in CI** — ✅ `.github/workflows/ci.yml`: Python parser tests + Next.js build on every push/PR to `main`. Vercel env vars set on all 3 environments, so the repo self-deploys.
 
 ## Phase 3 · Frontend
 - [x] **11. Next.js 14 app scaffold** — `frontend/` (App Router, JS). `next build` ✅ static-prerenders against live Supabase.
 - [x] **12. Dashboard hero** — schemes / AMCs / asset-class cards, reading `v_asset_class_summary` view.
 - [x] **13. AMC chips + drill-down** — chips link to `/amc/[amc]` showing scheme counts by class + equity schemes with live NAV (FK embed).
-- [~] **14. Search + watchlist** — ✅ live scheme/AMC search (`app/components/Search.jsx`, debounced PostgREST ilike). Watchlist still TODO.
+- [x] **14. Search + watchlist** — ✅ debounced scheme/AMC search + a localStorage watchlist (star any scheme on its AMC page; panel on home shows live NAV; logs `watchlist_add`).
 - [x] **15. Behavioural event tracking from UI** — ✅ wired & verified (see #9).
 
 ## Phase 4 · Launch *(deployment — added per request)*
