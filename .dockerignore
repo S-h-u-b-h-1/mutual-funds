@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+data/*.txt
+.env
+dbt/target/
+airflow/
+tests/
+.pytest_cache/

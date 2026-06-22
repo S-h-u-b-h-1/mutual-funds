@@ -1,0 +1,21 @@
+version: 2
+
+sources:
+  - name: mfpulse
+    schema: public
+    tables:
+      - name: dim_scheme
+      - name: fact_nav_daily
+
+models:
+  - name: stg_nav
+    columns:
+      - name: scheme_code
+        tests: [not_null]
+      - name: nav_value
+        tests: [not_null]
+  - name: amc_daily_summary
+    description: "Daily AMC-level NAV aggregations powering the dashboard."
+    columns:
+      - name: scheme_count
+        tests: [not_null]

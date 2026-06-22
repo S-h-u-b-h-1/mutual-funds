@@ -1,0 +1,30 @@
+# Local dev stack for MF Pulse.
+#   docker compose up -d        # start Postgres (TimescaleDB image)
+#   docker compose exec db psql -U mfpulse -d mfpulse -f /sql/001_schema.sql
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    container_name: mfpulse-db
+    environment:
+      POSTGRES_USER: mfpulse
+      POSTGRES_PASSWORD: mfpulse
+      POSTGRES_DB: mfpulse
+    ports:
+      - "5432:5432"
+    volumes:
+      - mfpulse_pgdata:/var/lib/postgresql/data
+      - ./sql:/sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mfpulse -d mfpulse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: mfpulse-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  mfpulse_pgdata:

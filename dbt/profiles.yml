@@ -1,0 +1,13 @@
+# dbt connection profile. Reads the same env vars as the ingestion layer.
+mfpulse:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PGHOST', 'localhost') }}"
+      port: "{{ env_var('PGPORT', '5432') | int }}"
+      user: "{{ env_var('PGUSER', 'mfpulse') }}"
+      password: "{{ env_var('PGPASSWORD', 'mfpulse') }}"
+      dbname: "{{ env_var('PGDATABASE', 'mfpulse') }}"
+      schema: analytics
+      threads: 4

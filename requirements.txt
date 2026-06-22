@@ -1,0 +1,13 @@
+# Core ingestion
+psycopg[binary]==3.2.13
+requests==2.32.3
+
+# API
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Transform / quality (added in Phase 2)
+dbt-postgres==1.9.0
+
+# Dev
+pytest==8.3.4
