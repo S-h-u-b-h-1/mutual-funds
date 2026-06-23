@@ -116,6 +116,19 @@ a.chip:hover { border-color: var(--line-strong); transform: translateY(-1px); ba
 .signup-row button:hover { background: #4f46e5; }
 .signup-err { flex-basis: 100%; color: var(--neg); font-size: 12px; }
 
+/* ---------- flow signals ---------- */
+.signals { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.signal { display: flex; align-items: center; gap: 12px; padding: 13px 15px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line); border-radius: 13px; text-decoration: none; color: var(--text); transition: border-color 0.14s, transform 0.14s; }
+.signal:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.sig-dot { width: 30px; height: 30px; flex: none; border-radius: 9px; display: grid; place-items: center; font-size: 13px; font-weight: 800; }
+.sig-dot.up { color: var(--pos); background: rgba(52, 211, 153, 0.12); }
+.sig-dot.down { color: var(--neg); background: rgba(248, 113, 113, 0.12); }
+.sig-body { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sig-amc { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sig-meta { font-size: 11px; color: var(--muted); }
+.sig-z { font-size: 12px; font-weight: 750; color: var(--faint); font-variant-numeric: tabular-nums; }
+@media (max-width: 680px) { .signals { grid-template-columns: 1fr; } }
+
 /* ---------- watchlist ---------- */
 .watchlist { list-style: none; }
 .watchlist li { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13px; }

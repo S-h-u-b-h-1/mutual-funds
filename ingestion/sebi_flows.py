@@ -23,6 +23,82 @@ import sys
 from .db import connect
 
 
+def derive_class(category: str) -> str:
+    c = (category or "").lower()
+    if "equity" in c or "elss" in c:
+        return "Equity"
+    if "debt" in c or "income" in c or "liquid" in c or "gilt" in c or "money market" in c:
+        return "Debt"
+    if "hybrid" in c or "balanced" in c:
+        return "Hybrid"
+    if "solution" in c or "retirement" in c:
+        return "Solution"
+    return "Other"
+
+
+def _find_col(headers: list[str], *needles: str):
+    for i, h in enumerate(headers):
+        if any(n in h for n in needles):
+            return i
+    return None
+
+
+def load_excel(path: str, month: str, sheet: str | None = None) -> list[tuple]:
+    """
+    Parse the AMFI/SEBI monthly flow Excel into the same row shape as the CSV path.
+
+    Column detection is by header substring so it survives minor layout changes.
+    `month` is the reporting month (the workbook usually encodes it in the filename
+    or a title cell, so we pass it explicitly). Recognised headers include:
+    AMC / "Mutual Fund Name", "Scheme Category", "Net Inflow/Outflow", AUM.
+    """
+    from openpyxl import load_workbook
+
+    wb = load_workbook(path, read_only=True, data_only=True)
+    ws = wb[sheet] if sheet else wb.active
+    rows = list(ws.iter_rows(values_only=True))
+
+    headers = None
+    hdr_idx = None
+    for i, r in enumerate(rows[:25]):
+        cells = [str(c).strip().lower() if c is not None else "" for c in r]
+        if _find_col(cells, "amc", "mutual fund") is not None and _find_col(cells, "category", "scheme") is not None:
+            headers, hdr_idx = cells, i
+            break
+    if headers is None:
+        raise ValueError(f"Could not locate a header row in {path}")
+
+    c_amc = _find_col(headers, "amc", "mutual fund name", "name of the")
+    c_cat = _find_col(headers, "category", "scheme type")
+    c_in = _find_col(headers, "inflow", "gross inflow", "sales")
+    c_out = _find_col(headers, "outflow", "redemption", "repurchase")
+    c_net = _find_col(headers, "net inflow", "net flow", "net")
+    c_aum = _find_col(headers, "aum", "assets under management", "net assets")
+
+    def num(r, i):
+        if i is None or r[i] in (None, "", "-"):
+            return None
+        try:
+            return float(str(r[i]).replace(",", ""))
+        except ValueError:
+            return None
+
+    out: list[tuple] = []
+    for r in rows[hdr_idx + 1:]:
+        if c_amc is None or not r[c_amc] or not str(r[c_amc]).strip():
+            continue
+        amc = str(r[c_amc]).strip()
+        category = str(r[c_cat]).strip() if c_cat is not None and r[c_cat] else ""
+        inflow, outflow, net, aum = num(r, c_in), num(r, c_out), num(r, c_net), num(r, c_aum)
+        if net is None and inflow is not None and outflow is not None:
+            net = inflow - outflow
+        if net is None:
+            continue
+        out.append((amc, derive_class(category), category, month,
+                    inflow or 0, outflow or 0, round(net, 2), aum))
+    return out
+
+
 def load_csv(path: str) -> list[tuple]:
     rows: list[tuple] = []
     with open(path, newline="") as fh:

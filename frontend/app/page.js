@@ -25,11 +25,12 @@ function marketIndex() {
 }
 
 export default async function Page() {
-  const [byClass, amcRows, headline, amcFlows] = await Promise.all([
+  const [byClass, amcRows, headline, amcFlows, signals] = await Promise.all([
     sb("v_asset_class_summary?select=*"),
     sb("v_amc_summary?select=*&asset_class=eq.Equity&order=schemes.desc&limit=10"),
     sb("v_flow_headline?select=*"),
     sb("v_amc_flows?select=amc_name,asset_class,net_flow_cr&order=net_flow_cr.desc&limit=10"),
+    sb("v_signals?select=*&limit=6"),
   ]);
   const flow = headline[0] || {};
   const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
@@ -86,6 +87,24 @@ export default async function Page() {
         <div className="panel"><TrendChart series={series} /></div>
       </section>
 
+      {signals.length > 0 && (
+        <section className="section">
+          <div className="section-head"><h2>⚡ Flow signals · {flow.month || "—"}</h2><span className="eyebrow">z-score ≥ 1.8 vs trailing</span></div>
+          <div className="signals">
+            {signals.map((s, i) => (
+              <a className="signal" key={i} href={`/amc/${encodeURIComponent(s.amc_name)}`}>
+                <span className={`sig-dot ${s.signal === "inflow_surge" ? "up" : "down"}`}>{s.signal === "inflow_surge" ? "▲" : "▼"}</span>
+                <span className="sig-body">
+                  <span className="sig-amc">{s.amc_name.replace(" Mutual Fund", "")} · {s.asset_class}</span>
+                  <span className="sig-meta">{s.signal === "inflow_surge" ? "Inflow surge" : "Outflow surge"} · {inr(s.net_flow_cr)}</span>
+                </span>
+                <span className="sig-z">z {Number(s.z_score).toFixed(1)}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
       <Watchlist />
 
       <section className="section">
@@ -139,7 +158,8 @@ export default async function Page() {
       <footer className="foot">
         Scheme &amp; NAV data is <b>live from AMFI</b> — {fmt(totalSchemes)} schemes across 51 AMCs, refreshed nightly.
         Net-flow figures are <b>sample data</b> (SEBI/AMFI monthly report is PDF-only; <code>ingestion/sebi_flows.py</code> ingests the real export).
-        <br />Built with Next.js · Supabase · data © <a href="https://www.amfiindia.com">AMFI</a>.
+        <br />Built with Next.js · Supabase · data © <a href="https://www.amfiindia.com">AMFI</a>
+        · <a href="/about">About</a> · <a href="/status">Status</a>
       </footer>
     </main>
   );

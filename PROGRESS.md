@@ -2,7 +2,23 @@
 
 Durable tracker (survives across sessions). Updated 2026-06-21.
 
-**17 / 20 tasks complete · 85%** — backend verified, data layer LIVE on Supabase, dashboard **DEPLOYED & PUBLIC** with drill-down, search, watchlist, real NAV-history sparklines, behavioural analytics, and **CI** on GitHub.
+**Implementation complete (per the 22-day plan).** Everything buildable is built, tested, and deployed. Items that need *your* external keys are **code-complete** and activate the moment a key is set (Resend email delivery, Sentry DSN). The Reddit launch is yours to run.
+
+### Completed in the autonomous build (Phases 1–4)
+- **Spike detection** (Day 13) — z-score `flow_signals` + dashboard "⚡ Flow signals" section (6 months of flow history).
+- **Quality gate** (Day 7) — `ingestion/quality_gate.py` (negative-NAV, class-set, freshness, coverage floor) wired into the DAG; offline data-quality tests in CI.
+- **Redis caching + event hardening** (Day 10/11) — cache decorator + 1h TTL + secret-protected flush; events validated, rate-limited (60/min), geo-enriched.
+- **Alerts** (Day 14) — `alerts` table + `/api/alerts` subscribe + live signup form + Resend delivery (gated on `RESEND_API_KEY`, dry-run otherwise).
+- **SEBI Excel parser** (Day 12) — `sebi_flows.load_excel` with header auto-detection + round-trip test.
+- **SEO/branding** (Day 19) — dynamic OG image, sitemap, robots, favicon, Inter, metadata.
+- **Monitoring** (Day 21) — `/status` page, `/about`, Sentry wiring (FE + BE, gated), `RUNBOOK.md`.
+- **13 Python tests** pass (parser, quality, spike, excel) + Next.js build in CI.
+
+**Live:** https://frontend-six-beta-20.vercel.app · **Repo:** https://github.com/S-h-u-b-h-1/MF-Pulse
+
+---
+
+**17 / 20 original-plan tasks · 85%** — backend verified, data layer LIVE on Supabase, dashboard **DEPLOYED & PUBLIC** with drill-down, search, watchlist, real NAV-history sparklines, behavioural analytics, and **CI** on GitHub.
 
 ### 🌐 LIVE: https://frontend-six-beta-20.vercel.app
 ### 📦 Repo: https://github.com/S-h-u-b-h-1/MF-Pulse

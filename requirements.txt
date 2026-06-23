@@ -11,3 +11,8 @@ dbt-postgres==1.9.0
 
 # Dev
 pytest==8.3.4
+
+# caching
+redis==5.2.1
+openpyxl==3.1.5
+sentry-sdk==2.20.0

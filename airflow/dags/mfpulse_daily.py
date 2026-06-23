@@ -40,6 +40,25 @@ def _load_nav():
     return summary
 
 
+def _quality_gate():
+    """Halt the pipeline if data-quality checks fail."""
+    import sys
+    sys.path.insert(0, PROJECT_DIR)
+    from ingestion.quality_gate import run_checks
+    failures = run_checks()
+    if failures:
+        raise ValueError("Quality gate failed: " + "; ".join(failures))
+    return "passed"
+
+
+def _deliver_alerts():
+    """Send daily-summary / spike emails (no-op without RESEND_API_KEY)."""
+    import sys
+    sys.path.insert(0, PROJECT_DIR)
+    from ingestion.alert_delivery import run
+    return run()
+
+
 def _notify_slack(context):
     """Post a message to Slack on success/failure if a webhook is configured."""
     import json
@@ -81,9 +100,19 @@ with DAG(
         bash_command=f"cd {PROJECT_DIR}/dbt && {PROJECT_DIR}/.venv/bin/dbt build --profiles-dir .",
     )
 
+    quality_gate = PythonOperator(
+        task_id="quality_gate",
+        python_callable=_quality_gate,
+    )
+
+    deliver_alerts = PythonOperator(
+        task_id="deliver_alerts",
+        python_callable=_deliver_alerts,
+    )
+
     notify = PythonOperator(
         task_id="notify_success",
         python_callable=lambda **ctx: _notify_slack({**ctx, "reason": "succeeded"}),
     )
 
-    load_nav >> dbt_run >> notify
+    load_nav >> dbt_run >> quality_gate >> deliver_alerts >> notify
