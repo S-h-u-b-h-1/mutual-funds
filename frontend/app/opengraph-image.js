@@ -22,16 +22,16 @@ export default function OG() {
       >
         <div style={{ display: "flex", alignItems: "center", gap: "18px", marginBottom: "28px" }}>
           <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#34d399" }} />
-          <div style={{ fontSize: "38px", color: "#97a1b8", fontWeight: 600 }}>MF Pulse · Daily NAV Intelligence</div>
+          <div style={{ fontSize: "38px", color: "#97a1b8", fontWeight: 600 }}>MF Pulse · Performance Intelligence</div>
         </div>
         <div style={{ fontSize: "76px", color: "#eef1f8", fontWeight: 800, lineHeight: 1.05, letterSpacing: "-2px" }}>
-          Where India's mutual-fund
+          India&apos;s best-performing
         </div>
         <div style={{ fontSize: "76px", color: "#34d399", fontWeight: 800, lineHeight: 1.05, letterSpacing: "-2px" }}>
-          money moved today
+          mutual funds, ranked
         </div>
         <div style={{ display: "flex", gap: "16px", marginTop: "44px" }}>
-          {["14,219 schemes", "51 AMCs", "Daily NAV + flows"].map((t) => (
+          {["1,269 equity funds", "1W–1Y returns", "AMC quality scores"].map((t) => (
             <div
               key={t}
               style={{

@@ -8,5 +8,10 @@ export default function sitemap() {
     changeFrequency: "daily",
     priority: 0.7,
   }));
-  return [{ url: SITE, changeFrequency: "daily", priority: 1 }, ...amcs];
+  const pages = ["/performance", "/categories", "/research", "/compare", "/data-quality"].map((p) => ({
+    url: `${SITE}${p}`,
+    changeFrequency: "daily",
+    priority: 0.8,
+  }));
+  return [{ url: SITE, changeFrequency: "daily", priority: 1 }, ...pages, ...amcs];
 }

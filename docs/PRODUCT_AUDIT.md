@@ -1,5 +1,16 @@
 # MF Pulse — Product & Data Audit (PMF lens)
 
+> **Positioning (current):** *Mutual Fund Performance Intelligence* — built entirely on
+> real AMFI NAV. Flow features are quarantined as clearly-labelled sample until an
+> authoritative SEBI monthly export is connected. No capability claim depends on sample data.
+>
+> **Performance Intelligence shipped:** multi-window real returns (1W/1M/3M/6M/1Y) for
+> 1,269 equity Growth funds (`/performance`), category intelligence (`/categories`),
+> AMC Quality Score (45 AMCs), auto research insights, CSV export, and event collection
+> (`performance_view`, `category_view`, `export`). Nav + hero + metadata + OG repositioned.
+
+
+
 > Core question for every feature: *would a serious investor, advisor, distributor,
 > analyst, journalist, or family office open this daily to make better decisions?*
 

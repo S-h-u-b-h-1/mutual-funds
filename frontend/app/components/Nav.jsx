@@ -2,8 +2,8 @@ import PremiumButton from "./ui/PremiumButton";
 import MobileNav from "./MobileNav";
 
 const LINKS = [
-  ["Market Brief", "/brief"],
-  ["Signals", "/signals"],
+  ["Performance", "/performance"],
+  ["Categories", "/categories"],
   ["Compare", "/compare"],
   ["Research", "/research"],
   ["Analytics", "/analytics"],

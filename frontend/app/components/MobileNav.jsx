@@ -2,12 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 
 const LINKS = [
-  ["Market Brief", "/brief"],
-  ["Signals", "/signals"],
+  ["Performance", "/performance"],
+  ["Categories", "/categories"],
   ["Compare", "/compare"],
   ["Research", "/research"],
   ["Analytics", "/analytics"],
-  ["Status", "/status"],
+  ["Data status", "/data-status"],
 ];
 
 export default function MobileNav({ active }) {

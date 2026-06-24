@@ -1,6 +1,5 @@
 // MF Pulse — Market Intelligence homepage. Dense, terminal-grade, trust-signaled.
 import { sb } from "./lib/supabase";
-import { buildBrief } from "./lib/brief";
 import { marketIntel } from "./lib/intel";
 import Nav from "./components/Nav";
 import Footer from "./components/Footer";
@@ -43,17 +42,18 @@ export default async function Page() {
   const flow = headline[0] || {};
   const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
   const latest = byClass.map((r) => r.latest_nav_date).sort().at(-1);
-  const brief = buildBrief({ headline: flow, amcFlows, signals });
   const intel = marketIntel(trendData.amcs);
   const amcDeltas = Object.fromEntries(Object.entries(trendData.amcs).map(([k, p]) => [k, p[p.length - 1][1] - p[0][1]]));
   const moverCol = (label) => [
     { key: "name", label, render: (r) => <a className="text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(r.amc)}`}>{r.name}</a> },
     { key: "change", label: "30d Δ", align: "right", render: (r) => <span className={r.change >= 0 ? "text-pos tnum" : "text-neg tnum"}>{r.change >= 0 ? "+" : ""}{r.change.toFixed(2)}</span> },
   ];
-  const perfCols = [
+  const amcCols = [
     { key: "rank", label: "#", muted: true, render: (r) => r._rank },
-    { key: "name", label: "Fund", render: (r) => <a className="text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(r.amc + " Mutual Fund")}`}>{r.name.replace(/ - (Direct|Regular).*/i, "")}<span className="block text-[11px] text-ink-faint">{r.amc}</span></a> },
-    { key: "ret", label: "30d return", align: "right", render: (r) => <span className={r.ret >= 0 ? "text-pos tnum" : "text-neg tnum"}>{r.ret >= 0 ? "+" : ""}{r.ret.toFixed(2)}%</span> },
+    { key: "amc", label: "AMC", render: (r) => <a className="text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(r.amc + " Mutual Fund")}`}>{r.amc}</a> },
+    { key: "funds", label: "Funds", align: "right", mono: true, muted: true },
+    { key: "avg", label: "Avg 1M", align: "right", render: (r) => <span className={r.avg >= 0 ? "text-pos tnum" : "text-neg tnum"}>{r.avg >= 0 ? "+" : ""}{r.avg.toFixed(1)}%</span> },
+    { key: "score", label: "Quality", align: "right", render: (r) => <span className="font-semibold tnum text-ink">{r.score.toFixed(0)}</span> },
   ];
 
   // Per-AMC aggregation for leaderboard
@@ -101,7 +101,7 @@ export default async function Page() {
   const stats = [
     { label: "Schemes tracked", value: fmt(totalSchemes), sub: "AMFI · daily" },
     { label: "AMC houses", value: "51", sub: "AMFI" },
-    { label: "Top fund · 30d", value: `+${topPerf.ret.toFixed(1)}%`, tone: "pos", sub: topPerf.amc },
+    { label: "Top fund · 1M", value: `+${topPerf.r1m.toFixed(1)}%`, tone: "pos", sub: topPerf.amc },
     { label: "Market momentum", value: `${intel.avg >= 0 ? "+" : ""}${intel.avg.toFixed(2)}`, tone: intel.avg >= 0 ? "pos" : "neg", sub: "avg AMC 30d index" },
     { label: "Latest NAV", value: latest, sub: "AMFI" },
     { label: "Flow signals", value: signals.length, sub: "flows · sample" },
@@ -116,12 +116,12 @@ export default async function Page() {
         {/* Header */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Market Intelligence · {flow.month || "—"}</div>
-            <h1 className="mt-2 text-[26px] sm:text-[34px] font-bold tracking-tightest text-ink">India Mutual-Fund Flow Intelligence</h1>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Performance Intelligence · {latest}</div>
+            <h1 className="mt-2 text-[26px] sm:text-[34px] font-bold tracking-tightest text-ink">India Mutual-Fund Performance Intelligence</h1>
           </div>
           <div className="flex gap-2">
-            <PremiumButton href="/brief" variant="ghost">Market Brief</PremiumButton>
-            <PremiumButton href="#alerts">Get Flow Alerts</PremiumButton>
+            <PremiumButton href="/categories" variant="ghost">Categories</PremiumButton>
+            <PremiumButton href="/performance">Top Performers</PremiumButton>
           </div>
         </div>
         <TrustBar asOf={latest} label="Latest AMFI NAV" className="mt-3.5" sources={[{ label: "NAVs", value: "AMFI · daily" }, { label: "Flows", value: "SEBI · sample" }]} />
@@ -129,20 +129,23 @@ export default async function Page() {
         {/* Market summary strip */}
         <div className="mt-6"><StatStrip items={stats} /></div>
 
-        {/* Network + brief */}
+        {/* Performance pulse — REAL data leads the page */}
         <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
           <GlassPanel className="lg:col-span-2 p-5 sm:p-6">
-            <SectionHeader eyebrow={`net flows · ${flow.month || "—"}`} title="Capital allocation network · AMC → category" action={<Badge tone="warn">sample</Badge>} />
-            <HeroVisual nodes={networkNodes} />
+            <SectionHeader eyebrow={`auto-generated · as of ${performance.asOf}`} title="What the data says" action={<Badge tone="pos" dot>real</Badge>} />
+            <ul className="space-y-3">
+              {performance.insights.map((t, i) => (
+                <li key={i} className="text-[13.5px] leading-relaxed text-ink-muted"><span className="text-accent-soft">▸</span> {t}</li>
+              ))}
+            </ul>
           </GlassPanel>
           <GlassPanel className="p-5 sm:p-6">
-            <SectionHeader title="Market brief" action={<a className="hover:text-ink" href="/brief">Full →</a>} />
-            <p className="text-[13.5px] leading-relaxed text-ink-muted">{brief.lead}</p>
-            <ul className="mt-4 space-y-2.5">
-              {brief.bullets.map((b, i) => (
-                <li key={i} className="flex items-start justify-between gap-3 text-[12.5px]">
-                  <span className="text-ink-faint">{b.k}</span>
-                  <span className={`text-right ${b.tone === "pos" ? "text-pos" : b.tone === "neg" ? "text-neg" : "text-ink"}`}>{b.v}</span>
+            <SectionHeader title="Top performers · 1M" action={<a className="hover:text-ink" href="/performance">All →</a>} />
+            <ul className="space-y-3">
+              {performance.top.slice(0, 5).map((f) => (
+                <li key={f.code} className="flex items-center justify-between gap-3 text-[12.5px]">
+                  <a className="truncate text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(f.amc + " Mutual Fund")}`}>{f.name.replace(/ - (Direct|Regular).*/i, "")}</a>
+                  <span className="shrink-0 font-semibold tnum text-pos">+{f.r1m.toFixed(1)}%</span>
                 </li>
               ))}
             </ul>
@@ -177,16 +180,20 @@ export default async function Page() {
           </div>
         </section>
 
-        {/* Top performing funds — REAL AMFI NAV returns */}
+        {/* AMC quality leaders — REAL */}
         <section className="mt-9">
-          <SectionHeader eyebrow="real 30-day NAV return · equity Direct/Growth" title="Top performing funds" action={<a className="hover:text-ink" href="/performance">All {performance.universe} →</a>} />
-          <DataTable columns={perfCols} rows={performance.top.slice(0, 6).map((r, i) => ({ ...r, _key: r.code, _rank: i + 1 }))} footnote="30-day NAV return, equity Direct/Growth plans. Source: AMFI NAV history." />
+          <SectionHeader eyebrow="% of funds beating category median · 1M" title="AMC quality leaders" action={<a className="hover:text-ink" href="/performance">Full ranking →</a>} />
+          <DataTable columns={amcCols} rows={performance.amcs.slice(0, 6).map((r, i) => ({ ...r, _key: r.amc, _rank: i + 1 }))} footnote="Quality score blends outperformance, breadth, and average return. Real AMFI NAV, last month." />
         </section>
 
-        {/* Heatmap — clearly-labelled SAMPLE flow data (real flows pending SEBI export) */}
+        {/* Sample flow zone — clearly quarantined, awaiting authoritative SEBI data */}
         <section className="mt-9">
-          <SectionHeader eyebrow="illustrative sample · awaiting SEBI export" title="Net equity-flow heatmap" action={<Badge tone="warn">sample</Badge>} />
+          <SectionHeader eyebrow="illustrative sample · awaiting SEBI export" title="Fund flows (sample)" action={<Badge tone="warn">sample</Badge>} />
           <GlassPanel className="p-5 sm:p-6"><FlowHeatmap rows={flowHistory} assetClass="Equity" /></GlassPanel>
+          <GlassPanel className="mt-4 p-5 sm:p-6">
+            <div className="mb-3 text-[12px] text-ink-faint">Capital-allocation network · AMC → category (illustrative)</div>
+            <HeroVisual nodes={networkNodes} />
+          </GlassPanel>
         </section>
 
         {/* Signals */}
