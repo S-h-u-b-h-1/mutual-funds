@@ -16,11 +16,11 @@ const short = (n) => n.replace(/ - (Direct|Regular).*/i, "");
 
 const cols = [
   { key: "rank", label: "#", muted: true, render: (r) => r._rank },
-  { key: "category", label: "Category", render: (r) => <span className="font-medium text-ink">{r.category}</span> },
+  { key: "category", label: "Category", render: (r) => <a className="font-medium text-ink hover:text-accent-soft" href={`/categories/${encodeURIComponent(r.category)}`}>{r.category}</a> },
   { key: "count", label: "Funds", align: "right", mono: true, muted: true },
   { key: "avg", label: "Avg 1M", align: "right", render: (r) => pct(r.avg) },
   { key: "breadth", label: "Breadth", align: "right", mono: true, render: (r) => `${r.breadth.toFixed(0)}%` },
-  { key: "best", label: "Best fund", render: (r) => <span className="text-[12px]"><span className="text-ink">{short(r.best.name).slice(0, 34)}</span> <span className="text-pos">+{r.best.ret.toFixed(1)}%</span></span> },
+  { key: "best", label: "Best fund", render: (r) => <span className="text-[12px]"><a className="text-ink hover:text-accent-soft" href={`/fund/${r.best.code}`}>{short(r.best.name).slice(0, 34)}</a> <span className="text-pos">+{r.best.ret.toFixed(1)}%</span></span> },
 ];
 
 const csvCols = [

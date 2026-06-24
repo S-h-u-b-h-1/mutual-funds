@@ -66,7 +66,7 @@ export default function Search() {
             results.map((r) => (
               <li key={r.scheme_code}>
                 <a
-                  href={`/amc/${encodeURIComponent(r.amc_name)}`}
+                  href={`/fund/${r.scheme_code}`}
                   onClick={() => track("search_click", { scheme_code: r.scheme_code, amc: r.amc_name })}
                   className="flex flex-col gap-0.5 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/[0.05]"
                 >

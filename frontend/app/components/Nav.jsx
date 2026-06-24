@@ -2,11 +2,11 @@ import PremiumButton from "./ui/PremiumButton";
 import MobileNav from "./MobileNav";
 
 const LINKS = [
+  ["Funds", "/funds"],
   ["Performance", "/performance"],
   ["Categories", "/categories"],
   ["Compare", "/compare"],
   ["Research", "/research"],
-  ["Analytics", "/analytics"],
 ];
 
 export default function Nav({ active }) {

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const LINKS = [
+  ["Funds", "/funds"],
   ["Performance", "/performance"],
   ["Categories", "/categories"],
   ["Compare", "/compare"],

@@ -17,7 +17,7 @@ const shortName = (n) => n.replace(/ - (Direct|Regular).*/i, "");
 
 const fundCols = [
   { key: "rank", label: "#", muted: true, render: (r) => r._rank },
-  { key: "name", label: "Fund", render: (r) => <a className="text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(r.amc + " Mutual Fund")}`}>{shortName(r.name)}<span className="block text-[11px] text-ink-faint">{r.amc} · {r.category}</span></a> },
+  { key: "name", label: "Fund", render: (r) => <a className="text-ink hover:text-accent-soft" href={`/fund/${r.code}`}>{shortName(r.name)}<span className="block text-[11px] text-ink-faint">{r.amc} · {r.category}</span></a> },
   ...WIN.map(([k, l]) => ({ key: k, label: l, align: "right", render: (r) => fmtPct(r[k]) })),
 ];
 const csvCols = [
