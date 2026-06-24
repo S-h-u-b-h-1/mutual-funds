@@ -32,7 +32,9 @@ def run_all(as_of=None) -> dict:
         audit.append(rec)
 
     bundle = {"asOf": as_of, "adapters": len(ADAPTERS),
-              "implemented": sum(1 for a in audit if a.get("status") == "ok"),
+              "parser_ready": sum(1 for c in ADAPTERS.values() if getattr(c, "implemented", False)),
+              "succeeded": sum(1 for a in audit if a.get("status") == "ok"),
+              "failed": sum(1 for a in audit if a.get("status") == "failed"),
               "pending": sum(1 for a in audit if a.get("status") == "pending"),
               "schemes_populated": len(rows), "audit": audit, "metadata": rows}
     return bundle
@@ -42,11 +44,12 @@ def main():
     bundle = run_all()
     out = "frontend/app/data/metadata.json"
     with open(out, "w") as fh:
-        json.dump({k: bundle[k] for k in ("asOf", "adapters", "implemented", "pending", "schemes_populated", "metadata")}, fh, separators=(",", ":"))
-    print(f"-- adapters {bundle['adapters']} | implemented {bundle['implemented']} | "
-          f"pending {bundle['pending']} | schemes populated {bundle['schemes_populated']}", file=sys.stderr)
+        json.dump({k: bundle[k] for k in ("asOf", "adapters", "parser_ready", "succeeded", "failed", "pending", "schemes_populated", "metadata")}, fh, separators=(",", ":"))
+    print(f"-- adapters {bundle['adapters']} | parser_ready {bundle['parser_ready']} | "
+          f"succeeded {bundle['succeeded']} | failed {bundle['failed']} | schemes populated {bundle['schemes_populated']}", file=sys.stderr)
     for a in bundle["audit"]:
-        print(f"   {a['amc']:32} {a['status']}", file=sys.stderr)
+        extra = f" ({a.get('error', '')[:60]})" if a.get("status") == "failed" else ""
+        print(f"   {a['amc']:32} {a['status']}{extra}", file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -1,23 +1,21 @@
-"""ICICI Prudential Mutual Fund factsheet adapter (scaffold).
+"""ICICI Prudential Mutual Fund factsheet adapter.
 
-Source: ICICI Pru monthly factsheet PDF. Structure: per-scheme pages with "Fund Details"
-(inception, benchmark, fund managers, AUM (month-end & average), TER for Direct/Other,
-exit load, min application) plus "Portfolio Holdings" and "Sector Allocation" tables.
+Per-scheme "Fund Details" (inception, benchmark, fund managers, AUM month-end & average,
+TER Direct/Other, exit load, min application) + Portfolio Holdings + Sector Allocation.
+Extraction via the shared base parser.
 """
 
 from __future__ import annotations
 
 from ..base import FactsheetAdapter
-from ..normalize import SchemeMetadata
 
 
 class ICICIAdapter(FactsheetAdapter):
     amc_name = "ICICI Prudential Mutual Fund"
-    implemented = False
+    implemented = True
     factsheet_page = "https://www.icicipruamc.com/news-and-update/factsheet"
+    LABELS_BENCHMARK = ["benchmark", "benchmark index", "tier i benchmark"]
+    LABELS_INCEPTION = ["inception/allotment date", "inception date", "allotment date"]
 
     def factsheet_url(self, as_of=None) -> str:
         return self.factsheet_page
-
-    def parse(self, pdf_bytes: bytes) -> list[SchemeMetadata]:
-        raise NotImplementedError("ICICI factsheet PDF parser not yet implemented")

@@ -2,28 +2,72 @@
 
 from __future__ import annotations
 
+import io
+import re
 import time
 import urllib.request
 from abc import ABC, abstractmethod
 
 from .normalize import SchemeMetadata, validate, completeness
+from . import extract
 
 
 class FactsheetAdapter(ABC):
-    """One per AMC. Subclasses implement `factsheet_url()` and `parse(pdf_bytes)`."""
+    """One per AMC. Subclasses set label maps + a scheme splitter and implement parse_text."""
 
     amc_name: str = ""
     frequency: str = "monthly"
     polite_delay_s: float = 2.0          # be kind to AMC servers
+    implemented: bool = False
+
+    # Per-AMC label variants (overridable). Defaults cover common factsheet wording.
+    LABELS_BENCHMARK = ["benchmark index", "benchmark", "tier i benchmark"]
+    LABELS_MANAGER = ["fund manager", "fund managers", "managed by"]
+    LABELS_INCEPTION = ["inception date", "date of allotment", "allotment date", "launch date"]
+    LABELS_RISK = ["riskometer", "risk-o-meter"]
+    LABELS_EXIT = ["exit load"]
+    LABELS_SIP = ["minimum sip", "sip amount", "minimum installment"]
+    LABELS_LUMPSUM = ["minimum investment", "minimum application", "lumpsum"]
+    SCHEME_SPLIT = r"(?im)^\s*(?:scheme name|fund name)\s*[:\-]"
 
     @abstractmethod
     def factsheet_url(self, as_of=None) -> str:
         ...
 
-    @abstractmethod
+    # ----- extraction -----
+    def parse_scheme_block(self, block: str) -> SchemeMetadata:
+        """Extract one scheme's metadata from its factsheet text block. None when unsure."""
+        name = extract.labeled(block, ["scheme name", "fund name"]) or block.strip().splitlines()[0][:90]
+        overall, reg, dir_ = extract.parse_expense(block)
+        m = SchemeMetadata(
+            scheme_code=None, scheme_name=name.strip()[:120], amc=self.amc_name,
+            benchmark=extract.labeled(block, self.LABELS_BENCHMARK),
+            fund_manager=extract.labeled(block, self.LABELS_MANAGER),
+            expense_ratio=overall, regular_expense_ratio=reg, direct_expense_ratio=dir_,
+            aum_crores=extract.parse_aum(block),
+            riskometer=extract.labeled(block, self.LABELS_RISK),
+            exit_load=extract.labeled(block, self.LABELS_EXIT),
+            minimum_sip=extract.parse_amount(extract.labeled(block, self.LABELS_SIP)),
+            minimum_lumpsum=extract.parse_amount(extract.labeled(block, self.LABELS_LUMPSUM)),
+            holdings=extract.parse_holdings(block),
+            sector_allocation=extract.parse_sectors(block),
+        )
+        # launch date best-effort
+        m.launch_date = extract.parse_date(block, self.LABELS_INCEPTION)
+        return m
+
+    def parse_text(self, text: str) -> list[SchemeMetadata]:
+        """Split a full factsheet into scheme blocks and parse each."""
+        parts = re.split(self.SCHEME_SPLIT, text)
+        blocks = [p for p in parts if len(p.strip()) > 40]
+        return [self.parse_scheme_block(b) for b in blocks] if blocks else [self.parse_scheme_block(text)]
+
     def parse(self, pdf_bytes: bytes) -> list[SchemeMetadata]:
-        """Return one SchemeMetadata per scheme found. Missing fields stay None."""
-        ...
+        """Extract text from the PDF (pypdf) then parse. Missing fields stay None."""
+        import pypdf
+        reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
+        text = "\n".join((p.extract_text() or "") for p in reader.pages)
+        return self.parse_text(text)
 
     # ----- shared mechanics -----
     def fetch(self, url: str, retries: int = 3, timeout: int = 120) -> bytes:

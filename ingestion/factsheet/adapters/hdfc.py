@@ -1,24 +1,21 @@
-"""HDFC Mutual Fund factsheet adapter (scaffold).
+"""HDFC Mutual Fund factsheet adapter.
 
-Source: HDFC MF monthly factsheet PDF. Structure: scheme fact pages with a standard
-"Fund Snapshot" box (inception, benchmark, fund manager(s), AUM, expense ratio (Regular &
-Direct), exit load, riskometer) plus "Portfolio" (top holdings + % ) and "Industry
-Allocation" tables. One of the cleaner/most consistent layouts.
+Standard "Fund Snapshot" box (inception, benchmark, fund manager(s), AUM, TER Regular &
+Direct, exit load, riskometer) + Portfolio (top holdings) + Industry Allocation tables.
+One of the cleaner layouts. Extraction via the shared base parser.
 """
 
 from __future__ import annotations
 
 from ..base import FactsheetAdapter
-from ..normalize import SchemeMetadata
 
 
 class HDFCAdapter(FactsheetAdapter):
     amc_name = "HDFC Mutual Fund"
-    implemented = False
+    implemented = True
     factsheet_page = "https://www.hdfcfund.com/information/downloads"
+    LABELS_BENCHMARK = ["benchmark", "benchmark index"]
+    LABELS_MANAGER = ["fund manager", "fund managers", "managed by"]
 
     def factsheet_url(self, as_of=None) -> str:
         return self.factsheet_page
-
-    def parse(self, pdf_bytes: bytes) -> list[SchemeMetadata]:
-        raise NotImplementedError("HDFC factsheet PDF parser not yet implemented")

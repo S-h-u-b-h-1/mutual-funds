@@ -10,6 +10,7 @@ import { getFund, cohortOf, asOf } from "../../lib/funds";
 import { getNavHistory } from "../../lib/mfapi";
 import { fundSignals, researchSummary, visibleReturns, riskInterpretation, benchmarkRows } from "../../lib/fundAnalysis";
 import { fundHealth, gradeTone, LABELS } from "../../lib/fundHealth";
+import { getMetadata } from "../../lib/metadata";
 
 export const revalidate = 3600;
 
@@ -48,7 +49,8 @@ export default async function FundPage({ params }) {
   const sig = fundSignals(f, cohort);
   const rets = visibleReturns(f);
   const bench = benchmarkRows(f, cohort);
-  const health = fundHealth(f);
+  const meta = getMetadata(f.code);                       // factsheet metadata when available
+  const health = fundHealth({ ...f, expenseRatio: meta?.expense_ratio ?? null });  // cost activates with real TER
   const [fTone, fLabel] = freshness(f.staleDays);
   const histDays = history?.points?.length || 0;
 
@@ -194,16 +196,32 @@ export default async function FundPage({ params }) {
         {/* 7 · Metadata + 8 · Signals + 10 · Data quality */}
         <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
           <GlassPanel className="p-5">
-            <SectionHeader title="Portfolio & metadata" />
+            <SectionHeader title="Portfolio & metadata" action={meta ? <Badge tone="pos" dot>factsheet</Badge> : null} />
             <div className="space-y-2.5">
-              <div className="flex items-center justify-between gap-2 text-[12.5px]"><span className="text-ink-faint">Benchmark</span><span className="text-right text-ink-muted">{f.benchmark || "Not yet available"}</span></div>
-              <Metric label="AUM" value="Not yet available" />
-              <Metric label="Expense ratio" value="Not yet available" />
-              <Metric label="Fund manager" value="Not yet available" />
-              <Metric label="Top holdings" value="Not yet available" />
-              <Metric label="Sector allocation" value="Not yet available" />
+              <div className="flex items-center justify-between gap-2 text-[12.5px]"><span className="text-ink-faint">Benchmark</span><span className="text-right text-ink-muted">{(meta?.benchmark) || f.benchmark || "Not yet available"}</span></div>
+              <Metric label="AUM" value={meta?.aum_crores != null ? `₹${meta.aum_crores.toLocaleString("en-IN")} Cr` : "Not yet available"} />
+              <Metric label="Expense ratio" value={meta?.expense_ratio != null ? `${meta.expense_ratio}%${meta.direct_expense_ratio != null ? ` (Direct ${meta.direct_expense_ratio}%)` : ""}` : "Not yet available"} />
+              <Metric label="Fund manager" value={meta?.fund_manager || "Not yet available"} />
+              <Metric label="Riskometer" value={meta?.riskometer || "Not yet available"} />
+              <Metric label="Exit load" value={meta?.exit_load || "Not yet available"} />
             </div>
-            <p className="mt-3 border-t border-line pt-2.5 text-[11.5px] leading-relaxed text-ink-faint">Benchmark is the SEBI category standard. AUM, expense, manager, holdings &amp; sectors come from AMC factsheet PDFs — ingestion framework built, parsers pending. Never fabricated.</p>
+            {meta?.holdings?.length ? (
+              <div className="mt-3 border-t border-line pt-2.5">
+                <div className="mb-1.5 text-[11px] uppercase tracking-[0.08em] text-ink-faint">Top holdings</div>
+                {meta.holdings.slice(0, 8).map((h) => (
+                  <div key={h.name} className="flex justify-between text-[12px]"><span className="truncate text-ink-muted">{h.name}</span><span className="tnum text-ink">{h.weight}%</span></div>
+                ))}
+              </div>
+            ) : null}
+            {meta?.sector_allocation?.length ? (
+              <div className="mt-3 border-t border-line pt-2.5">
+                <div className="mb-1.5 text-[11px] uppercase tracking-[0.08em] text-ink-faint">Sector allocation</div>
+                {meta.sector_allocation.slice(0, 8).map((s) => (
+                  <div key={s.sector} className="flex justify-between text-[12px]"><span className="truncate text-ink-muted">{s.sector}</span><span className="tnum text-ink">{s.allocation_pct}%</span></div>
+                ))}
+              </div>
+            ) : null}
+            {!meta && <p className="mt-3 border-t border-line pt-2.5 text-[11.5px] leading-relaxed text-ink-faint">Benchmark is the SEBI category standard. AUM, expense, manager, holdings &amp; sectors come from AMC factsheet PDFs — parsers implemented &amp; tested; live ingestion pending. Never fabricated.</p>}
           </GlassPanel>
 
           <GlassPanel className="p-5">

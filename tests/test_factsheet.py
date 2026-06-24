@@ -4,7 +4,6 @@ from datetime import date
 from ingestion.benchmarks import resolve_benchmark
 from ingestion.factsheet.normalize import SchemeMetadata, SectorAllocation, completeness, validate
 from ingestion.factsheet.registry import ADAPTERS, implemented_amcs
-from ingestion.factsheet.run import run_all
 
 
 def test_benchmark_standard_categories():
@@ -44,10 +43,11 @@ def test_metadata_row_serializable():
     assert "holdings" not in row and row["launch_date"] == "2020-01-01"
 
 
-def test_registry_and_audit_are_honest():
-    assert len(ADAPTERS) >= 3
-    assert implemented_amcs() == []                            # none faked as implemented
-    bundle = run_all()
-    assert bundle["schemes_populated"] == 0                    # no fabricated metadata
-    assert bundle["pending"] == len(ADAPTERS)
-    assert all(a["status"] in ("ok", "pending", "failed") for a in bundle["audit"])
+def test_registry_is_honest_and_no_fabrication_on_empty_text():
+    assert len(ADAPTERS) >= 4
+    assert len(implemented_amcs()) == len(ADAPTERS)            # all Big-Four parsers implemented
+    # Parsing non-factsheet text must NOT invent any field (offline, no network).
+    from ingestion.factsheet.adapters.hdfc import HDFCAdapter
+    from ingestion.factsheet.normalize import completeness
+    metas = HDFCAdapter().parse_text("this is not a factsheet at all")
+    assert all(completeness(m) == 0.0 for m in metas)
