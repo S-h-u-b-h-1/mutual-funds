@@ -23,7 +23,11 @@ Durable tracker (survives across sessions). Updated 2026-06-21.
 ### 🌐 LIVE: https://frontend-six-beta-20.vercel.app
 ### 📦 Repo: https://github.com/S-h-u-b-h-1/MF-Pulse
 
-**Data layer hardened (production-grade):** Supabase Postgres is the source of truth (not Neon — no Neon instance exists). Append-only `fact_pipeline_runs` + `fact_system_health`, lineage columns (`source`/`ingested_at`), structured events. Idempotent **service-role daily pipeline** (`scripts/cloud_pipeline.py`) + GitHub Actions cron — activates on `SUPABASE_SERVICE_ROLE_KEY` secret. `/data-status` observability (green/amber/red freshness). Truthful copy (no "live flows"). Full audit in [docs/DATA_ARCHITECTURE.md](docs/DATA_ARCHITECTURE.md). **Production readiness: 82/100.**
+**Data layer hardened (production-grade):** Supabase Postgres is the source of truth (not Neon — no Neon instance exists). Append-only `fact_pipeline_runs` + `fact_system_health`, lineage columns (`source`/`ingested_at`), structured events. Idempotent **service-role daily pipeline** (`scripts/cloud_pipeline.py`) + GitHub Actions cron — activates on `SUPABASE_SERVICE_ROLE_KEY` secret. `/data-status` observability (green/amber/red freshness). Truthful copy (no "live flows"). Full audit in [docs/DATA_ARCHITECTURE.md](docs/DATA_ARCHITECTURE.md). **Production readiness: 85/100.**
+
+**⚠️ DB migrated (2026-06-24):** the original Supabase project `FinPulse` was deleted; MF Pulse was re-stood-up on the new **MF-Pulse** project (`fffxwcpptpyjuifknayj`) — full schema + 14,224 schemes + **fresh NAV (green)** + flows/signals/views/matviews/observability, env repointed, redeployed. See [[mfpulse-supabase-deploy]] memory.
+
+**Failure alerting + monitoring:** `ingestion/alerting.py` (GitHub annotation always + optional Slack/webhook) + `ingestion/freshness.py`; pipeline alerts on failure/missing/stale; `v_pipeline_stats` + `/data-status` Pipeline-monitoring section (success rate, consecutive failures, last error). 27 Python tests pass.
 
 **Operational excellence (latest):** materialized analytics layer (`mv_asset_class_summary`, `mv_amc_summary` + `refresh_analytics()`, refreshed by the pipeline); **real-data market intelligence** (momentum/breadth/dispersion/movers from the 30-day equity index — no sample); watchlist intelligence + saved comparison workspaces (retention). **To reach 90+:** add `SUPABASE_SERVICE_ROLE_KEY` to GitHub secrets (activates daily ingestion → live freshness — see [RUNBOOK.md](RUNBOOK.md)) and connect a real monthly-flow export.
 
