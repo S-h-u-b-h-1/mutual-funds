@@ -16,7 +16,8 @@ export default function FlowNetwork({ nodes }) {
   const edge = (x1, y1, x2, y2) => `M${x1},${y1} C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2}`;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="AMC to category fund-flow network">
+    <div className="overflow-x-auto">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[540px]" role="img" aria-label="AMC to category fund-flow network">
       {nodes.map((d, i) => (
         <g key={d.name + "-e"}>
           <path d={edge(ax, ys[i], eq.x - 30, eq.y)} fill="none" stroke={color(d.equity || 0)} strokeWidth={width(d.equity || 0)} strokeOpacity={op(d.equity || 0)} strokeLinecap="round" />
@@ -38,5 +39,6 @@ export default function FlowNetwork({ nodes }) {
         </g>
       ))}
     </svg>
+    </div>
   );
 }

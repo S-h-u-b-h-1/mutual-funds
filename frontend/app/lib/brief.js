@@ -47,5 +47,25 @@ export function buildBrief({ headline = {}, amcFlows = [], signals = [] }) {
       : "Debt saw net additions, suggesting defensive positioning alongside equity flows.",
   ].filter(Boolean);
 
-  return { month, lead, bullets, paragraphs, equity, debt };
+  const topInflows = eq.filter((r) => r.v > 0).slice(0, 5);
+  const topOutflows = eq.filter((r) => r.v < 0).sort((a, b) => a.v - b.v).slice(0, 5);
+
+  const commentary = {
+    equity:
+      `Equity recorded net ${equity >= 0 ? "inflows" : "outflows"} of ${inr(equity)} for the month, with ` +
+      `${inflowCount} of ${eq.length} reporting AMCs in positive territory. ` +
+      (topIn ? `${topIn.name} drove the bulk of additions.` : ""),
+    debt:
+      debt < 0
+        ? `Debt saw net redemptions of ${inr(debt)}, consistent with a risk-on rotation toward equity.`
+        : `Debt attracted net inflows of ${inr(debt)}, suggesting some defensive allocation alongside equity.`,
+  };
+
+  const risks = [
+    "Flow figures are monthly and lagging — they describe positioning after the fact, not forward returns.",
+    "A single large AMC can dominate the category total; breadth matters as much as the headline number.",
+    "Signal z-scores use a short trailing window; treat extreme readings as directional, not precise.",
+  ];
+
+  return { month, lead, bullets, paragraphs, equity, debt, topInflows, topOutflows, commentary, risks };
 }

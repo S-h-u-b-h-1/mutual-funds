@@ -13,7 +13,7 @@ import SectionHeader from "./components/ui/SectionHeader";
 import GlassPanel from "./components/ui/GlassPanel";
 import StatStrip from "./components/ui/StatStrip";
 import TrustBar from "./components/ui/TrustBar";
-import DataTable from "./components/ui/DataTable";
+import Leaderboard from "./components/Leaderboard";
 import SignalCard from "./components/ui/SignalCard";
 import PremiumButton from "./components/ui/PremiumButton";
 import Badge from "./components/ui/Badge";
@@ -34,7 +34,7 @@ export default async function Page() {
     sb("v_amc_summary?select=*"),
     sb("v_flow_headline?select=*"),
     sb("v_amc_flows?select=amc_name,asset_class,net_flow_cr"),
-    sb("v_signals?select=*&limit=6"),
+    sb("v_signals?select=*"),
     sb("v_flow_history?select=*"),
   ]);
   const flow = headline[0] || {};
@@ -49,12 +49,25 @@ export default async function Page() {
     a.total += Number(r.schemes);
     if (r.asset_class === "Equity") a.equity += Number(r.schemes);
   }
-  const flowMap = {}, sigMap = {};
-  for (const r of amcFlows) if (r.asset_class === "Equity") flowMap[r.amc_name] = Number(r.net_flow_cr);
-  for (const s of signals) sigMap[s.amc_name] = s;
+  const flowByAmc = {};
+  for (const r of amcFlows) {
+    const f = (flowByAmc[r.amc_name] ||= { equity: null, debt: null });
+    if (r.asset_class === "Equity") f.equity = Number(r.net_flow_cr);
+    if (r.asset_class === "Debt") f.debt = Number(r.net_flow_cr);
+  }
+  const sigCount = {};
+  for (const s of signals) sigCount[s.amc_name] = (sigCount[s.amc_name] || 0) + 1;
 
   const leaderboard = Object.entries(agg)
-    .map(([amc, a]) => ({ amc, ...a, idx: trendDelta(amc), flow: flowMap[amc], sig: sigMap[amc] }))
+    .map(([amc, a]) => {
+      const f = flowByAmc[amc] || {};
+      const eq = f.equity ?? null, db = f.debt ?? null;
+      const total = eq == null && db == null ? null : (eq || 0) + (db || 0);
+      return {
+        amc, name: strip(amc), equity: a.equity, idx: trendDelta(amc),
+        equityFlow: eq, debtFlow: db, totalFlow: total, signals: sigCount[amc] || 0,
+      };
+    })
     .sort((x, y) => y.equity - x.equity)
     .slice(0, 15);
 
@@ -76,15 +89,6 @@ export default async function Page() {
     { label: "Active signals", value: signals.length, sub: "z ≥ 1.8" },
     { label: "Schemes", value: fmt(totalSchemes), sub: "live · AMFI" },
     { label: "AMC houses", value: "51", sub: "live" },
-  ];
-
-  const cols = [
-    { key: "amc", label: "AMC", render: (r) => <a className="font-medium text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(r.amc)}`}>{strip(r.amc)}</a> },
-    { key: "equity", label: "Equity", align: "right", mono: true, render: (r) => fmt(r.equity) },
-    { key: "total", label: "Total", align: "right", mono: true, muted: true, render: (r) => fmt(r.total) },
-    { key: "idx", label: "30d Index", align: "right", render: (r) => (r.idx == null ? <span className="text-ink-faint">—</span> : <span className={r.idx >= 0 ? "text-pos tnum" : "text-neg tnum"}>{r.idx >= 0 ? "+" : ""}{r.idx.toFixed(2)}</span>) },
-    { key: "flow", label: "Net flow", align: "right", render: (r) => (r.flow == null ? <span className="text-ink-faint">—</span> : <span className={r.flow >= 0 ? "text-pos tnum" : "text-neg tnum"}>{inr(r.flow)}</span>) },
-    { key: "sig", label: "Signal", align: "right", render: (r) => (r.sig ? <Badge tone={r.sig.signal === "inflow_surge" ? "pos" : "neg"}>z {Number(r.sig.z_score).toFixed(1)}</Badge> : <span className="text-ink-faint">—</span>) },
   ];
 
   return (
@@ -143,7 +147,7 @@ export default async function Page() {
           <section className="mt-9">
             <SectionHeader eyebrow="z-score ≥ 1.8" title="Flow signals" action={<a className="hover:text-ink" href="/signals">All →</a>} />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {signals.map((s, i) => (
+              {signals.slice(0, 6).map((s, i) => (
                 <SignalCard key={i} amc={strip(s.amc_name)} assetClass={s.asset_class} signal={s.signal} z={Number(s.z_score).toFixed(1)} value={inr(s.net_flow_cr)} />
               ))}
             </div>
@@ -152,8 +156,8 @@ export default async function Page() {
 
         {/* AMC leaderboard */}
         <section className="mt-9">
-          <SectionHeader eyebrow="ranked by equity schemes" title="AMC leaderboard" action={<a className="hover:text-ink" href="/compare">Compare →</a>} />
-          <DataTable columns={cols} rows={leaderboard} footnote="Equity / Total = scheme counts (live AMFI). 30d Index = normalised equity NAV move. Net flow & signals = latest reporting month (sample)." />
+          <SectionHeader eyebrow="sortable · click any header" title="AMC leaderboard" action={<a className="hover:text-ink" href="/compare">Compare →</a>} />
+          <Leaderboard rows={leaderboard} />
         </section>
 
         <Watchlist />
