@@ -1,10 +1,11 @@
 import PremiumButton from "./ui/PremiumButton";
 
 const LINKS = [
+  ["Market Brief", "/brief"],
   ["Signals", "/signals"],
   ["Compare", "/compare"],
+  ["Research", "/research"],
   ["Analytics", "/analytics"],
-  ["Methodology", "/methodology"],
 ];
 
 export default function Nav({ active }) {

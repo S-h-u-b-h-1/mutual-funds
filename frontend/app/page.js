@@ -1,153 +1,166 @@
-// MF Pulse — premium fintech dashboard. Server component reading live Supabase views.
+// MF Pulse — Market Intelligence homepage. Dense, terminal-grade, trust-signaled.
 import { sb } from "./lib/supabase";
+import { buildBrief } from "./lib/brief";
 import Nav from "./components/Nav";
-import Hero from "./components/Hero";
 import Footer from "./components/Footer";
 import Search from "./components/Search";
 import Tracker from "./components/Tracker";
 import Watchlist from "./components/Watchlist";
-import FlowChart from "./components/FlowChart";
+import FlowNetwork from "./components/FlowNetwork";
+import FlowHeatmap from "./components/FlowHeatmap";
 import AlertSignup from "./components/AlertSignup";
 import SectionHeader from "./components/ui/SectionHeader";
-import MetricCard from "./components/ui/MetricCard";
-import SignalCard from "./components/ui/SignalCard";
-import AMCCard from "./components/ui/AMCCard";
 import GlassPanel from "./components/ui/GlassPanel";
-import Badge, { EmptyState } from "./components/ui/Badge";
+import StatStrip from "./components/ui/StatStrip";
+import TrustBar from "./components/ui/TrustBar";
+import DataTable from "./components/ui/DataTable";
+import SignalCard from "./components/ui/SignalCard";
+import PremiumButton from "./components/ui/PremiumButton";
+import Badge from "./components/ui/Badge";
 import trendData from "./data/amc_trend.json";
 
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(n);
 const inr = (n) => `${n >= 0 ? "+" : "−"}₹${fmt(Math.abs(Math.round(n)))} Cr`;
 const lakhCr = (n) => `₹${(n / 100000).toFixed(2)}L Cr`;
-const CLASS_COLOR = { Equity: "#34d399", Debt: "#60a5fa", Hybrid: "#a78bfa", Other: "#fbbf24", Solution: "#f472b6" };
-
-function marketIndex() {
-  const byDate = {};
-  for (const pts of Object.values(trendData.amcs)) for (const [d, v] of pts) (byDate[d] ||= []).push(v);
-  return Object.entries(byDate)
-    .map(([d, a]) => [d.slice(5), Math.round((a.reduce((s, x) => s + x, 0) / a.length) * 100) / 100])
-    .sort((x, y) => (x[0] < y[0] ? -1 : 1));
-}
+const strip = (s) => s.replace(" Mutual Fund", "");
+const trendDelta = (amc) => {
+  const p = trendData.amcs[amc];
+  return p ? p[p.length - 1][1] - p[0][1] : null;
+};
 
 export default async function Page() {
-  const [byClass, amcRows, headline, amcFlows, signals] = await Promise.all([
+  const [byClass, amcSummary, headline, amcFlows, signals, flowHistory] = await Promise.all([
     sb("v_asset_class_summary?select=*"),
-    sb("v_amc_summary?select=*&asset_class=eq.Equity&order=schemes.desc&limit=12"),
+    sb("v_amc_summary?select=*"),
     sb("v_flow_headline?select=*"),
-    sb("v_amc_flows?select=amc_name,asset_class,net_flow_cr&order=net_flow_cr.desc&limit=10"),
+    sb("v_amc_flows?select=amc_name,asset_class,net_flow_cr"),
     sb("v_signals?select=*&limit=6"),
+    sb("v_flow_history?select=*"),
   ]);
   const flow = headline[0] || {};
   const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
-  const maxClass = Math.max(...byClass.map((r) => Number(r.schemes)));
   const latest = byClass.map((r) => r.latest_nav_date).sort().at(-1);
-  const series = marketIndex();
-  const idxChange = series.length ? series[series.length - 1][1] - series[0][1] : 0;
+  const brief = buildBrief({ headline: flow, amcFlows, signals });
+
+  // Per-AMC aggregation for leaderboard
+  const agg = {};
+  for (const r of amcSummary) {
+    const a = (agg[r.amc_name] ||= { total: 0, equity: 0 });
+    a.total += Number(r.schemes);
+    if (r.asset_class === "Equity") a.equity += Number(r.schemes);
+  }
+  const flowMap = {}, sigMap = {};
+  for (const r of amcFlows) if (r.asset_class === "Equity") flowMap[r.amc_name] = Number(r.net_flow_cr);
+  for (const s of signals) sigMap[s.amc_name] = s;
+
+  const leaderboard = Object.entries(agg)
+    .map(([amc, a]) => ({ amc, ...a, idx: trendDelta(amc), flow: flowMap[amc], sig: sigMap[amc] }))
+    .sort((x, y) => y.equity - x.equity)
+    .slice(0, 15);
+
+  // Flow network nodes (AMCs with monthly flow data)
+  const netAgg = {};
+  for (const r of amcFlows) {
+    const a = (netAgg[r.amc_name] ||= { name: strip(r.amc_name), equity: 0, debt: 0 });
+    if (r.asset_class === "Equity") a.equity = Number(r.net_flow_cr);
+    if (r.asset_class === "Debt") a.debt = Number(r.net_flow_cr);
+  }
+  const networkNodes = Object.values(netAgg)
+    .sort((a, b) => Math.abs(b.equity) + Math.abs(b.debt) - (Math.abs(a.equity) + Math.abs(a.debt)))
+    .slice(0, 7);
 
   const stats = [
-    { value: fmt(totalSchemes), label: "Schemes tracked" },
-    { value: "51", label: "AMC houses" },
-    { value: byClass.length, label: "Asset classes" },
-    { value: `${idxChange >= 0 ? "+" : ""}${idxChange.toFixed(1)}`, label: "30d equity index" },
+    { label: "Total AUM", value: lakhCr(flow.total_aum_cr ?? 0), sub: "sample" },
+    { label: "Equity net", value: inr(flow.equity_net_cr ?? 0), tone: "pos", sub: "sample" },
+    { label: "Debt net", value: inr(flow.debt_net_cr ?? 0), tone: "neg", sub: "sample" },
+    { label: "Active signals", value: signals.length, sub: "z ≥ 1.8" },
+    { label: "Schemes", value: fmt(totalSchemes), sub: "live · AMFI" },
+    { label: "AMC houses", value: "51", sub: "live" },
+  ];
+
+  const cols = [
+    { key: "amc", label: "AMC", render: (r) => <a className="font-medium text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(r.amc)}`}>{strip(r.amc)}</a> },
+    { key: "equity", label: "Equity", align: "right", mono: true, render: (r) => fmt(r.equity) },
+    { key: "total", label: "Total", align: "right", mono: true, muted: true, render: (r) => fmt(r.total) },
+    { key: "idx", label: "30d Index", align: "right", render: (r) => (r.idx == null ? <span className="text-ink-faint">—</span> : <span className={r.idx >= 0 ? "text-pos tnum" : "text-neg tnum"}>{r.idx >= 0 ? "+" : ""}{r.idx.toFixed(2)}</span>) },
+    { key: "flow", label: "Net flow", align: "right", render: (r) => (r.flow == null ? <span className="text-ink-faint">—</span> : <span className={r.flow >= 0 ? "text-pos tnum" : "text-neg tnum"}>{inr(r.flow)}</span>) },
+    { key: "sig", label: "Signal", align: "right", render: (r) => (r.sig ? <Badge tone={r.sig.signal === "inflow_surge" ? "pos" : "neg"}>z {Number(r.sig.z_score).toFixed(1)}</Badge> : <span className="text-ink-faint">—</span>) },
   ];
 
   return (
     <>
       <Nav active="/" />
       <Tracker event="page_view" payload={{ page: "home" }} />
-      <Hero stats={stats} latest={latest} />
 
-      <main className="container-px pb-4">
-        {/* Headline flows */}
-        <section className="mt-10">
-          <SectionHeader
-            eyebrow={`Net flows · ${flow.month || "—"}`}
-            title="Where India's mutual-fund money moved"
-            action={<Badge tone="warn" title="SEBI/AMFI monthly flow report is PDF-only; these are seeded sample figures until the monthly export is wired in.">Sample flows</Badge>}
-          />
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
-            <MetricCard value={inr(flow.equity_net_cr ?? 0)} label="Equity net inflow" tone="pos" style={{ animationDelay: "0ms" }} />
-            <MetricCard value={inr(flow.debt_net_cr ?? 0)} label="Debt net flow" tone="neg" style={{ animationDelay: "70ms" }} />
-            <MetricCard value={lakhCr(flow.total_aum_cr ?? 0)} label="Total AUM · reporting AMCs" tone="neutral" style={{ animationDelay: "140ms" }} />
+      <main className="container-px py-8 sm:py-10">
+        {/* Header */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Market Intelligence · {flow.month || "—"}</div>
+            <h1 className="mt-2 text-[26px] sm:text-[34px] font-bold tracking-tightest text-ink">India Mutual-Fund Flow Intelligence</h1>
           </div>
-        </section>
+          <div className="flex gap-2">
+            <PremiumButton href="/brief" variant="ghost">Market Brief</PremiumButton>
+            <PremiumButton href="#alerts">Get Flow Alerts</PremiumButton>
+          </div>
+        </div>
+        <TrustBar asOf={latest} className="mt-3.5" sources={[{ label: "NAVs", value: "AMFI" }, { label: "Flows", value: "SEBI · sample" }]} />
+
+        {/* Market summary strip */}
+        <div className="mt-6"><StatStrip items={stats} /></div>
+
+        {/* Network + brief */}
+        <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <GlassPanel className="lg:col-span-2 p-5 sm:p-6">
+            <SectionHeader eyebrow={`net flows · ${flow.month || "—"}`} title="Fund-flow network · AMC → category" action={<Badge tone="warn">sample</Badge>} />
+            <FlowNetwork nodes={networkNodes} />
+          </GlassPanel>
+          <GlassPanel className="p-5 sm:p-6">
+            <SectionHeader title="Market brief" action={<a className="hover:text-ink" href="/brief">Full →</a>} />
+            <p className="text-[13.5px] leading-relaxed text-ink-muted">{brief.lead}</p>
+            <ul className="mt-4 space-y-2.5">
+              {brief.bullets.map((b, i) => (
+                <li key={i} className="flex items-start justify-between gap-3 text-[12.5px]">
+                  <span className="text-ink-faint">{b.k}</span>
+                  <span className={`text-right ${b.tone === "pos" ? "text-pos" : b.tone === "neg" ? "text-neg" : "text-ink"}`}>{b.v}</span>
+                </li>
+              ))}
+            </ul>
+          </GlassPanel>
+        </div>
 
         {/* Search */}
-        <section className="mt-8"><Search /></section>
+        <div className="mt-6"><Search /></div>
 
-        {/* 30-day index */}
+        {/* Heatmap */}
         <section className="mt-9">
-          <SectionHeader
-            eyebrow="Real AMFI NAV history"
-            title="30-day equity index · all AMCs · normalised to 100"
-            action={<span className={idxChange >= 0 ? "text-pos font-bold" : "text-neg font-bold"}>{idxChange >= 0 ? "▲" : "▼"} {idxChange.toFixed(2)}</span>}
-          />
-          <GlassPanel className="p-5 sm:p-6"><FlowChart series={series} /></GlassPanel>
+          <SectionHeader eyebrow="6-month history · sample" title="Net equity-flow heatmap" />
+          <GlassPanel className="p-5 sm:p-6"><FlowHeatmap rows={flowHistory} assetClass="Equity" /></GlassPanel>
         </section>
 
         {/* Signals */}
-        <section className="mt-9">
-          <SectionHeader eyebrow="z-score ≥ 1.8 vs trailing" title={`⚡ Flow signals · ${flow.month || "—"}`} />
-          {signals.length ? (
+        {signals.length > 0 && (
+          <section className="mt-9">
+            <SectionHeader eyebrow="z-score ≥ 1.8" title="Flow signals" action={<a className="hover:text-ink" href="/signals">All →</a>} />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {signals.map((s, i) => (
-                <SignalCard key={i} amc={s.amc_name.replace(" Mutual Fund", "")} assetClass={s.asset_class} signal={s.signal} z={Number(s.z_score).toFixed(1)} value={inr(s.net_flow_cr)} />
+                <SignalCard key={i} amc={strip(s.amc_name)} assetClass={s.asset_class} signal={s.signal} z={Number(s.z_score).toFixed(1)} value={inr(s.net_flow_cr)} />
               ))}
             </div>
-          ) : (
-            <EmptyState title="No active signals" hint="Surges appear here when monthly flows deviate from trend." />
-          )}
+          </section>
+        )}
+
+        {/* AMC leaderboard */}
+        <section className="mt-9">
+          <SectionHeader eyebrow="ranked by equity schemes" title="AMC leaderboard" action={<a className="hover:text-ink" href="/compare">Compare →</a>} />
+          <DataTable columns={cols} rows={leaderboard} footnote="Equity / Total = scheme counts (live AMFI). 30d Index = normalised equity NAV move. Net flow & signals = latest reporting month (sample)." />
         </section>
 
         <Watchlist />
-
-        {/* AMC net flows */}
-        <section className="mt-9">
-          <SectionHeader eyebrow="tap to drill down" title={`AMC net flows · ${flow.month || "—"}`} />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {amcFlows.map((r) => (
-              <AMCCard key={r.amc_name + r.asset_class} name={r.amc_name.replace(" Mutual Fund", "")} href={`/amc/${encodeURIComponent(r.amc_name)}`} secondary={r.asset_class} primary={inr(r.net_flow_cr)} tone={Number(r.net_flow_cr) >= 0 ? "pos" : "neg"} />
-            ))}
-          </div>
-        </section>
-
-        {/* Universe */}
-        <section className="mt-9">
-          <SectionHeader eyebrow="Live · AMFI" title="Universe by asset class" />
-          <GlassPanel className="p-5 sm:p-6">
-            {byClass.map((r) => (
-              <div key={r.asset_class} className="flex items-center gap-4 py-2.5">
-                <span className="w-20 text-[13px] text-ink-muted">{r.asset_class}</span>
-                <span className="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.05]">
-                  <span className="block h-full rounded-full" style={{ width: `${(Number(r.schemes) / maxClass) * 100}%`, background: CLASS_COLOR[r.asset_class] || "#64748b" }} />
-                </span>
-                <span className="w-14 text-right text-[13px] font-semibold tnum">{fmt(r.schemes)}</span>
-              </div>
-            ))}
-          </GlassPanel>
-        </section>
-
-        {/* Explore AMCs */}
-        <section id="explore" className="mt-9 scroll-mt-20">
-          <SectionHeader eyebrow="tap to drill down" title="Top AMCs by equity schemes" action={<a href="/compare" className="hover:text-ink">Compare →</a>} />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {amcRows.map((r) => (
-              <AMCCard key={r.amc_name} name={r.amc_name.replace(" Mutual Fund", "")} href={`/amc/${encodeURIComponent(r.amc_name)}`} secondary="Equity schemes" primary={fmt(r.schemes)} tone="muted" />
-            ))}
-          </div>
-        </section>
-
         <AlertSignup />
       </main>
 
-      <Footer
-        note={
-          <span>
-            Scheme &amp; NAV data is <b className="text-ink-muted">live from AMFI</b> ({fmt(totalSchemes)} schemes, 51 AMCs, nightly).
-            Net-flow figures are <b className="text-warn">sample</b> until the SEBI monthly export is wired in.
-          </span>
-        }
-      />
+      <Footer note={<span>Scheme &amp; NAV data <b className="text-ink-muted">live from AMFI</b> ({fmt(totalSchemes)} schemes, 51 AMCs, nightly). Net-flow figures <b className="text-warn">sample</b> until SEBI export is wired in.</span>} />
     </>
   );
 }
