@@ -22,6 +22,8 @@ Durable tracker (survives across sessions). Updated 2026-06-21.
 
 ### 🌐 LIVE: https://frontend-six-beta-20.vercel.app
 ### 📦 Repo: https://github.com/S-h-u-b-h-1/MF-Pulse
+
+**Frontend = financial-intelligence platform** (Tailwind design system, 15 routes): Market Intelligence homepage (flow network, fund-flow heatmap, **sortable** AMC leaderboard, market-summary strip, trust signals), institutional **/brief** research note, **/signals**, **/compare** (comparison table), **/research** hub, **/analytics**, **/methodology**, per-AMC drilldown with **dynamic OG cards**. Accessible mobile nav (hamburger + sheet), professional loading skeletons, no Three.js dep. Home First Load JS ~89 kB.
 Real AMFI scheme/NAV universe + (sample) monthly net-flow headline. Reads Supabase via PostgREST.
 
 **NAV history**: `ingestion/nav_history.py` (backfill from AMFI's date-range report) + `scripts/build_amc_trend.py` (per-AMC normalised equity index → `frontend/app/data/amc_trend.json`, real 30-day data, powers the AMC sparklines).
