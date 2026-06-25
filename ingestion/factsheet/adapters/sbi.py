@@ -13,7 +13,7 @@ import re
 from ..base import FactsheetAdapter
 from ..normalize import SchemeMetadata, Holding, SectorAllocation
 
-BENCHMARK = re.compile(r"(S&P BSE [\w &.\-]+?TRI|NIFTY [\w &.\-]+?TRI|Nifty [\w &.\-]+?TRI|CRISIL [\w &.\-]+?Index[\w ]*|S&P BSE [\w &.\-]+?Index TRI)")
+BENCHMARK = re.compile(r"((?:S&P BSE|BSE|NIFTY|Nifty|CRISIL)[\w &.:\-]*?(?:Index TRI|TRI|Index))")
 CRORES = re.compile(r"([\d,]+\.\d+)\s*Crores?", re.I)
 MANAGER = re.compile(r"^\*?(?:Mr\.|Ms\.|Mrs\.)\s+[A-Z][\w. ]+(?:&\s*\*?(?:Mr\.|Ms\.|Mrs\.)[\w. ]+)?$")
 DATE = re.compile(r"\b(\d{2}/\d{2}/\d{4})\b")

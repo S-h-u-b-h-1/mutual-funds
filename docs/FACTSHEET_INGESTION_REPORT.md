@@ -61,6 +61,21 @@ extract benchmark, TER (overall + direct), AUM, manager, inception, riskometer, 
 lumpsum, holdings and sectors from realistic synthetic factsheet text — these fixtures are
 test-only and never reach the product.
 
+## Scale cycle (June 2026)
+- **Benchmark coverage 12 → 48/52 (92%)** by broadening the SBI benchmark regex to accept
+  `...Index`, `...TRI`, and `...Index TRI` (e.g. S&P BSE Teck Index, Nifty Financial Services
+  Index, NIFTY 500 Multicap 50:25:25 TRI) — all real factsheet-stated benchmarks.
+- **Expense ratio: SBI per-scheme PDFs do not contain TER** (verified) → cost score stays
+  inactive, never estimated.
+- **HDFC/ICICI/Nippon acquisition proven** (HDFC Jan-2026 consolidated PDF fetched, 136pp),
+  but consolidated layouts split per-scheme data across pages → not reliably attributable
+  with pypdf. Parsing them needs positional extraction (Py3.13 worker) — gated next step,
+  not rushed into mis-attribution. See `AMC_EXPANSION_PLAN.md`.
+- **Automation (Phase 8):** `scripts/factsheet_pipeline.py` (acquire→validate→parse→ingest→
+  coverage) + `.github/workflows/factsheets.yml` monthly cron. **QC report (Phase 7):**
+  `scripts/validate_metadata.py` → `FACTSHEET_VALIDATION.md` (0 impossible values, 0
+  over-attributed managers, staleness flagged).
+
 ## Acquisition expansion (June 2026)
 Scaled SBI acquisition from 12 → **52 scheme codes** (13 equity funds × plans) by probing the
 `sbi-<slug>-factsheet-.pdf` pattern (19 URLs verified) and ingesting. Final field coverage of

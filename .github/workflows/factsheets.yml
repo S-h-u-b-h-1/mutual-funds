@@ -1,0 +1,31 @@
+name: Monthly factsheet ingestion
+
+# Acquire → validate → parse → normalize → ingest → coverage, with no manual intervention.
+# Runs on the 5th of each month (after AMCs publish prior-month factsheets) and on demand.
+on:
+  schedule:
+    - cron: "0 6 5 * *"
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install deps
+        run: pip install pypdf
+      - name: Ensure AMFI universe present
+        run: |
+          curl -sL "https://portal.amfiindia.com/spages/NAVAll.txt" -o data/NAVAll.txt || true
+      - name: Run factsheet pipeline
+        run: python -m scripts.factsheet_pipeline
+      - name: Commit refreshed metadata + reports
+        run: |
+          git config user.name "mfpulse-bot"
+          git config user.email "bot@mfpulse.local"
+          git add frontend/app/data/metadata.json docs/FACTSHEET_VALIDATION.md || true
+          git commit -m "chore(factsheet): monthly metadata refresh" || echo "no changes"
+          git push || echo "push skipped"
