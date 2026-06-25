@@ -146,6 +146,30 @@ export default async function Page() {
               {daily.insights.map((i, k) => <div key={k} className="glass p-3 text-[13px] text-ink-muted"><span className="text-accent-soft">▸</span> {i.summary}</div>)}
             </div>
           )}
+          {/* Why it matters — deterministic explanation engine (metric · prev → curr) */}
+          {daily.explained.length > 0 && (
+            <div className="mb-4 grid gap-2.5 sm:grid-cols-2">
+              {daily.explained.map((i, k) => (
+                <a key={k} href={`/fund/${i.entity_id}`} className="glass p-3.5 transition-colors hover:bg-white/[0.04]">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[13px] font-medium text-ink">{i.title}</span>
+                    <Badge tone={i.severity === "caution" ? "warn" : "pos"}>{i.value}</Badge>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-relaxed text-ink-muted">{i.why} {i.care}</p>
+                  <p className="mt-1 text-[10.5px] tnum text-ink-faint">{i.metric}: {i.previous_value} → {i.current_value}</p>
+                </a>
+              ))}
+            </div>
+          )}
+          {daily.categoryRotation.length > 0 && (
+            <p className="mb-4 text-[12.5px] text-ink-muted">
+              <span className="text-ink-faint">Category rotation · </span>
+              {daily.categoryRotation.filter((r) => r.rank_change > 0).slice(0, 3).map((r) => `${r.name} ↑`).join("  ")}
+              {"   "}
+              {daily.categoryRotation.filter((r) => r.rank_change < 0).slice(0, 2).map((r) => `${r.name} ↓`).join("  ")}
+              <span className="text-ink-faint"> · by 1M-vs-3M category rank</span>
+            </p>
+          )}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div>
               <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-pos">Today&rsquo;s gainers</div>

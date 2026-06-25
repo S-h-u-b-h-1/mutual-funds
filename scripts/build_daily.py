@@ -15,6 +15,8 @@ import os
 from collections import defaultdict
 from statistics import mean
 
+from scripts.explain import fund_movements, explain_funds, rotation
+
 WH = "data/warehouse"
 
 
@@ -50,6 +52,25 @@ def main():
             insights = [{"type": r["intelligence_type"], "title": r["title"], "summary": r["summary"], "severity": r["severity"]}
                         for r in rows if r["intelligence_date"] == latest][:8]
 
+    # ---- explanation engine (Phase 1) + ranking movement (Phase 2) ----
+    movements = fund_movements(funds)
+    explained = explain_funds(movements, limit=6)
+    cat_rot = rotation(funds, "category", "category", 5)[:5]
+    amc_mom = rotation(funds, "amc", "amc", 5)[:5]
+
+    # rank-snapshot accrual (true day-over-day rankings build up over time)
+    os.makedirs(WH, exist_ok=True)
+    with open(f"{WH}/rank_snapshots.jsonl", "a") as fh:
+        for m in movements:
+            fh.write(json.dumps({"snapshot_date": asof, "code": m["code"], "category": m["category"],
+                                 "rank1m": m["rank1m"], "n": m["n"]}) + "\n")
+
+    brief = {
+        "winners": [slim(f) for f in eq[:3]], "losers": [slim(f) for f in eq[-3:][::-1]],
+        "category_rotation": cat_rot[:3], "amc_movement": amc_mom[:3],
+        "risk": [i for i in explained if i["severity"] == "caution"][:3],
+    }
+
     out = {
         "asOf": asof,
         "advancers": sum(1 for x in r1ds if x > 0), "decliners": sum(1 for x in r1ds if x < 0),
@@ -58,12 +79,13 @@ def main():
         "fallers": [slim(f) for f in eq[-6:][::-1]],
         "topFund": slim(top_fund) if top_fund else None,
         "topCategory": top_cat, "topAmc": top_amc,
-        "insights": insights,
+        "insights": insights, "explained": explained,
+        "categoryRotation": cat_rot, "amcMomentum": amc_mom, "brief": brief,
     }
     with open("frontend/app/data/daily.json", "w") as fh:
         json.dump(out, fh, separators=(",", ":"))
-    print(f"-- daily.json: {out['advancers']} up / {out['decliners']} down (breadth {out['breadth1d']}%), "
-          f"{len(insights)} accrued insights")
+    print(f"-- daily.json: {out['advancers']} up / {out['decliners']} down (breadth {out['breadth1d']}%) | "
+          f"{len(explained)} explained items, {len(cat_rot)} cat-rotations, {len(amc_mom)} amc-moves")
 
 
 if __name__ == "__main__":
