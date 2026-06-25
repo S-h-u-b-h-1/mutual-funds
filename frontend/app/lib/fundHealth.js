@@ -40,6 +40,14 @@ export function fundHealth(f) {
   const costAvailable = f.expenseRatio != null;
   if (costAvailable) parts.push(["cost", 5, clamp(100 - f.expenseRatio * 25)]);
 
+  // 7 · Factsheet (8%) — real metadata completeness + portfolio diversification. Only when
+  // real factsheet data exists (manager/benchmark/holdings/sectors); never synthesised.
+  if (f.metaComplete != null) {
+    const bits = [f.metaComplete * 100];
+    if (f.portfolioScore != null) bits.push(f.portfolioScore);
+    parts.push(["factsheet", 8, clamp(bits.reduce((a, b) => a + b, 0) / bits.length)]);
+  }
+
   if (!parts.length) return null;
 
   const totalW = parts.reduce((s, [, w]) => s + w, 0);
@@ -74,5 +82,5 @@ function explain(f, overall, breakdown) {
 
 export const LABELS = {
   performance: "Performance", consistency: "Consistency", risk: "Risk",
-  categoryRank: "Category rank", dataQuality: "Data quality", cost: "Cost",
+  categoryRank: "Category rank", dataQuality: "Data quality", cost: "Cost", factsheet: "Factsheet",
 };

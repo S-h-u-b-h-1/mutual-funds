@@ -38,25 +38,33 @@ class SBIAdapter(FactsheetAdapter):
         dates = DATE.findall(block)
         risk = RISK.search(block)
 
+        # Only accept the multi-manager "&" list line (reliably contains the lead manager).
+        # A solo "Mr. X" line is ambiguous in SBI PDFs (the foreign-securities co-manager
+        # appears across many funds) → not stored, to avoid mis-attribution.
         manager = None
         for ln in lines:
-            if MANAGER.match(ln) and not re.search(r"(19|20)\d{2}", ln):
+            if MANAGER.match(ln) and "&" in ln and not re.search(r"(19|20)\d{2}", ln):
                 manager = re.sub(r"\*", "", ln).strip()
                 break
 
-        sectors, holdings = [], []
+        # SBI single-scheme PDFs often repeat a "Top 10" + full sector table; dedupe by name
+        # and stop at one complete table (~100%) so allocations don't double-count.
+        sectors, holdings, seen_sec, seen_hold, sec_sum = [], [], set(), set(), 0.0
         for ln in lines:
             h = HOLDING.match(ln)
             if h:
-                w = float(h.group(2))
-                if 0 < w <= 100:
-                    holdings.append(Holding(name=h.group(1).strip()[:80], weight=w, holding_type="equity"))
+                hn, w = h.group(1).strip()[:80], float(h.group(2))
+                if 0 < w <= 100 and hn not in seen_hold:
+                    seen_hold.add(hn)
+                    holdings.append(Holding(name=hn, weight=w, holding_type="equity"))
                 continue
             s = SECTOR.match(ln)
             if s and "Ltd" not in s.group(1) and "Plan" not in s.group(1):
-                a = float(s.group(2))
-                if 0 < a <= 100 and len(s.group(1)) <= 40:
-                    sectors.append(SectorAllocation(sector=s.group(1).strip(), allocation_pct=a))
+                name, a = s.group(1).strip(), float(s.group(2))
+                if 0 < a <= 100 and len(name) <= 40 and name not in seen_sec and sec_sum + a <= 102:
+                    seen_sec.add(name)
+                    sec_sum += a
+                    sectors.append(SectorAllocation(sector=name, allocation_pct=a))
 
         aum = float(crores[-1].replace(",", "")) if crores else None
         return SchemeMetadata(

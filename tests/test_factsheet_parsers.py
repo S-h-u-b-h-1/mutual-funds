@@ -102,6 +102,18 @@ def test_multi_scheme_split():
     assert len(metas) >= 2
 
 
+def test_sbi_sector_dedup_caps_at_one_table():
+    """SBI PDFs repeat Top-10 + full sector tables; dedup must keep one table (<=102%)."""
+    from ingestion.factsheet.adapters.sbi import SBIAdapter
+    block = ("Sector Allocation\n" +
+             "Financial Services 30.00\nCapital Goods 25.00\nHealthcare 20.00\n" +
+             "Financial Services 30.00\nCapital Goods 25.00\nHealthcare 20.00\n")  # doubled
+    m = SBIAdapter().parse_scheme_block(block)
+    names = [s.sector for s in m.sector_allocation]
+    assert len(names) == len(set(names))                          # no duplicates
+    assert sum(s.allocation_pct for s in m.sector_allocation) <= 102
+
+
 def test_sbi_parser_on_real_factsheet_text():
     """Extraction against a REAL SBI factsheet (text captured from the official PDF)."""
     import os

@@ -10,7 +10,8 @@ import { getFund, cohortOf, asOf } from "../../lib/funds";
 import { getNavHistory } from "../../lib/mfapi";
 import { fundSignals, researchSummary, visibleReturns, riskInterpretation, benchmarkRows } from "../../lib/fundAnalysis";
 import { fundHealth, gradeTone, LABELS } from "../../lib/fundHealth";
-import { getMetadata } from "../../lib/metadata";
+import { getMetadata, managerSlug } from "../../lib/metadata";
+import { portfolioRisk } from "../../lib/portfolio";
 
 export const revalidate = 3600;
 
@@ -50,7 +51,13 @@ export default async function FundPage({ params }) {
   const rets = visibleReturns(f);
   const bench = benchmarkRows(f, cohort);
   const meta = getMetadata(f.code);                       // factsheet metadata when available
-  const health = fundHealth({ ...f, expenseRatio: meta?.expense_ratio ?? null });  // cost activates with real TER
+  const port = portfolioRisk(meta);                       // portfolio risk from real holdings/sectors
+  const health = fundHealth({
+    ...f,
+    expenseRatio: meta?.expense_ratio ?? null,            // cost activates with real TER
+    metaComplete: meta?.completeness ?? null,             // factsheet component activates with real data
+    portfolioScore: port?.score ?? null,
+  });
   const [fTone, fLabel] = freshness(f.staleDays);
   const histDays = history?.points?.length || 0;
 
@@ -146,6 +153,14 @@ export default async function FundPage({ params }) {
                 <Metric label="Negative NAV days" value={`${f.negDays} / ${f.quality?.obs ?? "—"}`} />
                 <Metric label="Consistency" value={`${f.consistency}/100`} tone={f.consistency >= 55 ? "pos" : undefined} />
                 <p className="border-t border-line pt-2.5 text-[12px] leading-relaxed text-ink-faint">{riskInterpretation(f)}</p>
+                {port && (
+                  <div className="border-t border-line pt-2.5">
+                    <Metric label={`Portfolio risk · ${port.level}`} value={`${port.score}/100`} tone={port.score >= 70 ? "pos" : port.score < 50 ? "neg" : undefined} />
+                    <Metric label="Top 3 sectors" value={`${port.sectorTop3}%`} />
+                    {port.top10 > 0 && <Metric label="Top 10 holdings" value={`${port.top10}%`} />}
+                    <p className="mt-1 text-[11px] text-ink-faint">{port.insights.join(" ")} · from factsheet ({meta.source_date})</p>
+                  </div>
+                )}
               </div>
             ) : <p className="text-[12.5px] text-ink-faint">Insufficient daily history for risk metrics.</p>}
           </GlassPanel>
@@ -201,7 +216,12 @@ export default async function FundPage({ params }) {
               <div className="flex items-center justify-between gap-2 text-[12.5px]"><span className="text-ink-faint">Benchmark</span><span className="text-right text-ink-muted">{(meta?.benchmark) || f.benchmark || "Not yet available"}</span></div>
               <Metric label="AUM" value={meta?.aum_crores != null ? `₹${meta.aum_crores.toLocaleString("en-IN")} Cr` : "Not yet available"} />
               <Metric label="Expense ratio" value={meta?.expense_ratio != null ? `${meta.expense_ratio}%${meta.direct_expense_ratio != null ? ` (Direct ${meta.direct_expense_ratio}%)` : ""}` : "Not yet available"} />
-              <Metric label="Fund manager" value={meta?.fund_manager || "Not yet available"} />
+              <div className="flex items-center justify-between gap-2 text-[12.5px]">
+                <span className="text-ink-faint">Fund manager</span>
+                {meta?.fund_manager ? (
+                  <a className="truncate text-right text-ink hover:text-accent-soft" href={`/manager/${managerSlug(meta.fund_manager.split(/&|,/)[0].replace(/\*|Mr\.|Ms\.|Mrs\./g, "").trim())}`}>{meta.fund_manager}</a>
+                ) : <span className="text-ink-muted">Not yet available</span>}
+              </div>
               <Metric label="Riskometer" value={meta?.riskometer || "Not yet available"} />
               <Metric label="Exit load" value={meta?.exit_load || "Not yet available"} />
             </div>

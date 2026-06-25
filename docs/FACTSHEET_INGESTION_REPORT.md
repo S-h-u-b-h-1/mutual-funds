@@ -61,6 +61,27 @@ extract benchmark, TER (overall + direct), AUM, manager, inception, riskometer, 
 lumpsum, holdings and sectors from realistic synthetic factsheet text — these fixtures are
 test-only and never reach the product.
 
+## Acquisition expansion (June 2026)
+Scaled SBI acquisition from 12 → **52 scheme codes** (13 equity funds × plans) by probing the
+`sbi-<slug>-factsheet-.pdf` pattern (19 URLs verified) and ingesting. Final field coverage of
+the 52:
+
+| Field | Coverage | Note |
+|---|---|---|
+| AUM | **52/52** | real, source-dated |
+| Riskometer | **52/52** | real |
+| Launch date | **52/52** | real |
+| Sector allocation | **52/52** | real (dedup fix: stop at one ~100% table) |
+| Benchmark (factsheet) | 12/52 | regex matches a subset of index-name formats |
+| Top holdings | 12/52 | subset of layouts |
+| Fund manager | **1/52** | **only the multi-manager "&" list is stored** — solo lines are ambiguous (SBI's foreign co-manager appears across funds), so they are dropped rather than mis-attributed |
+| Expense ratio | 0/52 | not in SBI per-scheme layout → cost score inactive (not faked) |
+
+The manager finding is a deliberate trust call: showing a co-manager as the lead would be
+fabrication-by-error, so unreliable manager lines are **not** stored. Manager Research pages
+(`/manager/[slug]`) and the Health Score factsheet/cost components activate automatically as
+reliable data lands.
+
 ## Loop closed (for SBI)
 The earlier blocker — fetching the PDF — is solved for SBI: its per-scheme factsheets are
 directly fetchable (e.g. `sbimf.com/docs/default-source/scheme-factsheets/sbi-small-cap-fund-factsheet-.pdf`),

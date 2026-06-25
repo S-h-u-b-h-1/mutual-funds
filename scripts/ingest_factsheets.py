@@ -27,13 +27,30 @@ UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/
 BASE = "https://www.sbimf.com/docs/default-source/scheme-factsheets/"
 
 # Curated, legitimate, directly-fetchable SBI per-scheme factsheets (AMC official source).
-CURATED = [
-    ("SBI", SBIAdapter, "SBI Small Cap Fund", BASE + "sbi-small-cap-fund-factsheet-.pdf?sfvrsn=71aee601_2"),
-    ("SBI", SBIAdapter, "SBI Contra Fund", BASE + "sbi-contra-fund-factsheet-17fae076-7a0e-4e87-b82c-ab217d24ee3a.pdf?sfvrsn=d591624_2"),
-    ("SBI", SBIAdapter, "SBI Large & Midcap Fund", BASE + "sbi-large-midcap-fund-factsheet-.pdf?sfvrsn=7eb62eda_2"),
-    ("SBI", SBIAdapter, "SBI Magnum Midcap Fund", BASE + "sbi-magnum-midcap-fund-factsheet-7e99594e-19f0-4170-8160-e078a6354f3a.pdf?sfvrsn=a6ad22b9_2"),
-    ("SBI", SBIAdapter, "SBI Blue Chip Fund", BASE + "sbi-blue-chip-fund-factsheet-august-2025.pdf?sfvrsn=d1496a6e_2"),
-]
+# Simple pattern sbi-<slug>-factsheet-.pdf resolves for the SBI equity range.
+SBI_FUNDS = {
+    "small-cap-fund": "SBI Small Cap Fund",
+    "large-midcap-fund": "SBI Large & Midcap Fund",
+    "focused-equity-fund": "SBI Focused Equity Fund",
+    "flexicap-fund": "SBI Flexicap Fund",
+    "technology-opportunities-fund": "SBI Technology Opportunities Fund",
+    "healthcare-opportunities-fund": "SBI Healthcare Opportunities Fund",
+    "consumption-opportunities-fund": "SBI Consumption Opportunities Fund",
+    "banking-financial-services-fund": "SBI Banking & Financial Services Fund",
+    "infrastructure-fund": "SBI Infrastructure Fund",
+    "magnum-global-fund": "SBI Magnum Global Fund",
+    "magnum-comma-fund": "SBI Magnum COMMA Fund",
+    "long-term-equity-fund": "SBI Long Term Equity Fund",
+    "dividend-yield-fund": "SBI Dividend Yield Fund",
+    "multicap-fund": "SBI Multicap Fund",
+    "magnum-midcap-fund": "SBI Magnum Midcap Fund",
+    "psu-fund": "SBI PSU Fund",
+    "blue-chip-fund": "SBI Bluechip Fund",
+    "magnum-equity-esg-fund": "SBI Magnum Equity ESG Fund",
+    "nifty-index-fund": "SBI Nifty Index Fund",
+}
+CURATED = [("SBI", SBIAdapter, name, BASE + f"sbi-{slug}-factsheet-.pdf") for slug, name in SBI_FUNDS.items()]
+CURATED.append(("SBI", SBIAdapter, "SBI Contra Fund", BASE + "sbi-contra-fund-factsheet-17fae076-7a0e-4e87-b82c-ab217d24ee3a.pdf?sfvrsn=d591624_2"))
 
 
 def norm(s: str) -> str:
