@@ -20,6 +20,7 @@ import PremiumButton from "./components/ui/PremiumButton";
 import Badge from "./components/ui/Badge";
 import trendData from "./data/amc_trend.json";
 import performance from "./data/performance.json";
+import daily from "./data/daily.json";
 
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(n);
 const inr = (n) => `${n >= 0 ? "+" : "−"}₹${fmt(Math.abs(Math.round(n)))} Cr`;
@@ -54,6 +55,10 @@ export default async function Page() {
     { key: "funds", label: "Funds", align: "right", mono: true, muted: true },
     { key: "avg", label: "Avg 1M", align: "right", render: (r) => <span className={r.avg >= 0 ? "text-pos tnum" : "text-neg tnum"}>{r.avg >= 0 ? "+" : ""}{r.avg.toFixed(1)}%</span> },
     { key: "score", label: "Quality", align: "right", render: (r) => <span className="font-semibold tnum text-ink">{r.score.toFixed(0)}</span> },
+  ];
+  const dailyCol = [
+    { key: "name", label: "Fund", render: (r) => <a className="text-ink hover:text-accent-soft" href={`/fund/${r.code}`}>{r.name.replace(/ - (Direct|Regular).*/i, "")}<span className="block text-[11px] text-ink-faint">{r.amc}</span></a> },
+    { key: "r1d", label: "1D", align: "right", render: (r) => <span className={r.r1d >= 0 ? "text-pos tnum" : "text-neg tnum"}>{r.r1d >= 0 ? "+" : ""}{r.r1d.toFixed(2)}%</span> },
   ];
 
   // Per-AMC aggregation for leaderboard
@@ -128,6 +133,31 @@ export default async function Page() {
 
         {/* Market summary strip */}
         <div className="mt-6"><StatStrip items={stats} /></div>
+
+        {/* What changed today — REAL 1-day NAV moves, answers "what changed since yesterday" first */}
+        <section className="mt-6">
+          <SectionHeader
+            eyebrow={`1-day NAV moves · ${daily.advancers} up / ${daily.decliners} down · breadth ${daily.breadth1d}%`}
+            title="What changed today"
+            action={<Badge tone={daily.breadth1d >= 50 ? "pos" : "neg"} dot>{daily.breadth1d >= 50 ? "risk-on" : "risk-off"}</Badge>}
+          />
+          {daily.insights.length > 0 && (
+            <div className="mb-3 grid gap-2 sm:grid-cols-2">
+              {daily.insights.map((i, k) => <div key={k} className="glass p-3 text-[13px] text-ink-muted"><span className="text-accent-soft">▸</span> {i.summary}</div>)}
+            </div>
+          )}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div>
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-pos">Today&rsquo;s gainers</div>
+              <DataTable columns={dailyCol} rows={daily.gainers.map((f) => ({ ...f, _key: f.code }))} />
+            </div>
+            <div>
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-neg">Today&rsquo;s fallers</div>
+              <DataTable columns={dailyCol} rows={daily.fallers.map((f) => ({ ...f, _key: f.code }))} />
+            </div>
+          </div>
+          <p className="mt-2 text-[11px] text-ink-faint">1-day NAV return, equity Growth funds · today&rsquo;s top fund (30d): {daily.topFund?.name?.replace(/ - (Direct|Regular).*/i, "")} · source AMFI, {daily.asOf}.</p>
+        </section>
 
         {/* Performance pulse — REAL data leads the page */}
         <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
