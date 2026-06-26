@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { track } from "../lib/track";
 import { SUPA } from "../lib/supabase";
+import { groupCanonical } from "../lib/canonical";
 
 export default function Search() {
   const [q, setQ] = useState("");
@@ -27,12 +28,14 @@ export default function Search() {
       const filter = `or=(scheme_name.ilike.${term},amc_name.ilike.${term})`;
       try {
         const res = await fetch(
-          `${SUPA.URL}/rest/v1/dim_scheme?select=scheme_code,scheme_name,amc_name,asset_class&${filter}&limit=8`,
+          `${SUPA.URL}/rest/v1/dim_scheme?select=scheme_code,scheme_name,amc_name,asset_class&${filter}&limit=40`,
           { headers: { apikey: SUPA.KEY, Authorization: `Bearer ${SUPA.KEY}` } }
         );
         const rows = await res.json();
-        setResults(Array.isArray(rows) ? rows : []);
-        track("search", { q: clean, results: Array.isArray(rows) ? rows.length : 0 });
+        // collapse scheme variants → one row per canonical fund (no duplicate ideas)
+        const canon = Array.isArray(rows) ? groupCanonical(rows, 8) : [];
+        setResults(canon);
+        track("search", { q: clean, results: canon.length });
       } catch {
         setResults([]);
       } finally {
@@ -64,16 +67,17 @@ export default function Search() {
           )}
           {!loading &&
             results.map((r) => (
-              <li key={r.scheme_code}>
+              <li key={r.code}>
                 <a
-                  href={`/fund/${r.scheme_code}`}
-                  onClick={() => track("search_click", { scheme_code: r.scheme_code, amc: r.amc_name })}
-                  className="flex flex-col gap-0.5 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/[0.05]"
+                  href={`/fund/${r.code}`}
+                  onClick={() => track("search_click", { scheme_code: r.code, amc: r.amc })}
+                  className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/[0.05]"
                 >
-                  <span className="text-[13px] text-ink">{r.scheme_name}</span>
-                  <span className="text-[11px] text-ink-muted">
-                    {r.amc_name.replace(" Mutual Fund", "")} · {r.asset_class}
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-[13px] text-ink">{r.name}</span>
+                    <span className="text-[11px] text-ink-muted">{r.amc.replace(" Mutual Fund", "")} · {r.asset_class}</span>
                   </span>
+                  {r.count > 1 && <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[10px] text-ink-faint">{r.count} variants</span>}
                 </a>
               </li>
             ))}

@@ -100,6 +100,22 @@ def main():
     _write_trust(trust, impossible, out_of_range, dup_codes)
     _write_readiness(readiness, data_completeness, metadata_completeness, freshness_score, canonical_cov, trust)
 
+    # Phase 11 — internal coverage dashboard data (consumed by ops + CI; not user marketing)
+    import os
+    os.makedirs("data/warehouse", exist_ok=True)
+    coverage_json = {
+        "asOf": asof, "latest_nav": latest, "stale_days": stale,
+        "active_schemes": len(active), "investable_schemes": len(investable),
+        "canonical_funds": canonical_n, "variant_reduction_pct": reduction,
+        "scores": {"production_readiness": readiness, "data_trust": trust,
+                   "data_completeness": data_completeness, "metadata_completeness": metadata_completeness,
+                   "freshness": freshness_score, "canonical_coverage": canonical_cov},
+        "field_coverage_active": {k: pct(v, ni) for k, v in daily.items()},
+        "metadata_coverage_rows": {f: mcov[f] for f in mfields}, "metadata_rows": len(meta_rows),
+        "quality": {"impossible_values": sum(impossible.values()), "duplicate_codes": dup_codes,
+                    "scores_out_of_range": out_of_range, **impossible},
+    }
+    json.dump(coverage_json, open("data/warehouse/coverage.json", "w"), indent=2)
     print(json.dumps({"data_completeness": data_completeness, "metadata_completeness": metadata_completeness,
                       "canonical_coverage": canonical_cov, "freshness": freshness_score, "trust": trust,
                       "readiness": readiness, "impossible_values": sum(impossible.values()),

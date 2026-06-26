@@ -1,0 +1,54 @@
+{
+  "asOf": "2026-06-23",
+  "latest_nav": "2026-06-23",
+  "stale_days": 0,
+  "active_schemes": 8503,
+  "investable_schemes": 3987,
+  "canonical_funds": 5598,
+  "variant_reduction_pct": 60.6,
+  "scores": {
+    "production_readiness": 93,
+    "data_trust": 100,
+    "data_completeness": 86,
+    "metadata_completeness": 2,
+    "freshness": 100,
+    "canonical_coverage": 100.0
+  },
+  "field_coverage_active": {
+    "Latest NAV": 100.0,
+    "Daily return (1D)": 100.0,
+    "Weekly (1W)": 99.8,
+    "Monthly (1M/30D)": 99.4,
+    "Quarterly (3M/90D)": 98.4,
+    "Half-year (6M/180D)": 94.9,
+    "Yearly (1Y)": 88.7,
+    "3-year": 67.8,
+    "5-year": 47.6,
+    "Risk metrics (vol/dd)": 99.6,
+    "Benchmark": 41.8,
+    "Category mapped": 100.0
+  },
+  "metadata_coverage_rows": {
+    "benchmark": 134,
+    "fund_manager": 12,
+    "expense_ratio": 0,
+    "aum_crores": 152,
+    "riskometer": 152,
+    "exit_load": 0,
+    "launch_date": 152,
+    "holdings": 26,
+    "sector_allocation": 152,
+    "source_date": 140
+  },
+  "metadata_rows": 152,
+  "quality": {
+    "impossible_values": 0,
+    "duplicate_codes": 0,
+    "scores_out_of_range": 0,
+    "returns": 0,
+    "vol": 0,
+    "expense": 0,
+    "aum": 0,
+    "sector_sum": 0
+  }
+}
