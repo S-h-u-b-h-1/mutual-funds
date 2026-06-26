@@ -55,8 +55,26 @@ def main():
     # ---- explanation engine (Phase 1) + ranking movement (Phase 2) ----
     movements = fund_movements(funds)
     explained = explain_funds(movements, limit=6)
-    cat_rot = rotation(funds, "category", "category", 5)[:5]
-    amc_mom = rotation(funds, "amc", "amc", 5)[:5]
+    cat_rot_full = rotation(funds, "category", "category", 5)
+    amc_mom_full = rotation(funds, "amc", "amc", 5)
+    cat_rot, amc_mom = cat_rot_full[:5], amc_mom_full[:5]
+
+    # ---- industry intelligence (Phase 7): market-level context ----
+    breadth1d = round(100 * sum(1 for x in r1ds if x > 0) / len(r1ds)) if r1ds else 0
+    breadth1m = round(100 * sum(1 for f in eq if (f.get("r1m") or 0) > 0) / len(eq)) if eq else 0
+    imp_cats = round(100 * sum(1 for c in cat_rot_full if c["avg1m"] > 0) / len(cat_rot_full)) if cat_rot_full else 0
+    imp_amcs = round(100 * sum(1 for a in amc_mom_full if a["avg1m"] > 0) / len(amc_mom_full)) if amc_mom_full else 0
+    regime = "Risk-On" if breadth1d >= 55 else "Risk-Off" if breadth1d < 45 else "Neutral"
+    stmts = [f"{sum(1 for x in r1ds if x > 0)} of {len(r1ds)} equity funds rose today ({breadth1d}% breadth) → {regime}.",
+             f"{imp_cats}% of equity categories and {imp_amcs}% of AMCs are positive on 1-month NAV."]
+    gaining = [c for c in cat_rot_full if c["rank_change"] > 0][:1]
+    fading = [c for c in cat_rot_full if c["rank_change"] < 0][-1:]
+    if gaining:
+        stmts.append(f"{gaining[0]['name']} leadership strengthening (category rank #{gaining[0]['rank3m']}→#{gaining[0]['rank1m']} on 1M-vs-3M).")
+    if fading:
+        stmts.append(f"{fading[0]['name']} weakening (category rank #{fading[0]['rank3m']}→#{fading[0]['rank1m']}).")
+    industry = {"riskRegime": regime, "breadth1d": breadth1d, "breadth1m": breadth1m,
+                "improvingCategoriesPct": imp_cats, "improvingAmcsPct": imp_amcs, "statements": stmts}
 
     # rank-snapshot accrual (true day-over-day rankings build up over time)
     os.makedirs(WH, exist_ok=True)
@@ -80,7 +98,7 @@ def main():
         "topFund": slim(top_fund) if top_fund else None,
         "topCategory": top_cat, "topAmc": top_amc,
         "insights": insights, "explained": explained,
-        "categoryRotation": cat_rot, "amcMomentum": amc_mom, "brief": brief,
+        "categoryRotation": cat_rot, "amcMomentum": amc_mom, "brief": brief, "industry": industry,
     }
     with open("frontend/app/data/daily.json", "w") as fh:
         json.dump(out, fh, separators=(",", ":"))

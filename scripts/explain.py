@@ -32,71 +32,97 @@ def fund_movements(funds, min_cohort=10):
             continue
         r1, n = _rank_map(members, "r1m")
         r3, _ = _rank_map(members, "r3m")
+        cat_avg = round(mean(x["r1m"] for x in members), 2)        # category context
         for f in members:
             rank1, pct1 = r1[f["code"]]
             rank3, pct3 = r3[f["code"]]
             out.append({"code": f["code"], "name": f["name"], "amc": f["amc"], "category": cat,
                         "n": n, "rank1m": rank1, "rank3m": rank3, "pct1m": pct1, "pct3m": pct3,
-                        "rank_change": rank3 - rank1, "r1m": f["r1m"], "r3m": f["r3m"]})
+                        "rank_change": rank3 - rank1, "r1m": f["r1m"], "r3m": f["r3m"], "cat_avg": cat_avg})
     return out
 
 
+import re
+
+from scripts.canonical import canonical_key
+
+
 def _short(n):
-    import re
     return re.sub(r" - (Direct|Regular).*", "", n)
 
 
+def attention_score(m, novelty):
+    """0-100. Novelty (decile crossing) + magnitude (rank jump) + persistence (3-month base)
+    + category deviation (fund-specific alpha vs the cohort average). Deterministic."""
+    magnitude = min(40, abs(m["rank_change"]) * 2)
+    persistence = 15 if m["pct3m"] >= 50 else 8 if m["pct3m"] >= 30 else 0
+    cat_deviation = min(15, round(max(0.0, m["r1m"] - m["cat_avg"]) * 3))
+    return min(100, novelty + magnitude + persistence + cat_deviation)
+
+
+def _context(m):
+    """Is the move fund-specific or category-wide? (Context Layer Phase 1/4.)"""
+    ca, r = m["cat_avg"], m["r1m"]
+    if r - ca >= max(1.0, abs(ca)):
+        return f"{m['category']} averaged {ca:+.1f}% over 1M, this fund {r:+.1f}% — outperformance appears fund-specific."
+    if ca >= 1.0:
+        return f"The whole {m['category']} category averaged {ca:+.1f}% (fund {r:+.1f}%) — a category-wide move."
+    return f"Fund {r:+.1f}% vs {m['category']} average {ca:+.1f}% over 1 month."
+
+
+def _tier(s):
+    return "High" if s >= 70 else "Medium" if s >= 45 else "Low"
+
+
 def explain_funds(movements, limit=6):
-    """High-value explained intelligence items (Phase 1 + 7 noise suppression)."""
-    items = []
-    seen = set()  # one item per fund (collapse Direct/Regular plan duplicates)
-
-    def fresh(m):
-        k = _short(m["name"]).strip().lower()
-        if k in seen:
-            return False
-        seen.add(k)
-        return True
-
-    enter = [m for m in movements if m["pct1m"] >= 90 and m["pct3m"] < 90]
-    exitd = [m for m in movements if m["pct3m"] >= 90 and m["pct1m"] < 90]
-    climbers = sorted([m for m in movements if m["rank_change"] >= 15], key=lambda m: -m["rank_change"])
-    fallers = sorted([m for m in movements if m["rank_change"] <= -15], key=lambda m: m["rank_change"])
-
-    for m in sorted(enter, key=lambda m: m["rank1m"]):
-        if len([i for i in items if i["type"] == "enter_top_decile"]) >= limit or not fresh(m):
+    """Canonical, attention-scored, context-rich items. Low value suppressed (Phase 7/8)."""
+    cands = []
+    for m in movements:
+        if m["pct1m"] >= 90 and m["pct3m"] < 90:
+            novelty, typ, sev = 30, "enter_top_decile", "positive"
+            title = f"{_short(m['name'])[:40]} entered the top decile"
+            what = f"Now top-10% in {m['category']} on 1-month NAV return."
+            why = f"Category rank improved from #{m['rank3m']} (3-month) to #{m['rank1m']} (1-month) of {m['n']}."
+            care = "Recent momentum is accelerating — monitor for sustained outperformance."
+        elif m["pct3m"] >= 90 and m["pct1m"] < 90:
+            novelty, typ, sev = 30, "exit_top_decile", "caution"
+            title = f"{_short(m['name'])[:40]} left the top decile"
+            what = f"No longer top-10% in {m['category']} on 1-month NAV return."
+            why = f"Category rank slipped from #{m['rank3m']} (3-month) to #{m['rank1m']} (1-month) of {m['n']}."
+            care = "Medium-term leader is cooling — review before adding."
+        elif m["rank_change"] >= 15:
+            novelty, typ, sev = 0, "climber", "positive"
+            title = f"{_short(m['name'])[:40]} is climbing its category"
+            what = f"Up {m['rank_change']} places in {m['category']} on recent momentum."
+            why = f"Category rank #{m['rank3m']} (3-month) → #{m['rank1m']} (1-month) of {m['n']}."
+            care = "Improving relative momentum — a watchlist candidate."
+        elif m["rank_change"] <= -15:
+            novelty, typ, sev = 10, "faller", "caution"
+            title = f"{_short(m['name'])[:40]} is losing momentum"
+            what = f"Down {abs(m['rank_change'])} places in {m['category']} on recent momentum."
+            why = f"Category rank #{m['rank3m']} (3-month) → #{m['rank1m']} (1-month) of {m['n']}."
+            care = "Relative momentum deteriorating — reassess."
+        else:
             continue
-        items.append({
-            "type": "enter_top_decile", "entity_type": "fund", "entity_id": m["code"],
-            "title": f"{_short(m['name'])[:40]} entered the top decile",
-            "what": f"Now top-10% in {m['category']} on 1-month NAV return.",
-            "why": f"Category rank improved from #{m['rank3m']} (3-month) to #{m['rank1m']} (1-month) of {m['n']}.",
-            "care": "Recent momentum is accelerating — monitor for sustained outperformance.",
-            "metric": "category rank (3M→1M)", "previous_value": f"#{m['rank3m']}", "current_value": f"#{m['rank1m']}",
-            "severity": "positive", "value": "actionable"})
-    for m in sorted(exitd, key=lambda m: m["rank1m"], reverse=True):
-        if len([i for i in items if i["type"] == "exit_top_decile"]) >= max(1, limit // 2) or not fresh(m):
+        s = attention_score(m, novelty)
+        cands.append({"type": typ, "entity_type": "fund", "entity_id": m["code"], "canonical": canonical_key(m["name"]),
+                      "category": m["category"], "title": title, "what": what, "why": why, "care": care, "context": _context(m),
+                      "metric": "category rank (3M→1M)", "previous_value": f"#{m['rank3m']}", "current_value": f"#{m['rank1m']}",
+                      "severity": sev, "attentionScore": s, "value": _tier(s)})
+
+    cands = [c for c in cands if c["value"] != "Low"]                       # Phase 7/8 suppression
+    best, cat_count, seen = [], {}, set()
+    for c in sorted(cands, key=lambda c: -c["attentionScore"]):             # dedup by canonical + category diversity
+        if c["canonical"] in seen or cat_count.get(c["category"], 0) >= 2:
             continue
-        items.append({
-            "type": "exit_top_decile", "entity_type": "fund", "entity_id": m["code"],
-            "title": f"{_short(m['name'])[:40]} left the top decile",
-            "what": f"No longer top-10% in {m['category']} on 1-month NAV return.",
-            "why": f"Category rank slipped from #{m['rank3m']} (3-month) to #{m['rank1m']} (1-month) of {m['n']}.",
-            "care": "Medium-term leader is cooling — review before adding.",
-            "metric": "category rank (3M→1M)", "previous_value": f"#{m['rank3m']}", "current_value": f"#{m['rank1m']}",
-            "severity": "caution", "value": "actionable"})
-    for m in climbers:
-        if len([i for i in items if i["type"] == "climber"]) >= max(1, limit // 2) or m in enter or not fresh(m):
-            continue
-        items.append({
-            "type": "climber", "entity_type": "fund", "entity_id": m["code"],
-            "title": f"{_short(m['name'])[:40]} is climbing its category",
-            "what": f"Up {m['rank_change']} places in {m['category']} on recent momentum.",
-            "why": f"Category rank #{m['rank3m']} (3-month) → #{m['rank1m']} (1-month) of {m['n']}.",
-            "care": "Improving relative momentum — a watchlist candidate.",
-            "metric": "category rank (3M→1M)", "previous_value": f"#{m['rank3m']}", "current_value": f"#{m['rank1m']}",
-            "severity": "positive", "value": "interesting"})
-    return items[:limit]
+        seen.add(c["canonical"])
+        cat_count[c["category"]] = cat_count.get(c["category"], 0) + 1
+        best.append(c)
+    out = sorted(best, key=lambda c: -c["attentionScore"])[:limit]
+    for c in out:
+        c.pop("canonical", None)
+        c.pop("category", None)
+    return out
 
 
 def rotation(funds, kind, key, min_n):

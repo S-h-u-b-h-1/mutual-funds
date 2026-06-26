@@ -138,8 +138,8 @@ export default async function Page() {
         <section className="mt-6">
           <SectionHeader
             eyebrow={`1-day NAV moves · ${daily.advancers} up / ${daily.decliners} down · breadth ${daily.breadth1d}%`}
-            title="What changed today"
-            action={<Badge tone={daily.breadth1d >= 50 ? "pos" : "neg"} dot>{daily.breadth1d >= 50 ? "risk-on" : "risk-off"}</Badge>}
+            title="What deserves attention today"
+            action={<Badge tone={daily.breadth1d >= 50 ? "pos" : "neg"} dot>{(daily.industry?.riskRegime || "").toLowerCase() || (daily.breadth1d >= 50 ? "risk-on" : "risk-off")}</Badge>}
           />
           {daily.insights.length > 0 && (
             <div className="mb-3 grid gap-2 sm:grid-cols-2">
@@ -156,19 +156,19 @@ export default async function Page() {
                     <Badge tone={i.severity === "caution" ? "warn" : "pos"}>{i.value}</Badge>
                   </div>
                   <p className="mt-1 text-[12px] leading-relaxed text-ink-muted">{i.why} {i.care}</p>
-                  <p className="mt-1 text-[10.5px] tnum text-ink-faint">{i.metric}: {i.previous_value} → {i.current_value}</p>
+                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-ink-faint"><span className="text-ink-muted">Context:</span> {i.context}</p>
+                  <p className="mt-1 text-[10.5px] tnum text-ink-faint">{i.metric}: {i.previous_value} → {i.current_value} · attention {i.attentionScore}/100</p>
                 </a>
               ))}
             </div>
           )}
-          {daily.categoryRotation.length > 0 && (
-            <p className="mb-4 text-[12.5px] text-ink-muted">
-              <span className="text-ink-faint">Category rotation · </span>
-              {daily.categoryRotation.filter((r) => r.rank_change > 0).slice(0, 3).map((r) => `${r.name} ↑`).join("  ")}
-              {"   "}
-              {daily.categoryRotation.filter((r) => r.rank_change < 0).slice(0, 2).map((r) => `${r.name} ↓`).join("  ")}
-              <span className="text-ink-faint"> · by 1M-vs-3M category rank</span>
-            </p>
+          {daily.industry && (
+            <div className="mb-4 rounded-lg border border-line bg-white/[0.02] px-4 py-3">
+              <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">Industry intelligence · {daily.industry.riskRegime}</div>
+              <ul className="space-y-1 text-[12.5px] text-ink-muted">
+                {daily.industry.statements.map((s, k) => <li key={k}><span className="text-accent-soft">›</span> {s}</li>)}
+              </ul>
+            </div>
           )}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div>
