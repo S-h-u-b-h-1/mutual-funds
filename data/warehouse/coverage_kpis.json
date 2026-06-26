@@ -1,0 +1,18 @@
+{
+ "asOf": "2026-06-23",
+ "scheme_coverage_pct": 100.0,
+ "nav_coverage_pct": 98.29,
+ "historical_coverage_pct": 89.62,
+ "returns_coverage_pct": 99.45,
+ "risk_coverage_pct": 99.6,
+ "benchmark_coverage_pct": 39.95,
+ "category_coverage_pct": 100.0,
+ "metadata_coverage_pct": 1.07,
+ "aum_coverage_pct": 1.07,
+ "expense_ratio_coverage_pct": 0.0,
+ "manager_coverage_pct": 0.08,
+ "holdings_coverage_pct": 0.18,
+ "portfolio_coverage_pct": 1.07,
+ "document_coverage_pct": 1.07,
+ "performance_completeness_avg_investable": 90.1
+}

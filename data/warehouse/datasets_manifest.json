@@ -1,0 +1,54 @@
+{
+ "asOf": "2026-06-23",
+ "snapshot_age_days": 3,
+ "datasets": [
+  {
+   "dataset": "AMFI NAV universe",
+   "source": "AMFI",
+   "source_url": "https://portal.amfiindia.com/spages/NAVAll.txt",
+   "last_updated": "2026-06-23",
+   "rows": 14224,
+   "checksum": "5cc66e8ccaa8759b",
+   "parser_version": "amfi_parser@1",
+   "freshness": "3d behind live",
+   "confidence": "high",
+   "validated": true
+  },
+  {
+   "dataset": "Scheme performance (funds.json)",
+   "source": "AMFI NAV + 90d history",
+   "source_url": "https://portal.amfiindia.com/spages/NAVAll.txt",
+   "last_updated": "2026-06-23",
+   "rows": 14224,
+   "checksum": "3710a8322b1e6385",
+   "parser_version": "build_performance@2",
+   "freshness": "3d",
+   "confidence": "high",
+   "validated": true
+  },
+  {
+   "dataset": "Factsheet metadata",
+   "source": "AMC factsheet PDFs (SBI live)",
+   "source_url": "per source_files.jsonl",
+   "last_updated": "2026-06-23",
+   "rows": 152,
+   "checksum": "85aa34d3e2855972",
+   "parser_version": "factsheet_adapters@1",
+   "freshness": "partial \u2014 SBI only",
+   "confidence": "medium",
+   "validated": true
+  },
+  {
+   "dataset": "Monthly flows",
+   "source": "SEBI (PDF only)",
+   "source_url": "https://www.sebi.gov.in",
+   "last_updated": null,
+   "rows": 0,
+   "checksum": null,
+   "parser_version": null,
+   "freshness": "SAMPLE \u2014 labelled illustrative",
+   "confidence": "low",
+   "validated": false
+  }
+ ]
+}

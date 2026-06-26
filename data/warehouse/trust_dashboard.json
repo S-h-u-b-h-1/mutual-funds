@@ -1,0 +1,14 @@
+{
+ "asOf": "2026-06-23",
+ "coverage_score": 100.0,
+ "routable_score": 100.0,
+ "freshness_score": 85,
+ "metadata_score": 0.3,
+ "historical_score": 89.62,
+ "lineage_score": 75.0,
+ "validation_score": 100.0,
+ "parser_health": 100.0,
+ "acquisition_health": 64,
+ "data_completeness": 84.4,
+ "overall_trust_score": 83.3
+}

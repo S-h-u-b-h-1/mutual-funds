@@ -1,0 +1,57 @@
+{
+ "asOf": "2026-06-23",
+ "checks": [
+  {
+   "check": "Every live AMFI scheme covered",
+   "pass": true,
+   "detail": "0 missing"
+  },
+  {
+   "check": "Every scheme routable (funds.json == our universe)",
+   "pass": true,
+   "detail": "14224 vs 14224"
+  },
+  {
+   "check": "No orphan funds outside source",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "No duplicate canonical funds (Direct-Growth)",
+   "pass": true,
+   "detail": "0 dup keys"
+  },
+  {
+   "check": "No fabricated returns on dormant/unpriced",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "Flows labelled SAMPLE (not shown as current)",
+   "pass": true,
+   "detail": "quarantined in UI"
+  },
+  {
+   "check": "Lineage: datasets have checksum + source_url",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "Universe is a superset of live AMFI (no scheme missing)",
+   "pass": true,
+   "detail": "0 missing"
+  },
+  {
+   "check": "Daily NAV refresh automated (cron scheduled)",
+   "pass": true,
+   "detail": "daily-nav.yml"
+  }
+ ],
+ "passing": 9,
+ "total": 9,
+ "production_ready_pct": 100.0,
+ "observations": {
+  "local_snapshot_age_days": 3,
+  "note": "prod NAV refreshed daily by cron; local bundle may lag a few days"
+ }
+}

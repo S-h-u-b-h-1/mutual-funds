@@ -1,0 +1,148 @@
+{
+ "asOf": "2026-06-23",
+ "live_amfi_fetched": true,
+ "live_amfi_schemes": 14208,
+ "mfpulse_schemes": 14224,
+ "covered": 14208,
+ "coverage_pct": 100.0,
+ "missing_count": 0,
+ "delisted_count": 16,
+ "universe": {
+  "asset_class": {
+   "Other": 2373,
+   "Debt": 7982,
+   "Equity": 2886,
+   "Hybrid": 822,
+   "Solution": 145
+  },
+  "scheme_type": {
+   "Open Ended Schemes": 9404,
+   "Close Ended Schemes": 4763,
+   "Interval Fund Schemes": 41
+  },
+  "fund_type": {
+   "Fund of Fund": 669,
+   "Active/Other": 11929,
+   "Index Fund": 1274,
+   "ETF": 336
+  },
+  "international": 177,
+  "commodity": 209
+ },
+ "missing_schemes": [],
+ "delisted_schemes": [
+  {
+   "scheme_code": "100042",
+   "scheme_name": "Aditya Birla Sun Life Liquid Fund-Retail (Growth)",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "100043",
+   "scheme_name": "Aditya Birla Sun Life Liquid Fund-Institutional (Growth)",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "101316",
+   "scheme_name": "Aditya Birla Sun Life Savings Fund-Retail Growth",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "101970",
+   "scheme_name": "Aditya Birla Sun Life Money Manager Fund - RETAIL - WEEKLY IDCW",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "101971",
+   "scheme_name": "Aditya Birla Sun Life Money Manager Fund - Retail Growth",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "103176",
+   "scheme_name": "Aditya Birla Sun Life Banking & PSU Debt Fund - Retail Plan-Growth",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "103191",
+   "scheme_name": "Aditya Birla Sun Life Low Duration Fund -INSTITUTIONAL - DAILY IDCW",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "103195",
+   "scheme_name": "Aditya Birla Sun Life Low Duration Fund - Institutional Plan - Growth",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "105881",
+   "scheme_name": "Aditya Birla Sun Life Savings Fund-Weekly - retail IDCW",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "106157",
+   "scheme_name": "Aditya Birla Sun Life Banking & PSU Debt Fund  - retail - quarterly IDCW",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "109108",
+   "scheme_name": "Aditya Birla Sun Life Savings Fund-Retail - Daily IDCW",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "110490",
+   "scheme_name": "Aditya Birla Sun Life Banking & PSU Debt Fund  - retail - monthly IDCW",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "111848",
+   "scheme_name": "Aditya Birla Sun Life Dynamic Bond Fund-Discipline Advantage Plan-Growth",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "112014",
+   "scheme_name": "Aditya Birla Sun Life Liquid Fund- Discipline Advantage Plan",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "122649",
+   "scheme_name": "Aditya Birla Sun Life Floating Rate Fund-RETAIL - WEEKLY IDCW",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  },
+  {
+   "scheme_code": "122650",
+   "scheme_name": "Aditya Birla Sun Life Floating Rate Fund-Retail Plan-Growth",
+   "amc": "Aditya Birla Sun Life Mutual Fund",
+   "status": "retained-as-dormant (AMFI delisted since snapshot)"
+  }
+ ],
+ "kpis": {
+  "scheme_coverage_pct": 100.0,
+  "nav_coverage_pct": 98.29,
+  "historical_coverage_pct": 89.62,
+  "returns_coverage_pct": 99.45,
+  "risk_coverage_pct": 99.6,
+  "benchmark_coverage_pct": 39.95,
+  "category_coverage_pct": 100.0,
+  "metadata_coverage_pct": 1.07,
+  "aum_coverage_pct": 1.07,
+  "expense_ratio_coverage_pct": 0.0,
+  "manager_coverage_pct": 0.08,
+  "holdings_coverage_pct": 0.18,
+  "portfolio_coverage_pct": 1.07,
+  "document_coverage_pct": 1.07,
+  "performance_completeness_avg_investable": 90.1
+ }
+}

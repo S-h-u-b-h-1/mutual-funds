@@ -1,0 +1,170 @@
+{
+ "asOf": "2026-06-23",
+ "denominators": {
+  "universe": 14224,
+  "active": 8503,
+  "investable": 3467
+ },
+ "fields": {
+  "Identity": {
+   "Scheme Name": {
+    "universe_pct": 100.0,
+    "universe_n": 14224,
+    "investable_pct": 100.0,
+    "investable_n": 3467
+   },
+   "AMC": {
+    "universe_pct": 100.0,
+    "universe_n": 14224,
+    "investable_pct": 100.0,
+    "investable_n": 3467
+   },
+   "Category": {
+    "universe_pct": 100.0,
+    "universe_n": 14224,
+    "investable_pct": 100.0,
+    "investable_n": 3467
+   },
+   "Asset Class": {
+    "universe_pct": 100.0,
+    "universe_n": 14224,
+    "investable_pct": 100.0,
+    "investable_n": 3467
+   },
+   "Benchmark": {
+    "universe_pct": 39.95,
+    "universe_n": 5682,
+    "investable_pct": 44.88,
+    "investable_n": 1556
+   }
+  },
+  "Performance": {
+   "Latest NAV": {
+    "universe_pct": 98.29,
+    "universe_n": 13981,
+    "investable_pct": 100.0,
+    "investable_n": 3467
+   },
+   "NAV History (90d)": {
+    "universe_pct": 28.26,
+    "universe_n": 4019,
+    "investable_pct": 99.6,
+    "investable_n": 3453
+   },
+   "1M": {
+    "universe_pct": 28.39,
+    "universe_n": 4038,
+    "investable_pct": 99.45,
+    "investable_n": 3448
+   },
+   "3M": {
+    "universe_pct": 28.09,
+    "universe_n": 3996,
+    "investable_pct": 98.56,
+    "investable_n": 3417
+   },
+   "6M": {
+    "universe_pct": 27.08,
+    "universe_n": 3852,
+    "investable_pct": 95.44,
+    "investable_n": 3309
+   },
+   "1Y": {
+    "universe_pct": 25.34,
+    "universe_n": 3605,
+    "investable_pct": 89.62,
+    "investable_n": 3107
+   },
+   "3Y": {
+    "universe_pct": 19.48,
+    "universe_n": 2771,
+    "investable_pct": 68.94,
+    "investable_n": 2390
+   },
+   "5Y": {
+    "universe_pct": 13.44,
+    "universe_n": 1912,
+    "investable_pct": 48.75,
+    "investable_n": 1690
+   },
+   "Volatility": {
+    "universe_pct": 28.26,
+    "universe_n": 4019,
+    "investable_pct": 99.6,
+    "investable_n": 3453
+   },
+   "Drawdown": {
+    "universe_pct": 28.26,
+    "universe_n": 4019,
+    "investable_pct": 99.6,
+    "investable_n": 3453
+   }
+  },
+  "Metadata": {
+   "Expense Ratio": {
+    "universe_pct": 0.0,
+    "universe_n": 0,
+    "investable_pct": 0.0,
+    "investable_n": 0
+   },
+   "AUM": {
+    "universe_pct": 1.07,
+    "universe_n": 152,
+    "investable_pct": 1.59,
+    "investable_n": 55
+   },
+   "Riskometer": {
+    "universe_pct": 1.07,
+    "universe_n": 152,
+    "investable_pct": 1.59,
+    "investable_n": 55
+   },
+   "Manager": {
+    "universe_pct": 0.08,
+    "universe_n": 12,
+    "investable_pct": 0.12,
+    "investable_n": 4
+   },
+   "Launch Date": {
+    "universe_pct": 1.07,
+    "universe_n": 152,
+    "investable_pct": 1.59,
+    "investable_n": 55
+   },
+   "Exit Load": {
+    "universe_pct": 0.0,
+    "universe_n": 0,
+    "investable_pct": 0.0,
+    "investable_n": 0
+   }
+  },
+  "Portfolio": {
+   "Holdings": {
+    "universe_pct": 0.18,
+    "universe_n": 26,
+    "investable_pct": 0.29,
+    "investable_n": 10
+   },
+   "Sector Allocation": {
+    "universe_pct": 1.07,
+    "universe_n": 152,
+    "investable_pct": 1.59,
+    "investable_n": 55
+   }
+  },
+  "Documents": {
+   "Factsheet": {
+    "universe_pct": 1.07,
+    "universe_n": 152,
+    "investable_pct": 1.59,
+    "investable_n": 55
+   }
+  }
+ },
+ "performance_completeness": {
+  "universe_avg": 42.3,
+  "investable_avg": 90.1,
+  "investable_ge80": 91.66,
+  "universe_ge80": 25.77
+ }
+}
