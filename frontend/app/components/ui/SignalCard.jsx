@@ -1,10 +1,10 @@
-import { signalSlug } from "../../lib/signalSlug";
+import { signalPath } from "../../lib/signalSlug";
 
 export default function SignalCard({ amc, assetClass, signal, z, value }) {
   const up = signal === "inflow_surge";
   return (
     <a
-      href={`/signals/${signalSlug(amc, assetClass)}`}
+      href={`/signals/${signalPath(amc, assetClass)}`}
       className="group glass p-4 flex items-center gap-3.5 transition-all duration-200 hover:border-line-strong hover:-translate-y-0.5"
     >
       <span

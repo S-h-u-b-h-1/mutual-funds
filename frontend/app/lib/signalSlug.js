@@ -11,3 +11,8 @@ export function slugify(name) {
 export function signalSlug(amc, asset) {
   return `${slugify(amc)}-${String(asset || "").toLowerCase()}`;
 }
+
+// /signals/[amcSlug]/[categorySlug] — the AMC Intelligence route
+export function signalPath(amc, asset) {
+  return `${slugify(amc)}/${String(asset || "").toLowerCase()}`;
+}
