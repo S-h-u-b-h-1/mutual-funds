@@ -9,10 +9,10 @@
  "delisted_count": 16,
  "universe": {
   "asset_class": {
-   "Other": 2373,
-   "Debt": 7982,
    "Equity": 2886,
+   "Debt": 7982,
    "Hybrid": 822,
+   "Other": 2373,
    "Solution": 145
   },
   "scheme_type": {
@@ -21,10 +21,10 @@
    "Interval Fund Schemes": 41
   },
   "fund_type": {
-   "Fund of Fund": 669,
    "Active/Other": 11929,
    "Index Fund": 1274,
-   "ETF": 336
+   "ETF": 336,
+   "Fund of Fund": 669
   },
   "international": 177,
   "commodity": 209
@@ -143,6 +143,10 @@
   "holdings_coverage_pct": 0.18,
   "portfolio_coverage_pct": 1.07,
   "document_coverage_pct": 1.07,
-  "performance_completeness_avg_investable": 90.1
+  "isin_coverage_pct": 98.83,
+  "structure_coverage_pct": 100.0,
+  "performance_completeness_avg_investable": 90.1,
+  "fund_completeness_avg_investable": 53.3,
+  "research_readiness_avg_investable": 49.6
  }
 }

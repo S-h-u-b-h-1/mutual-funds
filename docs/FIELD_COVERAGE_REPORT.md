@@ -56,6 +56,14 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 - Investable average: **90.1/100** (91.66% score ≥80)
 - Universe average: 42.3/100 (25.77% ≥80)
 
+## Fund Completeness & Research Readiness (Phases 5–6)
+| Score | Investable | Universe |
+|---|---:|---:|
+| Fund Completeness (9 dimensions) | 53.3/100 | 34.4/100 |
+| Research Readiness (9 questions) | 49.6/100 | 25.2/100 |
+| ISIN coverage | 98.83% | 98.83% |
+| Scheme-structure coverage | 100.0% | 100.0% |
+
 ## Honest read
 - **Identity / category / NAV / performance**: near-complete on the investable set.
 - **Metadata / portfolio / documents**: factsheet-sourced, currently **SBI only (1.07% of universe)**.

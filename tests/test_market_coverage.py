@@ -48,6 +48,26 @@ def test_field_coverage_has_all_groups():
     assert d["fields"]["Metadata"]["Expense Ratio"]["universe_pct"] < 50
 
 
+def test_completeness_and_readiness_scores_present_and_bounded():
+    d = _load("field_coverage.json")
+    fc = d["fund_completeness"]
+    for k in ("fund_completeness_avg_investable", "research_readiness_avg_investable",
+              "fund_completeness_avg_universe", "research_readiness_avg_universe",
+              "isin_coverage_pct", "structure_coverage_pct"):
+        assert k in fc, f"missing {k}"
+        assert 0 <= fc[k] <= 100, f"{k}={fc[k]} out of range"
+    # ISIN + structure are real AMFI enrichments shipped this sprint
+    assert fc["isin_coverage_pct"] >= 90, "ISIN coverage should be near-universal from AMFI"
+    assert fc["structure_coverage_pct"] == 100.0
+
+
+def test_kpis_include_completeness_metrics():
+    d = _load("coverage_kpis.json")
+    for k in ("isin_coverage_pct", "structure_coverage_pct",
+              "fund_completeness_avg_investable", "research_readiness_avg_investable"):
+        assert k in d and 0 <= d[k] <= 100
+
+
 def test_acquisition_backlog_prioritised():
     d = _load("acquisition_backlog.json")
     assert d["items"], "backlog should not be empty while metadata is incomplete"

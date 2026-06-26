@@ -29,7 +29,11 @@
 | holdings coverage pct | 0.18% |
 | portfolio coverage pct | 1.07% |
 | document coverage pct | 1.07% |
+| isin coverage pct | 98.83% |
+| structure coverage pct | 100.0% |
 | performance completeness avg investable | 90.1 |
+| fund completeness avg investable | 53.3 |
+| research readiness avg investable | 49.6 |
 
 ## Trust components
 | Component | Score |

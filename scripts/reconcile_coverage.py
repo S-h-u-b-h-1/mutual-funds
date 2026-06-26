@@ -47,6 +47,21 @@ def clean_category(cat: str) -> str:
     return c.replace(" Fund", "").replace("Scheme", "").strip() or "Other"
 
 
+def structure_of(scheme_type: str) -> str:
+    t = (scheme_type or "").lower()
+    if "close" in t:
+        return "Closed-Ended"
+    if "interval" in t:
+        return "Interval"
+    if "open" in t:
+        return "Open-Ended"
+    return None
+
+
+def isin_of(r) -> str:
+    return r.isin_growth or r.isin_reinvest or None
+
+
 def main() -> None:
     bundle = json.load(open(DATA))
     funds = bundle["funds"]
@@ -83,12 +98,26 @@ def main() -> None:
             "r1d": None, "r1w": None, "r1m": None, "r3m": None, "r6m": None,
             "r1y": None, "r3y": None, "r5y": None,
             "benchmark": bm or None, "benchmarkStd": std if bm else None, "trend": None,
+            "isin": isin_of(r), "structure": structure_of(r.scheme_type),
             "quality": {
                 "status": status, "hasLatest": False, "has90d": False, "has1y": False,
                 "staleDays": stale_days if stale_days is not None else 9999,
                 "hasCategory": cat != "Other", "hasAmc": bool(r.amc_name), "obs": 0,
             },
         }
+
+    # Universe-wide identity enrichment from AMFI (zero fabrication): ISIN + scheme structure.
+    # Backfills every record — including the ones build_performance produced — idempotently.
+    enriched = 0
+    for code, f in funds.items():
+        r = dim.get(code)
+        if not r:
+            continue
+        if f.get("isin") is None and isin_of(r):
+            f["isin"] = isin_of(r); enriched += 1
+        if f.get("structure") is None and structure_of(r.scheme_type):
+            f["structure"] = structure_of(r.scheme_type)
+    print(f"reconcile: enriched ISIN/structure on {enriched} records")
 
     vals = list(funds.values())
     cov = bundle.get("coverage", {})
@@ -102,6 +131,8 @@ def main() -> None:
         "staleListed": sum(1 for f in vals if f["quality"]["status"] == "stale"),
         "unpriced": sum(1 for f in vals if f["quality"]["status"] == "unpriced"),
         "active": sum(1 for f in vals if f["active"]),
+        "isin": sum(1 for f in vals if f.get("isin")),
+        "structure": sum(1 for f in vals if f.get("structure")),
     })
     bundle["coverage"] = cov
 

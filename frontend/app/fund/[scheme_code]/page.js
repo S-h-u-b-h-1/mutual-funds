@@ -12,6 +12,7 @@ import { fundSignals, researchSummary, visibleReturns, riskInterpretation, bench
 import { fundHealth, gradeTone, LABELS } from "../../lib/fundHealth";
 import { getMetadata, managerSlug } from "../../lib/metadata";
 import { portfolioRisk } from "../../lib/portfolio";
+import { fundCompleteness, researchReadiness, completenessTone } from "../../lib/completeness";
 
 export const revalidate = 3600;
 
@@ -69,6 +70,8 @@ export default async function FundPage({ params }) {
   const [fTone, fLabel] = freshness(f.staleDays === 9999 ? null : f.staleDays);
   const notice = listingNotice(f);
   const histDays = history?.points?.length || 0;
+  const completeness = fundCompleteness(f, meta);
+  const readiness = researchReadiness(f, meta);
 
   return (
     <>
@@ -130,6 +133,34 @@ export default async function FundPage({ params }) {
             <p className="mt-4 border-t border-line pt-3 text-[12.5px] leading-relaxed text-ink-muted">{health.explanation}</p>
           </GlassPanel>
         )}
+
+        {/* 2b · Research completeness */}
+        <GlassPanel className="mt-5 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <SectionHeader title="Research completeness" eyebrow="how much trustworthy data exists for this fund · traceable, never fabricated" />
+            <div className="flex items-center gap-4 text-right">
+              <div>
+                <div className="text-[10.5px] uppercase tracking-[0.1em] text-ink-faint">Completeness</div>
+                <div className={`text-[22px] font-bold tnum ${completenessTone(completeness.score) === "pos" ? "text-pos" : completenessTone(completeness.score) === "warn" ? "text-warn" : "text-neg"}`}>{completeness.score}<span className="text-[12px] text-ink-faint">/100</span></div>
+              </div>
+              <div>
+                <div className="text-[10.5px] uppercase tracking-[0.1em] text-ink-faint">Research-ready</div>
+                <div className="text-[22px] font-bold tnum text-ink">{readiness.answered}<span className="text-[12px] text-ink-faint">/{readiness.total}</span></div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-3">
+            {readiness.questions.map((q) => (
+              <div key={q.question} className="flex items-start gap-2 text-[12px]">
+                <span className={q.answered ? "text-pos" : "text-ink-faint"}>{q.answered ? "✓" : "○"}</span>
+                <span className="flex-1">
+                  <span className={q.answered ? "text-ink-muted" : "text-ink-faint"}>{q.question}</span>
+                  <span className="block text-[10.5px] text-ink-faint">{q.answered ? q.source : "not yet acquired"}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </GlassPanel>
 
         {/* 3 · Performance */}
         <section className="mt-7">
@@ -228,6 +259,9 @@ export default async function FundPage({ params }) {
           <GlassPanel className="p-5">
             <SectionHeader title="Portfolio & metadata" action={meta ? <Badge tone="pos" dot>factsheet</Badge> : null} />
             <div className="space-y-2.5">
+              {f.isin && <Metric label="ISIN" value={f.isin} />}
+              {f.structure && <Metric label="Structure" value={f.structure} />}
+              <Metric label="Sub-category" value={f.category && f.category !== "Other" ? f.category : "—"} />
               <div className="flex items-center justify-between gap-2 text-[12.5px]"><span className="text-ink-faint">Benchmark</span><span className="text-right text-ink-muted">{(meta?.benchmark) || f.benchmark || "Not yet available"}</span></div>
               <Metric label="AUM" value={meta?.aum_crores != null ? `₹${meta.aum_crores.toLocaleString("en-IN")} Cr` : "Not yet available"} />
               <Metric label="Expense ratio" value={meta?.expense_ratio != null ? `${meta.expense_ratio}%${meta.direct_expense_ratio != null ? ` (Direct ${meta.direct_expense_ratio}%)` : ""}` : "Not yet available"} />

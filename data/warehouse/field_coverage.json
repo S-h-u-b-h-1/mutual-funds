@@ -166,5 +166,13 @@
   "investable_avg": 90.1,
   "investable_ge80": 91.66,
   "universe_ge80": 25.77
+ },
+ "fund_completeness": {
+  "fund_completeness_avg_universe": 34.4,
+  "fund_completeness_avg_investable": 53.3,
+  "research_readiness_avg_universe": 25.2,
+  "research_readiness_avg_investable": 49.6,
+  "isin_coverage_pct": 98.83,
+  "structure_coverage_pct": 100.0
  }
 }

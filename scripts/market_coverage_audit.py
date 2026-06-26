@@ -190,6 +190,53 @@ def main():
         "universe_ge80": pct(sum(1 for s in perf_scores if s >= 80), N),
     }
 
+    # ---------- PHASE 5/6: fund completeness + research readiness (mirror lib/completeness.js) ----------
+    def _present(v): return v not in (None, "", [], {})
+    def _frac(arr): return round(100 * sum(1 for x in arr if _present(x)) / len(arr))
+    def _fracb(arr): return round(100 * sum(1 for x in arr if x) / len(arr))
+    def completeness(f):
+        m = by_code_meta.get(f["code"])
+        mm = lambda k: bool(m and _present(m.get(k)))
+        catv = f["category"] if f.get("category") not in (None, "", "Other") else None
+        dims = {
+            "identity": _frac([f.get("name"), f.get("amc"), catv, f.get("assetClass"), f.get("structure"), f.get("isin")]),
+            "performance": _frac([f.get("nav"), f.get("r1m"), f.get("r3m"), f.get("r1y"), f.get("r3y") or f.get("r5y"), f.get("vol90")]),
+            "benchmark": _frac([f.get("benchmark")]),
+            "risk": _frac([f.get("vol90"), f.get("maxdd90"), f.get("consistency")]),
+            "metadata": _fracb([mm("expense_ratio") or mm("regular_expense_ratio") or mm("direct_expense_ratio"), mm("aum_crores"), mm("riskometer"), mm("launch_date"), mm("exit_load")]),
+            "manager": _fracb([mm("fund_manager")]),
+            "portfolio": _fracb([mm("holdings"), mm("sector_allocation")]),
+            "documents": _fracb([bool(m)]),
+            "lineage": _frac([f.get("navDate"), f.get("code")]),
+        }
+        W = {"identity": 15, "performance": 20, "benchmark": 10, "risk": 10, "metadata": 15, "manager": 10, "portfolio": 10, "documents": 5, "lineage": 5}
+        tw = sum(W.values())
+        return round(sum(W[k] / tw * dims[k] for k in W))
+    def readiness(f):
+        m = by_code_meta.get(f["code"])
+        mm = lambda k: bool(m and _present(m.get(k)))
+        ans = [
+            _present(f.get("name")) and f.get("category") not in (None, "", "Other"),
+            mm("fund_manager"), mm("holdings") or mm("sector_allocation"), _present(f.get("benchmark")),
+            mm("expense_ratio") or mm("regular_expense_ratio") or mm("direct_expense_ratio"),
+            _present(f.get("vol90")) or mm("riskometer"), mm("aum_crores"),
+            _present(f.get("r1m")) or _present(f.get("r1y")),
+            _present(f.get("r1m")) and (_present(f.get("catPct")) or _present(f.get("vol90"))),
+        ]
+        return round(100 * sum(1 for a in ans if a) / len(ans))
+    comp_all = [completeness(f) for f in vals]
+    comp_inv = [completeness(f) for f in investable]
+    read_all = [readiness(f) for f in vals]
+    read_inv = [readiness(f) for f in investable]
+    completeness_summary = {
+        "fund_completeness_avg_universe": round(sum(comp_all) / N, 1),
+        "fund_completeness_avg_investable": round(sum(comp_inv) / len(investable), 1),
+        "research_readiness_avg_universe": round(sum(read_all) / N, 1),
+        "research_readiness_avg_investable": round(sum(read_inv) / len(investable), 1),
+        "isin_coverage_pct": pct(sum(1 for f in vals if f.get("isin")), N),
+        "structure_coverage_pct": pct(sum(1 for f in vals if f.get("structure")), N),
+    }
+
     # ---------- PHASE 4: KPIs (all auto-computed) ----------
     def kpi(pred, U): return pct(sum(1 for f in U if pred(f)), len(U))
     kpis = {
@@ -207,7 +254,11 @@ def main():
         "holdings_coverage_pct": kpi(lambda f: has_meta(f, "holdings"), vals),
         "portfolio_coverage_pct": kpi(lambda f: has_meta(f, "sector_allocation"), vals),
         "document_coverage_pct": pct(len(by_code_meta), N),
+        "isin_coverage_pct": completeness_summary["isin_coverage_pct"],
+        "structure_coverage_pct": completeness_summary["structure_coverage_pct"],
         "performance_completeness_avg_investable": perf_summary["investable_avg"],
+        "fund_completeness_avg_investable": completeness_summary["fund_completeness_avg_investable"],
+        "research_readiness_avg_investable": completeness_summary["research_readiness_avg_investable"],
     }
 
     # ---------- PHASE 6: dataset freshness/lineage manifest ----------
@@ -316,7 +367,8 @@ def main():
     out = {
         "coverage_dashboard.json": {**market, "kpis": kpis},
         "field_coverage.json": {"asOf": asof.isoformat(), "denominators": {"universe": N, "active": len(active), "investable": len(investable)},
-                                "fields": field_cov, "performance_completeness": perf_summary},
+                                "fields": field_cov, "performance_completeness": perf_summary,
+                                "fund_completeness": completeness_summary},
         "coverage_kpis.json": {"asOf": asof.isoformat(), **kpis},
         "datasets_manifest.json": {"asOf": asof.isoformat(), "snapshot_age_days": snap_age, "datasets": datasets},
         "acquisition_backlog.json": {"asOf": asof.isoformat(), "items": backlog},
@@ -331,7 +383,8 @@ def main():
 
     # expose a few things for the markdown writer
     return dict(asof=asof, market=market, live_bd=live_bd, field_cov=field_cov, kpis=kpis,
-                perf_summary=perf_summary, datasets=datasets, backlog=backlog, trust=trust,
+                perf_summary=perf_summary, completeness_summary=completeness_summary,
+                datasets=datasets, backlog=backlog, trust=trust,
                 checks=checks, production_ready=production_ready, N=N, active=len(active),
                 investable=len(investable), delisted=delisted, ours=ours, missing=missing, live=live)
 
@@ -417,6 +470,14 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 ## Performance completeness (0–100 per scheme)
 - Investable average: **{r['perf_summary']['investable_avg']}/100** ({r['perf_summary']['investable_ge80']}% score ≥80)
 - Universe average: {r['perf_summary']['universe_avg']}/100 ({r['perf_summary']['universe_ge80']}% ≥80)
+
+## Fund Completeness & Research Readiness (Phases 5–6)
+| Score | Investable | Universe |
+|---|---:|---:|
+| Fund Completeness (9 dimensions) | {r['completeness_summary']['fund_completeness_avg_investable']}/100 | {r['completeness_summary']['fund_completeness_avg_universe']}/100 |
+| Research Readiness (9 questions) | {r['completeness_summary']['research_readiness_avg_investable']}/100 | {r['completeness_summary']['research_readiness_avg_universe']}/100 |
+| ISIN coverage | {r['completeness_summary']['isin_coverage_pct']}% | {r['completeness_summary']['isin_coverage_pct']}% |
+| Scheme-structure coverage | {r['completeness_summary']['structure_coverage_pct']}% | {r['completeness_summary']['structure_coverage_pct']}% |
 
 ## Honest read
 - **Identity / category / NAV / performance**: near-complete on the investable set.

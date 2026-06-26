@@ -14,5 +14,9 @@
  "holdings_coverage_pct": 0.18,
  "portfolio_coverage_pct": 1.07,
  "document_coverage_pct": 1.07,
- "performance_completeness_avg_investable": 90.1
+ "isin_coverage_pct": 98.83,
+ "structure_coverage_pct": 100.0,
+ "performance_completeness_avg_investable": 90.1,
+ "fund_completeness_avg_investable": 53.3,
+ "research_readiness_avg_investable": 49.6
 }
