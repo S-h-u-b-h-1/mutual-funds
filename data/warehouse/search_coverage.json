@@ -1,0 +1,28 @@
+{
+ "asOf": "2026-06-23",
+ "source_schemes": 14224,
+ "searchable": 14224,
+ "openable": 14224,
+ "missing": 0,
+ "routablePct": 100,
+ "active": 8503,
+ "dormant": 5235,
+ "staleListed": 352,
+ "unpriced": 243,
+ "recovered": 5645,
+ "recoveredByReason": {
+  "dormant": 5235,
+  "stale": 167,
+  "unpriced": 243
+ },
+ "phase4_sample": {
+  "n": 500,
+  "seed": 42,
+  "failures": {
+   "searched": 0,
+   "opened": 0,
+   "routed": 0,
+   "displayed": 0
+  }
+ }
+}

@@ -234,7 +234,11 @@ def main():
         "coveragePct": round(100 * sum(1 for f in vals if f["r3m"] is not None) / max(1, len(vals))),
     }
 
-    keep = {c: f for c, f in funds.items() if f["r1m"] is not None or f["active"]}
+    # Keep EVERY priced scheme so every searchable scheme is also routable/openable.
+    # (Previously trimmed to r1m-or-active, which made ~5.6k schemes 404 on click.)
+    # Dormant/stale schemes carry null returns — honest, never fabricated. The unpriced
+    # tail (no NAV at all) is added by scripts/reconcile_coverage.py, run right after this.
+    keep = funds
     with open(f"{DATA}/funds.json", "w") as fh:
         json.dump({"asOf": asof.isoformat(), "source": "AMFI NAV + 90d NAV history",
                    "coverage": coverage, "cohorts": cohorts, "funds": keep}, fh, separators=(",", ":"))
@@ -295,6 +299,13 @@ def main():
 
     print(f"-- funds.json: {len(keep)} kept | risk on {coverage['withRisk']} | 1y {coverage['with1y']} | "
           f"3y {coverage['with3y']} | direct-growth {coverage['directGrowth']}", file=sys.stderr)
+
+    # Make every searchable scheme routable: add the unpriced tail + record the openable invariant.
+    try:
+        from scripts.reconcile_coverage import main as reconcile
+        reconcile()
+    except Exception as e:  # reconcile is additive; never let it break the perf build
+        print(f"-- reconcile_coverage skipped: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":

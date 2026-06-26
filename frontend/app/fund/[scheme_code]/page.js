@@ -20,7 +20,15 @@ export async function generateMetadata({ params }) {
   return { title: f ? `${f.name.replace(/ - (Direct|Regular).*/i, "")} — ${f.amc}` : "Fund" };
 }
 
-const freshness = (d) => (d === 0 ? ["pos", "NAV current"] : d <= 2 ? ["pos", `${d}d old`] : d <= 7 ? ["warn", `${d}d old`] : ["neg", "Stale"]);
+const freshness = (d) => (d == null ? ["neg", "No NAV"] : d === 0 ? ["pos", "NAV current"] : d <= 2 ? ["pos", `${d}d old`] : d <= 7 ? ["warn", `${d}d old`] : ["neg", "Stale"]);
+// Listing state for schemes AMFI still lists but that are dormant/unpriced — shown honestly, never 404'd.
+function listingNotice(f) {
+  const st = f.quality?.status;
+  if (st === "unpriced" || f.nav == null) return ["No NAV published", "AMFI lists this scheme but has not published a NAV, so no price, returns or risk can be shown. Identity only."];
+  if (st === "dormant" || (f.staleDays != null && f.staleDays > 365)) return ["Dormant scheme", `Last NAV was ${f.navDate} (${f.staleDays}d ago). Likely wound up or merged — shown for reference; returns are not computed on a stale NAV.`];
+  if (!f.active && f.staleDays > 7) return ["NAV stale", `Last NAV ${f.navDate} (${f.staleDays}d ago). Returns/risk are withheld until a fresh NAV — never extrapolated.`];
+  return null;
+}
 const sgn = (v, dp = 2) => `${v >= 0 ? "+" : ""}${v.toFixed(dp)}%`;
 
 function Ret({ label, v, suffix }) {
@@ -58,7 +66,8 @@ export default async function FundPage({ params }) {
     metaComplete: meta?.completeness ?? null,             // factsheet component activates with real data
     portfolioScore: port?.score ?? null,
   });
-  const [fTone, fLabel] = freshness(f.staleDays);
+  const [fTone, fLabel] = freshness(f.staleDays === 9999 ? null : f.staleDays);
+  const notice = listingNotice(f);
   const histDays = history?.points?.length || 0;
 
   return (
@@ -80,10 +89,16 @@ export default async function FundPage({ params }) {
           </div>
           <div className="text-right">
             <div className="text-[11px] uppercase tracking-[0.1em] text-ink-faint">Latest NAV</div>
-            <div className="text-[24px] font-bold tnum text-ink">₹{f.nav.toFixed(2)}</div>
-            <div className="mt-1 flex items-center justify-end gap-2 text-[11px] text-ink-faint"><span>{f.navDate}</span><Badge tone={fTone} dot>{fLabel}</Badge></div>
+            <div className="text-[24px] font-bold tnum text-ink">{f.nav != null ? `₹${f.nav.toFixed(2)}` : "—"}</div>
+            <div className="mt-1 flex items-center justify-end gap-2 text-[11px] text-ink-faint"><span>{f.navDate || "no NAV"}</span><Badge tone={fTone} dot>{fLabel}</Badge></div>
           </div>
         </div>
+
+        {notice && (
+          <div className="mt-4 rounded-lg border border-line bg-white/[0.02] px-4 py-2.5 text-[12.5px] text-ink-muted">
+            <span className="font-semibold text-ink">{notice[0]}.</span> {notice[1]}
+          </div>
+        )}
 
         {f.isIdcw && (
           <div className="mt-4 rounded-lg border border-warn/30 bg-warn/[0.06] px-4 py-2.5 text-[12.5px] text-warn">

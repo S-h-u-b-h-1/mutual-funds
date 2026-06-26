@@ -27,13 +27,15 @@ export default function Search() {
       const term = encodeURIComponent(`*${clean}*`);
       const filter = `or=(scheme_name.ilike.${term},amc_name.ilike.${term})`;
       try {
+        // limit raised 40→300 and ordered for determinism so an exact scheme name always
+        // surfaces and variant counts are complete (300 rows covers any AMC+keyword set).
         const res = await fetch(
-          `${SUPA.URL}/rest/v1/dim_scheme?select=scheme_code,scheme_name,amc_name,asset_class&${filter}&limit=40`,
+          `${SUPA.URL}/rest/v1/dim_scheme?select=scheme_code,scheme_name,amc_name,asset_class&${filter}&order=scheme_name.asc&limit=300`,
           { headers: { apikey: SUPA.KEY, Authorization: `Bearer ${SUPA.KEY}` } }
         );
         const rows = await res.json();
         // collapse scheme variants → one row per canonical fund (no duplicate ideas)
-        const canon = Array.isArray(rows) ? groupCanonical(rows, 8) : [];
+        const canon = Array.isArray(rows) ? groupCanonical(rows, 12) : [];
         setResults(canon);
         track("search", { q: clean, results: canon.length });
       } catch {
