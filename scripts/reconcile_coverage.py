@@ -108,7 +108,9 @@ def main() -> None:
 
     # Universe-wide identity enrichment from AMFI (zero fabrication): ISIN + scheme structure.
     # Backfills every record — including the ones build_performance produced — idempotently.
+    # Also re-resolves benchmark with the improved SEBI-standard + index-name resolver.
     enriched = 0
+    bench_filled = 0
     for code, f in funds.items():
         r = dim.get(code)
         if not r:
@@ -117,7 +119,14 @@ def main() -> None:
             f["isin"] = isin_of(r); enriched += 1
         if f.get("structure") is None and structure_of(r.scheme_type):
             f["structure"] = structure_of(r.scheme_type)
-    print(f"reconcile: enriched ISIN/structure on {enriched} records")
+        # Re-resolve benchmark for every fund so the corrected resolver applies uniformly
+        # (fixes any earlier over-assignment; deterministic, same result for already-correct ones).
+        bm, std = resolve_benchmark(f.get("category") or "", f.get("name") or "", f.get("assetClass") or "")
+        had = bool(f.get("benchmark"))
+        f["benchmark"], f["benchmarkStd"] = (bm or None), (std if bm else None)
+        if bm and not had:
+            bench_filled += 1
+    print(f"reconcile: enriched ISIN/structure on {enriched} records; benchmark filled on {bench_filled}")
 
     vals = list(funds.values())
     cov = bundle.get("coverage", {})

@@ -32,10 +32,10 @@
     "investable_n": 3467
    },
    "Benchmark": {
-    "universe_pct": 39.95,
-    "universe_n": 5682,
-    "investable_pct": 44.88,
-    "investable_n": 1556
+    "universe_pct": 86.33,
+    "universe_n": 12280,
+    "investable_pct": 72.74,
+    "investable_n": 2522
    }
   },
   "Performance": {
@@ -162,16 +162,16 @@
   }
  },
  "performance_completeness": {
-  "universe_avg": 42.3,
-  "investable_avg": 90.1,
-  "investable_ge80": 91.66,
-  "universe_ge80": 25.77
+  "universe_avg": 46.9,
+  "investable_avg": 92.9,
+  "investable_ge80": 95.88,
+  "universe_ge80": 27.17
  },
  "fund_completeness": {
-  "fund_completeness_avg_universe": 34.4,
-  "fund_completeness_avg_investable": 53.3,
-  "research_readiness_avg_universe": 25.2,
-  "research_readiness_avg_investable": 49.6,
+  "fund_completeness_avg_universe": 39.0,
+  "fund_completeness_avg_investable": 56.1,
+  "research_readiness_avg_universe": 30.4,
+  "research_readiness_avg_investable": 52.9,
   "isin_coverage_pct": 98.83,
   "structure_coverage_pct": 100.0
  }

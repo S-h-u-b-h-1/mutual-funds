@@ -42,10 +42,10 @@ retained as dormant for research lookup.
 **By fund type** *(name-derived, heuristic)*
 | Fund type | Schemes |
 |---|---:|
-| Active/Other | 11929 |
+| Active/Other | 11926 |
 | Index Fund | 1274 |
-| Fund of Fund | 669 |
-| ETF | 336 |
+| Fund of Fund | 671 |
+| ETF | 337 |
 
 International (name-derived): 177 · Commodity (gold/silver): 209
 

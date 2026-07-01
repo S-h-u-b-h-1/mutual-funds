@@ -72,6 +72,10 @@ export default async function FundPage({ params }) {
   const histDays = history?.points?.length || 0;
   const completeness = fundCompleteness(f, meta);
   const readiness = researchReadiness(f, meta);
+  // Institutional risk ratios — computed only when 1Y return + risk series exist (no estimation).
+  const RF = 6.5; // disclosed risk-free (≈ India 1Y T-bill)
+  const sharpe = f.r1y != null && f.vol90 ? +((f.r1y - RF) / f.vol90).toFixed(2) : null;
+  const sortino = f.r1y != null && f.dvol90 ? +((f.r1y - RF) / f.dvol90).toFixed(2) : null;
 
   return (
     <>
@@ -160,6 +164,13 @@ export default async function FundPage({ params }) {
               </div>
             ))}
           </div>
+          {completeness.score < 100 && (
+            <p className="mt-3 border-t border-line pt-2.5 text-[11.5px] text-ink-faint">
+              <span className="font-semibold text-ink-muted">Why not 100%:</span>{" "}
+              {Object.entries(completeness.dims).filter(([, v]) => v < 100).sort((a, b) => a[1] - b[1]).slice(0, 5).map(([k, v]) => `${k} ${v}%`).join(" · ")}
+              {" — "}missing fields are factsheet-sourced (manager, holdings, expense, AUM); never estimated.
+            </p>
+          )}
         </GlassPanel>
 
         {/* 3 · Performance */}
@@ -198,6 +209,8 @@ export default async function FundPage({ params }) {
                 <Metric label="Drawdown from high" value={sgn(f.ddFromHigh)} tone={f.ddFromHigh < 0 ? "neg" : "pos"} />
                 <Metric label="Negative NAV days" value={`${f.negDays} / ${f.quality?.obs ?? "—"}`} />
                 <Metric label="Consistency" value={`${f.consistency}/100`} tone={f.consistency >= 55 ? "pos" : undefined} />
+                {sharpe != null && <Metric label="Sharpe ratio (1Y, rf 6.5%)" value={sharpe} tone={sharpe >= 1 ? "pos" : sharpe < 0 ? "neg" : undefined} />}
+                {sortino != null && <Metric label="Sortino ratio (1Y, rf 6.5%)" value={sortino} tone={sortino >= 1.5 ? "pos" : sortino < 0 ? "neg" : undefined} />}
                 <p className="border-t border-line pt-2.5 text-[12px] leading-relaxed text-ink-faint">{riskInterpretation(f)}</p>
                 {port && (
                   <div className="border-t border-line pt-2.5">

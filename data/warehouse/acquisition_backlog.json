@@ -34,19 +34,19 @@
    "priority": "P2"
   },
   {
-   "item": "Benchmark (all schemes)",
-   "missing_count": 8542,
-   "impact": "medium",
-   "expected_source": "SEBI category map",
-   "reason": "FMP/index/niche categories unmapped",
-   "priority": "P2"
-  },
-  {
    "item": "Index-return alpha",
    "missing_count": 3467,
    "impact": "medium",
    "expected_source": "index NAV series",
    "reason": "benchmark index NAV series not ingested \u2014 peer-relative only",
+   "priority": "P2"
+  },
+  {
+   "item": "Benchmark (all schemes)",
+   "missing_count": 1944,
+   "impact": "medium",
+   "expected_source": "SEBI category map",
+   "reason": "FMP/index/niche categories unmapped",
    "priority": "P2"
   }
  ]

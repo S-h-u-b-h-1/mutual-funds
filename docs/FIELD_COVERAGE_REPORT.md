@@ -11,7 +11,7 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 | AMC | 100.0% | 100.0% |
 | Category | 100.0% | 100.0% |
 | Asset Class | 100.0% | 100.0% |
-| Benchmark | 39.95% | 44.88% |
+| Benchmark | 86.33% | 72.74% |
 
 ### Performance
 
@@ -53,14 +53,14 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 | Factsheet | 1.07% | 1.59% |
 
 ## Performance completeness (0–100 per scheme)
-- Investable average: **90.1/100** (91.66% score ≥80)
-- Universe average: 42.3/100 (25.77% ≥80)
+- Investable average: **92.9/100** (95.88% score ≥80)
+- Universe average: 46.9/100 (27.17% ≥80)
 
 ## Fund Completeness & Research Readiness (Phases 5–6)
 | Score | Investable | Universe |
 |---|---:|---:|
-| Fund Completeness (9 dimensions) | 53.3/100 | 34.4/100 |
-| Research Readiness (9 questions) | 49.6/100 | 25.2/100 |
+| Fund Completeness (9 dimensions) | 56.1/100 | 39.0/100 |
+| Research Readiness (9 questions) | 52.9/100 | 30.4/100 |
 | ISIN coverage | 98.83% | 98.83% |
 | Scheme-structure coverage | 100.0% | 100.0% |
 

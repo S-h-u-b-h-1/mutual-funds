@@ -1,0 +1,104 @@
+{
+ "entities": {
+  "funds": 14224,
+  "amcs": 51,
+  "categories": 44,
+  "benchmarks": 61,
+  "managers": 3,
+  "companies": 42,
+  "sectors": 52
+ },
+ "coverage": {
+  "amc_edges": "universe (100%)",
+  "category_edges": "universe",
+  "benchmark_edges": "universe (90%)",
+  "manager_edges": "factsheet \u2014 12 funds",
+  "holdings_edges": "factsheet \u2014 26 funds"
+ },
+ "examples": {
+  "funds_managed_by_<top_manager>": {
+   "manager": "Mohit Jain",
+   "funds": [
+    "SBI Small Cap Fund - Direct Plan - Growth",
+    "SBI Short Term Debt Fund - Regular Plan - Monthly Income Distribution cum Capital Withdrawal Option (IDCW)",
+    "SBI Short Term Debt Fund - Direct Plan Fortnightly Income Distribution cum Capital Withdrawal Option (IDCW)",
+    "SBI Short Term Debt Fund - Regular Plan Fortnightly Income Distribution cum Capital Withdrawal Option (IDCW)",
+    "SBI Short Term Debt Fund - Regular Plan Weekly Income Distribution cum Capital Withdrawal Option (IDCW)",
+    "SBI Small Cap Fund - Regular Plan - Growth",
+    "SBI Short Term Debt Fund - Direct Plan - Monthly Income Distribution cum Capital Withdrawal Option (IDCW)",
+    "SBI SHORT TERM DEBT FUND - DIRECT PLAN -GROWTH"
+   ]
+  },
+  "funds_holding_Reliance": [
+   "SBI Arbitrage Opportunities Fund - Direct Plan - Income Distribution cum Capital Withdrawal Option (IDCW)",
+   "SBI Arbitrage Opportunities Fund - Direct Plan - Gr",
+   "SBI Nifty Index Fund - Regular Plan - Income Distribution cum Capital Withdrawal Option (IDCW)",
+   "SBI Arbitrage Opportunities Fund - Regular Plan - Income Distribution cum Capital Withdrawal Option (IDCW)",
+   "SBI NIFTY INDEX FUND - DIRECT PLAN - GROWTH",
+   "SBI Nifty Index Fund - Direct Plan - Income Distribution cum Capital Withdrawal Option (IDCW)",
+   "SBI NIFTY INDEX FUND - REGULAR PLAN - GROWTH",
+   "SBI Arbitrage Opportunities Fund - Regular Plan - Gr"
+  ],
+  "amcs_with_Banking_exposure": [
+   "SBI"
+  ],
+  "funds_benchmarked_to_NIFTY_50_TRI": [
+   "Quantum Nifty 50 ETF Fund of Fund - Direct Plan - Growth",
+   "Quantum Nifty 50 ETF Fund of Fund - Regular Plan - Growth",
+   "Aditya Birla Sun Life Nifty 50 Equal Weight Index Fund-Direct Growth",
+   "Aditya Birla Sun Life Nifty 50 Equal Weight Index Fund-Direct-IDCW",
+   "Aditya Birla Sun Life Nifty 50 Equal Weight Index Fund-Regular Growth",
+   "Aditya Birla Sun Life Nifty 50 Equal Weight Index Fund-Regular IDCW",
+   "Aditya Birla Sun Life Nifty 50 Index Fund - Growth - Direct Plan",
+   "Aditya Birla Sun Life Nifty 50 Index Fund - Growth - Regular Plan"
+  ]
+ },
+ "top_amcs_by_funds": {
+  "ICICI Prudential": 2491,
+  "Nippon India": 1865,
+  "UTI": 1362,
+  "Kotak Mahindra": 908,
+  "HDFC": 563,
+  "SBI": 529,
+  "Aditya Birla Sun Life": 477,
+  "Bandhan": 431,
+  "Axis": 410,
+  "Tata": 395,
+  "DSP": 357,
+  "Franklin Templeton": 317,
+  "Edelweiss": 301,
+  "HSBC": 282,
+  "Sundaram": 277
+ },
+ "top_benchmarks_by_funds": {
+  "CRISIL Composite Bond Index": 4656,
+  "NIFTY 500 TRI": 1660,
+  "CRISIL Liquid Debt A-I Index": 489,
+  "CRISIL Short Duration Debt A-II Index": 371,
+  "CRISIL Overnight Index": 295,
+  "CRISIL Ultra Short Duration Debt A-I Index": 294,
+  "CRISIL Low Duration Debt A-I Index": 275,
+  "CRISIL Money Market A-I Index": 242,
+  "NIFTY 100 TRI": 220,
+  "CRISIL Corporate Debt A-II Index": 214,
+  "NIFTY Midcap 150 TRI": 211,
+  "NIFTY Financial Services TRI": 211,
+  "CRISIL Dynamic Bond A-III Index": 210,
+  "NIFTY Smallcap 250 TRI": 203,
+  "CRISIL Credit Risk Debt B-II Index": 200
+ },
+ "managers": {
+  "rajeev-radhakrishnan": {
+   "name": "Rajeev Radhakrishnan",
+   "funds": 8
+  },
+  "mohit-jain": {
+   "name": "Mohit Jain",
+   "funds": 12
+  },
+  "r-srinivasan": {
+   "name": "R. Srinivasan",
+   "funds": 4
+  }
+ }
+}
