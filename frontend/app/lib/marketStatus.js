@@ -56,11 +56,17 @@ export function marketStatus(asOfIso, now = new Date()) {
   else if (inTradingWindow) sessionLabel = "Exchange hours (9:15–15:30 IST)";
   else sessionLabel = "Outside exchange hours";
 
+  const prettyDate = asOf ? new Date(Date.UTC(asOf.getUTCFullYear(), asOf.getUTCMonth(), asOf.getUTCDate()))
+    .toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }) : null;
+
   let navLine;
   if (staleDays == null) navLine = "NAV date unavailable";
   else if (staleDays === 0) navLine = `Latest NAV: today (${asOfIso})`;
-  else if (isWeekend && staleDays <= 2) navLine = `No new NAVs published today. Latest available: ${asOfIso}. Market closed.`;
-  else navLine = `Latest NAV: ${asOfIso} (${staleDays}d ago)`;
+  else if (staleDays === 1) {
+    // Honest for both cases: a weekday still waiting for today's evening AMFI publish, or a
+    // weekend/holiday where none is expected — the fact is the same either way, so say it plainly.
+    navLine = `No fresh NAV has been published yet today. Latest available AMFI NAV date: ${prettyDate}.` + (isWeekend ? " Market closed." : "");
+  } else navLine = `Latest NAV: ${asOfIso} (${staleDays}d ago)`;
 
   const next = nextScheduledRun(now);
   const nextLabel = next

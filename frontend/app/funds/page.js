@@ -5,6 +5,7 @@ import ScreenerPresets from "../components/ScreenerPresets";
 import SectionHeader from "../components/ui/SectionHeader";
 import DataTable from "../components/ui/DataTable";
 import Badge from "../components/ui/Badge";
+import HealthCell from "../components/ui/HealthCell";
 import { allFunds, coverage, asOf } from "../lib/funds";
 import { fundHealth, gradeTone } from "../lib/fundHealth";
 
@@ -25,7 +26,7 @@ const SORTS = {
 
 const cols = [
   { key: "name", label: "Fund", render: (r) => <a className="text-ink hover:text-accent-soft" href={`/fund/${r.code}`}>{short(r.name)}<span className="block text-[11px] text-ink-faint">{r.amc} · {r.category} · {r.plan}</span></a> },
-  { key: "health", label: "Health", align: "right", render: (r) => (r._h == null ? <span className="text-ink-faint">—</span> : <span className={`tnum font-semibold ${gradeTone(r._g) === "pos" ? "text-pos" : gradeTone(r._g) === "warn" ? "text-warn" : "text-neg"}`}>{r._h} {r._g}</span>) },
+  { key: "health", label: "Health", align: "right", render: (r) => <HealthCell score={r._h} grade={r._g} tone={r._h != null ? gradeTone(r._g) : null} /> },
   { key: "r1m", label: "1M", align: "right", render: (r) => pct(r.r1m) },
   { key: "r1y", label: "1Y", align: "right", render: (r) => pct(r.r1y) },
   { key: "vol90", label: "Vol", align: "right", render: (r) => (r.vol90 == null ? <span className="text-ink-faint">—</span> : <span className="tnum text-ink-muted">{r.vol90}</span>) },

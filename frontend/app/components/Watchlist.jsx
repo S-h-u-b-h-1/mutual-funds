@@ -55,7 +55,7 @@ export default function Watchlist({ amcDeltas = {} }) {
   const avgDelta = deltas.length ? deltas.reduce((s, d) => s + d, 0) / deltas.length : null;
 
   return (
-    <section className="mt-8">
+    <section className="mt-8" id="watchlist">
       <SectionHeader
         eyebrow="Saved · your funds"
         title={`★ Watchlist · ${items.length}`}

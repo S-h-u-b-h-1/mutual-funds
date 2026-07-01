@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Sparkline from "./Sparkline";
+import { track } from "../lib/track";
 
 const WS_KEY = "mfp_compare_ws";
 
@@ -31,7 +32,11 @@ export default function CompareClient({ amcs, meta = {} }) {
   function delWs(name) { persistWs(workspaces.filter((w) => w.name !== name)); }
 
   function toggle(n) {
-    setSel((s) => (s.includes(n) ? s.filter((x) => x !== n) : s.length >= 4 ? s : [...s, n]));
+    setSel((s) => {
+      const next = s.includes(n) ? s.filter((x) => x !== n) : s.length >= 4 ? s : [...s, n];
+      if (next.length >= 2 && next.length !== s.length) track("comparison_start", { amcs: next.length });
+      return next;
+    });
   }
 
   const rows = [

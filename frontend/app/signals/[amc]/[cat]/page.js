@@ -8,6 +8,7 @@ import GlassPanel from "../../../components/ui/GlassPanel";
 import StatStrip from "../../../components/ui/StatStrip";
 import DataTable from "../../../components/ui/DataTable";
 import Badge from "../../../components/ui/Badge";
+import HealthCell from "../../../components/ui/HealthCell";
 import { allFunds, asOf } from "../../../lib/funds";
 import { amcIntel, amcSlugify, gradeTone as amcGradeTone } from "../../../lib/amcIntel";
 // fundCols renders a per-FUND grade (fundHealth.js 5-band A/B/C/D/E) — must use the fund-scale
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }) {
 
 const fundCols = [
   { key: "name", label: "Fund", render: (r) => <a className="text-ink hover:text-accent-soft" href={`/fund/${r.code}`}>{r.name}<span className="block text-[11px] text-ink-faint">{r.category}{r.variantCount > 1 ? ` · ${r.variantCount} variants` : ""}{r.direct ? " · Direct" : ""}{r.regular ? "/Regular" : ""}</span></a> },
-  { key: "health", label: "Health", align: "right", render: (r) => (r.health == null ? <span className="text-ink-faint">—</span> : <span className={`tnum font-semibold ${gradeTone(r.grade) === "pos" ? "text-pos" : gradeTone(r.grade) === "warn" ? "text-warn" : "text-neg"}`}>{r.health} {r.grade}</span>) },
+  { key: "health", label: "Health", align: "right", render: (r) => <HealthCell score={r.health} grade={r.grade} tone={r.health != null ? gradeTone(r.grade) : null} /> },
   { key: "r1m", label: "1M", align: "right", render: (r) => pct(r.r1m) },
   { key: "r1y", label: "1Y", align: "right", render: (r) => pct(r.r1y) },
   { key: "r3y", label: "3Y", align: "right", render: (r) => pct(r.r3y) },

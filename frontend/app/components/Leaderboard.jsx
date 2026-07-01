@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { track } from "../lib/track";
 
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(n);
 const inr = (n) => `${n >= 0 ? "+" : "−"}₹${fmt(Math.abs(Math.round(n)))} Cr`;
@@ -19,6 +20,7 @@ export default function Leaderboard({ rows }) {
   const [dir, setDir] = useState("desc");
 
   function sortBy(k) {
+    track("chart_interaction", { chart: "amc_leaderboard", action: "sort", column: k });
     if (k === sortKey) setDir((d) => (d === "desc" ? "asc" : "desc"));
     else { setSortKey(k); setDir("desc"); }
   }

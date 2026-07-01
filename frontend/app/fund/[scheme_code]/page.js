@@ -7,6 +7,7 @@ import VolatilityChart from "../../components/VolatilityChart";
 import SectionHeader from "../../components/ui/SectionHeader";
 import GlassPanel from "../../components/ui/GlassPanel";
 import Badge from "../../components/ui/Badge";
+import AdvisorSoftCTA from "../../components/AdvisorSoftCTA";
 import { getFund, cohortOf, asOf } from "../../lib/funds";
 import { getNavHistory } from "../../lib/mfapi";
 import { fundSignals, researchSummary, visibleReturns, riskInterpretation, benchmarkRows } from "../../lib/fundAnalysis";
@@ -100,6 +101,24 @@ export default async function FundPage({ params }) {
             <div className="text-[24px] font-bold tnum text-ink">{f.nav != null ? `₹${f.nav.toFixed(2)}` : "—"}</div>
             <div className="mt-1 flex items-center justify-end gap-2 text-[11px] text-ink-faint"><span>{f.navDate || "no NAV"}</span><Badge tone={fTone} dot>{fLabel}</Badge></div>
           </div>
+        </div>
+
+        {/* Above-the-fold quick stats — the 3 numbers a first glance needs before reading further */}
+        <div className="mt-3.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12px] text-ink-muted">
+          {health && (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="text-ink-faint">Health</span>
+              <span className={`font-semibold tnum ${gradeTone(health.grade) === "pos" ? "text-pos" : gradeTone(health.grade) === "warn" ? "text-warn" : "text-neg"}`}>{health.overall}/100 · {health.grade}</span>
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1.5">
+            <span className="text-ink-faint">Research-ready</span>
+            <span className="font-semibold tnum text-ink">{readiness.answered}/{readiness.total}</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="text-ink-faint">Benchmark</span>
+            <span className="font-medium text-ink">{f.benchmark || "Not yet available"}</span>
+          </span>
         </div>
 
         {notice && (
@@ -286,7 +305,10 @@ export default async function FundPage({ params }) {
                 {meta.source_date && meta.source_date < "2026-01-01" && <Badge tone="warn" dot>dated factsheet</Badge>}. AMC fields update monthly.
               </p>
             ) : (
-              <p className="mt-3 border-t border-line pt-2.5 text-[11.5px] leading-relaxed text-ink-faint">Benchmark is the SEBI category standard. AUM, expense, manager, holdings &amp; sectors come from AMC factsheet PDFs — parsers implemented &amp; tested. Never fabricated.</p>
+              <p className="mt-3 border-t border-line pt-2.5 text-[11.5px] leading-relaxed text-ink-faint">
+                <span className="font-medium text-ink-muted">Factsheet metadata not yet acquired for this fund.</span>{" "}
+                Benchmark shown above is the SEBI category standard. AUM, expense ratio, manager, holdings &amp; sectors come from AMC factsheet PDFs — parsers are implemented and tested, they simply haven&rsquo;t reached this fund&rsquo;s AMC yet. Never fabricated.
+              </p>
             )}
           </GlassPanel>
 
@@ -364,6 +386,7 @@ export default async function FundPage({ params }) {
             )}
           </GlassPanel>
         </section>
+        <AdvisorSoftCTA context={`fund:${f.code}`} />
       </main>
       <Footer note={<span>NAV as of {f.navDate} · daily data, not real-time · past performance ≠ future returns · source AMFI / MFAPI. Platform as of {asOf}.</span>} />
     </>

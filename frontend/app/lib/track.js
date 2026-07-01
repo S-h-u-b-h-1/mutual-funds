@@ -42,6 +42,12 @@ function entityOf(p) {
   if (p.amc) return ["amc", String(p.amc)];
   if (p.category) return ["category", String(p.category)];
   if (p.q != null) return ["search", String(p.q).slice(0, 60)];
+  // depth/option distinguish otherwise-identical event types (e.g. scroll_depth fired at 25%
+  // then 50% within the 2s dedup window) — without this the second milestone is silently dropped.
+  if (p.depth != null) return ["scroll", String(p.depth)];
+  if (p.option) return ["option", String(p.option)];
+  if (p.label) return ["cta", String(p.label)];
+  if (p.column) return ["column", String(p.column)];
   return [null, null];
 }
 

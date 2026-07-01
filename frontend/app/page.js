@@ -7,6 +7,8 @@ import Search from "./components/Search";
 import Tracker from "./components/Tracker";
 import Watchlist from "./components/Watchlist";
 import HeroVisual from "./components/HeroVisual";
+import KnowledgeGraphHero from "./components/KnowledgeGraphHero";
+import GuidedJourney from "./components/GuidedJourney";
 import FlowHeatmap from "./components/FlowHeatmap";
 import AlertSignup from "./components/AlertSignup";
 import SectionHeader from "./components/ui/SectionHeader";
@@ -17,6 +19,8 @@ import DataTable from "./components/ui/DataTable";
 import SignalCard from "./components/ui/SignalCard";
 import PremiumButton from "./components/ui/PremiumButton";
 import Badge from "./components/ui/Badge";
+import { allFunds } from "./lib/funds";
+import { graphNodes } from "./lib/graphNodes";
 import trendData from "./data/amc_trend.json";
 import performance from "./data/performance.json";
 import daily from "./data/daily.json";
@@ -43,6 +47,10 @@ export default async function Page() {
   const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
   const latest = byClass.map((r) => r.latest_nav_date).sort().at(-1);
   const intel = marketIntel(trendData.amcs);
+  const funds = allFunds();
+  const graph = graphNodes(funds); // top-18 AMCs shown visually; real totals below are unclipped
+  const realAmcCount = new Set(funds.map((f) => f.amc).filter(Boolean)).size;
+  const realBenchmarkCount = new Set(funds.map((f) => f.benchmark).filter(Boolean)).size;
   const amcDeltas = Object.fromEntries(Object.entries(trendData.amcs).map(([k, p]) => [k, p[p.length - 1][1] - p[0][1]]));
   const moverCol = (label) => [
     { key: "name", label, render: (r) => <a className="text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(r.amc)}`}>{r.name}</a> },
@@ -117,17 +125,37 @@ export default async function Page() {
       <Tracker event="page_view" payload={{ page: "home" }} />
 
       <main className="container-px py-8 sm:py-10">
-        {/* Header */}
+        {/* Header — what MF Pulse is, in one sentence, above the fold */}
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Performance Intelligence · {latest}</div>
+          <div className="max-w-2xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Today&rsquo;s Market Pulse · {latest}</div>
             <h1 className="mt-2 text-[26px] sm:text-[34px] font-bold tracking-tightest text-ink">India Mutual-Fund Performance Intelligence</h1>
+            <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink-muted">
+              MF Pulse helps Indian investors make better mutual fund decisions through verified
+              data, institutional-grade research, and explainable market intelligence.
+            </p>
           </div>
           <div className="flex gap-2">
             <PremiumButton href="/categories" variant="ghost">Categories</PremiumButton>
             <PremiumButton href="/performance">Top Performers</PremiumButton>
           </div>
         </div>
+
+        {/* Real ecosystem graph — every AMC, category and benchmark this platform connects.
+            Node size = real fund count, not decoration. Three.js on capable devices, a
+            layout-matched static SVG everywhere else (SSR, reduced-motion, mobile, no-WebGL). */}
+        <div className="mt-6 rounded-2xl border border-line bg-white/[0.015] p-4 sm:p-5">
+          <KnowledgeGraphHero
+            classes={graph.classes}
+            amcs={graph.amcs}
+            fundCount={totalSchemes}
+            amcCount={realAmcCount}
+            categoryCount={graph.classes.length}
+            benchmarkCount={realBenchmarkCount}
+          />
+        </div>
+
+        <GuidedJourney />
 
         {/* Market summary strip */}
         <div className="mt-6"><StatStrip items={stats} /></div>

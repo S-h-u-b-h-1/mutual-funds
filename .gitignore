@@ -12,3 +12,4 @@ logs/
 .pytest_cache/
 .supabase_db_password
 .claude/
+.DS_Store

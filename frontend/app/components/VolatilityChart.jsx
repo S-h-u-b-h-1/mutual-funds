@@ -48,7 +48,7 @@ export default function VolatilityChart({ points }) {
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none">
         <path d={line} fill="none" stroke="var(--warn, #fbbf24)" strokeWidth="1.75" />
       </svg>
-      <p className="mt-1.5 text-[10.5px] text-ink-faint">Computed from the same daily NAV series as the chart above · {min.toFixed(1)}%–{max.toFixed(1)}% range over the period.</p>
+      <p className="mt-1.5 text-[10.5px] text-ink-faint">Computed from the same daily NAV series as the chart above · {min.toFixed(1)}%–{max.toFixed(1)}% range over the period · source AMFI/MFAPI.in · last updated {series[series.length - 1].t}.</p>
     </div>
   );
 }
