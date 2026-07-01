@@ -44,3 +44,7 @@ export function getManager(slug) {
 export function allManagers() {
   return Object.values(byManager).map((e) => ({ name: e.name, slug: e.slug, fundCount: e.funds.size, codes: e.codes }));
 }
+
+export function allMetadata() {
+  return data.metadata || [];
+}

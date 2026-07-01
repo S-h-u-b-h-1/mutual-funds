@@ -15,7 +15,7 @@ import os
 from collections import defaultdict
 from statistics import mean
 
-from scripts.explain import fund_movements, explain_funds, rotation
+from scripts.explain import fund_movements, explain_funds, attention_candidates, rotation
 
 WH = "data/warehouse"
 
@@ -55,6 +55,25 @@ def main():
     # ---- explanation engine (Phase 1) + ranking movement (Phase 2) ----
     movements = fund_movements(funds)
     explained = explain_funds(movements, limit=6)
+
+    # Per-fund attention score (Phase 6, complete-workflows sprint): every fund with an
+    # attention-worthy movement gets a real score persisted onto its OWN funds.json record, not
+    # just the homepage's top-6. A fund with no qualifying movement gets none of these fields —
+    # never a fabricated 0, which would wrongly claim "measured, nothing found" (see
+    # attention_candidates' docstring). Written back into the SAME funds.json this script read.
+    attn_by_code = {c["entity_id"]: c for c in attention_candidates(movements)}
+    attn_updated = 0
+    for code, rec in d["funds"].items():
+        c = attn_by_code.get(code)
+        if c:
+            rec["attentionScore"] = c["attentionScore"]
+            rec["attentionTier"] = c["value"]
+            rec["attentionReason"] = c["why"]
+            attn_updated += 1
+        else:
+            rec.pop("attentionScore", None); rec.pop("attentionTier", None); rec.pop("attentionReason", None)
+    with open("frontend/app/data/funds.json", "w") as fh:
+        json.dump(d, fh, separators=(",", ":"))
     cat_rot_full = rotation(funds, "category", "category", 5)
     amc_mom_full = rotation(funds, "amc", "amc", 5)
     cat_rot, amc_mom = cat_rot_full[:5], amc_mom_full[:5]
@@ -73,6 +92,14 @@ def main():
         stmts.append(f"{gaining[0]['name']} leadership strengthening (category rank #{gaining[0]['rank3m']}→#{gaining[0]['rank1m']} on 1M-vs-3M).")
     if fading:
         stmts.append(f"{fading[0]['name']} weakening (category rank #{fading[0]['rank3m']}→#{fading[0]['rank1m']}).")
+    # AMC-level leadership narrative (Phase 7 market story) — same rank-movement pattern as
+    # categories above, using amc_mom_full which was already computed but never surfaced as prose.
+    amc_gaining = [a for a in amc_mom_full if a["rank_change"] > 0][:1]
+    amc_fading = [a for a in amc_mom_full if a["rank_change"] < 0][-1:]
+    if amc_gaining:
+        stmts.append(f"{amc_gaining[0]['name']} gained market leadership (AMC rank #{amc_gaining[0]['rank3m']}→#{amc_gaining[0]['rank1m']} by avg 1M NAV return among peers, 1M-vs-3M).")
+    if amc_fading:
+        stmts.append(f"{amc_fading[0]['name']} lost ground (AMC rank #{amc_fading[0]['rank3m']}→#{amc_fading[0]['rank1m']}).")
     industry = {"riskRegime": regime, "breadth1d": breadth1d, "breadth1m": breadth1m,
                 "improvingCategoriesPct": imp_cats, "improvingAmcsPct": imp_amcs, "statements": stmts}
 
@@ -103,7 +130,8 @@ def main():
     with open("frontend/app/data/daily.json", "w") as fh:
         json.dump(out, fh, separators=(",", ":"))
     print(f"-- daily.json: {out['advancers']} up / {out['decliners']} down (breadth {out['breadth1d']}%) | "
-          f"{len(explained)} explained items, {len(cat_rot)} cat-rotations, {len(amc_mom)} amc-moves")
+          f"{len(explained)} explained items, {len(cat_rot)} cat-rotations, {len(amc_mom)} amc-moves | "
+          f"attention scores persisted on {attn_updated} funds")
 
 
 if __name__ == "__main__":

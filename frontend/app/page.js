@@ -9,6 +9,7 @@ import Watchlist from "./components/Watchlist";
 import HeroVisual from "./components/HeroVisual";
 import KnowledgeGraphHero from "./components/KnowledgeGraphHero";
 import GuidedJourney from "./components/GuidedJourney";
+import RecentActivity from "./components/RecentActivity";
 import FlowHeatmap from "./components/FlowHeatmap";
 import AlertSignup from "./components/AlertSignup";
 import SectionHeader from "./components/ui/SectionHeader";
@@ -156,6 +157,7 @@ export default async function Page() {
         </div>
 
         <GuidedJourney />
+        <RecentActivity />
 
         {/* Market summary strip */}
         <div className="mt-6"><StatStrip items={stats} /></div>

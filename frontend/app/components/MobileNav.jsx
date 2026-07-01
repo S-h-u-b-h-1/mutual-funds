@@ -1,15 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-
-const LINKS = [
-  ["Funds", "/funds"],
-  ["Performance", "/performance"],
-  ["Categories", "/categories"],
-  ["Compare", "/compare"],
-  ["Research", "/research"],
-  ["Analytics", "/analytics"],
-  ["Data status", "/data-status"],
-];
+import { ALL_LINKS as LINKS } from "../lib/navLinks";
 
 export default function MobileNav({ active }) {
   const [open, setOpen] = useState(false);

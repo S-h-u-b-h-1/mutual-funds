@@ -2,14 +2,7 @@ import PremiumButton from "./ui/PremiumButton";
 import MobileNav from "./MobileNav";
 import { asOf } from "../lib/funds";
 import { marketStatus } from "../lib/marketStatus";
-
-const LINKS = [
-  ["Funds", "/funds"],
-  ["Performance", "/performance"],
-  ["Categories", "/categories"],
-  ["Compare", "/compare"],
-  ["Research", "/research"],
-];
+import { PRIMARY_LINKS as LINKS } from "../lib/navLinks";
 
 const DOT = { pos: "bg-pos", warn: "bg-warn", neg: "bg-neg" };
 const TEXT = { pos: "text-pos", warn: "text-warn", neg: "text-neg" };

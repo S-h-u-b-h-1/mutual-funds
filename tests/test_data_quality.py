@@ -85,3 +85,18 @@ def test_benchmark_no_equity_benchmark_on_debt():
     bad = [c for c, f in FUNDS.items()
            if f.get("assetClass") == "Debt" and (f.get("benchmark") or "").upper().startswith(("NIFTY", "S&P BSE"))]
     assert bad == [], f"debt funds with equity benchmark: {bad[:5]}"
+
+
+def test_attention_score_all_or_nothing_and_bounded():
+    # A fund either has all 3 attention fields (real, deterministic movement signal) or none —
+    # never a partial record, and never a fabricated 0 for funds with no qualifying movement
+    # (see scripts/explain.py attention_candidates docstring).
+    for c, f in FUNDS.items():
+        fields = [f.get("attentionScore"), f.get("attentionTier"), f.get("attentionReason")]
+        present = [x is not None for x in fields]
+        assert all(present) or not any(present), f"{c} has a partial attention record: {fields}"
+        if f.get("attentionScore") is not None:
+            assert 0 <= f["attentionScore"] <= 100, f"{c} attentionScore out of range: {f['attentionScore']}"
+            # "Low" tier is suppressed before persistence (Phase 7/8 suppression) — if a Low
+            # tier is ever persisted, the suppression filter was silently bypassed.
+            assert f["attentionTier"] in ("High", "Medium"), f"{c} attentionTier should never be Low: {f['attentionTier']}"

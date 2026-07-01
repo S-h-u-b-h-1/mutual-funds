@@ -74,8 +74,13 @@ def _tier(s):
     return "High" if s >= 70 else "Medium" if s >= 45 else "Low"
 
 
-def explain_funds(movements, limit=6):
-    """Canonical, attention-scored, context-rich items. Low value suppressed (Phase 7/8)."""
+def attention_candidates(movements):
+    """Every fund with an attention-worthy movement pattern (decile cross or 15+ rank jump),
+    each with its own real, non-fabricated attentionScore. Deliberately NOT computed for funds
+    outside these patterns — a fund with no notable movement has no attention score, not a
+    score of 0 (0 would wrongly imply 'measured and found unremarkable' rather than 'not the
+    kind of signal this model measures'). Used both for the homepage top-N and, unfiltered, to
+    persist a per-fund score onto every qualifying fund in funds.json (fund-page Phase 6)."""
     cands = []
     for m in movements:
         if m["pct1m"] >= 90 and m["pct3m"] < 90:
@@ -110,7 +115,13 @@ def explain_funds(movements, limit=6):
                       "metric": "category rank (3M→1M)", "previous_value": f"#{m['rank3m']}", "current_value": f"#{m['rank1m']}",
                       "severity": sev, "attentionScore": s, "value": _tier(s)})
 
-    cands = [c for c in cands if c["value"] != "Low"]                       # Phase 7/8 suppression
+    return [c for c in cands if c["value"] != "Low"]                        # Phase 7/8 suppression
+
+
+def explain_funds(movements, limit=6):
+    """Homepage top-N: same candidates, deduped by canonical fund + capped 2-per-category for
+    diversity (a single hot category shouldn't crowd out every other signal on the homepage)."""
+    cands = attention_candidates(movements)
     best, cat_count, seen = [], {}, set()
     for c in sorted(cands, key=lambda c: -c["attentionScore"]):             # dedup by canonical + category diversity
         if c["canonical"] in seen or cat_count.get(c["category"], 0) >= 2:

@@ -15,3 +15,20 @@ export function allFunds() {
 export function cohortOf(f) {
   return f && f.cohortKey ? data.cohorts[f.cohortKey] : null;
 }
+
+export const benchmarkSlug = (name) => String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+let benchmarkIndex = null;
+function buildBenchmarkIndex() {
+  const idx = {};
+  for (const f of allFunds()) {
+    if (!f.benchmark) continue;
+    const slug = benchmarkSlug(f.benchmark);
+    (idx[slug] ||= { name: f.benchmark, codes: [] }).codes.push(f.code);
+  }
+  return idx;
+}
+export function getBenchmark(slug) {
+  benchmarkIndex ||= buildBenchmarkIndex();
+  return benchmarkIndex[slug] || null;
+}

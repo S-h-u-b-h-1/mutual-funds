@@ -8,11 +8,11 @@ import Badge from "../components/ui/Badge";
 import HealthCell from "../components/ui/HealthCell";
 import { allFunds, coverage, asOf } from "../lib/funds";
 import { fundHealth, gradeTone } from "../lib/fundHealth";
+import { short } from "../lib/format";
 
 export const metadata = { title: "Fund Screener" };
 
 const pct = (v) => (v == null ? <span className="text-ink-faint">—</span> : <span className={v >= 0 ? "text-pos tnum" : "text-neg tnum"}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>);
-const short = (n) => n.replace(/ - (Direct|Regular).*/i, "");
 
 const SORTS = {
   health: { label: "Health score", get: (f) => f._h, dir: -1 },

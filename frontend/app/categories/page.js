@@ -8,11 +8,11 @@ import Badge from "../components/ui/Badge";
 import ExportCsv from "../components/ExportCsv";
 import { toCsv } from "../lib/csv";
 import performance from "../data/performance.json";
+import { short } from "../lib/format";
 
 export const metadata = { title: "Category Intelligence" };
 
 const pct = (v) => <span className={v >= 0 ? "text-pos tnum" : "text-neg tnum"}>{v >= 0 ? "+" : ""}{v.toFixed(2)}%</span>;
-const short = (n) => n.replace(/ - (Direct|Regular).*/i, "");
 
 const cols = [
   { key: "rank", label: "#", muted: true, render: (r) => r._rank },

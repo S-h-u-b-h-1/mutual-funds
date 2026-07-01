@@ -9,6 +9,8 @@ import MetricCard from "../../components/ui/MetricCard";
 import GlassPanel from "../../components/ui/GlassPanel";
 import SignalCard from "../../components/ui/SignalCard";
 import PremiumButton from "../../components/ui/PremiumButton";
+import NextActions from "../../components/NextActions";
+import { slugify } from "../../lib/signalSlug";
 import trendData from "../../data/amc_trend.json";
 
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(n);
@@ -48,7 +50,7 @@ export default async function AmcPage({ params }) {
   return (
     <>
       <Nav />
-      <Tracker event="amc_view" payload={{ amc }} />
+      <Tracker event="amc_view" payload={{ amc }} view={{ type: "amc", id: amc, name: amc.replace(" Mutual Fund", "") }} />
 
       <main className="container-px py-8 sm:py-10">
         <a href="/" className="text-[13px] text-ink-muted transition-colors hover:text-ink">← Dashboard</a>
@@ -123,6 +125,13 @@ export default async function AmcPage({ params }) {
             </table>
           </GlassPanel>
         </section>
+
+        <NextActions items={[
+          summary[0] && { label: `${amc.replace(" Mutual Fund", "")} scored — ${summary[0].asset_class} intelligence`, href: `/signals/${slugify(amc)}/${summary[0].asset_class.toLowerCase()}` },
+          { label: "Compare AMC", href: "/compare" },
+          { label: "See all AMCs", href: "/amc" },
+          { label: "Category leaders", href: "/categories" },
+        ]} />
 
         <section className="mt-9">
           <GlassPanel className="flex flex-col items-center justify-between gap-4 p-6 sm:flex-row">

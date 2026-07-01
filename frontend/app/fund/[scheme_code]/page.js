@@ -8,7 +8,10 @@ import SectionHeader from "../../components/ui/SectionHeader";
 import GlassPanel from "../../components/ui/GlassPanel";
 import Badge from "../../components/ui/Badge";
 import AdvisorSoftCTA from "../../components/AdvisorSoftCTA";
-import { getFund, cohortOf, asOf } from "../../lib/funds";
+import WatchButton from "../../components/WatchButton";
+import NextActions from "../../components/NextActions";
+import MetricTooltip from "../../components/ui/MetricTooltip";
+import { getFund, cohortOf, asOf, benchmarkSlug } from "../../lib/funds";
 import { getNavHistory } from "../../lib/mfapi";
 import { fundSignals, researchSummary, visibleReturns, riskInterpretation, benchmarkRows } from "../../lib/fundAnalysis";
 import { fundHealth, gradeTone, LABELS } from "../../lib/fundHealth";
@@ -33,6 +36,18 @@ function listingNotice(f) {
   return null;
 }
 const sgn = (v, dp = 2) => `${v >= 0 ? "+" : ""}${v.toFixed(dp)}%`;
+
+// Plain-language explanations for the Health Score's components (Phase 6 — never assume
+// financial knowledge). Keyed to fundHealth.js's LABELS.
+const HEALTH_COMPONENT_EXPLAIN = {
+  performance: "How this fund's returns compare to its own history and peers — real NAV returns, not projections.",
+  consistency: "How often this fund posted a positive daily return over the last 90 days. Higher = steadier, not necessarily higher-returning.",
+  risk: "Based on volatility and maximum drawdown over 90 days — how much the NAV has swung, including its worst peak-to-trough fall.",
+  categoryRank: "This fund's percentile rank against peers in the same category and plan (Direct/Regular), by recent return.",
+  dataQuality: "How complete and fresh the underlying data is for this specific fund — stale or missing data lowers this, not the fund itself.",
+  cost: "Based on the expense ratio disclosed in the AMC's factsheet. Shows 'cost n/a' when that factsheet hasn't been acquired yet — never estimated.",
+  factsheet: "Whether AMC-disclosed portfolio data (holdings, sectors) was available to cross-check this fund's real diversification.",
+};
 
 function Ret({ label, v, suffix }) {
   return (
@@ -82,7 +97,7 @@ export default async function FundPage({ params }) {
   return (
     <>
       <Nav active="/funds" />
-      <Tracker event="fund_view" payload={{ code: f.code, category: f.category, amc: f.amc }} />
+      <Tracker event="fund_view" payload={{ code: f.code, category: f.category, amc: f.amc }} view={{ type: "fund", id: f.code, name: f.name.replace(/ - (Direct|Regular).*/i, ""), amc: f.amc, category: f.category }} />
       <main className="container-px py-8">
         {/* 1 · Header */}
         <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Fund · {f.code}</div>
@@ -97,7 +112,10 @@ export default async function FundPage({ params }) {
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[11px] uppercase tracking-[0.1em] text-ink-faint">Latest NAV</div>
+            <div className="flex items-center justify-end gap-2">
+              <div className="text-[11px] uppercase tracking-[0.1em] text-ink-faint">Latest NAV</div>
+              <WatchButton code={f.code} name={f.name.replace(/ - (Direct|Regular).*/i, "")} amc={f.amc} />
+            </div>
             <div className="text-[24px] font-bold tnum text-ink">{f.nav != null ? `₹${f.nav.toFixed(2)}` : "—"}</div>
             <div className="mt-1 flex items-center justify-end gap-2 text-[11px] text-ink-faint"><span>{f.navDate || "no NAV"}</span><Badge tone={fTone} dot>{fLabel}</Badge></div>
           </div>
@@ -108,17 +126,27 @@ export default async function FundPage({ params }) {
           {health && (
             <span className="inline-flex items-center gap-1.5">
               <span className="text-ink-faint">Health</span>
+              <MetricTooltip>A single 0–100 score blending real performance, risk, consistency, category rank, data quality and cost. Higher is better. Computed fresh from AMFI NAV — never a static rating.</MetricTooltip>
               <span className={`font-semibold tnum ${gradeTone(health.grade) === "pos" ? "text-pos" : gradeTone(health.grade) === "warn" ? "text-warn" : "text-neg"}`}>{health.overall}/100 · {health.grade}</span>
             </span>
           )}
           <span className="inline-flex items-center gap-1.5">
             <span className="text-ink-faint">Research-ready</span>
+            <MetricTooltip>Out of 9 core research questions (what is it, who manages it, what does it own, benchmark, cost, risk, size, performance, why consider it) — how many this page can currently answer with real, sourced data.</MetricTooltip>
             <span className="font-semibold tnum text-ink">{readiness.answered}/{readiness.total}</span>
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="text-ink-faint">Benchmark</span>
-            <span className="font-medium text-ink">{f.benchmark || "Not yet available"}</span>
+            <MetricTooltip>The index this fund is measured against — either the SEBI category-standard index, or the specific index named in the scheme (for index funds/ETFs). Click through to see every fund tracking the same benchmark.</MetricTooltip>
+            {f.benchmark ? <a className="font-medium text-ink hover:text-accent-soft" href={`/benchmark/${benchmarkSlug(f.benchmark)}`}>{f.benchmark}</a> : <span className="font-medium text-ink">Not yet available</span>}
           </span>
+          {f.attentionScore != null && (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="text-ink-faint">Attention</span>
+              <MetricTooltip>Flags a real, recent rank-movement pattern (entering/leaving the top decile, or a 15+ place category-rank jump on 1-month vs 3-month NAV) — not every fund gets one; it's not computed for funds with no notable movement, so its absence is not a negative signal. {f.attentionReason}</MetricTooltip>
+              <span className={`font-semibold tnum ${f.attentionTier === "High" ? "text-pos" : "text-warn"}`}>{f.attentionScore}/100 · {f.attentionTier}</span>
+            </span>
+          )}
         </div>
 
         {notice && (
@@ -154,7 +182,10 @@ export default async function FundPage({ params }) {
               <div className="grid flex-1 grid-cols-2 gap-x-5 gap-y-2 sm:grid-cols-3">
                 {health.breakdown.map((b) => (
                   <div key={b.key}>
-                    <div className="flex items-center justify-between text-[11px]"><span className="text-ink-faint">{LABELS[b.key]}</span><span className="tnum text-ink-muted">{b.score}</span></div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="inline-flex items-center gap-1"><span className="text-ink-faint">{LABELS[b.key]}</span><MetricTooltip>{HEALTH_COMPONENT_EXPLAIN[b.key] || "One of the components blended into the overall Health Score."}</MetricTooltip></span>
+                      <span className="tnum text-ink-muted">{b.score}</span>
+                    </div>
                     <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.06]"><div className="h-full rounded-full bg-accent-soft" style={{ width: `${b.score}%` }} /></div>
                   </div>
                 ))}
@@ -195,7 +226,7 @@ export default async function FundPage({ params }) {
         {/* 6 · Risk + Peers */}
         <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-2">
           <GlassPanel className="p-5">
-            <SectionHeader title="Risk" action={<Badge tone="pos" dot>90d daily series</Badge>} />
+            <SectionHeader title={<span className="inline-flex items-center gap-1.5">Risk <MetricTooltip>Volatility, drawdown and downside risk computed from 90 days of real daily NAV — how much this fund has actually swung, not a prediction of future risk.</MetricTooltip></span>} action={<Badge tone="pos" dot>90d daily series</Badge>} />
             {f.vol90 != null ? (
               <div className="space-y-2.5">
                 <Metric label="Volatility (90d, annualised)" value={`${f.vol90}%`} />
@@ -205,8 +236,8 @@ export default async function FundPage({ params }) {
                 <Metric label="Drawdown from high" value={sgn(f.ddFromHigh)} tone={f.ddFromHigh < 0 ? "neg" : "pos"} />
                 <Metric label="Negative NAV days" value={`${f.negDays} / ${f.quality?.obs ?? "—"}`} />
                 <Metric label="Consistency" value={`${f.consistency}/100`} tone={f.consistency >= 55 ? "pos" : undefined} />
-                {sharpe != null && <Metric label={`Sharpe ratio (1Y, rf ${RF}%)`} value={sharpe} tone={sharpe >= 1 ? "pos" : sharpe < 0 ? "neg" : undefined} />}
-                {sortino != null && <Metric label={`Sortino ratio (1Y, rf ${RF}%)`} value={sortino} tone={sortino >= 1.5 ? "pos" : sortino < 0 ? "neg" : undefined} />}
+                {sharpe != null && <Metric label={<span className="inline-flex items-center gap-1">Sharpe ratio (1Y, rf {RF}%) <MetricTooltip>Return earned per unit of total risk taken, above a risk-free rate of {RF}% (~India 1Y T-bill). Above 1 is generally considered good; higher is better.</MetricTooltip></span>} value={sharpe} tone={sharpe >= 1 ? "pos" : sharpe < 0 ? "neg" : undefined} />}
+                {sortino != null && <Metric label={<span className="inline-flex items-center gap-1">Sortino ratio (1Y, rf {RF}%) <MetricTooltip>Like Sharpe, but only penalises downside volatility (bad swings), not all volatility. A fund with steady gains and occasional dips can score higher here than on Sharpe.</MetricTooltip></span>} value={sortino} tone={sortino >= 1.5 ? "pos" : sortino < 0 ? "neg" : undefined} />}
                 <p className="border-t border-line pt-2.5 text-[12px] leading-relaxed text-ink-faint">{riskInterpretation(f)}</p>
                 {port && (
                   <div className="border-t border-line pt-2.5">
@@ -237,7 +268,7 @@ export default async function FundPage({ params }) {
         {/* 7 · Benchmark & peer outperformance */}
         {f.benchmark && (
           <section className="mt-7">
-            <SectionHeader eyebrow={`category-standard benchmark${f.benchmarkStd ? " · SEBI" : " · varies by mandate"}`} title="Benchmark & peers" action={<Badge tone="neutral">{f.benchmark}</Badge>} />
+            <SectionHeader eyebrow={`category-standard benchmark${f.benchmarkStd ? " · SEBI" : " · varies by mandate"}`} title={<span className="inline-flex items-center gap-1.5">Benchmark &amp; peers <MetricTooltip>How this fund's real NAV returns compare to funds in the same category and plan. A true index-level comparison (tracking error, alpha) needs an index NAV series we don't ingest yet — this is peer comparison, clearly labelled.</MetricTooltip></span>} action={<Badge tone="neutral">{f.benchmark}</Badge>} />
             <GlassPanel className="p-5 sm:p-6">
               {bench.length ? (
                 <div className="overflow-x-auto">
@@ -353,7 +384,7 @@ export default async function FundPage({ params }) {
         {/* 10 · Completeness (last, per research-completeness convention) */}
         <section className="mt-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <SectionHeader title="Research completeness" eyebrow="how much trustworthy data exists for this fund · traceable, never fabricated" />
+            <SectionHeader title={<span className="inline-flex items-center gap-1.5">Research completeness <MetricTooltip>How many of the 9 questions a serious researcher would ask (identity, manager, holdings, benchmark, cost, risk, size, performance, rationale) this page can currently answer with real, sourced data — not a subjective quality score.</MetricTooltip></span>} eyebrow="how much trustworthy data exists for this fund · traceable, never fabricated" />
             <div className="flex items-center gap-4 text-right">
               <div>
                 <div className="text-[10.5px] uppercase tracking-[0.1em] text-ink-faint">Completeness</div>
@@ -386,6 +417,26 @@ export default async function FundPage({ params }) {
             )}
           </GlassPanel>
         </section>
+
+        {/* Collapsible deep-dive — the tooltips above answer "what is this metric", this answers
+            "how exactly is it computed" for a curious reader, without cluttering the main flow. */}
+        <details className="mt-5 rounded-xl border border-line bg-white/[0.015] px-4 py-3">
+          <summary className="cursor-pointer text-[12.5px] font-medium text-ink-muted hover:text-ink">How these scores are calculated</summary>
+          <div className="mt-3 space-y-2.5 text-[12px] leading-relaxed text-ink-faint">
+            <p><b className="text-ink-muted">Health Score</b> — a weighted blend of performance (return vs. peers), risk (90d volatility + drawdown), consistency (% of positive days), category rank, data quality, and cost (when the expense ratio is known). Weights are renormalised when a component is unavailable — never estimated to fill a gap.</p>
+            <p><b className="text-ink-muted">Research Readiness</b> — a checklist of 9 questions an institutional researcher asks (identity, manager, holdings, benchmark, cost, risk, size, performance, rationale). Each is answered only when real, sourced data exists for this specific fund.</p>
+            <p><b className="text-ink-muted">Sharpe / Sortino ratios</b> — computed from this fund's own 1-year return and 90-day risk series against a disclosed risk-free rate. Not shown when there isn't enough return or risk history yet.</p>
+            <p><b className="text-ink-muted">Benchmark</b> — the SEBI category-standard index, or (for index funds/ETFs) the specific index named in the scheme. A true index-return comparison (tracking error, alpha) needs an index NAV series this platform doesn't ingest yet, so the comparison shown is against real peer funds instead.</p>
+          </div>
+        </details>
+
+        <NextActions items={[
+          { label: `Similar funds in ${f.category}`, href: `/categories/${encodeURIComponent(f.category)}` },
+          { label: `View ${f.amc}`, href: `/amc/${encodeURIComponent(f.amc + " Mutual Fund")}` },
+          f.benchmark && { label: `View benchmark: ${f.benchmark}`, href: `/benchmark/${benchmarkSlug(f.benchmark)}` },
+          { label: "Compare AMCs", href: "/compare" },
+          { label: "Today's market brief", href: "/brief" },
+        ]} />
         <AdvisorSoftCTA context={`fund:${f.code}`} />
       </main>
       <Footer note={<span>NAV as of {f.navDate} · daily data, not real-time · past performance ≠ future returns · source AMFI / MFAPI. Platform as of {asOf}.</span>} />

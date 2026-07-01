@@ -10,6 +10,7 @@ import HealthCell from "../../components/ui/HealthCell";
 import { getManager } from "../../lib/metadata";
 import { getFund } from "../../lib/funds";
 import { fundHealth, gradeTone } from "../../lib/fundHealth";
+import { short } from "../../lib/format";
 
 export const revalidate = 3600;
 
@@ -19,7 +20,6 @@ export async function generateMetadata({ params }) {
 }
 
 const pct = (v) => (v == null ? <span className="text-ink-faint">—</span> : <span className={v >= 0 ? "text-pos tnum" : "text-neg tnum"}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>);
-const short = (n) => n.replace(/ - (Direct|Regular).*/i, "");
 
 const cols = [
   { key: "name", label: "Fund", render: (r) => <a className="text-ink hover:text-accent-soft" href={`/fund/${r.code}`}>{short(r.name)}<span className="block text-[11px] text-ink-faint">{r.category} · {r.plan}</span></a> },

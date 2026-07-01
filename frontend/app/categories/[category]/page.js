@@ -7,8 +7,10 @@ import DataTable from "../../components/ui/DataTable";
 import StatStrip from "../../components/ui/StatStrip";
 import Badge from "../../components/ui/Badge";
 import HealthCell from "../../components/ui/HealthCell";
+import NextActions from "../../components/NextActions";
 import { allFunds, asOf } from "../../lib/funds";
 import { fundHealth, gradeTone } from "../../lib/fundHealth";
+import { short } from "../../lib/format";
 
 export const revalidate = 3600;
 
@@ -18,7 +20,6 @@ export async function generateMetadata({ params }) {
 
 const median = (a) => { const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const pct = (v) => (v == null ? <span className="text-ink-faint">—</span> : <span className={v >= 0 ? "text-pos tnum" : "text-neg tnum"}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>);
-const short = (n) => n.replace(/ - (Direct|Regular).*/i, "");
 
 const cols = [
   { key: "rank", label: "#", muted: true, render: (r) => r._rank },
@@ -54,7 +55,7 @@ export default function CategoryDetail({ params }) {
   return (
     <>
       <Nav active="/categories" />
-      <Tracker event="category_view" payload={{ category, funds: funds.length }} />
+      <Tracker event="category_view" payload={{ category, funds: funds.length }} view={{ type: "category", id: category, name: category }} />
       <main className="container-px py-9">
         <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint"><a className="hover:text-ink" href="/categories">Categories</a> · {category}</div>
         <h1 className="mt-2 text-[28px] sm:text-[32px] font-bold tracking-tightest text-ink">{category}</h1>
@@ -77,6 +78,13 @@ export default function CategoryDetail({ params }) {
           <SectionHeader eyebrow="ranked by 1-month NAV return" title="Funds in this category" action={<Badge tone="pos" dot>real NAV</Badge>} />
           <DataTable columns={cols} rows={rows} footnote={`Equity Growth plans. Health = MF Pulse Fund Health Score. Source: AMFI. As of ${asOf}.`} />
         </section>
+
+        <NextActions items={[
+          { label: "AMC quality leaders", href: "/performance" },
+          { label: "All categories", href: "/categories" },
+          { label: "Full fund screener", href: "/funds" },
+          { label: "Today's market brief", href: "/brief" },
+        ]} />
       </main>
       <Footer />
     </>
