@@ -26,6 +26,7 @@ from statistics import mean, median, pstdev
 from ingestion.amfi_parser import parse_file
 from ingestion.benchmarks import resolve_benchmark
 
+FRESH_MAX_DAYS = 7  # a NAV this old or newer counts as "active" / current; shared by every freshness gate below
 REPORT = "https://portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx"
 ANCHORS = [("r6m", 182), ("r1y", 365), ("r3y", 1095), ("r5y", 1825)]
 DATA = "frontend/app/data"
@@ -138,7 +139,7 @@ def main():
             "code": code, "name": name, "amc": r.amc_name.replace(" Mutual Fund", ""),
             "category": clean_category(r.category_raw or ""), "assetClass": r.asset_class,
             "plan": "Direct" if direct else "Regular", "option": "Growth" if grow else ("IDCW" if idcw else "Other"),
-            "isDirect": direct, "isGrowth": grow, "isIdcw": idcw, "active": stale_days <= 7,
+            "isDirect": direct, "isGrowth": grow, "isIdcw": idcw, "active": stale_days <= FRESH_MAX_DAYS,
             "nav": round(now, 4), "navDate": r.nav_date.isoformat() if r.nav_date else None, "staleDays": stale_days,
         }
         s = series.get(code, {})
@@ -154,9 +155,17 @@ def main():
         rec["r1w"] = ret_at(7)
         rec["r1m"] = ret_at(30)
         rec["r3m"] = ret_at(90)
-        for key, days in ANCHORS:
-            a = anchors[key].get(code)
-            rec[key] = round((now - a) / a * 100, 2) if a and a > 0 else None
+        # Long-window (6M/1Y/3Y/5Y) returns compare `now` against an anchor NAV — but if `now`
+        # itself is a stale NAV (fund stopped publishing), the figure isn't really "as of today";
+        # it's a shorter, mislabeled window dressed up as "1Y". Only compute when the reference
+        # NAV is genuinely current (<=7d), matching the site's own freshness bar everywhere else.
+        if stale_days <= FRESH_MAX_DAYS:
+            for key, days in ANCHORS:
+                a = anchors[key].get(code)
+                rec[key] = round((now - a) / a * 100, 2) if a and a > 0 else None
+        else:
+            for key, _ in ANCHORS:
+                rec[key] = None
         risk = risk_from_series(s)
         if risk:
             rec.update(risk)

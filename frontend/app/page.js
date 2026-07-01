@@ -12,7 +12,6 @@ import AlertSignup from "./components/AlertSignup";
 import SectionHeader from "./components/ui/SectionHeader";
 import GlassPanel from "./components/ui/GlassPanel";
 import StatStrip from "./components/ui/StatStrip";
-import TrustBar from "./components/ui/TrustBar";
 import Leaderboard from "./components/Leaderboard";
 import DataTable from "./components/ui/DataTable";
 import SignalCard from "./components/ui/SignalCard";
@@ -129,7 +128,6 @@ export default async function Page() {
             <PremiumButton href="/performance">Top Performers</PremiumButton>
           </div>
         </div>
-        <TrustBar asOf={latest} label="Latest AMFI NAV" className="mt-3.5" sources={[{ label: "NAVs", value: "AMFI · daily" }, { label: "Flows", value: "SEBI · sample" }]} />
 
         {/* Market summary strip */}
         <div className="mt-6"><StatStrip items={stats} /></div>
@@ -232,6 +230,28 @@ export default async function Page() {
               <DataTable columns={moverCol("AMC")} rows={intel.losers.map((r) => ({ ...r, _key: r.amc }))} />
             </div>
           </div>
+
+          {/* Category rotation — real 1M-vs-3M rank movement, previously computed but unsurfaced */}
+          {daily.categoryRotation?.length > 0 && (
+            <div className="mt-5 border-t border-line pt-4">
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">Category rotation · 1M rank vs 3M rank</div>
+              <div className="flex flex-wrap gap-2">
+                {daily.categoryRotation.map((c) => (
+                  <a
+                    key={c.name}
+                    href={`/categories/${encodeURIComponent(c.name)}`}
+                    className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-[12px] text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
+                  >
+                    <span>{c.name}</span>
+                    <span className={c.rank_change > 0 ? "text-pos tnum font-semibold" : c.rank_change < 0 ? "text-neg tnum font-semibold" : "text-ink-faint tnum"}>
+                      {c.rank_change === 0 ? "–" : `${c.rank_change > 0 ? "↑" : "↓"}${Math.abs(c.rank_change)}`}
+                    </span>
+                  </a>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-ink-faint">Rank change = 1-month category rank minus 3-month rank, by avg NAV return · ↑ improving, ↓ weakening.</p>
+            </div>
+          )}
         </section>
 
         {/* AMC quality leaders — REAL */}
@@ -240,14 +260,24 @@ export default async function Page() {
           <DataTable columns={amcCols} rows={performance.amcs.slice(0, 6).map((r, i) => ({ ...r, _key: r.amc, _rank: i + 1 }))} footnote="Quality score blends outperformance, breadth, and average return. Real AMFI NAV, last month." />
         </section>
 
-        {/* Sample flow zone — clearly quarantined, awaiting authoritative SEBI data */}
+        {/* Sample flow zone — clearly quarantined, awaiting authoritative SEBI data. Collapsed by
+            default: not yet decision-grade, so it shouldn't compete with real intelligence above. */}
         <section className="mt-9">
-          <SectionHeader eyebrow="illustrative sample · awaiting SEBI export" title="Fund flows (sample)" action={<Badge tone="warn">sample</Badge>} />
-          <GlassPanel className="p-5 sm:p-6"><FlowHeatmap rows={flowHistory} assetClass="Equity" /></GlassPanel>
-          <GlassPanel className="mt-4 p-5 sm:p-6">
-            <div className="mb-3 text-[12px] text-ink-faint">Capital-allocation network · AMC → category (illustrative)</div>
-            <HeroVisual nodes={networkNodes} />
-          </GlassPanel>
+          <details className="group">
+            {/* <summary> only permits phrasing content (+ an optional leading heading) per the
+                HTML5 spec — the full SectionHeader (with its div/h2 wrappers) renders just below
+                the summary line instead, inside the disclosure body, not nested inside it. */}
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+              <span>Fund flows (sample) · illustrative sample, awaiting SEBI export</span>
+              <span className="shrink-0 text-ink-faint transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <SectionHeader title="Fund flows (sample)" action={<Badge tone="warn">sample</Badge>} />
+            <GlassPanel className="p-5 sm:p-6"><FlowHeatmap rows={flowHistory} assetClass="Equity" /></GlassPanel>
+            <GlassPanel className="mt-4 p-5 sm:p-6">
+              <div className="mb-3 text-[12px] text-ink-faint">Capital-allocation network · AMC → category (illustrative)</div>
+              <HeroVisual nodes={networkNodes} />
+            </GlassPanel>
+          </details>
         </section>
 
         {/* Signals */}

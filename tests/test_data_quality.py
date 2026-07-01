@@ -2,10 +2,13 @@
 Every assertion defends a number that MF Pulse displays."""
 import json
 import os
+import sys
 
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, ROOT)
+from scripts.build_performance import FRESH_MAX_DAYS  # noqa: E402 — single source of truth
 
 
 def _load(name):
@@ -50,6 +53,15 @@ def test_returns_window_monotonic_presence():
     holes = [c for c, f in FUNDS.items()
              if f.get("r1y") is not None and (f.get("r3m") is None or f.get("r1m") is None)]
     assert holes == []
+
+
+def test_long_window_returns_imply_current_nav():
+    # 2026-06-26 bug: a dormant fund's LAST published NAV was used as "now" for r6m/r1y/r3y/r5y,
+    # silently mislabeling a shorter stale window as "1 year return". Any long-window return must
+    # come from a fund whose reference NAV was actually current (<=7d) at build time.
+    bad = [c for c, f in FUNDS.items()
+           if any(f.get(k) is not None for k in ("r6m", "r1y", "r3y", "r5y")) and f.get("staleDays", 9999) > FRESH_MAX_DAYS]
+    assert bad == [], f"long-window return computed against a stale NAV: {bad[:5]}"
 
 
 def test_metadata_no_impossible_values():

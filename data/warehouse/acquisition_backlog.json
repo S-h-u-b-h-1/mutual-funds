@@ -1,9 +1,9 @@
 {
- "asOf": "2026-06-23",
+ "asOf": "2026-06-30",
  "items": [
   {
    "item": "Expense ratio",
-   "missing_count": 14224.0,
+   "missing_count": 14208.0,
    "impact": "high",
    "expected_source": "AMC factsheet PDF",
    "reason": "parser not extracting TER / non-SBI factsheets blocked (pdfplumber on Py3.13)",
@@ -11,7 +11,7 @@
   },
   {
    "item": "Fund manager",
-   "missing_count": 14212,
+   "missing_count": 14196,
    "impact": "high",
    "expected_source": "AMC factsheet PDF",
    "reason": "non-SBI factsheets unparsed; SBI manager field sparse",
@@ -19,7 +19,7 @@
   },
   {
    "item": "Holdings",
-   "missing_count": 14198,
+   "missing_count": 14182,
    "impact": "high",
    "expected_source": "AMC factsheet PDF / monthly portfolio",
    "reason": "monthly portfolio disclosures not yet ingested",
@@ -27,7 +27,7 @@
   },
   {
    "item": "AUM",
-   "missing_count": 14072,
+   "missing_count": 14056,
    "impact": "medium",
    "expected_source": "AMC factsheet PDF / AMFI",
    "reason": "only SBI factsheets parsed",
@@ -35,7 +35,7 @@
   },
   {
    "item": "Index-return alpha",
-   "missing_count": 3467,
+   "missing_count": 3462,
    "impact": "medium",
    "expected_source": "index NAV series",
    "reason": "benchmark index NAV series not ingested \u2014 peer-relative only",

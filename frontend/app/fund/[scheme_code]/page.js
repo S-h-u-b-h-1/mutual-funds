@@ -3,6 +3,7 @@ import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import Tracker from "../../components/Tracker";
 import NavChart from "../../components/NavChart";
+import VolatilityChart from "../../components/VolatilityChart";
 import SectionHeader from "../../components/ui/SectionHeader";
 import GlassPanel from "../../components/ui/GlassPanel";
 import Badge from "../../components/ui/Badge";
@@ -113,7 +114,13 @@ export default async function FundPage({ params }) {
           </div>
         )}
 
-        {/* 2 · Health Score */}
+        {/* 2 · Executive Summary — what happened, why it matters, what to look at next, above the fold */}
+        <section className="mt-6">
+          <SectionHeader eyebrow="deterministic · every figure computed from NAV" title="Executive Summary" />
+          <GlassPanel className="p-5 sm:p-6"><p className="text-[13.5px] leading-relaxed text-ink-muted">{researchSummary(f, cohort)}</p></GlassPanel>
+        </section>
+
+        {/* 3 · Health Score */}
         {health && (
           <GlassPanel className="mt-6 p-5 sm:p-6">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
@@ -138,42 +145,7 @@ export default async function FundPage({ params }) {
           </GlassPanel>
         )}
 
-        {/* 2b · Research completeness */}
-        <GlassPanel className="mt-5 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <SectionHeader title="Research completeness" eyebrow="how much trustworthy data exists for this fund · traceable, never fabricated" />
-            <div className="flex items-center gap-4 text-right">
-              <div>
-                <div className="text-[10.5px] uppercase tracking-[0.1em] text-ink-faint">Completeness</div>
-                <div className={`text-[22px] font-bold tnum ${completenessTone(completeness.score) === "pos" ? "text-pos" : completenessTone(completeness.score) === "warn" ? "text-warn" : "text-neg"}`}>{completeness.score}<span className="text-[12px] text-ink-faint">/100</span></div>
-              </div>
-              <div>
-                <div className="text-[10.5px] uppercase tracking-[0.1em] text-ink-faint">Research-ready</div>
-                <div className="text-[22px] font-bold tnum text-ink">{readiness.answered}<span className="text-[12px] text-ink-faint">/{readiness.total}</span></div>
-              </div>
-            </div>
-          </div>
-          <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-3">
-            {readiness.questions.map((q) => (
-              <div key={q.question} className="flex items-start gap-2 text-[12px]">
-                <span className={q.answered ? "text-pos" : "text-ink-faint"}>{q.answered ? "✓" : "○"}</span>
-                <span className="flex-1">
-                  <span className={q.answered ? "text-ink-muted" : "text-ink-faint"}>{q.question}</span>
-                  <span className="block text-[10.5px] text-ink-faint">{q.answered ? q.source : "not yet acquired"}</span>
-                </span>
-              </div>
-            ))}
-          </div>
-          {completeness.score < 100 && (
-            <p className="mt-3 border-t border-line pt-2.5 text-[11.5px] text-ink-faint">
-              <span className="font-semibold text-ink-muted">Why not 100%:</span>{" "}
-              {Object.entries(completeness.dims).filter(([, v]) => v < 100).sort((a, b) => a[1] - b[1]).slice(0, 5).map(([k, v]) => `${k} ${v}%`).join(" · ")}
-              {" — "}missing fields are factsheet-sourced (manager, holdings, expense, AUM); never estimated.
-            </p>
-          )}
-        </GlassPanel>
-
-        {/* 3 · Performance */}
+        {/* 4 · Performance */}
         <section className="mt-7">
           <SectionHeader eyebrow="point-to-point NAV return · 3Y/5Y annualised" title="Performance" action={<Badge tone="pos" dot>real AMFI</Badge>} />
           {rets.length ? (
@@ -190,13 +162,18 @@ export default async function FundPage({ params }) {
           )}
         </section>
 
-        {/* 4 · NAV chart */}
+        {/* 5 · NAV chart + rolling volatility */}
         <section className="mt-7">
           <SectionHeader eyebrow={history ? "source: MFAPI.in (AMFI NAV history)" : "history source unavailable"} title="NAV trend" />
-          <GlassPanel className="p-5 sm:p-6"><NavChart points={history?.points} code={f.code} /></GlassPanel>
+          <GlassPanel className="p-5 sm:p-6">
+            <NavChart points={history?.points} code={f.code} />
+            <div className="mt-5 border-t border-line pt-5">
+              <VolatilityChart points={history?.points} />
+            </div>
+          </GlassPanel>
         </section>
 
-        {/* 5 · Risk + 6 · Peers */}
+        {/* 6 · Risk + Peers */}
         <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-2">
           <GlassPanel className="p-5">
             <SectionHeader title="Risk" action={<Badge tone="pos" dot>90d daily series</Badge>} />
@@ -209,8 +186,8 @@ export default async function FundPage({ params }) {
                 <Metric label="Drawdown from high" value={sgn(f.ddFromHigh)} tone={f.ddFromHigh < 0 ? "neg" : "pos"} />
                 <Metric label="Negative NAV days" value={`${f.negDays} / ${f.quality?.obs ?? "—"}`} />
                 <Metric label="Consistency" value={`${f.consistency}/100`} tone={f.consistency >= 55 ? "pos" : undefined} />
-                {sharpe != null && <Metric label="Sharpe ratio (1Y, rf 6.5%)" value={sharpe} tone={sharpe >= 1 ? "pos" : sharpe < 0 ? "neg" : undefined} />}
-                {sortino != null && <Metric label="Sortino ratio (1Y, rf 6.5%)" value={sortino} tone={sortino >= 1.5 ? "pos" : sortino < 0 ? "neg" : undefined} />}
+                {sharpe != null && <Metric label={`Sharpe ratio (1Y, rf ${RF}%)`} value={sharpe} tone={sharpe >= 1 ? "pos" : sharpe < 0 ? "neg" : undefined} />}
+                {sortino != null && <Metric label={`Sortino ratio (1Y, rf ${RF}%)`} value={sortino} tone={sortino >= 1.5 ? "pos" : sortino < 0 ? "neg" : undefined} />}
                 <p className="border-t border-line pt-2.5 text-[12px] leading-relaxed text-ink-faint">{riskInterpretation(f)}</p>
                 {port && (
                   <div className="border-t border-line pt-2.5">
@@ -238,7 +215,7 @@ export default async function FundPage({ params }) {
           </GlassPanel>
         </div>
 
-        {/* 6 · Benchmark & peer outperformance */}
+        {/* 7 · Benchmark & peer outperformance */}
         {f.benchmark && (
           <section className="mt-7">
             <SectionHeader eyebrow={`category-standard benchmark${f.benchmarkStd ? " · SEBI" : " · varies by mandate"}`} title="Benchmark & peers" action={<Badge tone="neutral">{f.benchmark}</Badge>} />
@@ -267,7 +244,7 @@ export default async function FundPage({ params }) {
           </section>
         )}
 
-        {/* 7 · Metadata + 8 · Signals + 10 · Data quality */}
+        {/* 8 · Metadata + Signals + Data quality */}
         <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
           <GlassPanel className="p-5">
             <SectionHeader title="Portfolio & metadata" action={meta ? <Badge tone="pos" dot>factsheet</Badge> : null} />
@@ -328,7 +305,7 @@ export default async function FundPage({ params }) {
             <div className="space-y-2.5">
               <Metric label="NAV history" value={histDays ? `${histDays} points` : "—"} />
               <Metric label="Risk observations" value={f.quality?.obs ? `${f.quality.obs} days` : "—"} />
-              <div className="flex items-center justify-between text-[12.5px]"><span className="text-ink-faint">Latest NAV</span><span className="text-ink-muted">{f.navDate} <Badge tone={fTone} dot>{fLabel}</Badge></span></div>
+              <div className="flex items-center justify-between text-[12.5px]"><span className="text-ink-faint">Latest NAV date</span><span className="text-ink-muted">{f.navDate || "—"}</span></div>
               <div className="flex items-center justify-between text-[12.5px]"><span className="text-ink-faint">90-day history</span>{f.quality.has90d ? <Badge tone="pos">yes</Badge> : <Badge tone="warn">no</Badge>}</div>
               <div className="flex items-center justify-between text-[12.5px]"><span className="text-ink-faint">Category mapped</span>{f.quality.hasCategory ? <Badge tone="pos">yes</Badge> : <Badge tone="warn">no</Badge>}</div>
               <Metric label="Source" value={`AMFI${history ? " + MFAPI" : ""}`} />
@@ -336,10 +313,56 @@ export default async function FundPage({ params }) {
           </GlassPanel>
         </div>
 
-        {/* 9 · Research summary */}
+        {/* 9 · Documents — real factsheet link only when a real one was acquired, never a placeholder */}
         <section className="mt-7">
-          <SectionHeader eyebrow="deterministic · every figure computed from NAV" title="Research summary" />
-          <GlassPanel className="p-5 sm:p-6"><p className="text-[13.5px] leading-relaxed text-ink-muted">{researchSummary(f, cohort)}</p></GlassPanel>
+          <SectionHeader title="Documents" />
+          <GlassPanel className="p-5">
+            {meta?.source_url ? (
+              <div className="flex items-center justify-between gap-3 text-[12.5px]">
+                <span className="text-ink-muted">Factsheet ({meta.source_date || "date unavailable"})</span>
+                <a className="shrink-0 text-accent-soft hover:text-ink" href={meta.source_url} target="_blank" rel="noopener noreferrer">Open PDF ↗</a>
+              </div>
+            ) : (
+              <p className="text-[12.5px] text-ink-faint">No factsheet, SID, KIM or annual report acquired yet for this scheme. Documents appear here only when sourced from the official AMC filing — never linked speculatively.</p>
+            )}
+          </GlassPanel>
+        </section>
+
+        {/* 10 · Completeness (last, per research-completeness convention) */}
+        <section className="mt-7">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <SectionHeader title="Research completeness" eyebrow="how much trustworthy data exists for this fund · traceable, never fabricated" />
+            <div className="flex items-center gap-4 text-right">
+              <div>
+                <div className="text-[10.5px] uppercase tracking-[0.1em] text-ink-faint">Completeness</div>
+                <div className={`text-[22px] font-bold tnum ${completenessTone(completeness.score) === "pos" ? "text-pos" : completenessTone(completeness.score) === "warn" ? "text-warn" : "text-neg"}`}>{completeness.score}<span className="text-[12px] text-ink-faint">/100</span></div>
+              </div>
+              <div>
+                <div className="text-[10.5px] uppercase tracking-[0.1em] text-ink-faint">Research-ready</div>
+                <div className="text-[22px] font-bold tnum text-ink">{readiness.answered}<span className="text-[12px] text-ink-faint">/{readiness.total}</span></div>
+              </div>
+            </div>
+          </div>
+          <GlassPanel className="mt-3 p-5">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-3">
+              {readiness.questions.map((q) => (
+                <div key={q.question} className="flex items-start gap-2 text-[12px]">
+                  <span className={q.answered ? "text-pos" : "text-ink-faint"}>{q.answered ? "✓" : "○"}</span>
+                  <span className="flex-1">
+                    <span className={q.answered ? "text-ink-muted" : "text-ink-faint"}>{q.question}</span>
+                    <span className="block text-[10.5px] text-ink-faint">{q.answered ? q.source : "not yet acquired"}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+            {completeness.score < 100 && (
+              <p className="mt-3 border-t border-line pt-2.5 text-[11.5px] text-ink-faint">
+                <span className="font-semibold text-ink-muted">Why not 100%:</span>{" "}
+                {Object.entries(completeness.dims).filter(([, v]) => v < 100).sort((a, b) => a[1] - b[1]).slice(0, 5).map(([k, v]) => `${k} ${v}%`).join(" · ")}
+                {" — "}missing fields are factsheet-sourced (manager, holdings, expense, AUM); never estimated.
+              </p>
+            )}
+          </GlassPanel>
         </section>
       </main>
       <Footer note={<span>NAV as of {f.navDate} · daily data, not real-time · past performance ≠ future returns · source AMFI / MFAPI. Platform as of {asOf}.</span>} />

@@ -11,3 +11,4 @@ dbt_packages/
 logs/
 .pytest_cache/
 .supabase_db_password
+.claude/

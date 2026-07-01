@@ -1,6 +1,6 @@
-# Field Coverage Report — 2026-06-23
+# Field Coverage Report — 2026-06-30
 
-Denominators: **universe** = all 14,224 routable schemes; **investable** = active Growth non-IDCW = 3,467.
+Denominators: **universe** = all 14,208 routable schemes; **investable** = active Growth non-IDCW = 3,462.
 Every % auto-computed from funds.json + metadata.json. Missing values are classified, never blank-faked.
 
 ### Identity
@@ -11,22 +11,22 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 | AMC | 100.0% | 100.0% |
 | Category | 100.0% | 100.0% |
 | Asset Class | 100.0% | 100.0% |
-| Benchmark | 86.33% | 72.74% |
+| Benchmark | 86.32% | 72.7% |
 
 ### Performance
 
 | Field | Universe % | Investable % |
 |---|---:|---:|
 | Latest NAV | 98.29% | 100.0% |
-| NAV History (90d) | 28.26% | 99.6% |
-| 1M | 28.39% | 99.45% |
-| 3M | 28.09% | 98.56% |
-| 6M | 27.08% | 95.44% |
-| 1Y | 25.34% | 89.62% |
-| 3Y | 19.48% | 68.94% |
-| 5Y | 13.44% | 48.75% |
-| Volatility | 28.26% | 99.6% |
-| Drawdown | 28.26% | 99.6% |
+| NAV History (90d) | 28.17% | 99.68% |
+| 1M | 28.4% | 99.57% |
+| 3M | 28.12% | 98.73% |
+| 6M | 26.62% | 95.58% |
+| 1Y | 24.9% | 89.83% |
+| 3Y | 18.98% | 68.92% |
+| 5Y | 13.34% | 48.84% |
+| Volatility | 28.17% | 99.68% |
+| Drawdown | 28.17% | 99.68% |
 
 ### Metadata
 
@@ -53,14 +53,14 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 | Factsheet | 1.07% | 1.59% |
 
 ## Performance completeness (0–100 per scheme)
-- Investable average: **92.9/100** (95.88% score ≥80)
-- Universe average: 46.9/100 (27.17% ≥80)
+- Investable average: **93.0/100** (95.9% score ≥80)
+- Universe average: 46.8/100 (27.0% ≥80)
 
 ## Fund Completeness & Research Readiness (Phases 5–6)
 | Score | Investable | Universe |
 |---|---:|---:|
-| Fund Completeness (9 dimensions) | 56.1/100 | 39.0/100 |
-| Research Readiness (9 questions) | 52.9/100 | 30.4/100 |
+| Fund Completeness (9 dimensions) | 56.2/100 | 39.0/100 |
+| Research Readiness (9 questions) | 52.9/100 | 30.3/100 |
 | ISIN coverage | 98.83% | 98.83% |
 | Scheme-structure coverage | 100.0% | 100.0% |
 

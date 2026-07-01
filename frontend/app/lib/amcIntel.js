@@ -6,6 +6,10 @@ import { fundHealth } from "./fundHealth";
 
 export const amcSlugify = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
+// AMC-level grading is a distinct 6-band scale (A/B+/B/C/D/E) from the fund-level 5-band scale
+// in fundHealth.js (A/B/C/D/E) — NOT the same tone function, do not conflate the two.
+export const gradeTone = (g) => (g === "A" || g === "B+" || g === "B" ? "pos" : g === "C" ? "warn" : "neg");
+
 const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
 export function amcIntel(allFunds, amcSlug, assetSlug) {

@@ -1,4 +1,4 @@
-# Coverage Dashboard (internal/operational) — 2026-06-23
+# Coverage Dashboard (internal/operational) — 2026-06-30
 
 > Engineering KPI board. Not a public page. Regenerate: `python -m scripts.market_coverage_audit`.
 
@@ -6,10 +6,10 @@
 | | |
 |---|---:|
 | AMFI active schemes (live) | 14,208 |
-| MF Pulse schemes | 14,224 |
+| MF Pulse schemes | 14,208 |
 | Coverage % | 100.0% |
 | Missing schemes | 0 |
-| **Overall Trust Score** | **81.5/100** |
+| **Overall Trust Score** | **86.3/100** |
 | **Production ready** | **100.0%** |
 
 ## KPIs
@@ -17,10 +17,10 @@
 |---|---:|
 | scheme coverage pct | 100.0% |
 | nav coverage pct | 98.29% |
-| historical coverage pct | 89.62% |
-| returns coverage pct | 99.45% |
-| risk coverage pct | 99.6% |
-| benchmark coverage pct | 86.33% |
+| historical coverage pct | 89.83% |
+| returns coverage pct | 99.57% |
+| risk coverage pct | 99.68% |
+| benchmark coverage pct | 86.32% |
 | category coverage pct | 100.0% |
 | metadata coverage pct | 1.07% |
 | aum coverage pct | 1.07% |
@@ -31,8 +31,8 @@
 | document coverage pct | 1.07% |
 | isin coverage pct | 98.83% |
 | structure coverage pct | 100.0% |
-| performance completeness avg investable | 92.9 |
-| fund completeness avg investable | 56.1 |
+| performance completeness avg investable | 93.0 |
+| fund completeness avg investable | 56.2 |
 | research readiness avg investable | 52.9 |
 
 ## Trust components
@@ -40,9 +40,9 @@
 |---|---:|
 | coverage score | 100.0 |
 | routable score | 100.0 |
-| freshness score | 60 |
+| freshness score | 100 |
 | metadata score | 0.3 |
-| historical score | 89.62 |
+| historical score | 89.83 |
 | lineage score | 75.0 |
 | validation score | 100.0 |
 | parser health | 100.0 |

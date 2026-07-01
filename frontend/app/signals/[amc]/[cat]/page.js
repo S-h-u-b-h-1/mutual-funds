@@ -9,14 +9,16 @@ import StatStrip from "../../../components/ui/StatStrip";
 import DataTable from "../../../components/ui/DataTable";
 import Badge from "../../../components/ui/Badge";
 import { allFunds, asOf } from "../../../lib/funds";
-import { amcIntel, amcSlugify } from "../../../lib/amcIntel";
+import { amcIntel, amcSlugify, gradeTone as amcGradeTone } from "../../../lib/amcIntel";
+// fundCols renders a per-FUND grade (fundHealth.js 5-band A/B/C/D/E) — must use the fund-scale
+// tone, not amcIntel's AMC-scale (6-band, incl. B+). Only the AMC score badge uses amcGradeTone.
+import { gradeTone } from "../../../lib/fundHealth";
 import { signalSlug } from "../../../lib/signalSlug";
 
 export const revalidate = 600;
 
 const pct = (v, dp = 1) => (v == null ? <span className="text-ink-faint">—</span> : <span className={v >= 0 ? "text-pos tnum" : "text-neg tnum"}>{v >= 0 ? "+" : ""}{v.toFixed(dp)}%</span>);
 const inr = (n) => `₹${new Intl.NumberFormat("en-IN").format(Math.round(n))} Cr`;
-const gradeTone = (g) => (g === "A" || g === "B+" || g === "B" ? "pos" : g === "C" ? "warn" : "neg");
 
 export async function generateMetadata({ params }) {
   const it = amcIntel(allFunds(), params.amc, params.cat);
@@ -59,7 +61,7 @@ export default async function AmcIntel({ params }) {
           </div>
           <div className="text-right">
             <div className="text-[11px] uppercase tracking-[0.1em] text-ink-faint">AMC score</div>
-            <div className="flex items-center justify-end gap-2"><span className="text-[30px] font-bold tnum text-ink">{it.score}</span><Badge tone={gradeTone(it.grade)} dot>{it.grade}</Badge></div>
+            <div className="flex items-center justify-end gap-2"><span className="text-[30px] font-bold tnum text-ink">{it.score}</span><Badge tone={amcGradeTone(it.grade)} dot>{it.grade}</Badge></div>
           </div>
         </div>
 
