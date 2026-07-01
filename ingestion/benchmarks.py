@@ -121,6 +121,13 @@ def derive_index_benchmark(scheme_name: str):
 def resolve_benchmark(category: str, scheme_name: str = "", asset_class: str = "") -> tuple:
     """Return (benchmark|None, is_standard). None when no confident category benchmark exists."""
     cat = (category or "").strip()
+    name = (scheme_name or "").lower()
+    # An explicitly-named index/ETF fund tracks the index in its name — that is authoritative,
+    # even over a category default (e.g. an ELSS *index* fund follows its index, not NIFTY 500).
+    if any(k in name for k in ("index fund", "index scheme", "etf", "exchange traded")):
+        nb = derive_index_benchmark(scheme_name)
+        if nb:
+            return nb, True
     if cat in CATEGORY_BENCHMARK:
         return CATEGORY_BENCHMARK[cat], True
     blob = f"{cat} {scheme_name}".lower()
