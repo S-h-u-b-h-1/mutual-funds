@@ -12,6 +12,7 @@ import GuidedJourney from "./components/GuidedJourney";
 import RecentActivity from "./components/RecentActivity";
 import FlowHeatmap from "./components/FlowHeatmap";
 import AlertSignup from "./components/AlertSignup";
+import MarketNewsPulse from "./components/MarketNewsPulse";
 import SectionHeader from "./components/ui/SectionHeader";
 import GlassPanel from "./components/ui/GlassPanel";
 import StatStrip from "./components/ui/StatStrip";
@@ -22,6 +23,7 @@ import PremiumButton from "./components/ui/PremiumButton";
 import Badge from "./components/ui/Badge";
 import { allFunds } from "./lib/funds";
 import { graphNodes } from "./lib/graphNodes";
+import { getTopHeadlines } from "./lib/news";
 import trendData from "./data/amc_trend.json";
 import performance from "./data/performance.json";
 import daily from "./data/daily.json";
@@ -44,6 +46,7 @@ export default async function Page() {
     sb("v_signals?select=*"),
     sb("v_flow_history?select=*"),
   ]);
+  const newsHeadlines = await getTopHeadlines({ limit: 5 }).catch(() => []);
   const flow = headline[0] || {};
   const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
   const latest = byClass.map((r) => r.latest_nav_date).sort().at(-1);
@@ -209,6 +212,11 @@ export default async function Page() {
             </div>
           </div>
           <p className="mt-2 text-[11px] text-ink-faint">1-day NAV return, equity Growth funds · today&rsquo;s top fund (30d): {daily.topFund?.name?.replace(/ - (Direct|Regular).*/i, "")} · source AMFI, {daily.asOf}.</p>
+        </section>
+
+        {/* Market News Pulse — REAL ingested news, rule-based market-relevance links */}
+        <section className="mt-9">
+          <MarketNewsPulse articles={newsHeadlines} />
         </section>
 
         {/* Performance pulse — REAL data leads the page */}

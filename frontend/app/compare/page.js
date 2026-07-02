@@ -2,6 +2,7 @@ import { sb } from "../lib/supabase";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import CompareClient from "../components/CompareClient";
+import AdvisorSoftCTA from "../components/AdvisorSoftCTA";
 import trendData from "../data/amc_trend.json";
 
 export const metadata = { title: "Compare AMCs" };
@@ -37,6 +38,7 @@ export default async function Compare() {
         <div className="mt-8">
           <CompareClient amcs={trendData.amcs} meta={meta} />
         </div>
+        <AdvisorSoftCTA context="compare" />
       </main>
       <Footer note={<span>30-day equity index from real AMFI NAV history · scheme counts from latest AMFI data.</span>} />
     </>

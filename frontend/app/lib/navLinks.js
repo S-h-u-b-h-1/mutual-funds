@@ -7,6 +7,7 @@ export const PRIMARY_LINKS = [
   ["Funds", "/funds"],
   ["Performance", "/performance"],
   ["Categories", "/categories"],
+  ["News", "/news"],
   ["Discover", "/discover"],
   ["Compare", "/compare"],
   ["Research", "/research"],

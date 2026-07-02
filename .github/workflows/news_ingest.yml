@@ -1,0 +1,27 @@
+name: News ingestion
+
+on:
+  schedule:
+    - cron: "20 */3 * * *"   # every 3 hours (UTC), all days — RBI/SEBI/global cues aren't confined to trading hours
+  workflow_dispatch: {}
+
+jobs:
+  ingest:
+    name: Ingest financial news → Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run news ingestion
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY not set — skipping ingestion."
+            echo "Add it under Settings → Secrets → Actions to activate the news pipeline."
+            exit 0
+          fi
+          python -m scripts.ingest_news

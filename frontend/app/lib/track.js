@@ -48,6 +48,8 @@ function entityOf(p) {
   if (p.option) return ["option", String(p.option)];
   if (p.label) return ["cta", String(p.label)];
   if (p.column) return ["column", String(p.column)];
+  if (p.article) return ["article", String(p.article)];
+  if (p.filter) return ["filter", String(p.filter)];
   return [null, null];
 }
 
