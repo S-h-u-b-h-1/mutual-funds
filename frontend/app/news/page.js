@@ -1,5 +1,6 @@
 import { getRecentArticles, getIngestionRuns } from "../lib/news";
 import { newsStatus } from "../lib/newsStatus";
+import { impactChainsFor, themesFor, impactScoreFor, researchLinksFor, fundsWorthResearching, sectorExposure, THEMES } from "../lib/marketImpact";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import GlassPanel from "../components/ui/GlassPanel";
@@ -7,6 +8,36 @@ import NewsClient from "../components/NewsClient";
 
 export const metadata = { title: "Market News Intelligence" };
 export const revalidate = 300;
+
+// Server-only enrichment (marketImpact.js reads the 4MB funds.json bundle — never import it from
+// a "use client" file). Computed once per revalidate window (300s), not per request. Per-article
+// try/catch so one malformed article's links can never blank the whole page.
+function enrichArticle(article) {
+  try {
+    const chains = impactChainsFor(article.links);
+    const themes = themesFor(article.links);
+    const impact = impactScoreFor(article);
+    const research = researchLinksFor(article);
+
+    const funds = {};
+    const sectors = {};
+    const seen = new Set();
+    for (const l of article.links || []) {
+      const key = `${l.entityType}:${l.entityName}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (l.entityType === "category" || l.entityType === "amc" || l.entityType === "index") {
+        funds[key] = fundsWorthResearching(l, { limit: 2 });
+      } else if (l.entityType === "sector") {
+        sectors[l.entityName] = sectorExposure(l.entityName, { limit: 2 });
+      }
+    }
+
+    return { ...article, chains, themes, impact, research, exposure: { funds, sectors } };
+  } catch {
+    return { ...article, chains: [], themes: [], impact: null, research: [], exposure: { funds: {}, sectors: {} } };
+  }
+}
 
 export default async function News() {
   let articles = [];
@@ -20,6 +51,12 @@ export default async function News() {
     articles = [];
     runs = [];
   }
+
+  articles = articles.map(enrichArticle);
+  const themeCounts = THEMES.reduce((acc, t) => {
+    acc[t] = articles.filter((a) => a.themes?.includes(t)).length;
+    return acc;
+  }, {});
 
   const status = newsStatus(runs);
 
@@ -90,7 +127,7 @@ export default async function News() {
         </GlassPanel>
 
         <div className="mt-8">
-          <NewsClient articles={articles} runs={runs} />
+          <NewsClient articles={articles} runs={runs} themeCounts={themeCounts} allThemes={THEMES} />
         </div>
       </main>
       <Footer

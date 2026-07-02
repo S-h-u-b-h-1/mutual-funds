@@ -24,6 +24,7 @@ import Badge from "./components/ui/Badge";
 import { allFunds } from "./lib/funds";
 import { graphNodes } from "./lib/graphNodes";
 import { getTopHeadlines } from "./lib/news";
+import { impactChainsFor, impactScoreFor, researchLinksFor, fundsWorthResearching } from "./lib/marketImpact";
 import trendData from "./data/amc_trend.json";
 import performance from "./data/performance.json";
 import daily from "./data/daily.json";
@@ -47,6 +48,22 @@ export default async function Page() {
     sb("v_flow_history?select=*"),
   ]);
   const newsHeadlines = await getTopHeadlines({ limit: 5 }).catch(() => []);
+  // Phase 8 — enrich each headline with real market-impact data (chains/score/research/funds).
+  // Defensive per-article try/catch: a single bad article can never break the homepage.
+  const enrichedHeadlines = newsHeadlines.map((article) => {
+    try {
+      const entityLink = article.links?.find((l) => l.entityType === "category" || l.entityType === "amc");
+      return {
+        ...article,
+        chains: impactChainsFor(article.links),
+        impact: impactScoreFor(article),
+        research: researchLinksFor(article),
+        topFunds: entityLink ? fundsWorthResearching(entityLink, { limit: 2 }) : [],
+      };
+    } catch {
+      return article;
+    }
+  });
   const flow = headline[0] || {};
   const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
   const latest = byClass.map((r) => r.latest_nav_date).sort().at(-1);
@@ -216,7 +233,7 @@ export default async function Page() {
 
         {/* Market News Pulse — REAL ingested news, rule-based market-relevance links */}
         <section className="mt-9">
-          <MarketNewsPulse articles={newsHeadlines} />
+          <MarketNewsPulse articles={enrichedHeadlines} />
         </section>
 
         {/* Performance pulse — REAL data leads the page */}

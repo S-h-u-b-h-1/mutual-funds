@@ -1,6 +1,8 @@
 "use client";
-// Interactive client half of /news (Phase 3/5) — all filtering/sorting happens over the
-// already-fetched article pool (no re-fetch), mirroring the CompareClient split pattern.
+// Interactive client half of /news — all filtering/sorting/theme-browsing/timeline-grouping
+// happens over the already-fetched, already server-enriched article pool (no re-fetch, and no
+// import of marketImpact.js here — that module is server-only, its output already arrives as
+// plain fields on each article: chains/themes/impact/research/exposure, computed in page.js).
 // Every relation shown is a real row from news_market_links; nothing here is inferred or
 // hallucinated — hedged language ("may affect" etc.) is preserved verbatim from the data.
 import { useEffect, useRef, useState } from "react";
@@ -35,6 +37,8 @@ const FRESHNESS = [
   { key: "7d", label: "Last 7d" },
 ];
 
+const TIMELINE_ORDER = ["Today", "Yesterday", "This Week", "Earlier"];
+const IMPACT_TONE = { Critical: "accent", High: "accent", Medium: "neutral", Low: "neutral" };
 const CREDIBILITY_TONE = { official: "accent" };
 const SENTIMENT_TONE = { positive: "pos", negative: "neg", mixed: "warn" };
 
@@ -57,6 +61,82 @@ function withinFreshness(publishedAt, key) {
   return true;
 }
 
+// Today/Yesterday/This Week/Earlier (Phase 4) — computed against the real clock at render time
+// (this is a client component, so a fresh Date() here is fine, no server/client mismatch risk).
+function timelineBucket(publishedAt) {
+  if (!publishedAt) return "Earlier";
+  const d = new Date(publishedAt);
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfYesterday = new Date(startOfToday);
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+  const startOfWeek = new Date(startOfToday);
+  startOfWeek.setDate(startOfWeek.getDate() - 7);
+  if (d >= startOfToday) return "Today";
+  if (d >= startOfYesterday) return "Yesterday";
+  if (d >= startOfWeek) return "This Week";
+  return "Earlier";
+}
+
+function ChainBreadcrumb({ chain }) {
+  if (!chain || chain.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-[11.5px] text-ink-muted">
+      {chain.map((s, i) => (
+        <span key={i} className="flex items-center gap-1">
+          <span className="rounded border border-line bg-white/[0.03] px-1.5 py-0.5 text-ink">{s}</span>
+          {i < chain.length - 1 && <span className="text-ink-faint">→</span>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ExposureSection({ article: a }) {
+  const funds = a.exposure?.funds || {};
+  const sectors = a.exposure?.sectors || {};
+  const fundEntries = Object.entries(funds).filter(([, v]) => v?.length > 0);
+  const sectorEntries = Object.entries(sectors);
+  if (!fundEntries.length && !sectorEntries.length) return null;
+
+  return (
+    <div className="mt-3 space-y-2 border-t border-line pt-2.5 text-[12px]">
+      {fundEntries.map(([key, list]) => (
+        <div key={key}>
+          <span className="text-ink-faint">Funds worth researching ({key.split(":")[1]}): </span>
+          {list.map((f, i) => (
+            <span key={f.code}>
+              <a href={`/fund/${f.code}`} className="text-ink hover:text-accent-soft">
+                {f.name.replace(/ - (Direct|Regular).*/i, "")}
+              </a>
+              {f.grade && <span className="text-ink-faint"> ({f.grade})</span>}
+              {i < list.length - 1 ? ", " : ""}
+            </span>
+          ))}
+        </div>
+      ))}
+      {sectorEntries.map(([sector, result]) => (
+        <div key={sector}>
+          <span className="text-ink-faint">Sector exposure ({sector}): </span>
+          {result.available ? (
+            result.funds.map((f, i) => (
+              <span key={f.code}>
+                <a href={`/fund/${f.code}`} className="text-ink hover:text-accent-soft">
+                  {f.name.replace(/ - (Direct|Regular).*/i, "")}
+                </a>
+                <span className="text-ink-faint"> ({f.allocationPct}% allocation)</span>
+                {i < result.funds.length - 1 ? ", " : ""}
+              </span>
+            ))
+          ) : (
+            <span className="text-ink-faint">Exposure unavailable.</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function NewsCard({ article: a, onRelatedClick, highlighted }) {
   const [expanded, setExpanded] = useState(false);
   const trackedExpand = useRef(false);
@@ -64,6 +144,9 @@ function NewsCard({ article: a, onRelatedClick, highlighted }) {
   const hasLinks = a.links && a.links.length > 0;
   const hasScores = (a.importance || 0) > 0 || (a.relevance || 0) > 0;
   const sentimentTone = SENTIMENT_TONE[a.sentiment];
+  const topChain = a.chains?.[0];
+  const secondaryThemes = (a.themes || []).filter((t) => t !== topChain?.theme);
+  const research = Array.isArray(a.research) ? a.research : [];
 
   function toggleExpand() {
     setExpanded((v) => !v);
@@ -78,6 +161,14 @@ function NewsCard({ article: a, onRelatedClick, highlighted }) {
       <div className="flex flex-wrap items-center gap-2 mb-2">
         <Badge tone={sourceCredibilityTone(a.source)}>{a.source?.name || "Unknown source"}</Badge>
         <Badge tone="neutral">{CATEGORY_LABELS[a.category] || a.category}</Badge>
+        {a.impact?.tier && (
+          <Badge
+            tone={IMPACT_TONE[a.impact.tier] || "neutral"}
+            title="Market Impact Score — breadth of affected sectors/categories/AMCs + regulatory weight + source credibility, not a sentiment signal"
+          >
+            {a.impact.tier} impact
+          </Badge>
+        )}
         {sentimentTone && <Badge tone={sentimentTone}>{a.sentiment}</Badge>}
         <span className="text-[11px] text-ink-faint">
           {relativeTime(a.publishedAt)}
@@ -126,28 +217,53 @@ function NewsCard({ article: a, onRelatedClick, highlighted }) {
             Why this matters {expanded ? "▴" : "▾"}
           </button>
           {expanded && (
-            <ul className="mt-2 space-y-2 border-l border-line pl-3">
-              {a.links.map((l, i) => (
-                <li key={i} className="text-[12.5px] text-ink-muted">
-                  <span>
-                    {l.relation} {l.entityType}:{" "}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        track("news_related_category_click", { category: l.entityName });
-                        onRelatedClick?.(l);
-                      }}
-                      className="font-medium text-ink underline decoration-dotted underline-offset-2 hover:text-accent-soft"
-                    >
-                      {l.entityName}
-                    </button>
-                  </span>
-                  {l.ruleId && (
-                    <div className="text-[10.5px] text-ink-faint mt-0.5">traced to rule: {l.ruleId}</div>
+            <>
+              {topChain && (
+                <div className="mt-2">
+                  <ChainBreadcrumb chain={topChain.chain} />
+                  {secondaryThemes.length > 0 && (
+                    <div className="mt-1 text-[10.5px] text-ink-faint">also relevant to: {secondaryThemes.join(", ")}</div>
                   )}
-                </li>
-              ))}
-            </ul>
+                </div>
+              )}
+              <ul className="mt-2 space-y-2 border-l border-line pl-3">
+                {a.links.map((l, i) => (
+                  <li key={i} className="text-[12.5px] text-ink-muted">
+                    <span>
+                      {l.relation} {l.entityType}:{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          track("news_related_category_click", { category: l.entityName });
+                          onRelatedClick?.(l);
+                        }}
+                        className="font-medium text-ink underline decoration-dotted underline-offset-2 hover:text-accent-soft"
+                      >
+                        {l.entityName}
+                      </button>
+                    </span>
+                    {l.ruleId && (
+                      <div className="text-[10.5px] text-ink-faint mt-0.5">traced to rule: {l.ruleId}</div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <ExposureSection article={a} />
+              {research.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-2.5">
+                  {research.map((r, i) => (
+                    <a
+                      key={i}
+                      href={r.href}
+                      onClick={() => track("news_research_link_click", { label: r.href })}
+                      className="rounded-full border border-line px-2.5 py-1 text-[11px] text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
+                    >
+                      {r.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -155,8 +271,49 @@ function NewsCard({ article: a, onRelatedClick, highlighted }) {
   );
 }
 
-export default function NewsClient({ articles = [], runs = [] }) {
+function ThemeGrid({ articles, allThemes, themeCounts, activeTheme, onSelect }) {
+  return (
+    <div className="mb-4">
+      <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Browse by theme</div>
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() => onSelect(null)}
+          className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+            !activeTheme ? "border-accent bg-accent/10 text-accent-soft" : "border-line text-ink-muted hover:border-line-strong hover:text-ink"
+          }`}
+        >
+          All themes <span className="tnum text-ink-faint">{articles.length}</span>
+        </button>
+        {allThemes.map((t) => {
+          const count = themeCounts[t] || 0;
+          const active = activeTheme === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              disabled={count === 0 && !active}
+              onClick={() => onSelect(t)}
+              className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                active
+                  ? "border-accent bg-accent/10 text-accent-soft"
+                  : count === 0
+                  ? "border-line text-ink-faint/50 cursor-default"
+                  : "border-line text-ink-muted hover:border-line-strong hover:text-ink"
+              }`}
+            >
+              {t} <span className="tnum text-ink-faint">{count}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default function NewsClient({ articles = [], runs = [], themeCounts = {}, allThemes = [] }) {
   const [filter, setFilter] = useState("latest");
+  const [theme, setTheme] = useState(null);
   const [sort, setSort] = useState("latest");
   const [source, setSource] = useState("all");
   const [highImpactOnly, setHighImpactOnly] = useState(false);
@@ -179,6 +336,11 @@ export default function NewsClient({ articles = [], runs = [] }) {
   function selectFilter(key) {
     setFilter(key);
     track("news_filter_used", { filter: key });
+  }
+
+  function selectTheme(t) {
+    setTheme(t);
+    track("news_filter_used", { filter: t ? `theme:${t}` : "theme:all" });
   }
 
   function selectSource(name) {
@@ -206,6 +368,7 @@ export default function NewsClient({ articles = [], runs = [] }) {
 
   let pool = articles
     .filter((a) => matchesFilter(a, filter))
+    .filter((a) => !theme || a.themes?.includes(theme))
     .filter((a) => source === "all" || a.source?.name === source)
     .filter((a) => !highImpactOnly || (a.importance || 0) >= 60)
     .filter((a) => withinFreshness(a.publishedAt, freshness));
@@ -218,9 +381,36 @@ export default function NewsClient({ articles = [], runs = [] }) {
   });
 
   const noArticlesAtAll = articles.length === 0;
+  // Timeline grouping only makes sense for chronological viewing — a "Most relevant"/"Highest
+  // impact"/"Most connected" sort deliberately breaks date order, so grouping by date there
+  // would look broken (e.g. a "Today" story below an "Earlier" one). Flat list for those.
+  const useTimeline = sort === "latest";
+  const buckets = useTimeline
+    ? TIMELINE_ORDER.map((label) => ({ label, items: pool.filter((a) => timelineBucket(a.publishedAt) === label) })).filter((b) => b.items.length > 0)
+    : [{ label: null, items: pool }];
+
+  let cardIndex = 0;
+  function renderCard(a) {
+    cardIndex += 1;
+    const showCta = cardIndex % 10 === 0;
+    return (
+      <div key={a.id}>
+        <NewsCard
+          article={a}
+          onRelatedClick={(l) => setHighlightEntity(l.entityName)}
+          highlighted={!!highlightEntity && a.links?.some((l) => l.entityName === highlightEntity)}
+        />
+        {showCta && <div className="my-3"><AdvisorSoftCTA context="news" /></div>}
+      </div>
+    );
+  }
 
   return (
     <div>
+      {allThemes.length > 0 && (
+        <ThemeGrid articles={articles} allThemes={allThemes} themeCounts={themeCounts} activeTheme={theme} onSelect={selectTheme} />
+      )}
+
       <div className="flex flex-wrap gap-1.5 mb-3">
         {FILTERS.map((f) => {
           const count = articles.filter((a) => matchesFilter(a, f.key)).length;
@@ -330,21 +520,17 @@ export default function NewsClient({ articles = [], runs = [] }) {
           />
         )
       ) : (
-        <div className="space-y-3">
-          {pool.map((a, i) => (
-            <div key={a.id}>
-              <NewsCard
-                article={a}
-                onRelatedClick={(l) => setHighlightEntity(l.entityName)}
-                highlighted={!!highlightEntity && a.links?.some((l) => l.entityName === highlightEntity)}
-              />
-              {(i + 1) % 10 === 0 && <div className="my-3"><AdvisorSoftCTA context="news" /></div>}
+        <div className="space-y-5">
+          {buckets.map((b) => (
+            <div key={b.label || "all"}>
+              {b.label && <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">{b.label}</div>}
+              <div className="space-y-3">{b.items.map(renderCard)}</div>
             </div>
           ))}
         </div>
       )}
 
-      {pool.length > 0 && pool.length % 10 !== 0 && (
+      {pool.length > 0 && cardIndex % 10 !== 0 && (
         <AdvisorSoftCTA context="news" />
       )}
     </div>

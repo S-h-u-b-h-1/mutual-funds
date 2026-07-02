@@ -102,6 +102,129 @@ RULES = [
      "relevant to"),
 ]
 
+# Per-rule causal narrative + theme + regulatory weight (Phase 1/5/6 of the Market Impact
+# Intelligence sprint). Deliberately kept SEPARATE from RULES above rather than folded into the
+# tuple — RULES/classify() is the already-verified matching logic; this is a pure presentation/
+# scoring annotation keyed by the same rule_id, so it can be extended without touching or
+# re-testing the matching behavior. Mirrored in frontend/app/lib/marketImpact.js — if you change
+# a rule_id's theme/chain/weight here, update it there too (there is no runtime link between the
+# two files; this file is the source of truth).
+#
+# theme: one of a fixed vocabulary users browse by (Phase 5). The mission's example list is
+# explicitly "Examples:", not closed, so three themes were added beyond it where forcing a rule
+# into an ill-fitting bucket would have been dishonest: Healthcare (pharma_sector has nothing to
+# do with Manufacturing), Commodities (gold_price isn't Energy), Markets (pure index-level moves
+# / IPO activity / credit-rating actions aren't a sector or macro theme).
+# chain: ordered, human-readable causal steps from the event to a fund-level implication — never
+# a numeric estimate, never "will happen", always the same hedged relation already used for the
+# underlying links.
+# regulatory_weight: 0-100, how much a single match of this rule should weigh in the Market
+# Impact Score (Phase 6) — official regulatory/monetary-policy actions (RBI, SEBI, liquidity)
+# weight highest; routine sector/earnings news weighs lowest. This is a fixed, documented editorial
+# judgment call, not derived from any data — treat it as such when reviewing.
+RULE_META = {
+    "rbi_rate_action": {
+        "theme": "Interest Rates", "regulatory_weight": 90,
+        "chain": ["RBI rate decision", "Interest rates", "Debt funds", "Banking sector",
+                  "Liquid funds", "Gilt funds", "Potential duration impact"],
+    },
+    "sebi_mf_circular": {
+        "theme": "SEBI", "regulatory_weight": 85,
+        "chain": ["SEBI regulatory action", "Mutual fund industry compliance",
+                  "AMC / distributor operations", "Potential impact on fund structure or fees"],
+    },
+    "mutual_fund_industry": {
+        "theme": "Mutual Funds", "regulatory_weight": 30,
+        "chain": ["Mutual fund industry news", "AMC business activity", "Fund category growth",
+                  "Worth reviewing the specific fund/AMC involved"],
+    },
+    "oil_price": {
+        "theme": "Energy", "regulatory_weight": 50,
+        "chain": ["Oil price move", "Energy sector", "Transportation costs", "Inflation pressure",
+                  "Large Cap funds", "Sector funds"],
+    },
+    "banking_earnings": {
+        "theme": "Banking", "regulatory_weight": 40,
+        "chain": ["Bank earnings", "Banking sector", "Financial Services", "Large Cap funds",
+                  "Potential re-rating of banking-heavy funds"],
+    },
+    "inflation_data": {
+        "theme": "Inflation", "regulatory_weight": 70,
+        "chain": ["Inflation data release", "Interest-rate expectations", "Debt funds",
+                  "Gilt funds", "Potential yield / duration impact"],
+    },
+    "gdp_growth": {
+        "theme": "Consumption", "regulatory_weight": 60,
+        "chain": ["GDP growth data", "Broad economic activity", "Large Cap funds",
+                  "Flexi Cap funds", "Potential broad-market sentiment impact"],
+    },
+    "fii_dii_flows": {
+        "theme": "Global Markets", "regulatory_weight": 45,
+        "chain": ["FII / DII flow data", "Market liquidity", "Large Cap funds", "Flexi Cap funds",
+                  "Mid Cap funds", "Potential valuation impact"],
+    },
+    "rupee_currency": {
+        "theme": "Global Markets", "regulatory_weight": 55,
+        "chain": ["Rupee movement", "Currency impact", "IT sector (export revenue)",
+                  "Debt funds (imported inflation)", "Potential margin impact for exporters"],
+    },
+    "it_sector": {
+        "theme": "Technology", "regulatory_weight": 35,
+        "chain": ["IT sector news", "Technology stocks", "Large Cap funds", "Flexi Cap funds",
+                  "IT sector funds"],
+    },
+    "pharma_sector": {
+        "theme": "Healthcare", "regulatory_weight": 30,
+        "chain": ["Pharma / healthcare news", "Healthcare sector", "Sectoral/Thematic funds",
+                  "Potential re-rating of healthcare-heavy funds"],
+    },
+    "auto_sector": {
+        "theme": "Manufacturing", "regulatory_weight": 30,
+        "chain": ["Auto sector sales/news", "Automobile manufacturing", "Sectoral/Thematic funds",
+                  "Potential re-rating of auto-heavy funds"],
+    },
+    "gold_price": {
+        "theme": "Commodities", "regulatory_weight": 25,
+        "chain": ["Gold price move", "Commodities", "Gold ETF funds",
+                  "Potential impact on multi-asset allocation"],
+    },
+    "sensex_nifty_move": {
+        "theme": "Markets", "regulatory_weight": 35,
+        "chain": ["Index move (Sensex/Nifty)", "Broad market sentiment", "Large Cap funds",
+                  "Index funds / ETFs", "Potential short-term flow impact"],
+    },
+    "ipo_market": {
+        "theme": "Markets", "regulatory_weight": 25,
+        "chain": ["IPO activity", "Primary-market sentiment", "Small Cap funds", "Mid Cap funds",
+                  "Potential liquidity / valuation impact"],
+    },
+    "amfi_data": {
+        "theme": "Mutual Funds", "regulatory_weight": 40,
+        "chain": ["AMFI industry data", "Mutual fund industry AUM/SIP trend",
+                  "Category-wide flow signal", "Potential category-level re-rating"],
+    },
+    "global_cues": {
+        "theme": "Global Markets", "regulatory_weight": 50,
+        "chain": ["Global market cue (Fed / US markets)", "FII sentiment", "Large Cap funds",
+                  "IT sector funds (export-linked)", "Potential short-term volatility"],
+    },
+    "credit_rating": {
+        "theme": "Corporate Earnings", "regulatory_weight": 55,
+        "chain": ["Credit rating action", "Corporate bond risk", "Credit Risk funds",
+                  "Corporate Bond funds", "Potential NAV impact for holding funds"],
+    },
+    "liquidity_rbi": {
+        "theme": "RBI", "regulatory_weight": 75,
+        "chain": ["RBI liquidity action", "Banking-system liquidity", "Liquid funds",
+                  "Overnight funds", "Money Market funds", "Potential short-duration yield impact"],
+    },
+    "amc_mention": {
+        "theme": "Mutual Funds", "regulatory_weight": 20,
+        "chain": ["AMC named in coverage", "Direct AMC relevance",
+                  "Worth reviewing funds under this AMC"],
+    },
+}
+
 POSITIVE_WORDS = ["surge", "rally", "gain", "growth", "rise", "upgrade", "record high", "outperform",
                    "recovery", "beat estimates", "robust", "strong quarter"]
 NEGATIVE_WORDS = ["fall", "decline", "crash", "plunge", "downgrade", "weak", "concern", "slowdown",
