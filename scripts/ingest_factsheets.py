@@ -24,6 +24,7 @@ import pypdf
 from ingestion.amfi_parser import parse_file
 from ingestion.factsheet.adapters.sbi import SBIAdapter
 from ingestion.factsheet.normalize import validate, completeness
+from scripts.archive_factsheets import archive_snapshot
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36"
 BASE = "https://www.sbimf.com/docs/default-source/scheme-factsheets/"
@@ -157,6 +158,19 @@ def main():
     print(f"-- ingested {len(rows)} scheme rows from {sum(1 for a in audit if a['status']=='ok')} factsheets", file=sys.stderr)
     for a in audit:
         print(f"   {a['fund']:28} {a['status']:7} codes={a.get('codes',0)} src={a.get('source_date','-')}", file=sys.stderr)
+
+    # Phase 6/7 (institutional data-depth sprint): archive this run's parsed metadata as a
+    # versioned snapshot, so a future re-parse can diff against it and produce real
+    # fund_history_events. Optional and additive — never blocks or fails the local JSON write
+    # above, which is this script's actual job; only runs when Supabase credentials happen to be
+    # present (CI), same graceful-skip pattern as scripts/ingest_news.py.
+    if os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_SERVICE_ROLE_KEY"):
+        try:
+            archive_snapshot()
+        except Exception as e:
+            print(f"  ! factsheet archive snapshot failed (non-fatal): {e}", file=sys.stderr)
+    else:
+        print("  (SUPABASE_SERVICE_ROLE_KEY not set — skipping factsheet archive snapshot)", file=sys.stderr)
 
 
 if __name__ == "__main__":

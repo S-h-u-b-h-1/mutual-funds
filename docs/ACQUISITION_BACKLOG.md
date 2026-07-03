@@ -4,6 +4,7 @@ Ranked by user impact. Auto-generated from the coverage audit.
 
 | Priority | Item | Missing | Impact | Expected source | Reason |
 |---|---|---:|---|---|---|
+| P0 | Missing schemes (NFOs since snapshot) | 4 | critical | AMFI:NAVAll | snapshot lag |
 | P1 | Expense ratio | 14,208.0 | high | AMC factsheet PDF | parser not extracting TER / non-SBI factsheets blocked (pdfplumber on Py3.13) |
 | P1 | Fund manager | 14,196 | high | AMC factsheet PDF | non-SBI factsheets unparsed; SBI manager field sparse |
 | P1 | Holdings | 14,182 | high | AMC factsheet PDF / monthly portfolio | monthly portfolio disclosures not yet ingested |

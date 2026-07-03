@@ -7,15 +7,15 @@
 |---|---:|
 | AMFI active schemes (live) | 14,208 |
 | MF Pulse schemes | 14,208 |
-| Coverage % | 100.0% |
-| Missing schemes | 0 |
-| **Overall Trust Score** | **86.3/100** |
-| **Production ready** | **100.0%** |
+| Coverage % | 99.97% |
+| Missing schemes | 4 |
+| **Overall Trust Score** | **81.2/100** |
+| **Production ready** | **77.78%** |
 
 ## KPIs
 | KPI | Value |
 |---|---:|
-| scheme coverage pct | 100.0% |
+| scheme coverage pct | 99.97% |
 | nav coverage pct | 98.29% |
 | historical coverage pct | 89.83% |
 | returns coverage pct | 99.57% |
@@ -38,15 +38,15 @@
 ## Trust components
 | Component | Score |
 |---|---:|
-| coverage score | 100.0 |
+| coverage score | 99.97 |
 | routable score | 100.0 |
-| freshness score | 100 |
+| freshness score | 85 |
 | metadata score | 0.3 |
 | historical score | 89.83 |
 | lineage score | 75.0 |
-| validation score | 100.0 |
+| validation score | 77.78 |
 | parser health | 100.0 |
-| acquisition health | 64 |
+| acquisition health | 52 |
 | data completeness | 96.0 |
 
 Missing-by-AMC / category / type / launch-year breakdowns + per-missing-scheme records:

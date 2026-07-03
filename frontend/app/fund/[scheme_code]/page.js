@@ -19,6 +19,7 @@ import { getMetadata, managerSlug } from "../../lib/metadata";
 import { portfolioRisk } from "../../lib/portfolio";
 import { fundCompleteness, researchReadiness, completenessTone } from "../../lib/completeness";
 import { getArticlesForEntity, relativeTime } from "../../lib/news";
+import { betaAlphaFor } from "../../lib/riskMetrics";
 
 export const revalidate = 3600;
 
@@ -118,6 +119,10 @@ export default async function FundPage({ params }) {
   const RF = 6.5; // disclosed risk-free (≈ India 1Y T-bill)
   const sharpe = f.r1y != null && f.vol90 ? +((f.r1y - RF) / f.vol90).toFixed(2) : null;
   const sortino = f.r1y != null && f.dvol90 ? +((f.r1y - RF) / f.dvol90).toFixed(2) : null;
+  // Real Beta/Alpha/Info Ratio/Treynor — only for the ~227 funds benchmarked exactly to Nifty 50
+  // TRI or Sensex TRI, only with enough real overlapping history (see lib/riskMetrics.js for the
+  // disclosed price-index-vs-TRI caveat this carries).
+  const riskStats = betaAlphaFor(history?.points, f.benchmark, { riskFreeAnnualPct: RF });
 
   return (
     <>
@@ -270,6 +275,15 @@ export default async function FundPage({ params }) {
                 <Metric label="Consistency" value={`${f.consistency}/100`} tone={f.consistency >= 55 ? "pos" : undefined} />
                 {sharpe != null && <Metric label={<span className="inline-flex items-center gap-1">Sharpe ratio (1Y, rf {RF}%) <MetricTooltip>Return earned per unit of total risk taken, above a risk-free rate of {RF}% (~India 1Y T-bill). Above 1 is generally considered good; higher is better.</MetricTooltip></span>} value={sharpe} tone={sharpe >= 1 ? "pos" : sharpe < 0 ? "neg" : undefined} />}
                 {sortino != null && <Metric label={<span className="inline-flex items-center gap-1">Sortino ratio (1Y, rf {RF}%) <MetricTooltip>Like Sharpe, but only penalises downside volatility (bad swings), not all volatility. A fund with steady gains and occasional dips can score higher here than on Sharpe.</MetricTooltip></span>} value={sortino} tone={sortino >= 1.5 ? "pos" : sortino < 0 ? "neg" : undefined} />}
+                {riskStats && (
+                  <div className="border-t border-line pt-2.5">
+                    <Metric label={<span className="inline-flex items-center gap-1">Beta <MetricTooltip>How much this fund's daily moves have amplified or dampened the index's moves over {riskStats.overlapDays} real overlapping trading days. 1.0 = moves in lockstep; &gt;1 = amplified; &lt;1 = dampened. Computed against {riskStats.indexUsed}, not the fund's official TRI benchmark — no free real TRI series exists, so this will differ slightly from a factsheet figure.</MetricTooltip></span>} value={riskStats.beta} />
+                    <Metric label={<span className="inline-flex items-center gap-1">Alpha (annualised) <MetricTooltip>Return earned above what Beta alone would predict from the index's moves. Uses the same price-index proxy as Beta above — tends to read a little high versus a true TRI-based alpha, since the fund's real dividend reinvestment isn't offset by an equivalent in this proxy series.</MetricTooltip></span>} value={`${riskStats.alpha >= 0 ? "+" : ""}${riskStats.alpha}%`} tone={riskStats.alpha >= 0 ? "pos" : "neg"} />
+                    {riskStats.informationRatio != null && <Metric label={<span className="inline-flex items-center gap-1">Information ratio <MetricTooltip>Excess return over the index per unit of tracking error — how consistently this fund beats (or trails) the index, not just by how much on average.</MetricTooltip></span>} value={riskStats.informationRatio} />}
+                    {riskStats.treynor != null && <Metric label={<span className="inline-flex items-center gap-1">Treynor ratio <MetricTooltip>Like Sharpe, but risk is measured as Beta (market risk) instead of total volatility — return earned per unit of market exposure taken.</MetricTooltip></span>} value={riskStats.treynor} />}
+                    <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-faint">vs {riskStats.indexUsed} · price index proxy, not the official TRI benchmark · {riskStats.overlapDays}d real overlap.</p>
+                  </div>
+                )}
                 <p className="border-t border-line pt-2.5 text-[12px] leading-relaxed text-ink-faint">{riskInterpretation(f)}</p>
                 {port && (
                   <div className="border-t border-line pt-2.5">

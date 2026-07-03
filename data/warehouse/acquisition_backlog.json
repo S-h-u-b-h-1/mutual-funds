@@ -2,6 +2,14 @@
  "asOf": "2026-06-30",
  "items": [
   {
+   "item": "Missing schemes (NFOs since snapshot)",
+   "missing_count": 4,
+   "impact": "critical",
+   "expected_source": "AMFI:NAVAll",
+   "reason": "snapshot lag",
+   "priority": "P0"
+  },
+  {
    "item": "Expense ratio",
    "missing_count": 14208.0,
    "impact": "high",
