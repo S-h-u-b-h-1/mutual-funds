@@ -146,15 +146,22 @@ export default async function Page() {
       <Tracker event="page_view" payload={{ page: "home" }} />
 
       <main className="container-px py-8 sm:py-10">
-        {/* Header — what MF Pulse is, in one sentence, above the fold */}
+        {/* Header — what MF Pulse is, in one sentence, above the fold. Every claim in the
+            subtitle/chips is something this platform actually does today (real NAV research,
+            explainable scores, category/AMC tracking, rule-based news impact) — never aspirational. */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-2xl">
             <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Today&rsquo;s Market Pulse · {latest}</div>
-            <h1 className="mt-2 text-[26px] sm:text-[34px] font-bold tracking-tightest text-ink">India Mutual-Fund Performance Intelligence</h1>
+            <h1 className="mt-2 text-[26px] sm:text-[34px] font-bold tracking-tightest text-ink">India&rsquo;s Explainable Mutual Fund Intelligence Platform</h1>
             <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink-muted">
-              MF Pulse helps Indian investors make better mutual fund decisions through verified
-              data, institutional-grade research, and explainable market intelligence.
+              Not another NAV lookup site. MF Pulse traces every score, rank and market-news link back
+              to its real source and rule — so you understand <em className="text-ink not-italic font-medium">why</em>, not just what.
             </p>
+            <div className="mt-3 flex flex-wrap gap-1.5 text-[11.5px] text-ink-muted">
+              {["Research every fund", "Understand market moves", "Track category rotations", "Monitor AMC quality", "Never miss a market event"].map((c) => (
+                <span key={c} className="rounded-full border border-line px-2.5 py-1">{c}</span>
+              ))}
+            </div>
           </div>
           <div className="flex gap-2">
             <PremiumButton href="/categories" variant="ghost">Categories</PremiumButton>
@@ -264,7 +271,7 @@ export default async function Page() {
 
         {/* Market intelligence — REAL 30-day equity index, no sample */}
         <section className="mt-9">
-          <SectionHeader eyebrow="30-day equity index · real AMFI NAV history" title="Market intelligence" action={<Badge tone="pos" dot>live data</Badge>} />
+          <SectionHeader eyebrow="30-day equity index · real AMFI NAV history" title="What changed in the market this month?" action={<Badge tone="pos" dot>live data</Badge>} />
           <StatStrip
             items={[
               { label: "30d momentum", value: `${intel.avg >= 0 ? "+" : ""}${intel.avg.toFixed(2)}`, tone: intel.avg >= 0 ? "pos" : "neg", sub: "avg index Δ" },
@@ -311,7 +318,7 @@ export default async function Page() {
 
         {/* AMC quality leaders — REAL */}
         <section className="mt-9">
-          <SectionHeader eyebrow="% of funds beating category median · 1M" title="AMC quality leaders" action={<a className="hover:text-ink" href="/performance">Full ranking →</a>} />
+          <SectionHeader eyebrow="% of funds beating category median · 1M" title="Which AMCs deserve attention?" action={<a className="hover:text-ink" href="/performance">Full ranking →</a>} />
           <DataTable columns={amcCols} rows={performance.amcs.slice(0, 6).map((r, i) => ({ ...r, _key: r.amc, _rank: i + 1 }))} footnote="Quality score blends outperformance, breadth, and average return. Real AMFI NAV, last month." />
         </section>
 

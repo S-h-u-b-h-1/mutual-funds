@@ -7,6 +7,7 @@ import SectionHeader from "../components/ui/SectionHeader";
 import StatStrip from "../components/ui/StatStrip";
 import TrustBar from "../components/ui/TrustBar";
 import SignalCard from "../components/ui/SignalCard";
+import NextActions from "../components/NextActions";
 
 export const metadata = { title: "Market Brief" };
 export const revalidate = 600;
@@ -24,7 +25,7 @@ function FlowList({ items, tone }) {
         <li key={r.name} className="flex items-center justify-between gap-3 py-2.5 text-[13px]">
           <span className="flex items-center gap-2.5 min-w-0">
             <span className="w-4 text-right text-[11px] text-ink-faint tnum">{i + 1}</span>
-            <span className="truncate text-ink">{r.name}</span>
+            <a className="truncate text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(r.name + " Mutual Fund")}`}>{r.name}</a>
           </span>
           <span className={`tnum font-semibold ${tone === "pos" ? "text-pos" : "text-neg"}`}>{r.v >= 0 ? "+" : "−"}₹{fmt(Math.abs(Math.round(r.v)))} Cr</span>
         </li>
@@ -138,6 +139,16 @@ export default async function Brief() {
             </p>
           </GlassPanel>
         </section>
+
+        <div className="max-w-3xl">
+          <NextActions items={[
+            { label: "Today's market news & impact", href: "/news" },
+            brief.topInflows[0] && { label: `View ${brief.topInflows[0].name}`, href: `/amc/${encodeURIComponent(brief.topInflows[0].name + " Mutual Fund")}` },
+            { label: "All flow signals", href: "/signals" },
+            { label: "Compare AMCs", href: "/compare" },
+            { label: "Category leaders", href: "/categories" },
+          ]} />
+        </div>
       </main>
       <Footer note={<span>Not investment advice · auto-generated from AMFI / SEBI data · {generated}.</span>} />
     </>

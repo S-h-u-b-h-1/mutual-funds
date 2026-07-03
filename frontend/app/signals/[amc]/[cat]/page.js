@@ -15,6 +15,7 @@ import { amcIntel, amcSlugify, gradeTone as amcGradeTone } from "../../../lib/am
 // tone, not amcIntel's AMC-scale (6-band, incl. B+). Only the AMC score badge uses amcGradeTone.
 import { gradeTone } from "../../../lib/fundHealth";
 import { signalSlug } from "../../../lib/signalSlug";
+import NextActions from "../../../components/NextActions";
 
 export const revalidate = 600;
 
@@ -158,6 +159,13 @@ export default async function AmcIntel({ params }) {
           Source: AMFI daily NAV (returns/risk) + MF Pulse computed Health Score · latest NAV {asOf} · flow data is illustrative sample.
           Verify on the <a className="hover:text-ink" href="/data-quality">data-quality report</a>.
         </p>
+
+        <NextActions items={[
+          { label: `View ${it.amcName} AMC`, href: `/amc/${encodeURIComponent(it.amcName + " Mutual Fund")}` },
+          it.categories[0] && { label: `View ${it.categories[0].category} category`, href: `/categories/${encodeURIComponent(it.categories[0].category)}` },
+          { label: "Compare AMCs", href: `/compare?amcs=${encodeURIComponent(it.amcName + " Mutual Fund")}` },
+          { label: "All flow signals", href: "/signals" },
+        ]} />
       </main>
       <Footer note={<span>AMC scoring from verified AMFI-NAV fund performance · flow figures sample · not investment advice.</span>} />
     </>

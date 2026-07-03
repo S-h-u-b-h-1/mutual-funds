@@ -63,6 +63,34 @@ export async function getTopHeadlines({ limit = 5 } = {}) {
   }
 }
 
+// Entity Graph (Phase 2) — "recent news about this AMC/category/sector", reusable across the
+// AMC page, category page, and (later) the fund page's news timeline. Two real round-trips
+// (resolve entity -> its links), not a fabricated join — an unmatched entity honestly returns [].
+export async function getArticlesForEntity({ entityType, entityName, limit = 3 } = {}) {
+  if (!entityType || !entityName) return [];
+  try {
+    const entities = await sb(`news_entities?entity_type=eq.${entityType}&name=eq.${encodeURIComponent(entityName)}&select=id`);
+    if (!entities.length) return [];
+    const rows = await sb(
+      `news_market_links?entity_id=eq.${entities[0].id}&select=relation,rule_id,news_articles(id,title,url,published_at,category,news_sources(name,credibility))&order=created_at.desc&limit=${limit}`
+    );
+    return rows
+      .filter((r) => r.news_articles)
+      .map((r) => ({
+        id: r.news_articles.id,
+        title: r.news_articles.title,
+        url: r.news_articles.url,
+        publishedAt: r.news_articles.published_at,
+        category: r.news_articles.category,
+        source: r.news_articles.news_sources ? { name: r.news_articles.news_sources.name, credibility: r.news_articles.news_sources.credibility } : null,
+        relation: r.relation,
+        ruleId: r.rule_id,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 export async function getIngestionRuns({ limit = 20 } = {}) {
   try {
     return await sb(`news_ingestion_runs?select=*,news_sources(name)&order=finished_at.desc&limit=${limit}`, { revalidate: 60 });

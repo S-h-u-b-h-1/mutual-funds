@@ -11,13 +11,14 @@ import AdvisorSoftCTA from "../../components/AdvisorSoftCTA";
 import WatchButton from "../../components/WatchButton";
 import NextActions from "../../components/NextActions";
 import MetricTooltip from "../../components/ui/MetricTooltip";
-import { getFund, cohortOf, asOf, benchmarkSlug } from "../../lib/funds";
+import { getFund, cohortOf, asOf, benchmarkSlug, allFunds } from "../../lib/funds";
 import { getNavHistory } from "../../lib/mfapi";
 import { fundSignals, researchSummary, visibleReturns, riskInterpretation, benchmarkRows } from "../../lib/fundAnalysis";
 import { fundHealth, gradeTone, LABELS } from "../../lib/fundHealth";
 import { getMetadata, managerSlug } from "../../lib/metadata";
 import { portfolioRisk } from "../../lib/portfolio";
 import { fundCompleteness, researchReadiness, completenessTone } from "../../lib/completeness";
+import { getArticlesForEntity, relativeTime } from "../../lib/news";
 
 export const revalidate = 3600;
 
@@ -36,6 +37,19 @@ function listingNotice(f) {
   return null;
 }
 const sgn = (v, dp = 2) => `${v >= 0 ? "+" : ""}${v.toFixed(dp)}%`;
+
+// AMC Rank (Phase 3 — Entity Graph) — how this fund ranks among its own AMC's other funds by
+// Health Score, not just its category peers. Live-computed (no precomputed field exists for
+// this), same discipline as the category page's own live ranking: real funds only (active,
+// priced), never a fabricated position when there's nothing to rank against.
+function amcRank(f) {
+  const peers = allFunds().filter((x) => x.amc === f.amc && x.active !== false && x.nav != null);
+  const scored = peers.map((x) => ({ code: x.code, h: fundHealth(x)?.overall ?? null })).filter((x) => x.h != null);
+  if (scored.length < 2) return null;
+  scored.sort((a, b) => b.h - a.h);
+  const idx = scored.findIndex((x) => x.code === f.code);
+  return idx === -1 ? null : { rank: idx + 1, total: scored.length };
+}
 
 // Plain-language explanations for the Health Score's components (Phase 6 — never assume
 // financial knowledge). Keyed to fundHealth.js's LABELS.
@@ -89,6 +103,17 @@ export default async function FundPage({ params }) {
   const histDays = history?.points?.length || 0;
   const completeness = fundCompleteness(f, meta);
   const readiness = researchReadiness(f, meta);
+  const aRank = amcRank(f);
+  const relatedNews = await Promise.all([
+    getArticlesForEntity({ entityType: "category", entityName: f.category, limit: 3 }),
+    getArticlesForEntity({ entityType: "amc", entityName: f.amc, limit: 3 }),
+  ]).then(([catNews, amcNews]) => {
+    const seen = new Set();
+    return [...catNews, ...amcNews]
+      .filter((n) => (seen.has(n.id) ? false : (seen.add(n.id), true)))
+      .sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0))
+      .slice(0, 3);
+  });
   // Institutional risk ratios — computed only when 1Y return + risk series exist (no estimation).
   const RF = 6.5; // disclosed risk-free (≈ India 1Y T-bill)
   const sharpe = f.r1y != null && f.vol90 ? +((f.r1y - RF) / f.vol90).toFixed(2) : null;
@@ -145,6 +170,13 @@ export default async function FundPage({ params }) {
               <span className="text-ink-faint">Attention</span>
               <MetricTooltip>Flags a real, recent rank-movement pattern (entering/leaving the top decile, or a 15+ place category-rank jump on 1-month vs 3-month NAV) — not every fund gets one; it's not computed for funds with no notable movement, so its absence is not a negative signal. {f.attentionReason}</MetricTooltip>
               <span className={`font-semibold tnum ${f.attentionTier === "High" ? "text-pos" : "text-warn"}`}>{f.attentionScore}/100 · {f.attentionTier}</span>
+            </span>
+          )}
+          {aRank && (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="text-ink-faint">AMC rank</span>
+              <MetricTooltip>This fund's position among all of {f.amc}'s own funds, ranked by Health Score — a different cut than category rank (which compares against peers at other AMCs too). Computed live from the same Health Score shown above.</MetricTooltip>
+              <a href={`/amc/${encodeURIComponent(f.amc + " Mutual Fund")}`} className="font-semibold tnum text-ink hover:text-accent-soft">#{aRank.rank} of {aRank.total}</a>
             </span>
           )}
         </div>
@@ -430,11 +462,27 @@ export default async function FundPage({ params }) {
           </div>
         </details>
 
+        {relatedNews.length > 0 && (
+          <section className="mt-7">
+            <SectionHeader eyebrow="rule-based market-relevance links" title="Recent news relevant to this fund" action={<a className="hover:text-ink" href="/news">See all news →</a>} />
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+              {relatedNews.map((n) => (
+                <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="glass block p-3.5 text-[12.5px] transition-colors hover:bg-white/[0.04]">
+                  <div className="text-ink-faint">{n.source?.name || "Unknown source"} · {relativeTime(n.publishedAt)}</div>
+                  <div className="mt-1 font-medium text-ink">{n.title}</div>
+                </a>
+              ))}
+            </div>
+            <p className="mt-2 text-[11px] text-ink-faint">Matched via this fund&rsquo;s category ({f.category}) or AMC ({f.amc}) — same rule-based engine as /news, not a keyword search on the article itself.</p>
+          </section>
+        )}
+
         <NextActions items={[
           { label: `Similar funds in ${f.category}`, href: `/categories/${encodeURIComponent(f.category)}` },
           { label: `View ${f.amc}`, href: `/amc/${encodeURIComponent(f.amc + " Mutual Fund")}` },
           f.benchmark && { label: `View benchmark: ${f.benchmark}`, href: `/benchmark/${benchmarkSlug(f.benchmark)}` },
-          { label: "Compare AMCs", href: "/compare" },
+          { label: "Compare AMCs", href: `/compare?amcs=${encodeURIComponent(f.amc + " Mutual Fund")}` },
+          { label: "See latest market news", href: "/news" },
           { label: "Today's market brief", href: "/brief" },
         ]} />
         <AdvisorSoftCTA context={`fund:${f.code}`} />

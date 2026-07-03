@@ -7,6 +7,7 @@ import DataTable from "../../components/ui/DataTable";
 import StatStrip from "../../components/ui/StatStrip";
 import Badge from "../../components/ui/Badge";
 import HealthCell from "../../components/ui/HealthCell";
+import NextActions from "../../components/NextActions";
 import { getBenchmark, getFund, asOf } from "../../lib/funds";
 import { canonicalKey, canonicalName } from "../../lib/canonical";
 import { fundHealth, gradeTone } from "../../lib/fundHealth";
@@ -22,7 +23,16 @@ export async function generateMetadata({ params }) {
 const pct = (v) => (v == null ? <span className="text-ink-faint">—</span> : <span className={v >= 0 ? "text-pos tnum" : "text-neg tnum"}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>);
 
 const cols = [
-  { key: "name", label: "Fund", render: (r) => <a className="text-ink hover:text-accent-soft" href={`/fund/${r.code}`}>{short(r.name)}<span className="block text-[11px] text-ink-faint">{r.amc} · {r.category}</span></a> },
+  { key: "name", label: "Fund", render: (r) => (
+    <>
+      <a className="text-ink hover:text-accent-soft" href={`/fund/${r.code}`}>{short(r.name)}</a>
+      <span className="block text-[11px] text-ink-faint">
+        <a className="hover:text-ink-muted" href={`/amc/${encodeURIComponent(r.amc + " Mutual Fund")}`}>{r.amc}</a>
+        {" · "}
+        <a className="hover:text-ink-muted" href={`/categories/${encodeURIComponent(r.category)}`}>{r.category}</a>
+      </span>
+    </>
+  ) },
   { key: "health", label: "Health", align: "right", render: (r) => <HealthCell score={r._h} grade={r._g} tone={r._h != null ? gradeTone(r._g) : null} /> },
   { key: "r1m", label: "1M", align: "right", render: (r) => pct(r.r1m) },
   { key: "r1y", label: "1Y", align: "right", render: (r) => pct(r.r1y) },
@@ -76,6 +86,13 @@ export default function BenchmarkPage({ params }) {
           <SectionHeader eyebrow="real AMFI NAV" title="Funds tracking this benchmark" action={<Badge tone="pos" dot>real NAV</Badge>} />
           <DataTable columns={cols} rows={rows} footnote={`One row per canonical fund (Direct/Regular/IDCW variants collapsed). As of ${asOf}.`} />
         </section>
+
+        <NextActions items={[
+          rows[0] && { label: `View ${rows[0].category} category`, href: `/categories/${encodeURIComponent(rows[0].category)}` },
+          { label: "Compare AMCs", href: "/compare" },
+          { label: "Full fund screener", href: "/funds" },
+          { label: "Today's market brief", href: "/brief" },
+        ]} />
       </main>
       <Footer note={<span>Benchmark mapping from SEBI category standards / fund-named index · performance from AMFI NAV · not investment advice.</span>} />
     </>

@@ -73,7 +73,7 @@ export default function Watchlist({ amcDeltas = {} }) {
       <div className="glass divide-y divide-line px-5">
         {items.map((i) => (
           <div key={i.code} className="flex items-center gap-3 py-3 text-[13px]">
-            <span className="flex-1 truncate text-ink">{i.name}</span>
+            <a className="flex-1 truncate text-ink hover:text-accent-soft" href={`/fund/${i.code}`}>{i.name}</a>
             <span className="tnum font-bold text-pos">
               {navs[i.code] ? `₹${Number(navs[i.code].nav_value).toFixed(2)}` : "—"}
             </span>

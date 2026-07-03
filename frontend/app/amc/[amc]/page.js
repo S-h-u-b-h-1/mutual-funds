@@ -11,6 +11,8 @@ import SignalCard from "../../components/ui/SignalCard";
 import PremiumButton from "../../components/ui/PremiumButton";
 import NextActions from "../../components/NextActions";
 import { slugify } from "../../lib/signalSlug";
+import { getFund, asOf } from "../../lib/funds";
+import { getArticlesForEntity, relativeTime } from "../../lib/news";
 import trendData from "../../data/amc_trend.json";
 
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(n);
@@ -24,10 +26,12 @@ export default async function AmcPage({ params }) {
   const amc = decodeURIComponent(params.amc);
   const enc = encodeURIComponent(amc);
 
-  const [summary, schemes, signals] = await Promise.all([
+  const shortName = amc.replace(" Mutual Fund", "");
+  const [summary, schemes, signals, news] = await Promise.all([
     sb(`mv_amc_summary?amc_name=eq.${enc}&select=asset_class,schemes&order=schemes.desc`),
     sb(`dim_scheme?amc_name=eq.${enc}&asset_class=eq.Equity&select=scheme_code,scheme_name,asset_class,fact_nav_daily(nav_value,nav_date)&limit=40`),
     sb(`v_signals?amc_name=eq.${enc}&select=*`),
+    getArticlesForEntity({ entityType: "amc", entityName: shortName, limit: 3 }),
   ]);
 
   const total = summary.reduce((s, r) => s + Number(r.schemes), 0);
@@ -69,7 +73,14 @@ export default async function AmcPage({ params }) {
         {trend && (
           <section className="mt-9">
             <SectionHeader eyebrow="real AMFI history" title="30-day equity index · normalised to 100" />
-            <GlassPanel className="p-5 sm:p-6"><Sparkline points={trend} /></GlassPanel>
+            <GlassPanel className="p-5 sm:p-6">
+              <Sparkline points={trend} />
+              <p className="mt-3 border-t border-line pt-3 text-[11.5px] leading-relaxed text-ink-faint">
+                An equal-weighted average of this AMC&rsquo;s equity fund NAVs, indexed to start at 100 30 days
+                ago — lets you compare the shape and magnitude of this AMC&rsquo;s recent performance regardless
+                of any single fund&rsquo;s absolute NAV level.
+              </p>
+            </GlassPanel>
           </section>
         )}
 
@@ -94,6 +105,25 @@ export default async function AmcPage({ params }) {
                 <SignalCard key={i} amc={amc.replace(" Mutual Fund", "")} assetClass={s.asset_class} signal={s.signal} z={Number(s.z_score).toFixed(1)} value={`₹${fmt(s.net_flow_cr)} Cr`} />
               ))}
             </div>
+            <p className="mt-2.5 text-[11px] leading-relaxed text-ink-faint">
+              A signal fires when this AMC&rsquo;s net flow in an asset class is an unusual outlier against its
+              own trailing history (z-score, a measure of how many standard deviations away from normal) —
+              not a prediction, a flag that something moved more than usual.
+            </p>
+          </section>
+        )}
+
+        {news.length > 0 && (
+          <section className="mt-9">
+            <SectionHeader eyebrow="rule-based market-relevance links" title="Recent news mentioning this AMC" action={<a className="hover:text-ink" href="/news">See all news →</a>} />
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+              {news.map((n) => (
+                <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="glass block p-3.5 text-[12.5px] transition-colors hover:bg-white/[0.04]">
+                  <div className="text-ink-faint">{n.source?.name || "Unknown source"} · {relativeTime(n.publishedAt)}</div>
+                  <div className="mt-1 font-medium text-ink">{n.title}</div>
+                </a>
+              ))}
+            </div>
           </section>
         )}
 
@@ -105,6 +135,7 @@ export default async function AmcPage({ params }) {
                 <tr className="text-[11px] uppercase tracking-wider text-ink-faint">
                   <th className="w-10 px-4 py-3" />
                   <th className="px-2 py-3 text-left font-semibold">Scheme</th>
+                  <th className="px-2 py-3 text-left font-semibold">Category</th>
                   <th className="px-2 py-3 text-right font-semibold">NAV (₹)</th>
                   <th className="px-4 py-3 text-right font-semibold">As of</th>
                 </tr>
@@ -112,10 +143,16 @@ export default async function AmcPage({ params }) {
               <tbody>
                 {schemes.map((s) => {
                   const nav = (s.fact_nav_daily && s.fact_nav_daily[0]) || {};
+                  const category = getFund(String(s.scheme_code))?.category;
                   return (
                     <tr key={s.scheme_code} className="border-t border-line transition-colors hover:bg-white/[0.02]">
                       <td className="px-4 py-3 text-center"><WatchButton code={s.scheme_code} name={s.scheme_name} amc={amc} /></td>
-                      <td className="px-2 py-3 text-ink">{s.scheme_name}</td>
+                      <td className="px-2 py-3">
+                        <a className="text-ink hover:text-accent-soft" href={`/fund/${s.scheme_code}`}>{s.scheme_name}</a>
+                      </td>
+                      <td className="px-2 py-3 text-ink-muted">
+                        {category ? <a className="hover:text-ink" href={`/categories/${encodeURIComponent(category)}`}>{category}</a> : "—"}
+                      </td>
                       <td className="px-2 py-3 text-right tnum">{nav.nav_value ? Number(nav.nav_value).toFixed(2) : "—"}</td>
                       <td className="px-4 py-3 text-right tnum text-ink-muted">{nav.nav_date || "—"}</td>
                     </tr>
@@ -128,7 +165,7 @@ export default async function AmcPage({ params }) {
 
         <NextActions items={[
           summary[0] && { label: `${amc.replace(" Mutual Fund", "")} scored — ${summary[0].asset_class} intelligence`, href: `/signals/${slugify(amc)}/${summary[0].asset_class.toLowerCase()}` },
-          { label: "Compare AMC", href: "/compare" },
+          { label: "Compare AMC", href: `/compare?amcs=${enc}` },
           { label: "See all AMCs", href: "/amc" },
           { label: "Category leaders", href: "/categories" },
         ]} />
@@ -144,7 +181,7 @@ export default async function AmcPage({ params }) {
         </section>
       </main>
 
-      <Footer note={<span>Daily NAV from AMFI (latest available) · drill-downs &amp; searches logged for product analytics.</span>} />
+      <Footer note={<span>Daily NAV from AMFI, as of {asOf} · drill-downs &amp; searches logged for product analytics.</span>} />
     </>
   );
 }

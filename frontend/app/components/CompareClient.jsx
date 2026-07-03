@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Sparkline from "./Sparkline";
 import { track } from "../lib/track";
 
@@ -14,7 +15,11 @@ export default function CompareClient({ amcs, meta = {} }) {
     return p[p.length - 1][1] - p[0][1];
   };
   const sorted = [...names].sort((a, b) => change(b) - change(a));
-  const [sel, setSel] = useState(sorted.slice(0, 3));
+  // Arriving from a fund/AMC page's "Compare" link (?amcs=X,Y) pre-populates the selection
+  // instead of always starting from the generic top-3 default — closes a real journey dead end.
+  const searchParams = useSearchParams();
+  const fromQuery = (searchParams.get("amcs") || "").split(",").map((s) => s.trim()).filter((n) => amcs[n]);
+  const [sel, setSel] = useState(fromQuery.length ? fromQuery.slice(0, 4) : sorted.slice(0, 3));
   const [workspaces, setWorkspaces] = useState([]);
   const [wsName, setWsName] = useState("");
 

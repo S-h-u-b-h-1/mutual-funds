@@ -3,10 +3,10 @@ import { track } from "../lib/track";
 
 const OPTIONS = [
   { key: "research", icon: "🔎", title: "Research a fund", desc: "Health score, risk, benchmark & peer comparison", href: "/funds" },
+  { key: "brief", icon: "☀️", title: "See today's market", desc: "Fund flows, signals & category commentary", href: "/brief" },
+  { key: "news", icon: "📰", title: "Read market news", desc: "What happened, and which funds it may affect", href: "/news" },
+  { key: "best", icon: "🏆", title: "Find the best funds", desc: "Real 30-day NAV performance leaders by category", href: "/performance" },
   { key: "compare", icon: "⇄", title: "Compare funds", desc: "Side-by-side AMC performance & scheme mix", href: "/compare" },
-  { key: "amcs", icon: "🏛", title: "Explore AMCs", desc: "Every fund house, ranked and scored", href: "/amc" },
-  { key: "track", icon: "📈", title: "Track market changes", desc: "What moved today and why it matters", href: "/signals" },
-  { key: "watchlist", icon: "★", title: "Build a watchlist", desc: "Save funds and follow their AMC's momentum", href: "/#watchlist" },
   { key: "advisor", icon: "💬", title: "Talk to an advisor", desc: "Get help interpreting a fund or portfolio", href: "/advisor" },
 ];
 
