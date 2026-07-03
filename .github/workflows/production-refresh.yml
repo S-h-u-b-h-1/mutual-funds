@@ -1,0 +1,107 @@
+name: Production Refresh (manual)
+
+# Emergency/on-demand full-pipeline refresh (2026-07-04): AMFI → Supabase → static bundles → live
+# deploy, in one run. Use this to force a fresh production state right now, without waiting for
+# the next scheduled cron. Every step is gated + reported individually — a missing secret stops
+# that step cleanly with a clear message, it never silently no-ops the whole run.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    name: Full refresh — ingest, rebuild, deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pypdf
+
+      - name: 1. Ingest AMFI NAV → Supabase (+ refresh materialized views)
+        id: nav
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY not set — cannot write NAV to Supabase. Add it under Settings → Secrets and variables → Actions."
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+          else
+            python -m scripts.cloud_pipeline
+            echo "ran=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 2. Ingest financial news → Supabase
+        id: news
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set — cannot write news to Supabase."
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+          else
+            python -m scripts.ingest_news
+            echo "ran=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 3. Rebuild static bundles (funds.json, performance.json, daily.json)
+        id: bundles
+        run: |
+          curl -sL "https://portal.amfiindia.com/spages/NAVAll.txt" -o data/NAVAll.txt
+          python -m scripts.build_performance
+          python -m scripts.build_daily
+          if git diff --quiet -- frontend/app/data/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No change in rebuilt bundles vs the committed copy — nothing to commit."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 4. Data-quality gate (must pass before anything is committed/deployed)
+        run: |
+          pip install -q pytest
+          python -m pytest tests/ -q
+
+      - name: 5. Commit refreshed bundles
+        if: steps.bundles.outputs.changed == 'true'
+        run: |
+          git config user.name "mfpulse-bot"
+          git config user.email "bot@mfpulse.local"
+          git add frontend/app/data/funds.json frontend/app/data/performance.json frontend/app/data/daily.json
+          git commit -m "chore(refresh): production data refresh $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: 6. Deploy to Vercel production
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::VERCEL_TOKEN not set — skipping direct deploy."
+            echo "If frontend/app/data/*.json changed above, it was committed to main but the site"
+            echo "will NOT reflect it until a deploy runs. Vercel's git-integration auto-deploy on"
+            echo "this repo is currently broken (Root Directory isn't set to 'frontend' — see"
+            echo "docs/PRODUCTION_FRESHNESS_INCIDENT.md), so a manual 'vercel --prod' from the"
+            echo "frontend/ directory, or fixing that setting, or adding VERCEL_TOKEN here, is"
+            echo "required for this to go live automatically."
+            exit 0
+          fi
+          cd frontend
+          npm ci
+          npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx vercel build --prod --token="$VERCEL_TOKEN"
+          DEPLOY_URL=$(npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          echo "Deployed: $DEPLOY_URL"
+          npx vercel alias set "$DEPLOY_URL" mf-pulse.vercel.app --token="$VERCEL_TOKEN"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Production Refresh Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- NAV → Supabase: ${{ steps.nav.outputs.ran || 'skipped (no secret)' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- News → Supabase: ${{ steps.news.outputs.ran || 'skipped (no secret)' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Bundles rebuilt, changed: ${{ steps.bundles.outputs.changed }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Deployed: check the 'Deploy to Vercel production' step above" >> "$GITHUB_STEP_SUMMARY"

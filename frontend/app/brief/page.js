@@ -35,19 +35,27 @@ function FlowList({ items, tone }) {
 }
 
 export default async function Brief() {
-  let headline = [], amcFlows = [], signals = [], byClass = [];
+  let headline = [], amcFlows = [], signals = [], byClass = [], lastRun = [];
   try {
-    [headline, amcFlows, signals, byClass] = await Promise.all([
+    [headline, amcFlows, signals, byClass, lastRun] = await Promise.all([
       sb("v_flow_headline?select=*", { revalidate: 600 }),
       sb("v_amc_flows?select=amc_name,asset_class,net_flow_cr", { revalidate: 600 }),
       sb("v_signals?select=*", { revalidate: 600 }),
       sb("mv_asset_class_summary?select=*", { revalidate: 600 }),
+      sb("fact_pipeline_runs?pipeline=eq.nav_daily&select=finished_at,status&order=finished_at.desc&limit=1", { revalidate: 600 }),
     ]);
   } catch {}
   const flow = headline[0] || {};
   const brief = buildBrief({ headline: flow, amcFlows, signals });
   const latest = byClass.map((r) => r.latest_nav_date).sort().at(-1);
   const generated = new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC";
+
+  // Freshness guard (production-freshness incident, 2026-07-04): a real, visible signal for
+  // whether this Brief reflects current data — never silently show old numbers as if current.
+  // Same 2/7-day thresholds as marketStatus.js / ingestion/freshness.py, applied here too.
+  const staleDays = latest ? Math.floor((Date.now() - new Date(`${latest}T00:00:00Z`).getTime()) / 86400000) : null;
+  const isStale = staleDays == null || staleDays > 2;
+  const lastRunAt = lastRun[0]?.finished_at ? new Date(lastRun[0].finished_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" }) + " IST" : "never recorded";
 
   const stats = [
     { label: "Equity net", value: inr(flow.equity_net_cr ?? 0), tone: "pos" },
@@ -66,6 +74,14 @@ export default async function Brief() {
           India Mutual-Fund Flow Brief
         </h1>
         <TrustBar asOf={latest} className="mt-3" sources={[{ label: "Generated", value: generated }, { label: "Method", value: "rule-based" }]} />
+
+        {isStale && (
+          <div className="mt-4 max-w-3xl rounded-xl border border-neg/40 bg-neg/10 px-4 py-3 text-[13px] text-neg">
+            <b>Brief is stale.</b> Latest available data: {latest || "no NAV date on record"}.
+            Pipeline last ran: {lastRunAt}. Numbers below are real but not current — treat this as
+            a snapshot of the last successful ingestion, not today&rsquo;s market.
+          </div>
+        )}
 
         {/* Sample-data disclosure */}
         <div className="mt-5 max-w-3xl rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-[12.5px] text-warn">

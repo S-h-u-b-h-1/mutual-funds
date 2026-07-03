@@ -23,8 +23,11 @@ jobs:
           ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
         run: |
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "::warning::SUPABASE_SERVICE_ROLE_KEY not set — skipping ingestion."
-            echo "Add it under Settings → Secrets → Actions to activate the daily pipeline."
-            exit 0
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY not set — ingestion cannot run."
+            echo "Add it under Settings → Secrets and variables → Actions to activate the daily pipeline."
+            # Fails loudly (not exit 0) on purpose: a no-op run reporting "success" is exactly how
+            # this went unnoticed for this long — a completely idle pipeline should show red, not
+            # a green checkmark that looks identical to a real, successful run.
+            exit 1
           fi
           python -m scripts.cloud_pipeline

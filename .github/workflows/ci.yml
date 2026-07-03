@@ -37,5 +37,8 @@ jobs:
         env:
           # The anon key is publishable (RLS-protected) — safe as a default.
           # Override via repo secrets of the same name if you prefer.
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://autijihzocnxduipeaop.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1dGlqaWh6b2NueGR1aXBlYW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4OTg4NzUsImV4cCI6MjA5NzQ3NDg3NX0.dKI5I_B04D92u40V_ytNYc-z1DZiD5_WKqyaFcgxffA' }}
+          # 2026-07-03: the previous fallback pointed at "autijihzocnxduipeaop" — the OLD FinPulse
+          # project, deleted when this project migrated to MF-Pulse ("fffxwcpptpyjuifknayj"). CI
+          # was silently building against a dead project this whole time; fixed to the real one.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://fffxwcpptpyjuifknayj.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmZnh3Y3BwdHB5anVpZmtuYXlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyODY4OTAsImV4cCI6MjA5Nzg2Mjg5MH0.u1_fN5z4T6N8pbbH62y97LnDexYNI3dm1qbNBg4VyvU' }}
