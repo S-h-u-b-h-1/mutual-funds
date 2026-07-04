@@ -30,6 +30,8 @@ import sys
 import urllib.request
 from datetime import datetime, timezone
 
+from ingestion import db as neon_db
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
@@ -98,8 +100,36 @@ def archive_snapshot():
             "parsed_sector_allocation": m.get("sector_allocation") or None,
         })
     _post("factsheet_archive", rows, on_conflict="scheme_code,content_checksum", prefer="resolution=ignore-duplicates,return=minimal")
+    neon_db.dual_write(lambda conn: neon_db.upsert(conn, "factsheet_archive", rows, ["scheme_code", "content_checksum"], on_conflict="nothing"))
     print(f"archived {len(rows)} snapshot rows (idempotent — no-op for unchanged schemes)")
     return len(rows)
+
+
+def _neon_detect_changes(conn, scheme_code: str):
+    """Neon-side mirror of detect_changes(), read independently from Neon's own
+    factsheet_archive rows — never reuses a Supabase-fetched archive id (see
+    ingestion/db.py's lookup_id() docstring for why the two databases can't share ids)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "select * from factsheet_archive where scheme_code = %(scheme_code)s order by fetched_at desc limit 2",
+            {"scheme_code": scheme_code},
+        )
+        cols = [d.name for d in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+    if len(rows) < 2:
+        return
+    new, old = rows[0], rows[1]
+    events = []
+    for field, event_type in CHANGE_FIELDS.items():
+        if old.get(field) != new.get(field):
+            events.append({
+                "scheme_code": scheme_code, "event_type": event_type,
+                "previous_value": str(old.get(field)) if old.get(field) is not None else None,
+                "new_value": str(new.get(field)) if new.get(field) is not None else None,
+                "previous_archive_id": old["id"], "new_archive_id": new["id"],
+            })
+    if events:
+        neon_db.upsert(conn, "fund_history_events", events)
 
 
 def detect_changes(scheme_code: str):
@@ -107,6 +137,7 @@ def detect_changes(scheme_code: str):
     Returns [] (not an error) when fewer than 2 snapshots exist — that's the expected, honest
     state for every scheme until ingest_factsheets.py runs a second time."""
     rows = _get(f"factsheet_archive?scheme_code=eq.{scheme_code}&select=*&order=fetched_at.desc&limit=2")
+    neon_db.dual_write(lambda conn: _neon_detect_changes(conn, scheme_code))
     if len(rows) < 2:
         return []
     new, old = rows[0], rows[1]

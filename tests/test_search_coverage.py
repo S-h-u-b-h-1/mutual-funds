@@ -6,11 +6,21 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 from ingestion.amfi_parser import parse_file
 
 ROOT = Path(__file__).resolve().parents[1]
+NAVALL_PATH = ROOT / "data/NAVAll.txt"
+
+# data/*.txt is gitignored (AMFI's raw source file — regenerated locally, never committed), so
+# this fixture doesn't exist in a fresh CI checkout. Skip module-wide rather than fail: this
+# suite is a real, valuable local-dev guard (see docstring below), not a CI-only or CI-required one.
+if not NAVALL_PATH.exists():
+    pytest.skip(f"{NAVALL_PATH} not present (gitignored, local-only) — skipping search coverage guards", allow_module_level=True)
+
 FUNDS = json.load(open(ROOT / "frontend/app/data/funds.json"))["funds"]
-SOURCE = {r.scheme_code for r in parse_file(str(ROOT / "data/NAVAll.txt"))}
+SOURCE = {r.scheme_code for r in parse_file(str(NAVALL_PATH))}
 RET_KEYS = ("r1d", "r1w", "r1m", "r3m", "r6m", "r1y", "r3y", "r5y")
 
 

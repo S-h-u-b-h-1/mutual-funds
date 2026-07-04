@@ -33,6 +33,7 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
 from ingestion.market_reaction import classify, strip_html
+from ingestion import db as neon_db
 
 URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
@@ -115,9 +116,45 @@ def ensure_entities(names):
     return out
 
 
+def _neon_mirror_source(conn, name, source_type, url, credibility, article_rows):
+    """Best-effort Neon mirror of one source's full write set. Resolves every FK id
+    independently against Neon (never reuses a Supabase-fetched id) since the two databases
+    run separate identity sequences — see ingestion/db.py's lookup_id() docstring."""
+    neon_db.upsert(conn, "news_sources",
+                   [{"name": name, "source_type": source_type, "url": url, "credibility": credibility}], ["name"])
+    source_id = neon_db.lookup_id(conn, "news_sources", {"name": name})
+
+    clean_rows = [{k: v for k, v in r.items() if not k.startswith("_")} | {"source_id": source_id} for r in article_rows]
+    neon_db.upsert(conn, "news_articles", clean_rows, ["url"], on_conflict="nothing")
+    by_url = {r["url"]: neon_db.lookup_id(conn, "news_articles", {"url": r["url"]}) for r in article_rows}
+
+    all_entities = {(e["entity_type"], e["name"]) for r in article_rows for e in r["_links"]}
+    if all_entities:
+        neon_db.upsert(conn, "news_entities", [{"entity_type": t, "name": n} for t, n in all_entities], ["entity_type", "name"])
+    entity_ids = {(t, n): neon_db.lookup_id(conn, "news_entities", {"entity_type": t, "name": n}) for t, n in all_entities}
+
+    link_rows, sentiment_rows = [], []
+    for r in article_rows:
+        aid = by_url.get(r["url"])
+        if not aid:
+            continue
+        for e in r["_links"]:
+            eid = entity_ids.get((e["entity_type"], e["name"]))
+            if eid:
+                link_rows.append({"article_id": aid, "entity_id": eid, "relation": e["relation"], "rule_id": e["rule_id"]})
+        if r["sentiment_label"] != "neutral" or r["_matched"]:
+            sentiment_rows.append({"article_id": aid, "label": r["sentiment_label"], "matched_keywords": r["_matched"]})
+    if link_rows:
+        neon_db.upsert(conn, "news_market_links", link_rows, ["article_id", "entity_id"], on_conflict="nothing")
+    if sentiment_rows:
+        neon_db.upsert(conn, "news_sentiment", sentiment_rows)
+
+    return source_id
+
+
 def run_source(name, source_type, url, credibility):
     started = datetime.now(timezone.utc).isoformat()
-    status, fetched, new, dup, err, source_id = "failed", 0, 0, 0, None, None
+    status, fetched, new, dup, err, source_id, neon_source_id = "failed", 0, 0, 0, None, None, None
     try:
         source_id = ensure_source(name, source_type, url, credibility)
         items = fetch_rss(url)
@@ -134,6 +171,8 @@ def run_source(name, source_type, url, credibility):
                 "market_relevance_score": cls["market_relevance_score"], "sentiment_label": cls["sentiment_label"],
                 "_links": cls["links"], "_matched": cls["matched_keywords"],
             })
+
+        neon_source_id = neon_db.dual_write(lambda conn: _neon_mirror_source(conn, name, source_type, url, credibility, article_rows))
 
         before_ids = {r["url"]: None for r in article_rows}
         clean_rows = [{k: v for k, v in r.items() if not k.startswith("_")} for r in article_rows]
@@ -177,6 +216,11 @@ def run_source(name, source_type, url, credibility):
             "articles_fetched": fetched, "articles_new": new, "articles_duplicate": dup, "error": err,
             "started_at": started, "finished_at": datetime.now(timezone.utc).isoformat(),
         }])
+        neon_db.dual_write(lambda conn: neon_db.upsert(conn, "news_ingestion_runs", [{
+            "source_id": neon_source_id, "status": status,
+            "articles_fetched": fetched, "articles_new": new, "articles_duplicate": dup, "error": err,
+            "started_at": started, "finished_at": datetime.now(timezone.utc).isoformat(),
+        }]))
     except Exception as e:
         print(f"  ! could not record run for {name}: {e}", file=sys.stderr)
 

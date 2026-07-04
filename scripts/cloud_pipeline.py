@@ -26,6 +26,7 @@ from datetime import date, datetime, timezone
 from ingestion.amfi_parser import parse_lines
 from ingestion.alerting import alert_for_run, send_alert
 from ingestion.freshness import build_health
+from ingestion import db as neon_db
 
 URL = os.environ["SUPABASE_URL"].rstrip("/")
 KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
@@ -52,7 +53,10 @@ def _post(table: str, rows: list[dict], on_conflict: str | None = None):
 
 
 def _count(table: str) -> int:
-    req = urllib.request.Request(f"{URL}/rest/v1/{table}?select=id&limit=1", headers={**_headers(), "Prefer": "count=exact"})
+    # select=* (not a named column) since not every table has an `id` column (e.g.
+    # fact_nav_daily's PK is scheme_code+nav_date) — PostgREST's exact count comes from the
+    # Content-Range header regardless of which columns are actually selected.
+    req = urllib.request.Request(f"{URL}/rest/v1/{table}?select=*&limit=1", headers={**_headers(), "Prefer": "count=exact"})
     with urllib.request.urlopen(req, timeout=30) as r:
         rng = r.headers.get("Content-Range", "*/0")
         return int(rng.split("/")[-1] or 0)
@@ -89,6 +93,7 @@ def run() -> int:
             for r in records
         }
         _post("dim_scheme", list(dim.values()), "scheme_code")
+        neon_db.dual_write(lambda conn: neon_db.upsert(conn, "dim_scheme", list(dim.values()), ["scheme_code"]))
 
         # ---- append fact_nav_daily (idempotent on scheme_code+nav_date) ----
         navs = [
@@ -97,6 +102,7 @@ def run() -> int:
             for r in records if r.nav_date and r.nav_value is not None
         ]
         _post("fact_nav_daily", navs, "scheme_code,nav_date")
+        neon_db.dual_write(lambda conn: neon_db.upsert(conn, "fact_nav_daily", navs, ["scheme_code", "nav_date"]))
         rows_ingested, status = len(navs), "success"
 
         # refresh the materialized analytics layer (fast reads)
@@ -105,6 +111,7 @@ def run() -> int:
             urllib.request.urlopen(req, timeout=120)
         except Exception as e:
             print(f"matview refresh skipped: {e}", file=sys.stderr)
+        neon_db.dual_write(lambda conn: conn.execute("select refresh_analytics()"))
     except Exception as e:  # failure logging, never crash silently
         err = str(e)[:500]
         print(f"PIPELINE FAILED: {err}", file=sys.stderr)
@@ -113,13 +120,15 @@ def run() -> int:
 
     # ---- audit: record the run ----
     try:
-        _post("fact_pipeline_runs", [{
+        run_row = {
             "pipeline": "nav_daily", "status": status, "source": "AMFI:NAVAll",
             "source_date": src_date.isoformat() if src_date else None,
             "rows_ingested": rows_ingested, "duration_ms": duration_ms,
             "error": err, "started_at": started.isoformat(),
             "finished_at": datetime.now(timezone.utc).isoformat(),
-        }])
+        }
+        _post("fact_pipeline_runs", [run_row])
+        neon_db.dual_write(lambda conn: neon_db.upsert(conn, "fact_pipeline_runs", [run_row]))
     except Exception as e:
         print(f"could not record run: {e}", file=sys.stderr)
 
@@ -133,6 +142,7 @@ def run() -> int:
                 total_events=_count("user_events"),
             )
             _post("fact_system_health", [snap])
+            neon_db.dual_write(lambda conn: neon_db.upsert(conn, "fact_system_health", [snap]))
     except Exception as e:
         print(f"could not snapshot health: {e}", file=sys.stderr)
 
