@@ -4,11 +4,22 @@
 // never throws, so a canary page or a flagged read path degrades gracefully instead of crashing.
 import { hasDatabaseUrl, query } from "./db";
 
+// node-postgres parses SQL date/timestamp columns into native JS Date objects (unlike
+// PostgREST/Supabase, which always serializes them as strings) — a raw Date rendered directly
+// as a JSX child crashes React ("Objects are not valid as a React child"). This only reproduces
+// when Neon actually has a row to return, so it's easy to miss with no local DATABASE_URL.
+// Fixed once here so every caller gets plain, display-safe strings, matching Supabase's shape.
+function stringifyDates(row) {
+  const out = {};
+  for (const [k, v] of Object.entries(row)) out[k] = v instanceof Date ? v.toISOString() : v;
+  return out;
+}
+
 async function safeQuery(sql, params) {
   if (!hasDatabaseUrl) return null;
   try {
     const { rows } = await query(sql, params);
-    return rows;
+    return rows.map(stringifyDates);
   } catch (e) {
     console.error("[neonReads]", e.message);
     return null;
