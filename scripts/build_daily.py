@@ -19,6 +19,48 @@ from scripts.explain import fund_movements, explain_funds, attention_candidates,
 
 WH = "data/warehouse"
 
+# Market Breadth Engine (Phase 2, terminal sprint) — real GICS-style equity sectors from
+# metadata.json's sector_allocation (152-fund factsheet subset — same coverage limitation as
+# marketImpact.js's SECTOR_MAP on the frontend; deliberately excludes debt-issuer-named "sectors"
+# like individual bank names, which aren't real equity sectors).
+REAL_SECTORS = [
+    "Financial Services", "Information Technology", "Healthcare", "Consumer Durables",
+    "Fast Moving Consumer Goods", "Capital Goods", "Automobile And Auto Components",
+    "Oil, Gas & Consumable Fuels", "Metals & Mining", "Telecommunication",
+]
+SECTOR_MIN_ALLOCATION = 15.0  # % — only count a fund toward a sector if meaningfully exposed to it
+
+
+def sector_leadership(funds_by_code, metadata_rows):
+    """Real, deterministic: for each major equity sector, the average 1M return of funds with
+    >=15% factsheet-disclosed allocation to it. Honestly scoped to the metadata subset — returns
+    an empty list entry (not a fabricated 0) for a sector with no qualifying funds."""
+    by_sector = defaultdict(list)
+    for m in metadata_rows:
+        f = funds_by_code.get(str(m.get("scheme_code")))
+        if not f or f.get("r1m") is None:
+            continue
+        for s in (m.get("sector_allocation") or []):
+            if s.get("sector") in REAL_SECTORS and (s.get("allocation_pct") or 0) >= SECTOR_MIN_ALLOCATION:
+                by_sector[s["sector"]].append(f["r1m"])
+    rows = [{"sector": s, "avg1m": round(mean(v), 2), "fundCount": len(v)} for s, v in by_sector.items() if v]
+    rows.sort(key=lambda r: -r["avg1m"])
+    return rows
+
+
+def volatility_regime(eq):
+    """Market-wide volatility tier from the SAME thresholds already established per-category
+    (categories/[category]/page.js: Low<12, Moderate<20, High<30, else Very High) — applied here
+    at the whole-market level. No fabricated historical baseline to compare against (none exists
+    yet — see docs/FUND_HISTORY_ENGINE.md); this is a real snapshot tier, not a "regime change"
+    claim, which would need a real time-series to support."""
+    vols = [f["vol90"] for f in eq if f.get("vol90") is not None]
+    if not vols:
+        return {"avgVol": None, "tier": None}
+    avg = round(mean(vols), 1)
+    tier = "Low" if avg < 12 else "Moderate" if avg < 20 else "High" if avg < 30 else "Very High"
+    return {"avgVol": avg, "tier": tier}
+
 
 def slim(f):
     return {"code": f["code"], "name": f["name"], "amc": f["amc"], "category": f["category"],
@@ -32,6 +74,14 @@ def main():
     eq = [f for f in funds if f.get("assetClass") == "Equity" and f.get("isGrowth") and not f.get("isIdcw") and f.get("r1d") is not None]
     eq.sort(key=lambda f: f["r1d"], reverse=True)
     r1ds = [f["r1d"] for f in eq]
+
+    # Market Breadth Engine additions (Phase 2, terminal sprint) — sector leadership + volatility
+    # regime; metadata.json is optional (schemes_populated may be 0 if it hasn't been ingested
+    # yet in this environment — sector_leadership() degrades to an honest empty list, never fakes it)
+    metadata_rows = []
+    if os.path.exists("frontend/app/data/metadata.json"):
+        metadata_rows = json.load(open("frontend/app/data/metadata.json")).get("metadata", [])
+    funds_by_code = {f["code"]: f for f in funds}
 
     by_cat, by_amc = defaultdict(list), defaultdict(list)
     for f in eq:
@@ -77,6 +127,8 @@ def main():
     cat_rot_full = rotation(funds, "category", "category", 5)
     amc_mom_full = rotation(funds, "amc", "amc", 5)
     cat_rot, amc_mom = cat_rot_full[:5], amc_mom_full[:5]
+    sectors = sector_leadership(funds_by_code, metadata_rows)
+    vol_regime = volatility_regime(eq)
 
     # ---- industry intelligence (Phase 7): market-level context ----
     breadth1d = round(100 * sum(1 for x in r1ds if x > 0) / len(r1ds)) if r1ds else 0
@@ -126,6 +178,11 @@ def main():
         "topCategory": top_cat, "topAmc": top_amc,
         "insights": insights, "explained": explained,
         "categoryRotation": cat_rot, "amcMomentum": amc_mom, "brief": brief, "industry": industry,
+        "marketBreadth": {
+            "categoryRotationFull": cat_rot_full, "amcMomentumFull": amc_mom_full,
+            "sectorLeadership": sectors, "volatilityRegime": vol_regime,
+            "sectorCoverageNote": f"Sector leadership covers {len(metadata_rows)} factsheet-parsed schemes only — a real but partial subset of the {len(funds)}-scheme universe.",
+        },
     }
     with open("frontend/app/data/daily.json", "w") as fh:
         json.dump(out, fh, separators=(",", ":"))

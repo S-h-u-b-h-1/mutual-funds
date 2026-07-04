@@ -249,6 +249,27 @@ function NewsCard({ article: a, onRelatedClick, highlighted }) {
                 ))}
               </ul>
               <ExposureSection article={a} />
+              {a.similarPast?.length > 0 && (
+                <div className="mt-3 border-t border-line pt-2.5">
+                  <div className="text-[11px] uppercase tracking-[0.08em] text-ink-faint">Recent similar events</div>
+                  <ul className="mt-1.5 space-y-1">
+                    {a.similarPast.map((s) => (
+                      <li key={s.id}>
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => track("news_article_click", { article: s.id })}
+                          className="text-[12px] text-ink-muted hover:text-accent-soft"
+                        >
+                          {s.title}
+                        </a>
+                        <span className="ml-1.5 text-[10.5px] text-ink-faint">· {relativeTime(s.publishedAt)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {research.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-2.5">
                   {research.map((r, i) => (

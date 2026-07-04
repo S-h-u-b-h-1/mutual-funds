@@ -13,6 +13,7 @@ import RecentActivity from "./components/RecentActivity";
 import FlowHeatmap from "./components/FlowHeatmap";
 import AlertSignup from "./components/AlertSignup";
 import MarketNewsPulse from "./components/MarketNewsPulse";
+import MarketTerminal from "./components/MarketTerminal";
 import SectionHeader from "./components/ui/SectionHeader";
 import GlassPanel from "./components/ui/GlassPanel";
 import StatStrip from "./components/ui/StatStrip";
@@ -25,6 +26,7 @@ import { allFunds } from "./lib/funds";
 import { graphNodes } from "./lib/graphNodes";
 import { getTopHeadlines } from "./lib/news";
 import { impactChainsFor, impactScoreFor, researchLinksFor, fundsWorthResearching } from "./lib/marketImpact";
+import { getMarketTerminal } from "./lib/marketTerminal";
 import trendData from "./data/amc_trend.json";
 import performance from "./data/performance.json";
 import daily from "./data/daily.json";
@@ -48,6 +50,7 @@ export default async function Page() {
     sb("v_flow_history?select=*"),
   ]);
   const newsHeadlines = await getTopHeadlines({ limit: 5 }).catch(() => []);
+  const marketTerminal = await getMarketTerminal({ revalidate: 300 }).catch(() => null);
   // Phase 8 — enrich each headline with real market-impact data (chains/score/research/funds).
   // Defensive per-article try/catch: a single bad article can never break the homepage.
   const enrichedHeadlines = newsHeadlines.map((article) => {
@@ -168,6 +171,11 @@ export default async function Page() {
             <PremiumButton href="/performance">Top Performers</PremiumButton>
           </div>
         </div>
+
+        {/* Market Terminal (Phase 1, terminal sprint) — real Yahoo Finance quotes, ISR-cached
+            5 minutes, honestly labelled unlicensed/delayed. First thing after the hero, matching
+            the "understand today's market in under 60 seconds" goal. */}
+        <MarketTerminal data={marketTerminal} />
 
         {/* Real ecosystem graph — every AMC, category and benchmark this platform connects.
             Node size = real fund count, not decoration. Three.js on capable devices, a

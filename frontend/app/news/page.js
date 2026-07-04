@@ -1,4 +1,4 @@
-import { getRecentArticles, getIngestionRuns } from "../lib/news";
+import { getRecentArticles, getIngestionRuns, getSimilarPastArticles } from "../lib/news";
 import { newsStatus } from "../lib/newsStatus";
 import { impactChainsFor, themesFor, impactScoreFor, researchLinksFor, fundsWorthResearching, sectorExposure, THEMES } from "../lib/marketImpact";
 import Nav from "../components/Nav";
@@ -12,7 +12,7 @@ export const revalidate = 300;
 // Server-only enrichment (marketImpact.js reads the 4MB funds.json bundle — never import it from
 // a "use client" file). Computed once per revalidate window (300s), not per request. Per-article
 // try/catch so one malformed article's links can never blank the whole page.
-function enrichArticle(article) {
+async function enrichArticle(article, { withHistory = false } = {}) {
   try {
     const chains = impactChainsFor(article.links);
     const themes = themesFor(article.links);
@@ -33,9 +33,18 @@ function enrichArticle(article) {
       }
     }
 
-    return { ...article, chains, themes, impact, research, exposure: { funds, sectors } };
+    // News Intelligence 2.0 (Phase 3, terminal sprint) — historical context: other real articles
+    // the same primary rule previously fired on. Only computed for a bounded subset (withHistory)
+    // — an extra DB round-trip per article isn't worth paying for all 120 fetched articles when
+    // only the most recent/relevant ones are likely to actually get expanded and read.
+    const primaryRuleId = chains[0]?.ruleId;
+    const similarPast = withHistory && primaryRuleId
+      ? await getSimilarPastArticles({ ruleId: primaryRuleId, excludeArticleId: article.id, limit: 3 })
+      : [];
+
+    return { ...article, chains, themes, impact, research, exposure: { funds, sectors }, similarPast };
   } catch {
-    return { ...article, chains: [], themes: [], impact: null, research: [], exposure: { funds: {}, sectors: {} } };
+    return { ...article, chains: [], themes: [], impact: null, research: [], exposure: { funds: {}, sectors: {} }, similarPast: [] };
   }
 }
 
@@ -52,7 +61,8 @@ export default async function News() {
     runs = [];
   }
 
-  articles = articles.map(enrichArticle);
+  const HISTORY_BOUND = 30; // cap the extra "similar past events" query to the most recent 30 articles
+  articles = await Promise.all(articles.map((a, i) => enrichArticle(a, { withHistory: i < HISTORY_BOUND })));
   const themeCounts = THEMES.reduce((acc, t) => {
     acc[t] = articles.filter((a) => a.themes?.includes(t)).length;
     return acc;

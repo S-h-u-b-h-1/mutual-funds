@@ -91,6 +91,34 @@ export async function getArticlesForEntity({ entityType, entityName, limit = 3 }
   }
 }
 
+// News Intelligence 2.0 (Phase 3, terminal sprint) — "recent similar events": other real
+// articles the SAME deterministic rule previously fired on (e.g. other RBI rate-action stories),
+// excluding the article itself. This is the historical-context layer the mission asks for —
+// still zero fabrication, since it's just a real query over news_market_links.rule_id, the exact
+// same traceable field already shown as "traced to rule: X" everywhere else.
+export async function getSimilarPastArticles({ ruleId, excludeArticleId, limit = 3 } = {}) {
+  if (!ruleId) return [];
+  try {
+    const rows = await sb(
+      `news_market_links?rule_id=eq.${encodeURIComponent(ruleId)}&select=article_id,news_articles(id,title,url,published_at,news_sources(name,credibility))&order=created_at.desc&limit=${limit + 1}`
+    );
+    const seen = new Set();
+    return rows
+      .filter((r) => r.news_articles && r.news_articles.id !== excludeArticleId)
+      .filter((r) => (seen.has(r.news_articles.id) ? false : (seen.add(r.news_articles.id), true)))
+      .slice(0, limit)
+      .map((r) => ({
+        id: r.news_articles.id,
+        title: r.news_articles.title,
+        url: r.news_articles.url,
+        publishedAt: r.news_articles.published_at,
+        source: r.news_articles.news_sources ? { name: r.news_articles.news_sources.name, credibility: r.news_articles.news_sources.credibility } : null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 export async function getIngestionRuns({ limit = 20 } = {}) {
   try {
     return await sb(`news_ingestion_runs?select=*,news_sources(name)&order=finished_at.desc&limit=${limit}`, { revalidate: 60 });

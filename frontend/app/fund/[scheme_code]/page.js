@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
+import dynamic from "next/dynamic";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import Tracker from "../../components/Tracker";
 import NavChart from "../../components/NavChart";
 import VolatilityChart from "../../components/VolatilityChart";
+
+const RollingReturnChart = dynamic(() => import("../../components/RollingReturnChart"), { ssr: false });
 import SectionHeader from "../../components/ui/SectionHeader";
 import GlassPanel from "../../components/ui/GlassPanel";
 import Badge from "../../components/ui/Badge";
@@ -20,6 +23,7 @@ import { portfolioRisk } from "../../lib/portfolio";
 import { fundCompleteness, researchReadiness, completenessTone } from "../../lib/completeness";
 import { getArticlesForEntity, relativeTime } from "../../lib/news";
 import { betaAlphaFor } from "../../lib/riskMetrics";
+import { calendarReturns, rollingReturns } from "../../lib/rollingReturns";
 
 export const revalidate = 3600;
 
@@ -50,6 +54,21 @@ function amcRank(f) {
   scored.sort((a, b) => b.h - a.h);
   const idx = scored.findIndex((x) => x.code === f.code);
   return idx === -1 ? null : { rank: idx + 1, total: scored.length };
+}
+
+// Suggested Comparisons (Phase 9, terminal sprint — Research Assistant foundation) — real same-
+// category-and-plan peers, ranked by the same Health Score shown above, excluding this fund.
+// Deterministic, no invented "similar fund" logic beyond what catRank/catSize already use.
+function suggestedComparisons(f, limit = 3) {
+  const peers = allFunds().filter((x) => x.category === f.category && x.plan === f.plan && x.code !== f.code && x.active !== false && x.nav != null);
+  return peers
+    .map((x) => {
+      const h = fundHealth(x);
+      return { code: x.code, name: x.name.replace(/ - (Direct|Regular).*/i, ""), amc: x.amc, r1m: x.r1m ?? null, health: h?.overall ?? null, grade: h?.grade ?? null };
+    })
+    .filter((x) => x.health != null)
+    .sort((a, b) => b.health - a.health)
+    .slice(0, limit);
 }
 
 // Plain-language explanations for the Health Score's components (Phase 6 — never assume
@@ -123,6 +142,9 @@ export default async function FundPage({ params }) {
   // TRI or Sensex TRI, only with enough real overlapping history (see lib/riskMetrics.js for the
   // disclosed price-index-vs-TRI caveat this carries).
   const riskStats = betaAlphaFor(history?.points, f.benchmark, { riskFreeAnnualPct: RF });
+  const calReturns = calendarReturns(history?.points);
+  const rollReturns = rollingReturns(history?.points, 12);
+  const comparisons = suggestedComparisons(f);
 
   return (
     <>
@@ -260,6 +282,32 @@ export default async function FundPage({ params }) {
           </GlassPanel>
         </section>
 
+        {/* 5b · Calendar returns + rolling 12M returns (Phase 5, terminal sprint) — same real NAV
+            history as the chart above, no new data source. */}
+        {(calReturns.length > 0 || rollReturns.length > 0) && (
+          <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {calReturns.length > 0 && (
+              <GlassPanel className="p-5">
+                <SectionHeader title={<span className="inline-flex items-center gap-1.5">Calendar returns <MetricTooltip>Real point-to-point NAV return for each calendar year — first to last available NAV in that year, not extrapolated. A partial year (fund launched mid-year, or the current year-to-date) shows its real start/end dates, not a full-year estimate.</MetricTooltip></span>} />
+                <div className="space-y-1.5">
+                  {calReturns.map((c) => (
+                    <div key={c.year} className="flex items-center justify-between text-[12.5px]">
+                      <span className="text-ink-muted">{c.year}{c.from.slice(5) !== "01-01" || c.to.slice(5, 7) !== "12" ? <span className="text-ink-faint"> ({c.from} → {c.to})</span> : null}</span>
+                      <span className={`tnum font-semibold ${c.return >= 0 ? "text-pos" : "text-neg"}`}>{c.return >= 0 ? "+" : ""}{c.return}%</span>
+                    </div>
+                  ))}
+                </div>
+              </GlassPanel>
+            )}
+            {rollReturns.length > 0 && (
+              <GlassPanel className="p-5">
+                <SectionHeader title={<span className="inline-flex items-center gap-1.5">Rolling 12-month return <MetricTooltip>This fund's trailing 1-year return, recomputed at each point in its real NAV history — shows whether the 1-year figure has been consistent or swung widely, not just what it is today.</MetricTooltip></span>} />
+                <RollingReturnChart points={rollReturns} />
+              </GlassPanel>
+            )}
+          </div>
+        )}
+
         {/* 6 · Risk + Peers */}
         <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-2">
           <GlassPanel className="p-5">
@@ -310,6 +358,26 @@ export default async function FundPage({ params }) {
             ) : <p className="text-[12.5px] text-ink-faint">No comparable equity-Growth peer cohort.</p>}
           </GlassPanel>
         </div>
+
+        {/* 6b · Suggested comparisons (Phase 9, terminal sprint) — real same-category-and-plan
+            peers ranked by Health Score, not just the single "best peer" above. */}
+        {comparisons.length > 0 && (
+          <section className="mt-7">
+            <SectionHeader title={<span className="inline-flex items-center gap-1.5">Suggested comparisons <MetricTooltip>Other real funds in the same category and plan ({f.plan} {f.category}), ranked by the same Health Score as this fund — a starting point for side-by-side research, not a recommendation.</MetricTooltip></span>} />
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+              {comparisons.map((c) => (
+                <a key={c.code} href={`/fund/${c.code}`} className="glass block p-3.5 text-[12.5px] transition-colors hover:bg-white/[0.04]">
+                  <div className="font-medium text-ink truncate">{c.name}</div>
+                  <div className="mt-0.5 text-[11px] text-ink-faint">{c.amc}</div>
+                  <div className="mt-1.5 flex items-center justify-between">
+                    <span className={`tnum font-semibold ${c.health >= 70 ? "text-pos" : c.health >= 55 ? "text-warn" : "text-neg"}`}>{c.health}/100 · {c.grade}</span>
+                    {c.r1m != null && <span className={`tnum ${c.r1m >= 0 ? "text-pos" : "text-neg"}`}>{c.r1m >= 0 ? "+" : ""}{c.r1m.toFixed(1)}%</span>}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* 7 · Benchmark & peer outperformance */}
         {f.benchmark && (
