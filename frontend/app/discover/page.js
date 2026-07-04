@@ -35,6 +35,16 @@ export default async function DiscoverPage() {
   // Real, always-populated: rank-improvement signals already computed by the explanation engine.
   const improved = (daily.explained || []).filter((e) => e.severity === "positive").slice(0, 6);
 
+  // Real, precomputed consistency (% of trading days with non-negative return) combined with a
+  // meaningful 3-month return threshold — consistency alone just surfaces liquid/arbitrage funds
+  // (structurally low-volatility, not a discovery signal); requiring real 3M gains as well finds
+  // funds compounding steadily, not just sitting flat. Never fabricated — both fields come
+  // straight from build_performance.py's real NAV-return calculation.
+  const steady = allFunds()
+    .filter((f) => f.consistency != null && f.obs >= 60 && f.r3m != null && f.r3m > 5)
+    .sort((a, b) => b.consistency - a.consistency || b.r3m - a.r3m)
+    .slice(0, 6);
+
   // Real, factsheet-sourced launch dates (SBI today — honestly small, never padded).
   const launched = allMetadata()
     .filter((m) => m.launch_date)
@@ -72,6 +82,24 @@ export default async function DiscoverPage() {
                 ))}
               </div>
             ) : <Empty>No funds crossed a rank-improvement threshold today.</Empty>}
+          </section>
+
+          <section>
+            <SectionHeader eyebrow="consistency ≥60d of NAV history · 3M return > +5%" title="Steady compounders" />
+            {steady.length ? (
+              <div className="space-y-2">
+                {steady.map((f) => (
+                  <a key={f.code} href={`/fund/${f.code}`} className="glass block p-3 transition-colors hover:bg-white/[0.045]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[13px] font-medium text-ink">{f.name.replace(/ - (Direct|Regular).*/i, "")}</span>
+                      <Badge tone="pos">+{f.r3m.toFixed(1)}%</Badge>
+                    </div>
+                    <p className="mt-1 text-[11.5px] text-ink-faint">{f.consistency}% of trading days non-negative · {f.category}</p>
+                  </a>
+                ))}
+              </div>
+            ) : <Empty>No funds currently meet both the consistency and return bar.</Empty>}
+            <p className="mt-2 text-[10.5px] text-ink-faint">Consistency = % of recent trading days with a non-negative NAV return. Paired with a real 3-month return so this doesn&rsquo;t just surface flat liquid/arbitrage funds.</p>
           </section>
 
           <section>

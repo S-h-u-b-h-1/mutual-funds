@@ -12,3 +12,15 @@ export async function sb(path, { revalidate = 3600 } = {}) {
 }
 
 export const SUPA = { URL, KEY };
+
+// Exact row count via PostgREST's Content-Range header — select=* (not a named column) since
+// not every table has an `id` column (e.g. dim_scheme/fact_nav_daily use natural-key PKs).
+export async function sbCount(table, { revalidate = 60 } = {}) {
+  const res = await fetch(`${URL}/rest/v1/${table}?select=*&limit=1`, {
+    headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, Prefer: "count=exact" },
+    next: { revalidate },
+  });
+  if (!res.ok) return null;
+  const range = res.headers.get("content-range") || "*/0";
+  return parseInt(range.split("/")[1] || "0", 10);
+}

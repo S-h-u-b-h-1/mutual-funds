@@ -64,7 +64,7 @@ export default function ManagerPage({ params }) {
   return (
     <>
       <Nav active="/funds" />
-      <Tracker event="manager_view" payload={{ manager: mgr.slug, funds: rows.length }} />
+      <Tracker event="manager_view" payload={{ manager: mgr.slug, funds: rows.length }} view={{ type: "manager", id: mgr.slug, name: mgr.name }} />
       <main className="container-px py-9">
         <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Fund Manager</div>
         <h1 className="mt-2 text-[28px] sm:text-[32px] font-bold tracking-tightest text-ink">{mgr.name}</h1>

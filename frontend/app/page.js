@@ -225,6 +225,13 @@ export default async function Page() {
               ))}
             </div>
           )}
+          {daily.explained.length > 0 && (
+            <div className="mb-4 text-right">
+              <a href="/dashboard" className="text-[11.5px] text-ink-faint transition-colors hover:text-ink">
+                Open your full research queue, history &amp; saved comparisons →
+              </a>
+            </div>
+          )}
           {daily.industry && (
             <div className="mb-4 rounded-lg border border-line bg-white/[0.02] px-4 py-3">
               <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">Industry intelligence · {daily.industry.riskRegime}</div>

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Sparkline from "./Sparkline";
 import { track } from "../lib/track";
+import { recordComparison } from "../lib/sessionMemory";
 
 const WS_KEY = "mfp_compare_ws";
 
@@ -31,6 +32,7 @@ export default function CompareClient({ amcs, meta = {} }) {
     if (!sel.length) return;
     const name = wsName.trim() || `Workspace ${workspaces.length + 1}`;
     persistWs([{ name, sel }, ...workspaces.filter((w) => w.name !== name)].slice(0, 12));
+    recordComparison(name, sel);
     setWsName("");
   }
   function loadWs(w) { setSel(w.sel.filter((n) => amcs[n])); }

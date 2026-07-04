@@ -38,6 +38,9 @@ export default async function Compare() {
         <div className="mt-8">
           <CompareClient amcs={trendData.amcs} meta={meta} />
         </div>
+        <p className="mt-4 text-right text-[11.5px] text-ink-faint">
+          <a href="/research" className="transition-colors hover:text-ink">More reports &amp; analysis tools in the Research Hub →</a>
+        </p>
         <AdvisorSoftCTA context="compare" />
       </main>
       <Footer note={<span>30-day equity index from real AMFI NAV history · scheme counts from latest AMFI data.</span>} />

@@ -5,8 +5,10 @@
 // custom-event convention as WatchButton.jsx so components can react to same-tab changes.
 const VIEWS_KEY = "mfp_recent_views";
 const SEARCH_KEY = "mfp_recent_searches";
+const COMPARE_KEY = "mfp_recent_compares";
 const MAX_VIEWS = 24;
 const MAX_SEARCHES = 10;
+const MAX_COMPARES = 10;
 
 function read(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; }
@@ -42,6 +44,20 @@ export function getRecentSearches(limit = 8) {
 
 export function clearRecentSearches() {
   write(SEARCH_KEY, [], "mfp-session");
+}
+
+// A named/saved comparison workspace, recorded here too (separately from mfp_compare_ws's own
+// storage) purely so the Research Dashboard has one place to read "recently compared" from,
+// without depending on CompareClient.jsx's internal key shape.
+export function recordComparison(name, amcs) {
+  if (!amcs?.length) return;
+  const compares = read(COMPARE_KEY, []);
+  const next = [{ name, amcs, at: new Date().toISOString() }, ...compares.filter((c) => c.name !== name)].slice(0, MAX_COMPARES);
+  write(COMPARE_KEY, next, "mfp-session");
+}
+
+export function getRecentComparisons(limit = 5) {
+  return read(COMPARE_KEY, []).slice(0, limit);
 }
 
 // Inferred, never asserted as fact — "you've looked at N Equity-category funds this session".

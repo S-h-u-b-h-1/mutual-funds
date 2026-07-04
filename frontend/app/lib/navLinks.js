@@ -16,6 +16,7 @@ export const PRIMARY_LINKS = [
 
 export const ALL_LINKS = [
   ...PRIMARY_LINKS,
+  ["Dashboard", "/dashboard"],
   ["Analytics", "/analytics"],
   ["Data status", "/data-status"],
 ];

@@ -24,6 +24,8 @@ import { fundCompleteness, researchReadiness, completenessTone } from "../../lib
 import { getArticlesForEntity, relativeTime } from "../../lib/news";
 import { betaAlphaFor } from "../../lib/riskMetrics";
 import { calendarReturns, rollingReturns } from "../../lib/rollingReturns";
+import { amcIntel, amcSlugify } from "../../lib/amcIntel";
+import { researchPriority, TIER_TONE, CONFIDENCE_LABEL, CONFIDENCE_TONE } from "../../lib/decisionEngine";
 
 export const revalidate = 3600;
 
@@ -146,6 +148,48 @@ export default async function FundPage({ params }) {
   const rollReturns = rollingReturns(history?.points, 12);
   const comparisons = suggestedComparisons(f);
 
+  // Decision Engine (Decision Support sprint) — Research Priority Score extends the existing
+  // attention_score (real 1M-vs-3M category rank movement, from scripts/explain.py) with AMC
+  // standing and linked-news impact, both real and already computed elsewhere on this page.
+  const amcInfo = amcIntel(allFunds(), amcSlugify(f.amc), (f.assetClass || "").toLowerCase());
+  const newsImpact = relatedNews.length ? Math.max(...relatedNews.map((n) => n.relevance || 0)) : null;
+  const priority = researchPriority(f, { amcPercentile: amcInfo?.percentile ?? null, newsImpact });
+
+  // "Why This Fund Deserves Attention" (Phase 2, Decision Support sprint) — every reason is
+  // real and traceable: metric, previous value, current value, source, timestamp. Only reason
+  // types with a genuine before/after value pair are ever shown; nothing is inferred.
+  const attentionReasons = [];
+  if (f.attentionScore != null) {
+    attentionReasons.push({
+      metric: "Category rank (3M → 1M)",
+      detail: f.attentionReason,
+      source: "AMFI NAV, category cohort ranking",
+      timestamp: f.navDate,
+    });
+  }
+  if (relatedNews.length) {
+    const top = [...relatedNews].sort((a, b) => (b.relevance || 0) - (a.relevance || 0))[0];
+    attentionReasons.push({
+      metric: "Linked market news",
+      detail: `"${top.title}" — relevance ${top.relevance}/100, linked via this fund's category (${f.category}) or AMC (${f.amc}).`,
+      source: top.source?.name || "News source",
+      timestamp: top.publishedAt,
+    });
+  }
+  if (amcInfo?.rank != null) {
+    attentionReasons.push({
+      metric: "AMC standing",
+      detail: `${f.amc} ranks #${amcInfo.rank} of ${amcInfo.totalAmcs} ${f.assetClass || ""} AMCs (percentile ${amcInfo.percentile}), beat rate ${amcInfo.beatPct}%.`,
+      source: "Cross-AMC comparison, same asset class",
+      timestamp: asOf,
+    });
+  }
+  // Chronological, not insertion order — this is the fund's real decision timeline today.
+  // Deeper history (factsheet/manager/benchmark changes) will extend this automatically once
+  // factsheet_archive holds a second snapshot per scheme (detect_changes() is already wired for
+  // it) — not shown yet because showing it would mean inferring a change from one data point.
+  attentionReasons.sort((a, b) => String(b.timestamp || "").localeCompare(String(a.timestamp || "")));
+
   return (
     <>
       <Nav active="/funds" />
@@ -225,6 +269,51 @@ export default async function FundPage({ params }) {
           <SectionHeader eyebrow="deterministic · every figure computed from NAV" title="Executive Summary" />
           <GlassPanel className="p-5 sm:p-6"><p className="text-[13.5px] leading-relaxed text-ink-muted">{researchSummary(f, cohort)}</p></GlassPanel>
         </section>
+
+        {/* 2b · Why This Fund Deserves Attention (Phase 2, Decision Support sprint) — deterministic
+            reasons only, each with a real metric/previous/current/source/timestamp. Absence of
+            this section is not a negative signal — it means no qualifying real movement, news
+            link, or AMC-standing signal exists right now, not that nothing was checked. */}
+        {(priority || attentionReasons.length > 0) && (
+          <section className="mt-6">
+            <SectionHeader
+              eyebrow="deterministic · answers what to investigate, never what to buy"
+              title="Why This Fund Deserves Attention"
+              action={priority ? <Badge tone={TIER_TONE[priority.tier]}>{priority.tier}</Badge> : null}
+            />
+            <GlassPanel className="p-5 sm:p-6">
+              {priority && (
+                <div className="mb-4 flex items-center gap-4 border-b border-line pb-4">
+                  <div className="text-[28px] font-bold tnum text-ink">{priority.score}<span className="text-[14px] text-ink-faint">/100</span></div>
+                  <div className="flex-1">
+                    <div className="text-[12px] text-ink-muted">Research priority score</div>
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      <span className={CONFIDENCE_TONE[priority.confidence] === "pos" ? "text-pos" : CONFIDENCE_TONE[priority.confidence] === "warn" ? "text-warn" : "text-ink-faint"}>{CONFIDENCE_LABEL[priority.confidence]}</span>
+                      <MetricTooltip>Confidence reflects how much real data backed this score — {priority.coverage} of 4 possible signals were available for this fund. Never a statement about how likely the fund is to perform well.</MetricTooltip>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {attentionReasons.length > 0 ? (
+                <div className="space-y-3">
+                  {attentionReasons.map((r, i) => (
+                    <div key={i} className="border-b border-line/50 pb-3 last:border-0 last:pb-0">
+                      <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-faint">{r.metric}</div>
+                      <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">{r.detail}</p>
+                      <p className="mt-1 text-[10.5px] text-ink-faint">Source: {r.source} · as of {r.timestamp || "—"}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[12.5px] text-ink-faint">No qualifying research-worthy movement, linked news, or AMC-standing signal right now — this is not a judgment on the fund, only that nothing in this specific set of real signals is currently flagged.</p>
+              )}
+              {attentionReasons.length > 0 && (
+                <p className="mt-3 text-[10.5px] text-ink-faint">This is the fund&rsquo;s real timeline today, most recent first. Factsheet-level history (manager, benchmark, or holdings changes) will extend this once a second archived factsheet exists for this scheme.</p>
+              )}
+              {priority && <p className="mt-3 border-t border-line pt-3 text-[11px] leading-relaxed text-ink-faint">{priority.explanation}</p>}
+            </GlassPanel>
+          </section>
+        )}
 
         {/* 3 · Health Score */}
         {health && (

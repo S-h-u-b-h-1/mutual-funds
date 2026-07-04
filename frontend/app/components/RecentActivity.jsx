@@ -1,11 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getRecentViews, lastVisited, preferredCategories } from "../lib/sessionMemory";
+import { getRecentViews, lastVisited, preferredCategories, preferredAmcs } from "../lib/sessionMemory";
 
 // amc's `id` is already the full "X Mutual Fund" DB-form name (amc/[amc]/page.js's `amc` const,
 // per every URL builder in the app) — do NOT re-append the suffix here, that would double it.
-const PATH = { fund: (id) => `/fund/${id}`, amc: (id) => `/amc/${encodeURIComponent(id)}`, category: (id) => `/categories/${encodeURIComponent(id)}` };
-const LABEL = { fund: "Fund", amc: "AMC", category: "Category" };
+const PATH = {
+  fund: (id) => `/fund/${id}`, amc: (id) => `/amc/${encodeURIComponent(id)}`, category: (id) => `/categories/${encodeURIComponent(id)}`,
+  manager: (id) => `/manager/${id}`, benchmark: (id) => `/benchmark/${id}`,
+};
+const LABEL = { fund: "Fund", amc: "AMC", category: "Category", manager: "Manager", benchmark: "Benchmark" };
 
 // Anonymous session intelligence (Phase 4) — renders nothing for a first-time visitor (no
 // history yet); for a returning one, shows exactly what they looked at, nothing inferred as
@@ -14,12 +17,14 @@ export default function RecentActivity() {
   const [last, setLast] = useState(null);
   const [recent, setRecent] = useState([]);
   const [prefs, setPrefs] = useState([]);
+  const [amcPrefs, setAmcPrefs] = useState([]);
 
   useEffect(() => {
     function refresh() {
       setLast(lastVisited());
       setRecent(getRecentViews(null, 8));
       setPrefs(preferredCategories(3));
+      setAmcPrefs(preferredAmcs(3));
     }
     refresh();
     window.addEventListener("mfp-session", refresh);
@@ -35,9 +40,11 @@ export default function RecentActivity() {
           <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Welcome back</div>
           <h2 className="mt-1 text-[17px] font-semibold tracking-tight text-ink">Continue where you left off</h2>
         </div>
-        {prefs.length > 0 && (
+        {(prefs.length > 0 || amcPrefs.length > 0) && (
           <div className="text-[11.5px] text-ink-faint">
-            You&rsquo;ve been looking at <span className="text-ink-muted">{prefs.map((p) => p.category).join(", ")}</span> funds
+            {prefs.length > 0 && <>You&rsquo;ve been looking at <span className="text-ink-muted">{prefs.map((p) => p.category).join(", ")}</span> funds</>}
+            {prefs.length > 0 && amcPrefs.length > 0 && " · "}
+            {amcPrefs.length > 0 && <>most researched: <span className="text-ink-muted">{amcPrefs.map((p) => p.amc).join(", ")}</span></>}
           </div>
         )}
       </div>

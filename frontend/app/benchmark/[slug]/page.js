@@ -66,7 +66,7 @@ export default function BenchmarkPage({ params }) {
   return (
     <>
       <Nav active="/funds" />
-      <Tracker event="page_view" payload={{ page: "benchmark", benchmark: b.name }} />
+      <Tracker event="page_view" payload={{ page: "benchmark", benchmark: b.name }} view={{ type: "benchmark", id: params.slug, name: b.name }} />
       <main className="container-px py-9">
         <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Benchmark</div>
         <h1 className="mt-2 text-[24px] sm:text-[30px] font-bold tracking-tightest text-ink">{b.name}</h1>
