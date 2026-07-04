@@ -7,6 +7,9 @@ on:
     - cron: "0 6 5 * *"
   workflow_dispatch:
 
+permissions:
+  contents: write   # required for the commit+push step — default repo token is read-only
+
 jobs:
   ingest:
     runs-on: ubuntu-latest
@@ -16,7 +19,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install deps
-        run: pip install pypdf
+        run: pip install -r requirements.txt && pip install pypdf
       - name: Ensure AMFI universe present
         run: |
           curl -sL "https://portal.amfiindia.com/spages/NAVAll.txt" -o data/NAVAll.txt || true
@@ -25,8 +28,14 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python -m scripts.factsheet_pipeline
+      - name: Archive factsheet snapshots (versioned, content-checksummed — powers the Decision Timeline's factsheet-change detection once a 2nd snapshot exists)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m scripts.archive_factsheets
       - name: Data-quality + score gate (fail build if quality drops)
-        run: pip install -q pytest && python -m pytest tests/test_data_quality.py tests/test_scores.py -q
+        run: python -m pytest tests/test_data_quality.py tests/test_scores.py -q
       - name: Commit refreshed metadata + reports
         run: |
           git config user.name "mfpulse-bot"

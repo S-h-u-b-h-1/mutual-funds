@@ -1,54 +1,90 @@
-name: Production Refresh (manual)
+name: Production Refresh
 
-# Emergency/on-demand full-pipeline refresh (2026-07-04): AMFI → Supabase → static bundles → live
-# deploy, in one run. Use this to force a fresh production state right now, without waiting for
-# the next scheduled cron. Every step is gated + reported individually — a missing secret stops
-# that step cleanly with a clear message, it never silently no-ops the whole run.
+# The ONE autonomous production pipeline (2026-07-04 P0 fix): AMFI -> Supabase (+ Neon mirror)
+# -> static bundles -> data-quality gate -> commit -> deploy -> verify. Runs automatically every
+# trading evening; workflow_dispatch stays available for on-demand/emergency runs.
+#
+# This replaces two broken pieces found in the go-live audit (see docs/PIPELINE_ARCHITECTURE.md):
+#   1. daily-nav.yml ingested NAV on a schedule but never rebuilt bundles, committed, or deployed
+#      — so fresh data reached Supabase but never reached the website. Retired (deleted), fully
+#      subsumed by this workflow.
+#   2. This workflow itself used to be workflow_dispatch-only and had ZERO runs, ever, since it
+#      was created. Fixed by adding the schedule below.
+# Also fixes: missing `permissions: contents: write` (the repo's default token is read-only, so
+# the commit+push step would have failed even if triggered), steps that reported "success" while
+# silently skipping real work (now hard-fail on missing required secrets), and no automatic retry
+# on transient network failures.
 on:
+  schedule:
+    - cron: "30 14 * * 1-6"   # 14:30 UTC = 8:00pm IST, Mon-Sat (after AMFI publishes)
   workflow_dispatch: {}
+
+permissions:
+  contents: write   # required for step 5's git push — repo default is read-only
 
 jobs:
   refresh:
-    name: Full refresh — ingest, rebuild, deploy
+    name: Full refresh — ingest, rebuild, deploy, verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install pypdf
+      - run: pip install -r requirements.txt
 
-      - name: 1. Ingest AMFI NAV → Supabase (+ refresh materialized views)
+      - name: 1. Ingest AMFI NAV → Supabase + Neon (refreshes materialized views) — critical, retried once
         id: nav
         env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "::error::SUPABASE_SERVICE_ROLE_KEY not set — cannot write NAV to Supabase. Add it under Settings → Secrets and variables → Actions."
-            echo "ran=false" >> "$GITHUB_OUTPUT"
-          else
-            python -m scripts.cloud_pipeline
-            echo "ran=true" >> "$GITHUB_OUTPUT"
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Cause: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set. Location: repo secrets. Fix: Settings -> Secrets and variables -> Actions -> add both."
+            exit 1
           fi
+          for attempt in 1 2; do
+            if python -m scripts.cloud_pipeline; then
+              echo "ran=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::warning::NAV ingestion attempt $attempt failed."
+            [ "$attempt" = "1" ] && { echo "Retrying in 15s..."; sleep 15; }
+          done
+          echo "::error::Cause: scripts.cloud_pipeline failed twice in a row (see output above). Location: scripts/cloud_pipeline.py. Fix: check AMFI reachability and Supabase credential validity."
+          exit 1
 
-      - name: 2. Ingest financial news → Supabase
+      - name: 2. Ingest financial news → Supabase — non-critical, logged not fatal
         id: news
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "::error::SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set — cannot write news to Supabase."
+            echo "::warning::Cause: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set. Not fatal — /news reads Supabase live and simply won't show new articles until this is added."
             echo "ran=false" >> "$GITHUB_OUTPUT"
-          else
-            python -m scripts.ingest_news
+            exit 0
+          fi
+          if python -m scripts.ingest_news; then
             echo "ran=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Cause: scripts.ingest_news failed (see output above). Location: scripts/ingest_news.py. Non-fatal — continuing to bundle rebuild; today's news simply won't be reflected."
+            echo "ran=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: 3. Rebuild static bundles (funds.json, performance.json, daily.json)
+      - name: 3. Rebuild static bundles (funds.json, performance.json, daily.json) — critical
         id: bundles
         run: |
-          curl -sL "https://portal.amfiindia.com/spages/NAVAll.txt" -o data/NAVAll.txt
+          for attempt in 1 2; do
+            curl -sL --fail "https://portal.amfiindia.com/spages/NAVAll.txt" -o data/NAVAll.txt && break
+            echo "::warning::AMFI download attempt $attempt failed."
+            if [ "$attempt" = "2" ]; then
+              echo "::error::Cause: portal.amfiindia.com unreachable or the NAVAll.txt path changed. Location: this step. Fix: verify the URL resolves manually; check AMFI's own status page."
+              exit 1
+            fi
+            echo "Retrying in 15s..."; sleep 15
+          done
           python -m scripts.build_performance
           python -m scripts.build_daily
           if git diff --quiet -- frontend/app/data/; then
@@ -59,11 +95,16 @@ jobs:
           fi
 
       - name: 4. Data-quality gate (must pass before anything is committed/deployed)
-        run: |
-          pip install -q pytest
-          python -m pytest tests/ -q
+        run: python -m pytest tests/ -q
+
+      - name: 4b. Live data guarantee — assert the NAV → analytics → JSON chain is actually caught up
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python -m scripts.assert_pipeline_freshness
 
       - name: 5. Commit refreshed bundles
+        id: commit
         if: steps.bundles.outputs.changed == 'true'
         run: |
           git config user.name "mfpulse-bot"
@@ -71,22 +112,18 @@ jobs:
           git add frontend/app/data/funds.json frontend/app/data/performance.json frontend/app/data/daily.json
           git commit -m "chore(refresh): production data refresh $(date -u +%Y-%m-%d)"
           git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
 
-      - name: 6. Deploy to Vercel production
+      - name: 6. Deploy to Vercel production (fast-path fallback — step 5's push already triggers Vercel's own git-integration auto-deploy)
         id: deploy
+        if: steps.bundles.outputs.changed == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
-            echo "::warning::VERCEL_TOKEN not set — skipping direct deploy."
-            echo "If frontend/app/data/*.json changed above, it was committed to main but the site"
-            echo "will NOT reflect it until a deploy runs. Vercel's git-integration auto-deploy on"
-            echo "this repo is currently broken (Root Directory isn't set to 'frontend' — see"
-            echo "docs/PRODUCTION_FRESHNESS_INCIDENT.md), so a manual 'vercel --prod' from the"
-            echo "frontend/ directory, or fixing that setting, or adding VERCEL_TOKEN here, is"
-            echo "required for this to go live automatically."
+            echo "No VERCEL_TOKEN configured — relying on Vercel's git-integration auto-deploy triggered by step 5's push (confirmed working as of 2026-07-04, see docs/PIPELINE_ARCHITECTURE.md)."
             exit 0
           fi
           cd frontend
@@ -97,11 +134,30 @@ jobs:
           echo "Deployed: $DEPLOY_URL"
           npx vercel alias set "$DEPLOY_URL" mf-pulse.vercel.app --token="$VERCEL_TOKEN"
 
+      - name: 7. Verify production actually reflects the refresh
+        if: steps.bundles.outputs.changed == 'true'
+        run: |
+          EXPECTED=$(python -c "import json; print(json.load(open('frontend/app/data/daily.json'))['asOf'])")
+          echo "Expecting production to show latest NAV: $EXPECTED"
+          sleep 60
+          for attempt in 1 2 3 4; do
+            LIVE=$(curl -sL "https://mf-pulse.vercel.app/" | grep -o "Latest NAV: [0-9-]*" | head -1 | grep -o "[0-9-]*$" || echo "")
+            if [ "$LIVE" = "$EXPECTED" ]; then
+              echo "Verified: production shows $LIVE — matches."
+              exit 0
+            fi
+            echo "Attempt $attempt: production shows '$LIVE', expected '$EXPECTED'."
+            [ "$attempt" != "4" ] && { echo "Waiting 30s for deploy to propagate..."; sleep 30; }
+          done
+          echo "::error::Cause: production still doesn't show the expected date after 3+ minutes. Location: https://vercel.com/shubh1s-projects/frontend (Deployments tab) — check the latest build's status/log. Fix: if the deployment errored, re-check Root Directory setting; if it's stuck building, this may just need more time (rerun this check manually)."
+          exit 1
+
       - name: Summary
         if: always()
         run: |
           echo "## Production Refresh Summary" >> "$GITHUB_STEP_SUMMARY"
-          echo "- NAV → Supabase: ${{ steps.nav.outputs.ran || 'skipped (no secret)' }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- News → Supabase: ${{ steps.news.outputs.ran || 'skipped (no secret)' }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Bundles rebuilt, changed: ${{ steps.bundles.outputs.changed }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Deployed: check the 'Deploy to Vercel production' step above" >> "$GITHUB_STEP_SUMMARY"
+          echo "- NAV → Supabase/Neon: ${{ steps.nav.outputs.ran || 'FAILED' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- News → Supabase: ${{ steps.news.outputs.ran || 'failed (non-fatal)' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Bundles changed: ${{ steps.bundles.outputs.changed }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Committed + pushed: ${{ steps.commit.outputs.pushed || 'no changes to commit' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production verified fresh: see 'Verify production actually reflects the refresh' step above" >> "$GITHUB_STEP_SUMMARY"
