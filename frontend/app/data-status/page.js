@@ -87,7 +87,7 @@ export default async function DataStatus() {
             </div>
             <div className="mt-3 text-[26px] font-bold tnum">{stale == null ? "—" : `${stale}d`}</div>
             <div className="text-[12px] text-ink-muted">since latest AMFI NAV ({latestNav || "—"})</div>
-            <div className="mt-2 text-[11px] text-ink-faint">Source: AMFI NAVAll · daily pipeline. {navStatus === "amber" && "Stale — daily cron not yet activated (needs SUPABASE_SERVICE_ROLE_KEY secret)."}</div>
+            <div className="mt-2 text-[11px] text-ink-faint">Source: AMFI NAVAll · daily pipeline. {navStatus === "amber" && "Stale — pending next scheduled trading day run (daily at 20:00 IST)."}</div>
           </GlassPanel>
           <GlassPanel className="p-5 sm:p-6">
             <div className="flex items-center justify-between">
