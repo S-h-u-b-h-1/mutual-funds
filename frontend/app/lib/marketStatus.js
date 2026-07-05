@@ -61,6 +61,10 @@ export function marketStatus(asOfIso, now = new Date()) {
 
   let navLine;
   if (staleDays == null) navLine = "NAV date unavailable";
+  // < 0: asOf is a future date. build_performance now anchors asOf to the equity universe so
+  // this shouldn't happen, but overnight funds DO forward-date NAVs past weekends — if a future
+  // date ever reaches here again, state the date plainly rather than rendering "(-1d ago)".
+  else if (staleDays < 0) navLine = `Latest NAV: ${asOfIso}`;
   else if (staleDays === 0) navLine = `Latest NAV: today (${asOfIso})`;
   else if (staleDays === 1) {
     // Honest for both cases: a weekday still waiting for today's evening AMFI publish, or a

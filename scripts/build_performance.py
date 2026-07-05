@@ -117,9 +117,22 @@ def risk_from_series(navs_by_date):
     }
 
 
+def market_asof(dim):
+    """Latest real trading date — NOT the raw max nav_date. Overnight/liquid funds forward-date
+    their NAV past weekends/holidays (a Saturday AMFI file carries Sunday-dated NAVs), so raw
+    max picks a date almost no scheme actually has: 1-day movers collapse to 0 up / 0 down and
+    the sitewide banner shows a future "latest NAV". Equity schemes only price on actual trading
+    days, so their max date is the honest market as-of (found live in the 2026-07-04 Saturday
+    production run — see docs/PIPELINE_ARCHITECTURE.md addendum)."""
+    eq = [r.nav_date for r in dim.values() if r.nav_date and r.asset_class == "Equity"]
+    if eq:
+        return max(eq)
+    return max((r.nav_date for r in dim.values() if r.nav_date), default=date.today())
+
+
 def main():
     dim = {r.scheme_code: r for r in parse_file("data/NAVAll.txt")}
-    asof = max((r.nav_date for r in dim.values() if r.nav_date), default=date.today())
+    asof = market_asof(dim)
     now_nav = {c: r.nav_value for c, r in dim.items() if r.nav_value}
 
     print("-- fetching 90-day daily series…", file=sys.stderr)
@@ -133,7 +146,8 @@ def main():
             continue
         name = r.scheme_name.strip()
         idcw, grow, direct = is_idcw(name), is_growth(name), "direct" in name.lower()
-        stale_days = (asof - r.nav_date).days if r.nav_date else 999
+        # clamped at 0: overnight funds dated AHEAD of the equity-anchored asof are current, not stale
+        stale_days = max(0, (asof - r.nav_date).days) if r.nav_date else 999
         now = now_nav[code]
         rec = {
             "code": code, "name": name, "amc": r.amc_name.replace(" Mutual Fund", ""),

@@ -98,7 +98,7 @@ def fetch_rss(url):
 def ensure_source(name, source_type, url, credibility):
     _post("news_sources", [{"name": name, "source_type": source_type, "url": url, "credibility": credibility}],
           on_conflict="name", prefer="resolution=merge-duplicates,return=minimal")
-    rows = _get(f"news_sources?name=eq.{urllib.parse_quote(name)}&select=id")
+    rows = _get(f"news_sources?name=eq.{urllib.parse.quote(name)}&select=id")
     return rows[0]["id"] if rows else None
 
 
@@ -110,7 +110,7 @@ def ensure_entities(names):
     _post("news_entities", rows, on_conflict="entity_type,name", prefer="resolution=merge-duplicates,return=minimal")
     out = {}
     for t, n in names:
-        found = _get(f"news_entities?entity_type=eq.{t}&name=eq.{urllib.parse_quote(n)}&select=id")
+        found = _get(f"news_entities?entity_type=eq.{t}&name=eq.{urllib.parse.quote(n)}&select=id")
         if found:
             out[(t, n)] = found[0]["id"]
     return out
@@ -241,6 +241,14 @@ def main():
         total_new += new
         time.sleep(1)  # be a light, polite fetcher — not a rapid-fire scraper
     print(f"-- news ingestion: {ok}/{len(SOURCES)} sources ok, {total_fetched} fetched, ~{total_new} new")
+    # Zero sources succeeding is total failure, not partial degradation — exit non-zero so the
+    # caller can see it. (2026-07-04: a latent urllib.parse typo broke EVERY source since this
+    # script shipped, while this exit-0 let the workflow step stay green. Per-source failures
+    # were faithfully recorded in news_ingestion_runs the whole time — red in the audit table,
+    # green in CI. Never again: total failure now shows red end to end.)
+    if SOURCES and ok == 0:
+        print("::error::All news sources failed. Cause: see per-source errors above and news_ingestion_runs. Location: scripts/ingest_news.py. Fix: run locally with SUPABASE_* set to reproduce.", file=sys.stderr)
+        return 1
     return 0
 
 

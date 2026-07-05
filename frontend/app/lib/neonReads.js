@@ -73,25 +73,28 @@ export async function getNeonLastRefresh() {
 }
 
 export async function getNeonCounts() {
+  // Every count cast to ::int — Postgres count(*) is bigint, and node-postgres returns bigint as
+  // a STRING (not a JS number, to avoid silent precision loss). Uncast, every row here would
+  // strict-compare (!==) unequal against Supabase's parsed-integer counts even when they match.
   const rows = await safeQuery(`
     select
-      (select count(*) from dim_scheme) as dim_scheme,
-      (select count(*) from fact_nav_daily) as fact_nav_daily,
-      (select count(*) from fact_pipeline_runs) as fact_pipeline_runs,
-      (select count(*) from fact_system_health) as fact_system_health,
-      (select count(*) from news_sources) as news_sources,
-      (select count(*) from news_articles) as news_articles,
-      (select count(*) from news_entities) as news_entities,
-      (select count(*) from news_market_links) as news_market_links,
-      (select count(*) from news_sentiment) as news_sentiment,
-      (select count(*) from news_ingestion_runs) as news_ingestion_runs,
-      (select count(*) from market_quotes) as market_quotes,
-      (select count(*) from market_quote_runs) as market_quote_runs,
-      (select count(*) from factsheet_archive) as factsheet_archive,
-      (select count(*) from fund_history_events) as fund_history_events,
-      (select count(*) from user_events) as user_events,
-      (select count(*) from alerts) as alerts,
-      (select count(*) from advisor_leads) as advisor_leads
+      (select count(*)::int from dim_scheme) as dim_scheme,
+      (select count(*)::int from fact_nav_daily) as fact_nav_daily,
+      (select count(*)::int from fact_pipeline_runs) as fact_pipeline_runs,
+      (select count(*)::int from fact_system_health) as fact_system_health,
+      (select count(*)::int from news_sources) as news_sources,
+      (select count(*)::int from news_articles) as news_articles,
+      (select count(*)::int from news_entities) as news_entities,
+      (select count(*)::int from news_market_links) as news_market_links,
+      (select count(*)::int from news_sentiment) as news_sentiment,
+      (select count(*)::int from news_ingestion_runs) as news_ingestion_runs,
+      (select count(*)::int from market_quotes) as market_quotes,
+      (select count(*)::int from market_quote_runs) as market_quote_runs,
+      (select count(*)::int from factsheet_archive) as factsheet_archive,
+      (select count(*)::int from fund_history_events) as fund_history_events,
+      (select count(*)::int from user_events) as user_events,
+      (select count(*)::int from alerts) as alerts,
+      (select count(*)::int from advisor_leads) as advisor_leads
   `);
   return rows?.[0] ?? null;
 }

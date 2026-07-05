@@ -63,3 +63,39 @@ completely disconnected outcomes today.
 8. **No live staleness assertion anywhere.** The homepage's "4d ago" badge is informational, not a gate — nothing fails a build or pages anyone when data crosses a staleness threshold.
 
 Phases 2–12 (workflow-by-workflow verification, secret verification, the live end-to-end test, and the fixes) follow this document.
+
+## Addendum (same day, after the fixes above were pushed and live-tested)
+
+Pushing the fixes surfaced two things no amount of local testing could have caught, plus one
+structural gap that changes the final verdict:
+
+1. **A real bug, found by actually deploying:** `/internal/neon-status` crashed Vercel's build
+   with "Objects are not valid as a React child (found: [object Date])". Root cause:
+   `node-postgres` parses SQL `date`/`timestamp` columns into native JS `Date` objects (Supabase's
+   PostgREST always returns strings instead), and one such value was rendered directly into JSX.
+   This could never reproduce locally with no `DATABASE_URL` set — it only fired once Neon's env
+   var was present in Vercel's real build environment. Fixed in `neonReads.js`; verified by
+   redeploying and confirming the exact same page now renders correctly with real Neon data.
+   A related latent bug in the same file (`getNeonCounts()` missing `::int` casts on `count(*)`,
+   which node-postgres returns as strings) would have made every row in the 17-table comparison
+   report a false "mismatch" — fixed at the same time.
+
+2. **Deployment currency is real and verified:** fetching the new deployment directly (bypassing
+   the alias issue below) confirmed `process.env.VERCEL_GIT_COMMIT_SHA` is exposed and matches
+   real HEAD on `main` — the code fixes are correct and live on *a* deployment.
+
+3. **Critical, still-open gap: `mf-pulse.vercel.app` does not follow new deployments.** Even
+   though git-push-triggered builds now succeed cleanly, the production custom domain stayed
+   pointed at the pre-fix deployment. Root cause (confirmed against Vercel's own docs): the
+   domain was assigned via a one-time `vercel alias set <deployment-url> mf-pulse.vercel.app` CLI
+   command at some point in the project's history, which pins the alias to that single deployment
+   — it is not configured as a proper Vercel **Project Domain** bound to the `main` branch, which
+   is what would make it auto-follow every new production deployment. No tool available to me
+   (Vercel MCP or otherwise) can reassign a project domain's git-branch binding, and I don't hold
+   a Vercel token to call the REST API directly (`PATCH /v9/projects/{id}/domains/{domain}`).
+   **This requires one-time action in the Vercel dashboard** (Project Settings → Domains →
+   reconfigure `mf-pulse.vercel.app` to track the `main` branch / Production environment) — after
+   which it should follow automatically, the same way the Root Directory fix earlier this project
+   only needed to happen once. Until then, either that dashboard fix or adding `VERCEL_TOKEN` +
+   `VERCEL_ORG_ID` + `VERCEL_PROJECT_ID` as repo secrets (so the workflow's own `vercel alias set`
+   step can re-point it after every run) is required for users to actually see fresh deploys.
