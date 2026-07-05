@@ -45,10 +45,15 @@ def main():
         print("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set — cannot check the freshness chain.", file=sys.stderr)
         return 1
 
-    nav_rows = _get("fact_nav_daily?select=nav_date&order=nav_date.desc&limit=1")
-    health_rows = _get("fact_system_health?select=nav_latest_date,captured_at&order=captured_at.desc&limit=1")
+    # Use the Equity-anchored latest NAV date (trading day) to avoid weekend forward-date mismatches
+    nav_rows = _get("mv_asset_class_summary?asset_class=eq.Equity&select=latest_nav_date&order=latest_nav_date.desc&limit=1")
+    if nav_rows and nav_rows[0].get("latest_nav_date"):
+        nav_latest = date.fromisoformat(nav_rows[0]["latest_nav_date"])
+    else:
+        fallback_rows = _get("fact_nav_daily?select=nav_date&order=nav_date.desc&limit=1")
+        nav_latest = date.fromisoformat(fallback_rows[0]["nav_date"]) if fallback_rows else None
 
-    nav_latest = date.fromisoformat(nav_rows[0]["nav_date"]) if nav_rows else None
+    health_rows = _get("fact_system_health?select=nav_latest_date,captured_at&order=captured_at.desc&limit=1")
     health_nav = date.fromisoformat(health_rows[0]["nav_latest_date"]) if health_rows and health_rows[0]["nav_latest_date"] else None
 
     bundle_path = os.path.join(ROOT, "frontend/app/data/daily.json")

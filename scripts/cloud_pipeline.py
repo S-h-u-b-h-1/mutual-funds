@@ -80,7 +80,9 @@ def run() -> int:
         bad = [r for r in records if r.asset_class not in ACCEPTED]
         if bad:
             raise ValueError(f"{len(bad)} rows with unexpected asset_class")
-        src_date = max((r.nav_date for r in records if r.nav_date), default=date.today())
+        # Latest real trading date — NOT the raw max nav_date (which forward-dates on weekends)
+        eq_dates = [r.nav_date for r in records if r.nav_date and r.asset_class == "Equity"]
+        src_date = max(eq_dates) if eq_dates else max((r.nav_date for r in records if r.nav_date), default=date.today())
 
         # ---- upsert dim_scheme ----
         dim = {
