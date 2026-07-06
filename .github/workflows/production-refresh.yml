@@ -114,7 +114,7 @@ jobs:
           git push
           echo "pushed=true" >> "$GITHUB_OUTPUT"
 
-      - name: 6. Deploy to Vercel production (fast-path fallback — step 5's push already triggers Vercel's own git-integration auto-deploy)
+      - name: 6. Point mf-pulse.vercel.app at this refresh's deployment
         id: deploy
         if: steps.bundles.outputs.changed == 'true'
         env:
@@ -122,17 +122,64 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
+          # The domain does NOT auto-follow new production deployments on this project (root
+          # cause of the 2026-07-04..06 stale-production incident — see docs/PIPELINE_ARCHITECTURE.md).
+          # Primary path: step 5's push already triggers Vercel's git-integration build, so we
+          # only wait for THAT deployment (matched by commit SHA, never "latest") to be READY and
+          # alias the domain to it. Fallback path: if the git deployment never appears (git
+          # integration broken again), do a full CLI deploy ourselves, then alias that instead.
           if [ -z "$VERCEL_TOKEN" ]; then
-            echo "No VERCEL_TOKEN configured — relying on Vercel's git-integration auto-deploy triggered by step 5's push (confirmed working as of 2026-07-04, see docs/PIPELINE_ARCHITECTURE.md)."
+            echo "::warning::VERCEL_TOKEN not configured — cannot re-point mf-pulse.vercel.app. The git-integration deploy still happens, but the domain will keep serving the previous deployment and step 7 will fail. Fix: add VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID repo secrets."
             exit 0
           fi
-          cd frontend
-          npm ci
-          npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-          npx vercel build --prod --token="$VERCEL_TOKEN"
-          DEPLOY_URL=$(npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
-          echo "Deployed: $DEPLOY_URL"
-          npx vercel alias set "$DEPLOY_URL" mf-pulse.vercel.app --token="$VERCEL_TOKEN"
+          SHA=$(git rev-parse HEAD)
+          echo "Waiting for the git-integration deployment of $SHA to be READY..."
+          DEPLOY_UID=$(python - "$SHA" <<'PY'
+          import json, os, sys, time, urllib.request
+          sha, token = sys.argv[1], os.environ["VERCEL_TOKEN"]
+          base = (f"https://api.vercel.com/v6/deployments?projectId={os.environ['VERCEL_PROJECT_ID']}"
+                  f"&teamId={os.environ['VERCEL_ORG_ID']}&target=production&limit=20")
+          for attempt in range(10):  # ~5 minutes
+              req = urllib.request.Request(base, headers={"Authorization": f"Bearer {token}"})
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  deployments = json.loads(r.read()).get("deployments", [])
+              for d in deployments:
+                  if d.get("meta", {}).get("githubCommitSha") == sha:
+                      state = d.get("readyState") or d.get("state")
+                      print(f"attempt {attempt+1}: found {d['uid']} state={state}", file=sys.stderr)
+                      if state == "READY":
+                          print(d["uid"]); sys.exit(0)
+                      if state in ("ERROR", "CANCELED"):
+                          print(f"git deployment for {sha} ended {state}", file=sys.stderr); sys.exit(2)
+                      break
+              else:
+                  print(f"attempt {attempt+1}: no deployment for {sha} yet", file=sys.stderr)
+              time.sleep(30)
+          sys.exit(3)  # timed out — trigger the fallback deploy below
+          PY
+          ) || FALLBACK=$?
+          if [ -n "${FALLBACK:-}" ]; then
+            echo "::warning::Git-integration deployment not READY after ~5min (exit $FALLBACK) — falling back to a direct CLI deploy."
+            cd frontend
+            npm ci
+            npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+            npx vercel build --prod --token="$VERCEL_TOKEN"
+            DEPLOY_URL=$(npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+            echo "Fallback deployed: $DEPLOY_URL"
+            npx vercel alias set "$DEPLOY_URL" mf-pulse.vercel.app --token="$VERCEL_TOKEN"
+            exit 0
+          fi
+          echo "Aliasing mf-pulse.vercel.app -> deployment $DEPLOY_UID"
+          python - "$DEPLOY_UID" <<'PY'
+          import json, os, sys, urllib.request
+          uid, token = sys.argv[1], os.environ["VERCEL_TOKEN"]
+          url = f"https://api.vercel.com/v2/deployments/{uid}/aliases?teamId={os.environ['VERCEL_ORG_ID']}"
+          req = urllib.request.Request(url, data=json.dumps({"alias": "mf-pulse.vercel.app"}).encode(),
+                                       headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                                       method="POST")
+          with urllib.request.urlopen(req, timeout=30) as r:
+              print("alias response:", r.status, r.read().decode()[:300])
+          PY
 
       - name: 7. Verify production actually reflects the refresh
         if: steps.bundles.outputs.changed == 'true'
