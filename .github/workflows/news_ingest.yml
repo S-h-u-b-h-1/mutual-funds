@@ -14,10 +14,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      # requirements.txt is required (not just stdlib): ingest_news imports ingestion/db.py for
+      # Neon dual-write, which needs psycopg. Found live 2026-07-06 — every 3-hourly run died on
+      # `import psycopg` before fetching a single feed, while showing a plain red "failure" with
+      # the real cause buried in the traceback.
+      - run: pip install -r requirements.txt
       - name: Run news ingestion
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
             echo "::error::SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set — ingestion cannot run."

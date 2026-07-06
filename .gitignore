@@ -13,3 +13,4 @@ logs/
 .supabase_db_password
 .claude/
 .DS_Store
+sql/neon/export/

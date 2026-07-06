@@ -6,7 +6,16 @@ import os
 import sys
 from contextlib import contextmanager
 
-import psycopg
+# Optional at import time: psycopg is only actually needed when a Postgres connection is used
+# (DATABASE_URL set, or the legacy local-Postgres path). A hard module-level import crashed
+# scripts that merely import this module for dual_write() in environments without the driver —
+# found live 2026-07-06: news_ingest.yml never installs requirements.txt, so every 3-hourly
+# news run died on `import psycopg` before fetching a single feed. Neon being unavailable must
+# never take down the Supabase-path pipeline (dual_write's own contract).
+try:
+    import psycopg
+except ImportError:
+    psycopg = None
 
 
 def dsn() -> str:
@@ -25,6 +34,8 @@ def dsn() -> str:
 
 @contextmanager
 def connect():
+    if psycopg is None:
+        raise RuntimeError("psycopg is not installed — cannot open a Postgres connection. Fix: pip install -r requirements.txt")
     conn = psycopg.connect(dsn())
     try:
         yield conn
@@ -37,7 +48,15 @@ def connect():
 
 
 def neon_enabled() -> bool:
-    return bool(os.getenv("DATABASE_URL"))
+    if not os.getenv("DATABASE_URL"):
+        return False
+    if psycopg is None:
+        # Misconfiguration, not a normal disabled state: Neon is asked for but the driver is
+        # missing. Say so loudly (once per call site is fine) instead of silently not mirroring.
+        print("DATABASE_URL is set but psycopg is not installed — Neon dual-write disabled. "
+              "Fix: pip install -r requirements.txt in this environment.", file=sys.stderr)
+        return False
+    return True
 
 
 def dual_write(fn):

@@ -137,19 +137,23 @@ jobs:
       - name: 7. Verify production actually reflects the refresh
         if: steps.bundles.outputs.changed == 'true'
         run: |
+          # Compares /api/freshness (the exact asOf baked into the deployed bundle) instead of
+          # grepping rendered HTML — the banner's copy legitimately varies by staleness ("today
+          # (…)", "(2d ago)", a prose sentence), and the old text-scrape failed on the most
+          # common success case (a same-day refresh).
           EXPECTED=$(python -c "import json; print(json.load(open('frontend/app/data/daily.json'))['asOf'])")
-          echo "Expecting production to show latest NAV: $EXPECTED"
-          sleep 60
-          for attempt in 1 2 3 4; do
-            LIVE=$(curl -sL "https://mf-pulse.vercel.app/" | grep -o "Latest NAV: [0-9-]*" | head -1 | grep -o "[0-9-]*$" || echo "")
+          echo "Expecting production /api/freshness to report asOf: $EXPECTED"
+          sleep 75
+          for attempt in 1 2 3 4 5; do
+            LIVE=$(curl -sL "https://mf-pulse.vercel.app/api/freshness" | python -c "import sys,json; print(json.load(sys.stdin).get('asOf',''))" 2>/dev/null || echo "")
             if [ "$LIVE" = "$EXPECTED" ]; then
-              echo "Verified: production shows $LIVE — matches."
+              echo "Verified: production reports asOf=$LIVE — matches."
               exit 0
             fi
-            echo "Attempt $attempt: production shows '$LIVE', expected '$EXPECTED'."
-            [ "$attempt" != "4" ] && { echo "Waiting 30s for deploy to propagate..."; sleep 30; }
+            echo "Attempt $attempt: production reports '$LIVE', expected '$EXPECTED'."
+            [ "$attempt" != "5" ] && { echo "Waiting 45s for deploy to propagate..."; sleep 45; }
           done
-          echo "::error::Cause: production still doesn't show the expected date after 3+ minutes. Location: https://vercel.com/shubh1s-projects/frontend (Deployments tab) — check the latest build's status/log. Fix: if the deployment errored, re-check Root Directory setting; if it's stuck building, this may just need more time (rerun this check manually)."
+          echo "::error::Cause: mf-pulse.vercel.app is still serving an older deployment ~5 minutes after the refreshed bundles were pushed and built. Location: known failure mode — the mf-pulse.vercel.app domain does not auto-follow new production deployments on this project (see docs/PIPELINE_ARCHITECTURE.md). Fix: EITHER re-point the domain to follow Production in Vercel dashboard -> project mutual-funds -> Settings -> Domains -> mf-pulse.vercel.app, OR add VERCEL_TOKEN/VERCEL_ORG_ID/VERCEL_PROJECT_ID repo secrets so step 6 aliases it explicitly every refresh."
           exit 1
 
       - name: Summary
