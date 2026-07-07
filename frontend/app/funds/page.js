@@ -3,6 +3,7 @@ import Footer from "../components/Footer";
 import Tracker from "../components/Tracker";
 import ScreenerPresets from "../components/ScreenerPresets";
 import SectionHeader from "../components/ui/SectionHeader";
+import ScreenerTableClient from "../components/ScreenerTableClient";
 import DataTable from "../components/ui/DataTable";
 import Badge from "../components/ui/Badge";
 import HealthCell from "../components/ui/HealthCell";
@@ -97,7 +98,7 @@ export default function Funds({ searchParams }) {
 
         <section className="mt-6">
           <SectionHeader eyebrow={`${total.toLocaleString("en-IN")} matches · showing top 80`} title="Results" action={<Badge tone="pos" dot>real NAV</Badge>} />
-          <DataTable columns={cols} rows={rows} footnote={`Sorted by ${conf.label}. Health = MF Pulse Fund Health Score. Direct & Regular ranked separately. Source: AMFI. As of ${asOf}.`} />
+          <ScreenerTableClient rows={rows} total={total} asOf={asOf} confLabel={conf.label} />
         </section>
       </main>
       <Footer />
