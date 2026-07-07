@@ -39,6 +39,14 @@ export default async function DataStatus() {
     const s = await sb("v_pipeline_stats?select=*", { revalidate: 60 });
     pstats = s[0] || {};
   } catch {}
+  // News freshness — live-queried like everything else here (user-reported gap 2026-07-07: this
+  // page showed NAV freshness but nothing at all for news, so "news updated" was invisible).
+  let newsAt = null;
+  try {
+    const n = await sb("news_articles?select=fetched_at&order=fetched_at.desc&limit=1", { revalidate: 60 });
+    newsAt = n?.[0]?.fetched_at ?? null;
+  } catch {}
+  const newsAgo = newsAt ? Math.round((Date.now() - new Date(newsAt).getTime()) / 3600000) : null;
   const h = health[0] || {};
   const latestNav = byClass.map((r) => r.latest_nav_date).sort().at(-1);
   const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
@@ -63,6 +71,7 @@ export default async function DataStatus() {
     { label: "NAV rows", value: h.total_nav_rows ? fmt(h.total_nav_rows) : "—" },
     { label: "Events", value: h.total_events != null ? fmt(h.total_events) : "—" },
     { label: "Latest NAV", value: latestNav || "—" },
+    { label: "News fetched", value: newsAgo == null ? "—" : newsAgo < 1 ? "<1h ago" : `${newsAgo}h ago`, tone: newsAgo != null && newsAgo <= 4 ? "pos" : undefined },
     { label: "Flow month", value: flow[0]?.month || "—" },
   ];
 
