@@ -150,6 +150,22 @@ export default async function FundPage({ params }) {
   const rollReturns = rollingReturns(history?.points, 12);
   const comparisons = suggestedComparisons(f);
 
+  // Calculate category averages for Volatility, Drawdown, and Consistency to add peer context
+  const peers = allFunds().filter(
+    (x) => x.category === f.category && x.plan === f.plan && x.active !== false && x.nav != null
+  );
+  const peerVol = peers.map(x => x.vol90).filter(v => v != null);
+  const categoryAvgVol = peerVol.length ? +(peerVol.reduce((s, v) => s + v, 0) / peerVol.length).toFixed(2) : null;
+
+  const peerDvol = peers.map(x => x.dvol90).filter(v => v != null);
+  const categoryAvgDvol = peerDvol.length ? +(peerDvol.reduce((s, v) => s + v, 0) / peerDvol.length).toFixed(2) : null;
+
+  const peerMaxdd = peers.map(x => x.maxdd90).filter(v => v != null);
+  const categoryAvgMaxdd = peerMaxdd.length ? +(peerMaxdd.reduce((s, v) => s + v, 0) / peerMaxdd.length).toFixed(2) : null;
+
+  const peerConsistency = peers.map(x => x.consistency).filter(v => v != null);
+  const categoryAvgConsistency = peerConsistency.length ? +(peerConsistency.reduce((s, v) => s + v, 0) / peerConsistency.length).toFixed(1) : null;
+
   // Decision Engine (Decision Support sprint) — Research Priority Score extends the existing
   // attention_score (real 1M-vs-3M category rank movement, from scripts/explain.py) with AMC
   // standing and linked-news impact, both real and already computed elsewhere on this page.
@@ -196,7 +212,7 @@ export default async function FundPage({ params }) {
     <>
       <Nav active="/funds" />
       <Tracker event="fund_view" payload={{ code: f.code, category: f.category, amc: f.amc }} view={{ type: "fund", id: f.code, name: f.name.replace(/ - (Direct|Regular).*/i, ""), amc: f.amc, category: f.category }} />
-      <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} />
+      <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} categoryAvgVol={categoryAvgVol} categoryAvgDvol={categoryAvgDvol} categoryAvgMaxdd={categoryAvgMaxdd} categoryAvgConsistency={categoryAvgConsistency} />
       <Footer note={<span>NAV as of {f.navDate} · daily data, not real-time · past performance ≠ future returns · source AMFI / MFAPI. Platform as of {asOf}.</span>} />
     </>
   );

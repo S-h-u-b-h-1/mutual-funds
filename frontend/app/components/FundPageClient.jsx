@@ -55,7 +55,8 @@ function MetricTile({ label, value, sub, tone, tooltip }) {
 export default function FundPageClient({
   fund, cohort, history, sig, rets, bench, meta, port, health, notice, fTone, fLabel,
   sharpe, sortino, riskStats, calReturns, rollReturns, comparisons, relatedNews,
-  priority, attentionReasons, completeness, readiness, aRank, asOf
+  priority, attentionReasons, completeness, readiness, aRank, asOf,
+  categoryAvgVol, categoryAvgDvol, categoryAvgMaxdd, categoryAvgConsistency
 }) {
   const [viewMode, setViewMode] = useState("workspace"); // "workspace" (tabbed) or "report" (scroll)
   const [activeTab, setActiveTab] = useState("identity"); // tabs: identity, performance, risk, research, news, compare
@@ -676,7 +677,9 @@ export default function FundPageClient({
                     <div className="space-y-3">
                       <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
                         <span className="text-ink-faint">Annualised Volatility (90d)</span>
-                        <span className="text-white font-semibold font-mono">{fund.vol90}%</span>
+                        <span className="text-white font-semibold font-mono">
+                          {fund.vol90}% {categoryAvgVol != null && <span className="text-[11.5px] text-ink-faint font-normal"> (Category Avg: {categoryAvgVol}%)</span>}
+                        </span>
                       </div>
                       <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
                         <span className="text-ink-faint">Volatility (30d)</span>
@@ -684,11 +687,15 @@ export default function FundPageClient({
                       </div>
                       <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
                         <span className="text-ink-faint">Downside Volatility</span>
-                        <span className="text-white font-semibold font-mono">{fund.dvol90}%</span>
+                        <span className="text-white font-semibold font-mono">
+                          {fund.dvol90}% {categoryAvgDvol != null && <span className="text-[11.5px] text-ink-faint font-normal"> (Category Avg: {categoryAvgDvol}%)</span>}
+                        </span>
                       </div>
                       <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
                         <span className="text-ink-faint">Peak Drawdown (90d)</span>
-                        <span className="text-neg font-bold font-mono">{fund.maxdd90}%</span>
+                        <span className="text-neg font-bold font-mono">
+                          {fund.maxdd90}% {categoryAvgMaxdd != null && <span className="text-[11.5px] text-ink-faint font-normal"> (Category Avg: {categoryAvgMaxdd}%)</span>}
+                        </span>
                       </div>
                       <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
                         <span className="text-ink-faint">Current Drawdown from High</span>
@@ -697,9 +704,9 @@ export default function FundPageClient({
                         </span>
                       </div>
                       <div className="flex justify-between text-[12.5px]">
-                        <span className="text-ink-faint">Negative Return Days</span>
+                        <span className="text-ink-faint">Consistency Rating</span>
                         <span className="text-white font-semibold font-mono">
-                          {fund.negDays} / {fund.quality?.obs ?? "—"}
+                          {fund.consistency}% {categoryAvgConsistency != null && <span className="text-[11.5px] text-ink-faint font-normal"> (Category Avg: {categoryAvgConsistency}%)</span>}
                         </span>
                       </div>
                     </div>
