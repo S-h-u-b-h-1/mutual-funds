@@ -49,6 +49,9 @@ SOURCES = {
     "Mint — Markets": ("rss", "https://www.livemint.com/rss/markets", "tier1_business"),
     "Mint — Money": ("rss", "https://www.livemint.com/rss/money", "tier1_business"),
     "CNBC-TV18 — Markets": ("rss", "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/market.xml", "tier1_business"),
+    "NDTV Profit — Latest": ("rss", "https://feeds.feedburner.com/ndtvprofit-latest", "tier1_business"),
+    "Business Line — Markets": ("rss", "https://www.thehindubusinessline.com/markets/?service=rss", "tier1_business"),
+    "Business Line — Economy": ("rss", "https://www.thehindubusinessline.com/economy/?service=rss", "tier1_business"),
     "RBI — Press Releases": ("regulatory", "https://www.rbi.org.in/pressreleases_rss.xml", "official"),
     "SEBI — Press Releases": ("regulatory", "https://www.sebi.gov.in/sebirss.xml", "official"),
 }

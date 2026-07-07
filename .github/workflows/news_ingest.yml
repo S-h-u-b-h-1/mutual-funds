@@ -2,7 +2,7 @@ name: News ingestion
 
 on:
   schedule:
-    - cron: "20 */3 * * *"   # every 3 hours (UTC), all days — RBI/SEBI/global cues aren't confined to trading hours
+    - cron: "*/15 * * * *"   # every 15 minutes, all days
   workflow_dispatch: {}
 
 jobs:
