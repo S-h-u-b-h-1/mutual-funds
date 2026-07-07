@@ -309,17 +309,19 @@ function ThemeGrid({ articles, allThemes, themeCounts, activeTheme, onSelect }) 
         {allThemes.map((t) => {
           const count = themeCounts[t] || 0;
           const active = activeTheme === t;
+          // Zero-count chips are hidden, not grayed: a first-time visitor reads a row of "0"
+          // chips as a broken/empty product, when it just means no recent article matched that
+          // theme. The chip reappears the moment a matching article lands. (Kept if active so
+          // deselecting is always possible.)
+          if (count === 0 && !active) return null;
           return (
             <button
               key={t}
               type="button"
-              disabled={count === 0 && !active}
               onClick={() => onSelect(t)}
               className={`rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors ${
                 active
                   ? "border-accent bg-accent/10 text-accent-soft"
-                  : count === 0
-                  ? "border-line text-ink-faint/50 cursor-default"
                   : "border-line text-ink-muted hover:border-line-strong hover:text-ink"
               }`}
             >
@@ -436,6 +438,9 @@ export default function NewsClient({ articles = [], runs = [], themeCounts = {},
         {FILTERS.map((f) => {
           const count = articles.filter((a) => matchesFilter(a, f.key)).length;
           const active = filter === f.key;
+          // Same rationale as theme chips: an empty category tab is noise that reads as
+          // "broken", not information. It returns whenever a matching article lands.
+          if (count === 0 && !active) return null;
           return (
             <button
               key={f.key}

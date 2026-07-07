@@ -375,6 +375,26 @@ export default async function Page() {
           <Leaderboard rows={leaderboard} />
         </section>
 
+        {/* Why investors use MF Pulse (beta-readiness Phase 7) — the differentiation, stated as
+            three verifiable claims with proof links, not marketing copy. Each claim links to the
+            page that demonstrates it. */}
+        <section className="mt-9">
+          <SectionHeader eyebrow="not another screener" title="Why investors use MF Pulse" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[
+              { t: "It explains why, not just what", d: "Every score, rank and attention flag shows its metric, previous value, current value and source — nothing asks to be taken on faith.", href: "/funds", cta: "Open any fund →" },
+              { t: "It connects news to your funds", d: "A deterministic rule engine maps RBI, SEBI and market events to the categories, sectors and AMCs they may affect — every link traceable to a rule, never a black box.", href: "/news", cta: "See today's news →" },
+              { t: "It updates itself, and proves it", d: "NAVs, analytics and news refresh automatically on a published schedule, and the live status page shows exactly when each layer last updated.", href: "/status", cta: "Check the refresh timeline →" },
+            ].map((c) => (
+              <a key={c.t} href={c.href} className="glass group flex flex-col p-5 transition-colors hover:bg-white/[0.045]">
+                <span className="text-[13.5px] font-semibold text-ink">{c.t}</span>
+                <span className="mt-1.5 flex-1 text-[12.5px] leading-relaxed text-ink-muted">{c.d}</span>
+                <span className="mt-3 text-[12px] text-accent-soft">{c.cta}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+
         <Watchlist amcDeltas={amcDeltas} />
         <AlertSignup />
       </main>

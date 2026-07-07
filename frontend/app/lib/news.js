@@ -21,12 +21,29 @@ export const CATEGORY_LABELS = {
   corporate: "Corporate",
 };
 
+// Decode HTML entities at render time: articles ingested before 2026-07-07 were stored with raw
+// entities (RBI feeds carry &#8377; for ₹ in every monetary figure — rendered literally on /news
+// until this). Ingestion now decodes going forward (ingestion/market_reaction.py strip_html), but
+// the warehouse keeps already-fetched text as-is, so the display layer normalizes for old rows.
+const decodeEntities = (s) =>
+  s
+    ? s
+        .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+        .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;|&apos;/g, "'")
+        .replace(/&nbsp;/g, " ")
+    : s;
+
 function shapeArticle(r) {
   return {
     id: r.id,
-    title: r.title,
+    title: decodeEntities(r.title),
     url: r.url,
-    summary: r.summary,
+    summary: decodeEntities(r.summary),
     publishedAt: r.published_at,
     fetchedAt: r.fetched_at,
     category: r.category,

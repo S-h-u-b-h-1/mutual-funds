@@ -10,11 +10,18 @@ zero hallucination risk. A rule fires at most once per article (first match wins
 """
 from __future__ import annotations
 
+import html
 import re
 
 RULES = [
     ("rbi_rate_action",
-     ["repo rate", "policy rate", "rate cut", "rate hike", "monetary policy committee", "mpc meet"],
+     # RBI-specific phrasing only — bare "rate cut"/"rate hike" removed 2026-07-07 after live
+     # verification caught a US story ("dashed hopes of a rate cut by the Federal Reserve",
+     # about gold prices) categorized as RBI with relevance inflated to 100. Fed/US-rate news
+     # belongs to global_cues below ("federal reserve", "fed rate", "fomc"), which already
+     # matches those stories; this rule now requires India-anchored monetary-policy language.
+     ["repo rate", "policy rate", "rbi rate cut", "rbi rate hike", "rbi cuts rate", "rbi hikes rate",
+      "monetary policy committee", "mpc meet", "rbi monetary policy", "rbi governor"],
      "rbi", [("category", "Debt"), ("category", "Liquid"), ("category", "Banking and PSU"), ("sector", "Banking")],
      "may affect"),
     ("sebi_mf_circular",
@@ -359,12 +366,13 @@ def classify(title: str, summary: str) -> dict:
 
 
 def strip_html(text: str) -> str:
-    """RSS descriptions sometimes carry inline HTML — strip tags, collapse whitespace. Never
-    rewrites or summarizes content, only removes markup so it's readable plain text."""
+    """RSS descriptions sometimes carry inline HTML — strip tags, decode entities, collapse
+    whitespace. Never rewrites or summarizes content, only removes markup so it's readable
+    plain text. html.unescape covers ALL entities (found live 2026-07-07: RBI press releases
+    carry &#8377; for ₹, which rendered literally on /news in every monetary figure)."""
     if not text:
         return ""
     text = re.sub(r"<[^>]+>", " ", text)
-    text = re.sub(r"&nbsp;|&#160;", " ", text)
-    text = re.sub(r"&amp;", "&", text)
+    text = html.unescape(text)
     text = re.sub(r"\s+", " ", text).strip()
     return text[:500]

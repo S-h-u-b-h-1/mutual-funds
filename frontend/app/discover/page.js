@@ -45,6 +45,18 @@ export default async function DiscoverPage() {
     .sort((a, b) => b.consistency - a.consistency || b.r3m - a.r3m)
     .slice(0, 6);
 
+  // Real 90-day max drawdown (computed from actual NAV series in build_performance.py) — the
+  // "downside resilience" browsing angle. Same honest gating as Steady Compounders: requires
+  // real observations and a real positive 3M return so it doesn't just surface funds that
+  // never move. ("Highest alpha" was deliberately NOT added: real alpha exists only for the
+  // ~227 funds benchmarked exactly to Nifty 50/Sensex and needs a live per-fund series fetch —
+  // a bulk list would be fabricated. "Best SIP/retirement funds" also deliberately absent:
+  // that's a recommendation, and this platform does decision support, never buy lists.)
+  const resilient = allFunds()
+    .filter((f) => f.maxdd90 != null && f.obs >= 60 && f.r3m != null && f.r3m > 2 && ["Equity", "Hybrid"].includes(f.assetClass))
+    .sort((a, b) => b.maxdd90 - a.maxdd90 || b.r3m - a.r3m)
+    .slice(0, 6);
+
   // Real, factsheet-sourced launch dates (SBI today — honestly small, never padded).
   const launched = allMetadata()
     .filter((m) => m.launch_date)
@@ -100,6 +112,24 @@ export default async function DiscoverPage() {
               </div>
             ) : <Empty>No funds currently meet both the consistency and return bar.</Empty>}
             <p className="mt-2 text-[10.5px] text-ink-faint">Consistency = % of recent trading days with a non-negative NAV return. Paired with a real 3-month return so this doesn&rsquo;t just surface flat liquid/arbitrage funds.</p>
+          </section>
+
+          <section>
+            <SectionHeader eyebrow="shallowest 90-day drawdown · equity/hybrid · 3M return > +2%" title="Downside-resilient funds" />
+            {resilient.length ? (
+              <div className="space-y-2">
+                {resilient.map((f) => (
+                  <a key={f.code} href={`/fund/${f.code}`} className="glass block p-3 transition-colors hover:bg-white/[0.045]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[13px] font-medium text-ink">{f.name.replace(/ - (Direct|Regular).*/i, "")}</span>
+                      <Badge tone="pos">{f.maxdd90.toFixed(1)}% max dip</Badge>
+                    </div>
+                    <p className="mt-1 text-[11.5px] text-ink-faint">+{f.r3m.toFixed(1)}% over 3 months · {f.category}</p>
+                  </a>
+                ))}
+              </div>
+            ) : <Empty>No equity/hybrid funds currently combine a shallow drawdown with positive momentum.</Empty>}
+            <p className="mt-2 text-[10.5px] text-ink-faint">Max drawdown = deepest peak-to-trough fall in the last 90 days of real NAV history. A browsing angle for volatility-averse research — not a recommendation.</p>
           </section>
 
           <section>
