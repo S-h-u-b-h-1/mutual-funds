@@ -4,6 +4,7 @@ import { marketIntel } from "./lib/intel";
 import Nav from "./components/Nav";
 import Footer from "./components/Footer";
 import Search from "./components/Search";
+import HomepageClient from "./components/HomepageClient";
 import Tracker from "./components/Tracker";
 import Watchlist from "./components/Watchlist";
 import WatchlistIntelligence from "./components/WatchlistIntelligence";
@@ -177,89 +178,33 @@ export default async function Page() {
 
       <main className="container-px py-8 sm:py-10 space-y-8">
         
-        {/* PREMIUM TERMINAL HEADER */}
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between border-b border-line pb-6">
-          <div className="max-w-3xl space-y-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-accent-soft">
-                {greeting}, Analyst
-              </span>
-              <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-muted">
-                <span className={`h-2 w-2 rounded-full ${isMarketOpen ? "bg-pos animate-pulse" : "bg-ink-faint"}`} />
-                <span>Indian Markets {isMarketOpen ? "Open" : "Closed"} (IST)</span>
-              </div>
-            </div>
-            <h1 className="text-[32px] sm:text-[40px] font-bold tracking-tightest leading-[1.1] text-ink">
-              India&rsquo;s Explainable Mutual Fund Intelligence
-            </h1>
-            <p className="text-[15px] leading-relaxed text-ink-muted">
-              MF Pulse trace-explains every rating, benchmark correlation, and news impact down to its raw rules.
-              We build terminal-grade tools for wealth managers, advisors, and sophisticated long-term investors.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
-            <PremiumButton href="/categories" variant="ghost">Ecosystem Categories</PremiumButton>
-            <PremiumButton href="/performance">Top Performance Rankings</PremiumButton>
-          </div>
-        </div>
+        {/* Command Palette search workspace trigger */}
+        <div className="max-w-2xl mx-auto"><Search /></div>
 
-        {/* 4-COLUMN PRODUCT STORYTELLING BLOCK */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4.5 bg-white/[0.01] border border-line rounded-2xl p-5">
-          <div className="space-y-1">
-            <div className="text-[11.5px] font-bold text-accent-soft uppercase tracking-wider">01 / What It Is</div>
-            <h3 className="text-[14px] font-bold text-ink">Explainable Analytics</h3>
-            <p className="text-[12.5px] text-ink-muted leading-relaxed">
-              No black-box ratings. Every Health Score is mapped dynamically to clear sub-metrics and performance indicators.
-            </p>
-          </div>
-          <div className="space-y-1">
-            <div className="text-[11.5px] font-bold text-accent-soft uppercase tracking-wider">02 / Why It Exists</div>
-            <h3 className="text-[14px] font-bold text-ink">Contextual Insight</h3>
-            <p className="text-[12.5px] text-ink-muted leading-relaxed">
-              Standard tools show raw returns. We explain *why* a fund outpaced its category or lagged its benchmark.
-            </p>
-          </div>
-          <div className="space-y-1">
-            <div className="text-[11.5px] font-bold text-accent-soft uppercase tracking-wider">03 / Who It Is For</div>
-            <h3 className="text-[14px] font-bold text-ink">Sophisticated Research</h3>
-            <p className="text-[12.5px] text-ink-muted leading-relaxed">
-              Tailored for wealth managers, family offices, and advisors seeking independent, auditable data validation.
-            </p>
-          </div>
-          <div className="space-y-1">
-            <div className="text-[11.5px] font-bold text-accent-soft uppercase tracking-wider">04 / How To Start</div>
-            <h3 className="text-[14px] font-bold text-ink">Global Search</h3>
-            <p className="text-[12.5px] text-ink-muted leading-relaxed">
-              Use <kbd className="rounded border border-line px-1 text-[11px] font-mono">⌘K</kbd> to find any fund, benchmark, or manager, or review signals below.
-            </p>
-          </div>
-        </div>
-
-        {/* TODAY'S BIGGEST MOVER & HIGHLIGHT STRIP */}
-        {biggestMover && (
-          <div className="glass p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 border-l-accent bg-white/[0.015]">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-ink-faint">Daily Market Gated Highlight</span>
-              <h4 className="text-[14.5px] font-semibold text-ink">
-                Biggest NAV Mover: <a href={`/fund/${biggestMover.code}`} className="text-accent-soft hover:underline font-bold">{biggestMover.name.replace(/ - (Direct|Regular).*/i, "")}</a>
-              </h4>
-              <p className="text-[12px] text-ink-muted">
-                This fund moved <span className={biggestMover.isGainer ? "text-pos font-bold" : "text-neg font-bold"}>{biggestMover.isGainer ? "+" : ""}{biggestMover.r1d.toFixed(2)}%</span> in the last trading session under category {biggestMover.category}.
-              </p>
-            </div>
-            <a
-              href={`/fund/${biggestMover.code}`}
-              className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-accent-soft hover:text-ink transition-colors self-start md:self-auto shrink-0"
-            >
-              <span>Examine Mover Analytics</span>
-              <span className="text-[14px]">→</span>
-            </a>
-          </div>
-        )}
-
-        {/* Market Terminal */}
-        <MarketTerminal data={marketTerminal} />
+        <HomepageClient
+          byClass={byClass}
+          amcSummary={amcSummary}
+          headline={headline}
+          amcFlows={amcFlows}
+          signals={signals}
+          flowHistory={flowHistory}
+          newsHeadlines={newsHeadlines}
+          marketTerminal={marketTerminal}
+          totalSchemes={totalSchemes}
+          realAmcCount={realAmcCount}
+          realBenchmarkCount={realBenchmarkCount}
+          amcDeltas={amcDeltas}
+          leaderboard={leaderboard}
+          networkNodes={networkNodes}
+          stats={stats}
+          greeting={greeting}
+          isMarketOpen={isMarketOpen}
+          biggestMover={biggestMover}
+          daily={daily}
+          enrichedHeadlines={enrichedHeadlines}
+          performance={performance}
+          intel={intel}
+        />
 
         {/* Dynamic 3D Universe Graph */}
         <div className="rounded-2xl border border-line bg-white/[0.015] p-4 sm:p-5">
@@ -273,200 +218,7 @@ export default async function Page() {
           />
         </div>
 
-        <GuidedJourney />
-        {/* Personal-before-market (Personal Operating System sprint, Phase 1): for a returning
-            visitor with a watchlist, their own funds and what changed on them render before any
-            market-wide content — the mission's "what changed FOR ME" ordering. Both components
-            return null with no watchlist, so a first-time visitor sees market content first,
-            unchanged from before. */}
-        <Watchlist amcDeltas={amcDeltas} />
-        <WatchlistIntelligence />
-        <RecentActivity />
-
-        {/* Market summary strip */}
-        <div className="mt-6"><StatStrip items={stats} /></div>
-
-        {/* What changed today — REAL 1-day NAV moves, answers "what changed since yesterday" first */}
-        <section className="mt-6">
-          <SectionHeader
-            eyebrow={`1-day NAV moves · ${daily.advancers} up / ${daily.decliners} down · breadth ${daily.breadth1d}%`}
-            title="What deserves attention today"
-            action={<Badge tone={daily.breadth1d >= 50 ? "pos" : "neg"} dot>{(daily.industry?.riskRegime || "").toLowerCase() || (daily.breadth1d >= 50 ? "risk-on" : "risk-off")}</Badge>}
-          />
-          {daily.insights.length > 0 && (
-            <div className="mb-3 grid gap-2 sm:grid-cols-2">
-              {daily.insights.map((i, k) => <div key={k} className="glass p-3 text-[13px] text-ink-muted"><span className="text-accent-soft">▸</span> {i.summary}</div>)}
-            </div>
-          )}
-          {/* Why it matters — deterministic explanation engine (metric · prev → curr) */}
-          {daily.explained.length > 0 && (
-            <div className="mb-4 grid gap-2.5 sm:grid-cols-2">
-              {daily.explained.map((i, k) => (
-                <a key={k} href={`/fund/${i.entity_id}`} className="glass p-3.5 transition-colors hover:bg-white/[0.04]">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-[13px] font-medium text-ink">{i.title}</span>
-                    <Badge tone={i.severity === "caution" ? "warn" : "pos"}>{i.value}</Badge>
-                  </div>
-                  <p className="mt-1 text-[12px] leading-relaxed text-ink-muted">{i.why} {i.care}</p>
-                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-ink-faint"><span className="text-ink-muted">Context:</span> {i.context}</p>
-                  <p className="mt-1 text-[10.5px] tnum text-ink-faint">{i.metric}: {i.previous_value} → {i.current_value} · attention {i.attentionScore}/100</p>
-                </a>
-              ))}
-            </div>
-          )}
-          {daily.explained.length > 0 && (
-            <div className="mb-4 text-right">
-              <a href="/dashboard" className="text-[11.5px] text-ink-faint transition-colors hover:text-ink">
-                Open your full research queue, history &amp; saved comparisons →
-              </a>
-            </div>
-          )}
-          {daily.industry && (
-            <div className="mb-4 rounded-lg border border-line bg-white/[0.02] px-4 py-3">
-              <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">Industry intelligence · {daily.industry.riskRegime}</div>
-              <ul className="space-y-1 text-[12.5px] text-ink-muted">
-                {daily.industry.statements.map((s, k) => <li key={k}><span className="text-accent-soft">›</span> {s}</li>)}
-              </ul>
-            </div>
-          )}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div>
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-pos">Today&rsquo;s gainers</div>
-              <DataTable columns={dailyCol} rows={daily.gainers.map((f) => ({ ...f, _key: f.code }))} />
-            </div>
-            <div>
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-neg">Today&rsquo;s fallers</div>
-              <DataTable columns={dailyCol} rows={daily.fallers.map((f) => ({ ...f, _key: f.code }))} />
-            </div>
-          </div>
-          <p className="mt-2 text-[11px] text-ink-faint">1-day NAV return, equity Growth funds · today&rsquo;s top fund (30d): {daily.topFund?.name?.replace(/ - (Direct|Regular).*/i, "")} · source AMFI, {daily.asOf}.</p>
-        </section>
-
-        {/* Market News Pulse — REAL ingested news, rule-based market-relevance links */}
-        <section className="mt-9">
-          <MarketNewsPulse articles={enrichedHeadlines} />
-        </section>
-
-        {/* Performance pulse — REAL data leads the page */}
-        <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <GlassPanel className="lg:col-span-2 p-5 sm:p-6">
-            <SectionHeader eyebrow={`auto-generated · as of ${performance.asOf}`} title="What the data says" action={<Badge tone="pos" dot>real</Badge>} />
-            <ul className="space-y-3">
-              {performance.insights.map((t, i) => (
-                <li key={i} className="text-[13.5px] leading-relaxed text-ink-muted"><span className="text-accent-soft">▸</span> {t}</li>
-              ))}
-            </ul>
-          </GlassPanel>
-          <GlassPanel className="p-5 sm:p-6">
-            <SectionHeader title="Top performers · 1M" action={<a className="hover:text-ink" href="/performance">All →</a>} />
-            <ul className="space-y-3">
-              {performance.top.slice(0, 5).map((f) => (
-                <li key={f.code} className="flex items-center justify-between gap-3 text-[12.5px]">
-                  <a className="truncate text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(f.amc + " Mutual Fund")}`}>{f.name.replace(/ - (Direct|Regular).*/i, "")}</a>
-                  <span className="shrink-0 font-semibold tnum text-pos">+{f.r1m.toFixed(1)}%</span>
-                </li>
-              ))}
-            </ul>
-          </GlassPanel>
-        </div>
-
-        {/* Search */}
-        <div className="mt-6"><Search /></div>
-
-        {/* Market intelligence — REAL 30-day equity index, no sample */}
-        <section className="mt-9">
-          <SectionHeader eyebrow="30-day equity index · real AMFI NAV history" title="What changed in the market this month?" action={<Badge tone="pos" dot>live data</Badge>} />
-          <StatStrip
-            items={[
-              { label: "30d momentum", value: `${intel.avg >= 0 ? "+" : ""}${intel.avg.toFixed(2)}`, tone: intel.avg >= 0 ? "pos" : "neg", sub: "avg index Δ" },
-              { label: "Breadth", value: `${intel.positive}/${intel.n}`, sub: `${(intel.breadth * 100).toFixed(0)}% positive` },
-              { label: "Dispersion", value: intel.dispersion.toFixed(1), sub: "gain−loss range" },
-              { label: "Volatility", value: intel.stdev.toFixed(2), sub: "std dev of Δ" },
-              { label: "Best", value: `+${intel.gainers[0]?.change.toFixed(1)}`, tone: "pos", sub: intel.gainers[0]?.name },
-              { label: "Worst", value: intel.losers[0]?.change.toFixed(1), tone: "neg", sub: intel.losers[0]?.name },
-            ]}
-          />
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-pos">Top gainers</div>
-              <DataTable columns={moverCol("AMC")} rows={intel.gainers.map((r) => ({ ...r, _key: r.amc }))} />
-            </div>
-            <div>
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-neg">Top laggards</div>
-              <DataTable columns={moverCol("AMC")} rows={intel.losers.map((r) => ({ ...r, _key: r.amc }))} />
-            </div>
-          </div>
-
-          {/* Category rotation — real 1M-vs-3M rank movement, previously computed but unsurfaced */}
-          {daily.categoryRotation?.length > 0 && (
-            <div className="mt-5 border-t border-line pt-4">
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">Category rotation · 1M rank vs 3M rank</div>
-              <div className="flex flex-wrap gap-2">
-                {daily.categoryRotation.map((c) => (
-                  <a
-                    key={c.name}
-                    href={`/categories/${encodeURIComponent(c.name)}`}
-                    className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-[12px] text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
-                  >
-                    <span>{c.name}</span>
-                    <span className={c.rank_change > 0 ? "text-pos tnum font-semibold" : c.rank_change < 0 ? "text-neg tnum font-semibold" : "text-ink-faint tnum"}>
-                      {c.rank_change === 0 ? "–" : `${c.rank_change > 0 ? "↑" : "↓"}${Math.abs(c.rank_change)}`}
-                    </span>
-                  </a>
-                ))}
-              </div>
-              <p className="mt-2 text-[11px] text-ink-faint">Rank change = 1-month category rank minus 3-month rank, by avg NAV return · ↑ improving, ↓ weakening.</p>
-            </div>
-          )}
-        </section>
-
-        {/* AMC quality leaders — REAL */}
-        <section className="mt-9">
-          <SectionHeader eyebrow="% of funds beating category median · 1M" title="Which AMCs deserve attention?" action={<a className="hover:text-ink" href="/performance">Full ranking →</a>} />
-          <DataTable columns={amcCols} rows={performance.amcs.slice(0, 6).map((r, i) => ({ ...r, _key: r.amc, _rank: i + 1 }))} footnote="Quality score blends outperformance, breadth, and average return. Real AMFI NAV, last month." />
-        </section>
-
-        {/* Sample flow zone — clearly quarantined, awaiting authoritative SEBI data. Collapsed by
-            default: not yet decision-grade, so it shouldn't compete with real intelligence above. */}
-        <section className="mt-9">
-          <details className="group">
-            {/* <summary> only permits phrasing content (+ an optional leading heading) per the
-                HTML5 spec — the full SectionHeader (with its div/h2 wrappers) renders just below
-                the summary line instead, inside the disclosure body, not nested inside it. */}
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-              <span>Fund flows (sample) · illustrative sample, awaiting SEBI export</span>
-              <span className="shrink-0 text-ink-faint transition-transform group-open:rotate-180">▾</span>
-            </summary>
-            <SectionHeader title="Fund flows (sample)" action={<Badge tone="warn">sample</Badge>} />
-            <GlassPanel className="p-5 sm:p-6"><FlowHeatmap rows={flowHistory} assetClass="Equity" /></GlassPanel>
-            <GlassPanel className="mt-4 p-5 sm:p-6">
-              <div className="mb-3 text-[12px] text-ink-faint">Capital-allocation network · AMC → category (illustrative)</div>
-              <HeroVisual nodes={networkNodes} />
-            </GlassPanel>
-          </details>
-        </section>
-
-        {/* Signals */}
-        {signals.length > 0 && (
-          <section className="mt-9">
-            <SectionHeader eyebrow="z-score ≥ 1.8" title="Flow signals" action={<a className="hover:text-ink" href="/signals">All →</a>} />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {signals.slice(0, 6).map((s, i) => (
-                <SignalCard key={i} amc={strip(s.amc_name)} assetClass={s.asset_class} signal={s.signal} z={Number(s.z_score).toFixed(1)} value={inr(s.net_flow_cr)} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* AMC leaderboard */}
-        <section className="mt-9">
-          <SectionHeader eyebrow="sortable · click any header" title="AMC leaderboard" action={<a className="hover:text-ink" href="/compare">Compare →</a>} />
-          <Leaderboard rows={leaderboard} />
-        </section>
-
-        {/* Why investors use MF Pulse (beta-readiness Phase 7) — the differentiation, stated as
-            three verifiable claims with proof links, not marketing copy. Each claim links to the
-            page that demonstrates it. */}
+        {/* Why investors use MF Pulse */}
         <section className="mt-9">
           <SectionHeader eyebrow="not another screener" title="Why investors use MF Pulse" />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
