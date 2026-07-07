@@ -18,6 +18,21 @@ export default function Search() {
   const [popular, setPopular] = useState([]);
   const timer = useRef(null);
   const reqId = useRef(0); // guards against a slower earlier response overwriting a faster later one
+  const inputRef = useRef(null);
+
+  // "/" focuses search from anywhere on the page (the shortcut every daily-research tool
+  // trains into muscle memory) — ignored while already typing in any field.
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = document.activeElement;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     setRecent(getRecentSearches(6));
@@ -62,8 +77,9 @@ export default function Search() {
   return (
     <div className="relative">
       <input
+        ref={inputRef}
         className="w-full rounded-2xl border border-line-strong bg-white/[0.03] py-3.5 pl-12 pr-4 text-[15px] text-ink placeholder:text-ink-faint outline-none transition-shadow focus:border-accent focus:ring-4 focus:ring-accent/15"
-        placeholder="Search by fund, AMC, category, benchmark, manager, ISIN, or scheme code…"
+        placeholder="Search by fund, AMC, category, benchmark, manager, ISIN, or scheme code…  ( / )"
         value={q}
         onChange={(e) => { setQ(e.target.value); fetchResults(e.target.value); }}
         onFocus={() => setOpen(true)}
