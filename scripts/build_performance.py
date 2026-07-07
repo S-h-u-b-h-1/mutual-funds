@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 import urllib.request
 from datetime import date, datetime, timedelta
 from statistics import mean, median, pstdev
@@ -49,21 +50,34 @@ def clean_category(cat):
 
 
 def _fetch_window(frm, to):
-    req = urllib.request.Request(f"{REPORT}?frmdt={frm:%d-%b-%Y}&todt={to:%d-%b-%Y}", headers={"User-Agent": "mfpulse/1.0"})
-    out = {}
-    with urllib.request.urlopen(req, timeout=240) as r:
-        for raw in r.read().decode("utf-8", errors="replace").splitlines():
-            p = raw.strip().split(";")
-            if len(p) < 8 or not p[0].strip().isdigit():
-                continue
-            try:
-                nav = float(p[4].strip().replace(",", ""))
-                d = datetime.strptime(p[7].strip(), "%d-%b-%Y").date()
-            except ValueError:
-                continue
-            if nav > 0:
-                out.setdefault(p[0].strip(), {})[d] = nav
-    return out
+    # Retry up to 4 times on transient errors or AMFI rate limit responses
+    for attempt in range(4):
+        req = urllib.request.Request(f"{REPORT}?frmdt={frm:%d-%b-%Y}&todt={to:%d-%b-%Y}", headers={"User-Agent": "mfpulse/1.0"})
+        try:
+            time.sleep(1.5)  # Be polite to the AMFI endpoint to prevent rate limiting
+            with urllib.request.urlopen(req, timeout=120) as r:
+                content = r.read().decode("utf-8", errors="replace")
+                if "Please Select Date Range" in content:
+                    print(f"AMFI warning returned for {frm} to {to} (attempt {attempt+1}/4). Retrying in 4s...", file=sys.stderr)
+                    time.sleep(4)
+                    continue
+                out = {}
+                for raw in content.splitlines():
+                    p = raw.strip().split(";")
+                    if len(p) < 8 or not p[0].strip().isdigit():
+                        continue
+                    try:
+                        nav = float(p[4].strip().replace(",", ""))
+                        d = datetime.strptime(p[7].strip(), "%d-%b-%Y").date()
+                    except ValueError:
+                        continue
+                    if nav > 0:
+                        out.setdefault(p[0].strip(), {})[d] = nav
+                return out
+        except Exception as e:
+            print(f"AMFI fetch error for {frm} to {to}: {e} (attempt {attempt+1}/4). Retrying in 4s...", file=sys.stderr)
+            time.sleep(4)
+    return {}
 
 
 def fetch_series(asof, days):
