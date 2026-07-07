@@ -1,0 +1,1023 @@
+"use client";
+import { useState, useEffect, useRef, useMemo } from "react";
+import NavChart from "./NavChart";
+import VolatilityChart from "./VolatilityChart";
+import GlassPanel from "./ui/GlassPanel";
+import Badge from "./ui/Badge";
+import WatchButton from "./WatchButton";
+import ResearchNotes from "./ResearchNotes";
+import MetricTooltip from "./ui/MetricTooltip";
+import SectionHeader from "./ui/SectionHeader";
+import { track } from "../lib/track";
+
+// Helper components of Design System 2.0
+function WorkspaceCard({ title, subtitle, action, children, id, collapsedDefault = false }) {
+  const [collapsed, setCollapsed] = useState(collapsedDefault);
+  return (
+    <div id={id} className="scroll-mt-24 rounded-2xl border border-line-strong bg-white/[0.015] p-5 sm:p-6 shadow-sm hover:border-white/10 transition-all">
+      <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/[0.05]">
+        <div>
+          <h3 className="text-[14.5px] font-bold text-ink tracking-tight">{title}</h3>
+          {subtitle && <p className="text-[11px] text-ink-faint mt-0.5">{subtitle}</p>}
+        </div>
+        <div className="flex items-center gap-3">
+          {action}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="text-[11px] font-mono text-ink-faint hover:text-ink-muted transition-colors px-2 py-0.5 bg-white/[0.04] rounded"
+          >
+            {collapsed ? "Expand" : "Collapse"}
+          </button>
+        </div>
+      </div>
+      {!collapsed && <div className="transition-all animate-fade-in">{children}</div>}
+    </div>
+  );
+}
+
+function MetricTile({ label, value, sub, tone, tooltip }) {
+  return (
+    <div className="rounded-xl border border-line bg-white/[0.01] px-4 py-3 hover:bg-white/[0.03] transition-colors relative group">
+      <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-ink-faint">
+        <span>{label}</span>
+        {tooltip && <MetricTooltip>{tooltip}</MetricTooltip>}
+      </div>
+      <div className={`mt-1.5 text-[22px] font-bold tnum tracking-tight ${
+        tone === "pos" ? "text-pos" : tone === "neg" ? "text-neg" : tone === "warn" ? "text-warn" : "text-ink"
+      }`}>
+        {value}
+      </div>
+      {sub && <div className="text-[10.5px] text-ink-faint mt-0.5 truncate">{sub}</div>}
+    </div>
+  );
+}
+
+export default function FundPageClient({
+  fund, cohort, history, sig, rets, bench, meta, port, health, notice, fTone, fLabel,
+  sharpe, sortino, riskStats, calReturns, rollReturns, comparisons, relatedNews,
+  priority, attentionReasons, completeness, readiness, aRank, asOf
+}) {
+  const [viewMode, setViewMode] = useState("workspace"); // "workspace" (tabbed) or "report" (scroll)
+  const [activeTab, setActiveTab] = useState("identity"); // tabs: identity, performance, risk, research, news, compare
+  const [days, setDays] = useState(91); // Shared range days state for NavChart & VolatilityChart
+  const [hoveredDate, setHoveredDate] = useState(null); // Shared date hover coordinate
+  const [onboardStep, setOnboardStep] = useState(null); // onboarding wizard step state (null = finished/hidden)
+  const [tableSortKey, setTableSortKey] = useState("window"); // Sorting for bench table
+  const [tableSortDesc, setTableSortDesc] = useState(false);
+
+  // IntersectionObserver to sync scroll position to TOC in full report mode
+  const [activeSection, setActiveSection] = useState("identity");
+  
+  useEffect(() => {
+    if (viewMode !== "report") return;
+    const sections = ["identity", "performance", "risk", "research", "news", "compare"];
+    const observers = sections.map((sec) => {
+      const el = document.getElementById(`sec-${sec}`);
+      if (!el) return null;
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setActiveSection(sec);
+          }
+        },
+        { threshold: 0.2, rootMargin: "-10% 0px -60% 0px" }
+      );
+      obs.observe(el);
+      return { obs, el };
+    });
+    return () => {
+      observers.forEach((o) => o?.obs.unobserve(o.el));
+    };
+  }, [viewMode]);
+
+  // First-run onboarding check
+  useEffect(() => {
+    const hasSeen = localStorage.getItem("mfp_onboarded_v2");
+    if (!hasSeen) {
+      setOnboardStep(1);
+    }
+  }, []);
+
+  const completeOnboarding = () => {
+    localStorage.setItem("mfp_onboarded_v2", "true");
+    setOnboardStep(null);
+    track("onboarding_completed", { scheme_code: fund.code });
+  };
+
+  const skipOnboarding = () => {
+    localStorage.setItem("mfp_onboarded_v2", "true");
+    setOnboardStep(null);
+    track("onboarding_skipped", { scheme_code: fund.code });
+  };
+
+  // Record workspace page visit
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("mfp_recent_visits");
+      let list = v ? JSON.parse(v) : [];
+      const match = list.findIndex((x) => x.code === fund.code);
+      if (match >= 0) list.splice(match, 1);
+      list.unshift({ code: fund.code, name: fund.name });
+      localStorage.setItem("mfp_recent_visits", JSON.stringify(list.slice(0, 10)));
+    } catch {}
+  }, [fund.code, fund.name]);
+
+  // Table Copy Value helper
+  const copyToClipboard = (text, label) => {
+    navigator.clipboard.writeText(text);
+    alert(`Copied ${label}: ${text}`);
+    track("value_copied", { label, text });
+  };
+
+  // Premium Health Score Ring details
+  const healthRingDashoffset = useMemo(() => {
+    if (!health) return 0;
+    const radius = 34;
+    const circumference = 2 * Math.PI * radius;
+    return circumference - (health.overall / 100) * circumference;
+  }, [health]);
+
+  // Professional Benchmarks Table Sort
+  const sortedBench = useMemo(() => {
+    if (!bench) return [];
+    const copy = [...bench];
+    if (tableSortKey === "window") return copy; // original window ordering
+    copy.sort((a, b) => {
+      let valA = a[tableSortKey] ?? 0;
+      let valB = b[tableSortKey] ?? 0;
+      return tableSortDesc ? valB - valA : valA - valB;
+    });
+    return copy;
+  }, [bench, tableSortKey, tableSortDesc]);
+
+  const toggleSort = (key) => {
+    if (tableSortKey === key) {
+      setTableSortDesc(!tableSortDesc);
+    } else {
+      setTableSortKey(key);
+      setTableSortDesc(true);
+    }
+  };
+
+  // Next.js static / dynamic actions list
+  const nextActionsItems = [
+    { label: `Similar funds in ${fund.category}`, href: `/categories/${encodeURIComponent(fund.category)}` },
+    { label: `View AMC: ${fund.amc}`, href: `/amc/${encodeURIComponent(fund.amc + " Mutual Fund")}` },
+    fund.benchmark && { label: `View benchmark: ${fund.benchmark}`, href: `/benchmark/${fund.benchmark}` },
+    { label: "See latest market news", href: "/news" },
+    { label: "Today's market brief", href: "/brief" }
+  ].filter(Boolean);
+
+  return (
+    <div className="container-px py-6 relative">
+      
+      {/* Onboarding Walkthrough Overlay */}
+      {onboardStep !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#0c0e16] p-6 shadow-2xl transition-spring">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.05]">
+              <span className="text-[10px] uppercase font-bold tracking-widest text-accent-soft">
+                Workspace Tour · Step {onboardStep} of 4
+              </span>
+              <button onClick={skipOnboarding} className="text-[11px] text-ink-faint hover:text-ink">
+                Skip
+              </button>
+            </div>
+            
+            <div className="mt-4">
+              {onboardStep === 1 && (
+                <div>
+                  <h4 className="text-[16px] font-bold text-white">Interactive Research Workspace</h4>
+                  <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
+                    We support both standard scrolling <strong>Full Reports</strong> and tabbed <strong>Decision Workspaces</strong>. Toggle between modes at the top right to filter details cleanly without endless scrolling.
+                  </p>
+                </div>
+              )}
+              {onboardStep === 2 && (
+                <div>
+                  <h4 className="text-[16px] font-bold text-white">Dynamic Health Score</h4>
+                  <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
+                    Blend of performance, risk, consistency, AMC standing, and factsheet data. The confidence score dynamically measures how much real verified data backed this analysis.
+                  </p>
+                </div>
+              )}
+              {onboardStep === 3 && (
+                <div>
+                  <h4 className="text-[16px] font-bold text-white">Synchronized Charts</h4>
+                  <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
+                    Hovering or sliding across any chart automatically aligns the cursor and dates on the other chart. You see risk and price at the exact same point in time.
+                  </p>
+                </div>
+              )}
+              {onboardStep === 4 && (
+                <div>
+                  <h4 className="text-[16px] font-bold text-white">Private Research Notes</h4>
+                  <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
+                    Your observations are saved locally to this specific browser. Write notes, pin pages, or check data quality scores as you navigate the platform.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex items-center justify-between pt-4 border-t border-white/[0.05]">
+              {onboardStep > 1 ? (
+                <button
+                  onClick={() => setOnboardStep(onboardStep - 1)}
+                  className="rounded-lg bg-white/[0.04] px-3.5 py-1.5 text-[12.5px] font-semibold text-ink-muted hover:bg-white/[0.08]"
+                >
+                  Back
+                </button>
+              ) : (
+                <div />
+              )}
+              {onboardStep < 4 ? (
+                <button
+                  onClick={() => setOnboardStep(onboardStep + 1)}
+                  className="rounded-lg bg-accent px-4 py-1.5 text-[12.5px] font-semibold text-white hover:bg-accent/80 transition-colors"
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  onClick={completeOnboarding}
+                  className="rounded-lg bg-pos px-4 py-1.5 text-[12.5px] font-semibold text-[#090b11] hover:opacity-90 transition-opacity"
+                >
+                  Let's Go!
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header Breadcrumbs */}
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint flex flex-wrap items-center gap-1.5 mb-2.5">
+        <span>Workspace</span>
+        <span>/</span>
+        <span>Funds</span>
+        <span>/</span>
+        <a href={`/amc/${encodeURIComponent(fund.amc + " Mutual Fund")}`} className="hover:text-ink">{fund.amc.replace(" Mutual Fund", "")}</a>
+        <span>/</span>
+        <span className="text-ink-muted truncate">{fund.name.replace(/ - (Direct|Regular).*/i, "")}</span>
+      </div>
+
+      {/* Pinned Metrics Floating Sub-header */}
+      <div className="sticky top-0 z-30 -mx-4 px-4 py-3 bg-[#06080f]/90 border-b border-line-strong backdrop-blur flex items-center justify-between gap-4 mb-6 transition-all">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-[14px] font-bold text-ink truncate">{fund.name.replace(/ - (Direct|Regular).*/i, "")}</h2>
+            <Badge>{fund.plan}</Badge>
+          </div>
+          <p className="text-[11px] text-ink-faint truncate hidden sm:block">{fund.amc} · {fund.category}</p>
+        </div>
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="text-right">
+            <span className="text-[10px] text-ink-faint uppercase font-bold block">NAV</span>
+            <span className="text-[14.5px] font-bold font-mono text-ink">₹{fund.nav != null ? fund.nav.toFixed(2) : "—"}</span>
+          </div>
+          {health && (
+            <div className="text-right hidden sm:block">
+              <span className="text-[10px] text-ink-faint uppercase font-bold block">Health</span>
+              <span className={`text-[14.5px] font-bold ${
+                gradeTone(health.grade) === "pos" ? "text-pos" : gradeTone(health.grade) === "warn" ? "text-warn" : "text-neg"
+              }`}>{health.overall} · {health.grade}</span>
+            </div>
+          )}
+          <WatchButton code={fund.code} name={fund.name.replace(/ - (Direct|Regular).*/i, "")} amc={fund.amc} />
+        </div>
+      </div>
+
+      {/* Main Grid: Left Side Workspace Sidebar / Right Side Workspace Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* LEFT COLUMN: Research Sidebar */}
+        <aside className="lg:col-span-3 lg:sticky lg:top-20 space-y-5">
+          
+          {/* Workspace / Scroll Navigation Selector */}
+          <div className="rounded-xl border border-line bg-white/[0.015] p-3 space-y-2">
+            <div className="text-[9.5px] uppercase font-bold tracking-widest text-ink-faint px-2">
+              Viewing Mode
+            </div>
+            <div className="grid grid-cols-2 gap-1">
+              <button
+                onClick={() => setViewMode("workspace")}
+                className={`py-1.5 rounded-lg text-[12.5px] font-semibold transition-all ${
+                  viewMode === "workspace" ? "bg-white/[0.08] text-ink" : "text-ink-faint hover:text-ink-muted"
+                }`}
+              >
+                Decision Tabs
+              </button>
+              <button
+                onClick={() => setViewMode("report")}
+                className={`py-1.5 rounded-lg text-[12.5px] font-semibold transition-all ${
+                  viewMode === "report" ? "bg-white/[0.08] text-ink" : "text-ink-faint hover:text-ink-muted"
+                }`}
+              >
+                Full Report
+              </button>
+            </div>
+          </div>
+
+          {/* Table of Contents / Jump Navigation */}
+          <div className="rounded-xl border border-line bg-white/[0.015] p-3">
+            <div className="text-[9.5px] uppercase font-bold tracking-widest text-ink-faint px-2 mb-2">
+              Sections Table
+            </div>
+            <nav className="space-y-0.5">
+              {[
+                { key: "identity", label: "Identity & Rationale" },
+                { key: "performance", label: "Performance & NAV" },
+                { key: "risk", label: "Risk & Portfolio" },
+                { key: "research", label: "Research readiness" },
+                { key: "news", label: "News & Documents" },
+                { key: "compare", label: "Compare & Actions" }
+              ].map((s) => {
+                const isActive = viewMode === "workspace" ? activeTab === s.key : activeSection === s.key;
+                return (
+                  <button
+                    key={s.key}
+                    onClick={() => {
+                      if (viewMode === "workspace") {
+                        setActiveTab(s.key);
+                        track("workspace_tab_changed", { tab: s.key, code: fund.code });
+                      } else {
+                        const target = document.getElementById(`sec-${s.key}`);
+                        target?.scrollIntoView({ behavior: "smooth" });
+                      }
+                    }}
+                    className={`w-full text-left rounded-lg px-2.5 py-1.5 text-[12.5px] font-semibold transition-all flex items-center justify-between ${
+                      isActive ? "bg-accent/10 text-accent-soft border-l-2 border-accent" : "text-ink-faint hover:bg-white/[0.02] hover:text-ink-muted"
+                    }`}
+                  >
+                    <span>{s.label}</span>
+                    {viewMode === "workspace" && activeTab === s.key && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent-soft" />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Collapsible Action Widgets */}
+          <div className="rounded-xl border border-line bg-white/[0.015] p-3 text-[12px] space-y-2">
+            <div className="text-[9.5px] uppercase font-bold tracking-widest text-ink-faint px-2">
+              Workspace Actions
+            </div>
+            <button
+              onClick={() => copyToClipboard(fund.code, "Scheme Code")}
+              className="w-full text-left rounded-lg px-2.5 py-1.5 text-ink-muted hover:bg-white/[0.03] transition-colors flex items-center justify-between"
+            >
+              <span>Copy Scheme Code</span>
+              <span className="font-mono text-[10.5px] text-ink-faint">{fund.code}</span>
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="w-full text-left rounded-lg px-2.5 py-1.5 text-ink-muted hover:bg-white/[0.03] transition-colors"
+            >
+              Print Research PDF
+            </button>
+            <button
+              onClick={() => setOnboardStep(1)}
+              className="w-full text-left rounded-lg px-2.5 py-1.5 text-accent-soft hover:bg-accent/5 transition-colors"
+            >
+              Re-run Onboarding Tour
+            </button>
+          </div>
+
+        </aside>
+
+        {/* RIGHT COLUMN: Main Research Contents */}
+        <main className="lg:col-span-9 space-y-6">
+          
+          {/* NOTICE WARNING BOARD */}
+          {notice && (
+            <div className="rounded-xl border border-line bg-white/[0.02] px-4 py-3 text-[12.5px] text-ink-muted animate-fade-in">
+              <span className="font-semibold text-ink">{notice[0]}.</span> {notice[1]}
+            </div>
+          )}
+
+          {fund.isIdcw && (
+            <div className="rounded-xl border border-warn/30 bg-warn/[0.04] px-4 py-3 text-[12.5px] text-warn">
+              <strong>IDCW (Dividend) Plan</strong> — NAV returns shown are distorted by cash pay-outs. Compare using Growth option.
+            </div>
+          )}
+
+          {/* TAB CONTENT: IDENTITY */}
+          {(viewMode === "workspace" ? activeTab === "identity" : true) && (
+            <section id="sec-identity" className="scroll-mt-24 space-y-6 animate-fade-in">
+              
+              {/* Executive Summary */}
+              <WorkspaceCard title="Executive Summary" subtitle="Plain text analysis computed directly from NAV trends">
+                <p className="text-[13.5px] leading-relaxed text-ink-muted">
+                  {fund.name.replace(/ - (Direct|Regular).*/i, "")} is a <strong>{fund.category}</strong> plan managed by <strong>{fund.amc}</strong>. {cohort ? `It is benchmarked against ${fund.benchmark || "category standards"} and ranked against a cohort of ${cohort.count} peer funds.` : ""}
+                </p>
+                <div className="mt-4 p-4 rounded-xl border border-line bg-white/[0.015] text-[13px] leading-relaxed text-ink-muted">
+                  {researchSummary(fund, cohort)}
+                </div>
+              </WorkspaceCard>
+
+              {/* Dynamic Health Score Ring & Ratios */}
+              {health && (
+                <WorkspaceCard
+                  title="Dynamic Health Diagnostics"
+                  subtitle="Dynamically updated using recent AMFI daily NAV history"
+                  action={
+                    <Badge tone={gradeTone(health.grade) === "pos" ? "pos" : gradeTone(health.grade) === "warn" ? "warn" : "neg"}>
+                      Grade {health.grade}
+                    </Badge>
+                  }
+                >
+                  <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+                    
+                    {/* Ring gauge */}
+                    <div className="flex items-center gap-5">
+                      <div className="relative h-20 w-20 shrink-0">
+                        <svg className="h-full w-full -rotate-90" viewBox="0 0 80 80">
+                          <circle cx="40" cy="40" r="34" className="stroke-white/[0.05]" strokeWidth="6" fill="none" />
+                          <circle
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            className={`transition-all duration-1000 ${
+                              gradeTone(health.grade) === "pos" ? "stroke-pos" : gradeTone(health.grade) === "warn" ? "stroke-warn" : "stroke-neg"
+                            }`}
+                            strokeWidth="6"
+                            fill="none"
+                            strokeDasharray={`${2 * Math.PI * 34}`}
+                            strokeDashoffset={healthRingDashoffset}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 grid place-items-center text-[18px] font-bold text-white font-mono">
+                          {health.overall}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] uppercase tracking-wider text-ink-faint">Overall Diagnostics</div>
+                        <div className="text-[20px] font-bold text-white leading-tight font-mono">{health.overall}<span className="text-[12px] text-ink-faint">/100</span></div>
+                        <div className="text-[11px] text-ink-faint mt-0.5">{health.confidence} confidence ratio</div>
+                      </div>
+                    </div>
+
+                    {/* Breakdown bars */}
+                    <div className="grid flex-1 grid-cols-2 gap-x-5 gap-y-2 sm:grid-cols-3 border-t sm:border-t-0 sm:border-l border-white/[0.06] pt-4 sm:pt-0 sm:pl-5">
+                      {health.breakdown.map((b) => (
+                        <div key={b.key}>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-ink-faint truncate">
+                              {b.key === "categoryRank" ? "Category Rank" : b.key === "dataQuality" ? "Data Quality" : b.key.charAt(0).toUpperCase() + b.key.slice(1)}
+                            </span>
+                            <span className="font-mono text-ink-muted">{b.score}</span>
+                          </div>
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                            <div className="h-full rounded-full bg-accent-soft" style={{ width: `${b.score}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                  </div>
+
+                  <p className="mt-4 border-t border-line pt-3.5 text-[12.5px] leading-relaxed text-ink-muted">
+                    {health.explanation}
+                  </p>
+                </WorkspaceCard>
+              )}
+
+              {/* Research Priority Score & Suggested Action */}
+              {(priority || attentionReasons.length > 0) && (
+                <WorkspaceCard
+                  title="Why This Fund Deserves Attention"
+                  subtitle="Flags recent rank-movements, news impact, and standing"
+                  action={priority ? <Badge tone={TIER_TONE[priority.tier]}>{priority.tier} Priority</Badge> : null}
+                >
+                  {priority && (
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.05] pb-4">
+                      <div className="flex items-center gap-4">
+                        <div className="text-[32px] font-black tnum text-white leading-none font-mono">
+                          {priority.score}
+                          <span className="text-[13px] text-ink-faint font-normal font-sans">/100</span>
+                        </div>
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wider text-ink-faint">Research Priority Score</div>
+                          <div className="text-[11px] text-ink-muted">
+                            Confidence Index: <span className="font-semibold text-accent-soft">{priority.coverage}/4 parameters</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Suggested actions block */}
+                      <div className="rounded-xl border border-line bg-white/[0.03] px-3.5 py-2">
+                        <span className="text-[9.5px] uppercase font-bold tracking-wider text-ink-faint block">Suggested Action</span>
+                        <span className="text-[12.5px] font-bold text-accent-soft mt-0.5 block">
+                          {priority.score >= 70 ? "Investigate AMC Overlaps" : priority.score >= 40 ? "Monitor Return Spreads" : "Maintain Watchlist Monitor"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {attentionReasons.length > 0 ? (
+                    <div className="space-y-3">
+                      {attentionReasons.map((r, i) => (
+                        <div key={i} className="border-b border-white/[0.04] pb-3 last:border-0 last:pb-0">
+                          <div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-accent-soft">{r.metric}</div>
+                          <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">{r.detail}</p>
+                          <p className="mt-1 text-[10.5px] text-ink-faint font-semibold">Source: {r.source} · as of {r.timestamp || "—"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[12.5px] text-ink-faint">No qualifying research-worthy signals flagged.</p>
+                  )}
+
+                  {priority && <p className="mt-3.5 border-t border-line pt-3 text-[11px] leading-relaxed text-ink-faint">{priority.explanation}</p>}
+                </WorkspaceCard>
+              )}
+
+            </section>
+          )}
+
+          {/* TAB CONTENT: PERFORMANCE */}
+          {(viewMode === "workspace" ? activeTab === "performance" : true) && (
+            <section id="sec-performance" className="scroll-mt-24 space-y-6 animate-fade-in">
+              
+              {/* Return Metrics Cards */}
+              <WorkspaceCard title="Point-to-Point Returns" subtitle="Annualised for periods exceeding 1 year">
+                {rets.length ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {rets.map(([l, v, s]) => (
+                      <div key={l} className="rounded-xl border border-line bg-white/[0.015] px-3.5 py-3 hover:bg-white/[0.03] transition-all">
+                        <div className="text-[10.5px] uppercase tracking-wider text-ink-faint flex items-center gap-1.5">
+                          <span>{l}</span>
+                          {s && <span className="text-[9.5px] lowercase text-ink-faint">({s})</span>}
+                        </div>
+                        <div className={`mt-1.5 text-[20px] font-bold tnum font-mono ${v >= 0 ? "text-pos" : "text-neg"}`}>
+                          {v >= 0 ? "+" : ""}{v.toFixed(2)}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-line bg-white/[0.01] px-4 py-3 text-[12.5px] text-ink-faint">
+                    Insufficient historical data to compute returns.
+                  </div>
+                )}
+
+                {fund.catRank && (
+                  <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1.5 text-[12.5px] text-ink-muted border-t border-white/[0.04] pt-3">
+                    <span>Category Rank: <strong className="text-white font-mono">#{fund.catRank}</strong> of {fund.catSize}</span>
+                    <span className="text-white/20">·</span>
+                    <span>Category Percentile: <strong className="text-white font-mono">{fund.catPct}%</strong></span>
+                    <span className="text-white/20">·</span>
+                    {fund.trend != null && (
+                      <span>Trend Index: <strong className="text-white font-mono">{fund.trend}/100</strong> ({fund.trend >= 60 ? "Improving" : fund.trend <= 40 ? "Weakening" : "Steady"})</span>
+                    )}
+                  </div>
+                )}
+              </WorkspaceCard>
+
+              {/* Synced NAV Trend and Volatility Charts */}
+              <WorkspaceCard
+                title="Synchronized Market Analytics"
+                subtitle="Crosshairs and metrics update simultaneously across price and risk"
+                action={
+                  <div className="text-[11px] text-accent-soft font-bold flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-accent-soft animate-pulse" />
+                    TradingView Synced Mode
+                  </div>
+                }
+              >
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-[12px] font-bold uppercase tracking-wider text-ink-faint mb-2">Net Asset Value (NAV) Trend</h4>
+                    <NavChart
+                      points={history?.points}
+                      code={fund.code}
+                      hoveredDate={hoveredDate}
+                      setHoveredDate={setHoveredDate}
+                      days={days}
+                      setDays={setDays}
+                    />
+                  </div>
+
+                  <div className="border-t border-white/[0.05] pt-5">
+                    <VolatilityChart
+                      points={history?.points}
+                      hoveredDate={hoveredDate}
+                      setHoveredDate={setHoveredDate}
+                      days={days}
+                    />
+                  </div>
+                </div>
+              </WorkspaceCard>
+
+              {/* Calendar & Rolling Returns */}
+              {(calReturns.length > 0 || rollReturns.length > 0) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {calReturns.length > 0 && (
+                    <WorkspaceCard title="Calendar Returns" subtitle="NAV returns calculated for each calendar year">
+                      <div className="space-y-2 mt-1">
+                        {calReturns.map((c) => (
+                          <div key={c.year} className="flex items-center justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5 last:border-0 last:pb-0">
+                            <span className="text-ink-muted">
+                              {c.year}
+                              {c.from.slice(5) !== "01-01" || c.to.slice(5, 7) !== "12" ? (
+                                <span className="text-ink-faint text-[11px]"> ({c.from} to {c.to})</span>
+                              ) : null}
+                            </span>
+                            <span className={`tnum font-bold font-mono ${c.return >= 0 ? "text-pos" : "text-neg"}`}>
+                              {c.return >= 0 ? "+" : ""}{c.return}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </WorkspaceCard>
+                  )}
+
+                  {rollReturns.length > 0 && (
+                    <WorkspaceCard title="Rolling 12M Return" subtitle="Computed dynamically over periods">
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-2 text-center">
+                          <div className="p-2.5 rounded-lg border border-line bg-white/[0.01]">
+                            <span className="text-[10px] text-ink-faint block">Minimum 12M</span>
+                            <span className="text-[15px] font-bold text-neg font-mono mt-1 block">
+                              {Math.min(...rollReturns.map((r) => r.v)).toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="p-2.5 rounded-lg border border-line bg-white/[0.01]">
+                            <span className="text-[10px] text-ink-faint block">Maximum 12M</span>
+                            <span className="text-[15px] font-bold text-pos font-mono mt-1 block">
+                              {Math.max(...rollReturns.map((r) => r.v)).toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-ink-faint leading-relaxed text-center">
+                          Based on {rollReturns.length} rolling 12-month periods calculated dynamically.
+                        </p>
+                      </div>
+                    </WorkspaceCard>
+                  )}
+                </div>
+              )}
+
+            </section>
+          )}
+
+          {/* TAB CONTENT: RISK */}
+          {(viewMode === "workspace" ? activeTab === "risk" : true) && (
+            <section id="sec-risk" className="scroll-mt-24 space-y-6 animate-fade-in">
+              
+              {/* Volatility, Sharpe, Alpha, Beta */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                
+                <WorkspaceCard title="Risk & Drawdown Ratios" subtitle="Standard daily NAV ratios calculated over 90 days">
+                  {fund.vol90 != null ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                        <span className="text-ink-faint">Annualised Volatility (90d)</span>
+                        <span className="text-white font-semibold font-mono">{fund.vol90}%</span>
+                      </div>
+                      <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                        <span className="text-ink-faint">Volatility (30d)</span>
+                        <span className="text-white font-semibold font-mono">{fund.vol30}%</span>
+                      </div>
+                      <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                        <span className="text-ink-faint">Downside Volatility</span>
+                        <span className="text-white font-semibold font-mono">{fund.dvol90}%</span>
+                      </div>
+                      <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                        <span className="text-ink-faint">Peak Drawdown (90d)</span>
+                        <span className="text-neg font-bold font-mono">{fund.maxdd90}%</span>
+                      </div>
+                      <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                        <span className="text-ink-faint">Current Drawdown from High</span>
+                        <span className={`font-mono font-semibold ${fund.ddFromHigh < 0 ? "text-neg" : "text-pos"}`}>
+                          {fund.ddFromHigh >= 0 ? "+" : ""}{fund.ddFromHigh.toFixed(2)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[12.5px]">
+                        <span className="text-ink-faint">Negative Return Days</span>
+                        <span className="text-white font-semibold font-mono">
+                          {fund.negDays} / {fund.quality?.obs ?? "—"}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[12.5px] text-ink-faint">Insufficient data to calculate risk ratios.</p>
+                  )}
+                </WorkspaceCard>
+
+                <WorkspaceCard title="Volatility Efficiency" subtitle="Sharpe, Sortino, Alpha, Beta vs Index Proxy">
+                  {fund.vol90 != null ? (
+                    <div className="space-y-3">
+                      {sharpe != null && (
+                        <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                          <span className="text-ink-faint">Sharpe Ratio (1Y, rf 6.5%)</span>
+                          <span className={`font-bold font-mono ${sharpe >= 1 ? "text-pos" : "text-white"}`}>{sharpe}</span>
+                        </div>
+                      )}
+                      {sortino != null && (
+                        <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                          <span className="text-ink-faint">Sortino Ratio (1Y, rf 6.5%)</span>
+                          <span className={`font-bold font-mono ${sortino >= 1.5 ? "text-pos" : "text-white"}`}>{sortino}</span>
+                        </div>
+                      )}
+                      {riskStats && (
+                        <>
+                          <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                            <span className="text-ink-faint">Beta vs Benchmark Proxy</span>
+                            <span className="text-white font-semibold font-mono">{riskStats.beta}</span>
+                          </div>
+                          <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                            <span className="text-ink-faint">Alpha (Annualised)</span>
+                            <span className={`font-bold font-mono ${riskStats.alpha >= 0 ? "text-pos" : "text-neg"}`}>
+                              {riskStats.alpha >= 0 ? "+" : ""}{riskStats.alpha}%
+                            </span>
+                          </div>
+                          {riskStats.informationRatio != null && (
+                            <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                              <span className="text-ink-faint">Information Ratio</span>
+                              <span className="text-white font-semibold font-mono">{riskStats.informationRatio}</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      <p className="text-[10px] text-ink-faint leading-relaxed mt-1">
+                        Beta & Alpha calculated against {riskStats?.indexUsed || "Standard Large Cap Index Proxy"} over {riskStats?.overlapDays || 90} trading days.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-[12.5px] text-ink-faint">Insufficient data to calculate efficiency ratios.</p>
+                  )}
+                </WorkspaceCard>
+
+              </div>
+
+              {/* Portfolio Risk allocations (from real holding factsheets) */}
+              {port && (
+                <WorkspaceCard title="Factsheet Portfolio Risks" subtitle="Calculated from monthly AMC filing updates">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="p-3.5 rounded-xl border border-line bg-white/[0.01]">
+                      <span className="text-[10.5px] text-ink-faint block uppercase tracking-wider">Holding Risk Level</span>
+                      <span className="text-[16px] font-bold text-accent-soft block mt-1">{port.level}</span>
+                      <span className="text-[11.5px] text-white font-mono mt-0.5 block">{port.score}/100 Score</span>
+                    </div>
+                    <div className="p-3.5 rounded-xl border border-line bg-white/[0.01]">
+                      <span className="text-[10.5px] text-ink-faint block uppercase tracking-wider">Top 3 Sectors</span>
+                      <span className="text-[20px] font-bold text-white font-mono block mt-1">{port.sectorTop3}%</span>
+                      <span className="text-[10.5px] text-ink-faint block mt-0.5">Aggregated Allocation</span>
+                    </div>
+                    <div className="p-3.5 rounded-xl border border-line bg-white/[0.01]">
+                      <span className="text-[10.5px] text-ink-faint block uppercase tracking-wider">Top 10 Holdings</span>
+                      <span className="text-[20px] font-bold text-white font-mono block mt-1">{port.top10}%</span>
+                      <span className="text-[10.5px] text-ink-faint block mt-0.5">Concentration Weight</span>
+                    </div>
+                  </div>
+                  <p className="mt-3.5 text-[12px] text-ink-muted border-t border-white/[0.04] pt-2.5">
+                    <strong>Portfolio Insight:</strong> {port.insights.join(" ")}
+                  </p>
+                </WorkspaceCard>
+              )}
+
+            </section>
+          )}
+
+          {/* TAB CONTENT: RESEARCH */}
+          {(viewMode === "workspace" ? activeTab === "research" : true) && (
+            <section id="sec-research" className="scroll-mt-24 space-y-6 animate-fade-in">
+              
+              {/* Research readiness checklist */}
+              <WorkspaceCard title="Research Readiness & Completeness Check" subtitle="Checklist tracking available sourced factual parameters">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.05] pb-4 mb-4">
+                  <div>
+                    <span className="text-[10.5px] uppercase font-bold tracking-wider text-ink-faint">Data Readiness Rating</span>
+                    <h4 className="text-[22px] font-bold text-white font-mono mt-1">
+                      {readiness.answered} <span className="text-[13px] text-ink-faint font-normal font-sans">of {readiness.total} questions answered</span>
+                    </h4>
+                  </div>
+                  <div>
+                    <span className="text-[10.5px] uppercase font-bold tracking-wider text-ink-faint">Completeness Index</span>
+                    <h4 className={`text-[22px] font-bold font-mono mt-1 ${
+                      completenessTone(completeness.score) === "pos" ? "text-pos" : completenessTone(completeness.score) === "warn" ? "text-warn" : "text-neg"
+                    }`}>
+                      {completeness.score}%
+                    </h4>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {readiness.questions.map((q) => (
+                    <div key={q.question} className="rounded-xl border border-line bg-white/[0.01] p-3 text-[12.5px] flex items-start gap-2.5">
+                      <span className={`text-[14px] ${q.answered ? "text-pos font-bold" : "text-ink-faint"}`}>
+                        {q.answered ? "✓" : "○"}
+                      </span>
+                      <div className="min-w-0">
+                        <span className={`font-semibold truncate block ${q.answered ? "text-ink-muted" : "text-ink-faint"}`}>
+                          {q.question}
+                        </span>
+                        <span className="text-[10px] text-ink-faint block mt-0.5">
+                          {q.answered ? `Source: ${q.source}` : "Not yet acquired"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </WorkspaceCard>
+
+              {/* Private browser notes */}
+              <WorkspaceCard title="Your Workspace Notes" subtitle="Saved locally to your browser, never transmitted to external APIs">
+                <ResearchNotes code={fund.code} name={fund.name.replace(/ - (Direct|Regular).*/i, "")} />
+              </WorkspaceCard>
+
+            </section>
+          )}
+
+          {/* TAB CONTENT: NEWS */}
+          {(viewMode === "workspace" ? activeTab === "news" : true) && (
+            <section id="sec-news" className="scroll-mt-24 space-y-6 animate-fade-in">
+              
+              {/* Documents & PDF Factsheets */}
+              <WorkspaceCard title="Verified Factsheet Documents" subtitle="Official filings stored and managed locally">
+                {meta?.source_url ? (
+                  <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-line bg-white/[0.015] text-[13px]">
+                    <div>
+                      <span className="text-white font-bold block">AMC Factsheet Filing</span>
+                      <span className="text-[11px] text-ink-faint mt-0.5 block">As of {meta.source_date || "Unknown Date"}</span>
+                    </div>
+                    <a
+                      className="rounded-lg bg-accent px-4 py-2 text-[12.5px] font-bold text-white hover:bg-accent/80 transition-colors"
+                      href={meta.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open PDF Factsheet ↗
+                    </a>
+                  </div>
+                ) : (
+                  <p className="text-[12.5px] text-ink-faint">
+                    No verified PDF factsheet filing acquired for this scheme. Sourced files appear once parsed from AMC filings.
+                  </p>
+                )}
+              </WorkspaceCard>
+
+              {/* Linked news articles */}
+              {relatedNews.length > 0 ? (
+                <WorkspaceCard title="Linked Market News" subtitle="Articles linked to this fund's category or AMC house">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {relatedNews.map((n) => (
+                      <a
+                        key={n.id}
+                        href={n.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="glass block p-4 text-[12.5px] hover:bg-white/[0.04] transition-colors rounded-xl border border-line"
+                      >
+                        <div className="text-ink-faint font-semibold">
+                          {n.source?.name || "Market Feed"} · {relativeTime ? relativeTime(n.publishedAt) : "recent"}
+                        </div>
+                        <div className="mt-1.5 font-bold text-ink hover:text-accent-soft line-clamp-2">{n.title}</div>
+                      </a>
+                    ))}
+                  </div>
+                </WorkspaceCard>
+              ) : (
+                <div className="rounded-xl border border-line bg-white/[0.01] p-5 text-center text-ink-faint text-[12.5px]">
+                  No linked market articles for {fund.amc} or {fund.category} in the last 24 hours.
+                </div>
+              )}
+
+            </section>
+          )}
+
+          {/* TAB CONTENT: COMPARE */}
+          {(viewMode === "workspace" ? activeTab === "compare" : true) && (
+            <section id="sec-compare" className="scroll-mt-24 space-y-6 animate-fade-in">
+              
+              {/* Category Peer comparisons */}
+              {cohort && (
+                <WorkspaceCard title="Category Benchmark & Peer Comparison" subtitle="Comparing relative point-to-point NAV returns">
+                  
+                  {/* Performance Comparison Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[12.5px] text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/[0.08] text-[10px] uppercase font-bold tracking-wider text-ink-faint">
+                          <th className="py-2.5 pr-4">
+                            <button onClick={() => toggleSort("window")} className="flex items-center gap-1 hover:text-white">
+                              Window {tableSortKey === "window" && (tableSortDesc ? "▼" : "▲")}
+                            </button>
+                          </th>
+                          <th className="py-2.5 text-right">
+                            <button onClick={() => toggleSort("fund")} className="flex items-center gap-1 justify-end ml-auto hover:text-white">
+                              Fund {tableSortKey === "fund" && (tableSortDesc ? "▼" : "▲")}
+                            </button>
+                          </th>
+                          <th className="py-2.5 text-right">
+                            <button onClick={() => toggleSort("peer")} className="flex items-center gap-1 justify-end ml-auto hover:text-white">
+                              Peer Avg {tableSortKey === "peer" && (tableSortDesc ? "▼" : "▲")}
+                            </button>
+                          </th>
+                          <th className="py-2.5 text-right">
+                            <button onClick={() => toggleSort("delta")} className="flex items-center gap-1 justify-end ml-auto hover:text-white">
+                              Outperformance {tableSortKey === "delta" && (tableSortDesc ? "▼" : "▲")}
+                            </button>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedBench.map((b) => (
+                          <tr
+                            key={b.label}
+                            className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group"
+                          >
+                            <td className="py-3 font-semibold text-ink-muted">
+                              {b.label} {b.pa ? <span className="text-[9.5px] text-ink-faint font-normal">(p.a.)</span> : null}
+                            </td>
+                            <td
+                              onClick={() => copyToClipboard(b.fund.toFixed(2) + "%", `${b.label} Fund return`)}
+                              className={`py-3 text-right font-mono font-bold cursor-copy hover:underline ${
+                                b.fund >= 0 ? "text-pos" : "text-neg"
+                              }`}
+                            >
+                              {b.fund >= 0 ? "+" : ""}{b.fund.toFixed(2)}%
+                            </td>
+                            <td className="py-3 text-right font-mono text-ink-faint">
+                              {b.peer >= 0 ? "+" : ""}{b.peer.toFixed(2)}%
+                            </td>
+                            <td
+                              className={`py-3 text-right font-mono font-bold ${
+                                b.delta >= 0 ? "text-pos" : "text-neg"
+                              }`}
+                            >
+                              {b.delta >= 0 ? "+" : ""}{b.delta.toFixed(2)}%
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <p className="mt-4 text-[10.5px] text-ink-faint leading-relaxed">
+                    Comparison based on category cohort <strong>{fund.category}</strong>. Click any return percentage to copy it.
+                  </p>
+                </WorkspaceCard>
+              )}
+
+              {/* Suggested comparison funds */}
+              {comparisons.length > 0 && (
+                <WorkspaceCard title="Suggested Comparison peer funds" subtitle="Same plan and category, sorted by diagnostics">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {comparisons.map((c) => (
+                      <a
+                        key={c.code}
+                        href={`/fund/${c.code}`}
+                        className="glass block p-4 text-[12.5px] hover:bg-white/[0.04] transition-colors rounded-xl border border-line"
+                      >
+                        <div className="font-bold text-ink truncate">{c.name}</div>
+                        <div className="text-[11px] text-ink-faint mt-0.5 truncate">{c.amc}</div>
+                        <div className="mt-3 flex items-center justify-between">
+                          <span className={`font-bold ${c.health >= 70 ? "text-pos" : c.health >= 55 ? "text-warn" : "text-neg"}`}>
+                            {c.health}/100 Score
+                          </span>
+                          {c.r1m != null && (
+                            <span className={`font-mono ${c.r1m >= 0 ? "text-pos" : "text-neg"}`}>
+                              {c.r1m >= 0 ? "+" : ""}{c.r1m.toFixed(1)}% (1M)
+                            </span>
+                          )}
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </WorkspaceCard>
+              )}
+
+              {/* Suggested Next actions checklist */}
+              <WorkspaceCard title="Next Research Actions" subtitle="Logical paths to proceed with comparison or AMC audits">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {nextActionsItems.map((item, idx) => (
+                    <a
+                      key={idx}
+                      href={item.href}
+                      className="flex items-center justify-between p-3.5 rounded-xl border border-line bg-white/[0.015] hover:bg-white/[0.03] transition-colors group"
+                    >
+                      <span className="text-[12.5px] text-ink-muted group-hover:text-ink font-semibold">
+                        {item.label}
+                      </span>
+                      <span className="text-ink-faint group-hover:text-accent-soft transition-colors font-bold text-[14px]">
+                        →
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </WorkspaceCard>
+
+            </section>
+          )}
+
+        </main>
+        
+      </div>
+    </div>
+  );
+}

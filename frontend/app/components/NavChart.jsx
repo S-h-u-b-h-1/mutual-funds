@@ -1,14 +1,11 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { track } from "../lib/track";
 
 const RANGES = [["1M", 30], ["3M", 91], ["6M", 182], ["1Y", 365], ["Max", 99999]];
 const W = 760, H = 240, PAD = 28;
 
-export default function NavChart({ points, code }) {
-  const [days, setDays] = useState(91);
-  const [hoveredIndex, setHoveredIndex] = useState(null);
-
+export default function NavChart({ points, code, hoveredDate, setHoveredDate, days, setDays }) {
   const view = useMemo(() => {
     if (!points?.length) return null;
     const cutoff = points[points.length - 1].t;
@@ -28,7 +25,6 @@ export default function NavChart({ points, code }) {
     const area = `${line} L${x(slice.length - 1).toFixed(1)} ${H - PAD} L${x(0).toFixed(1)} ${H - PAD} Z`;
     const iMax = vals.indexOf(max), iMin = vals.indexOf(min);
     
-    // Max drawdown within the window
     let peak = vals[0], ddPct = 0;
     for (let i = 0; i < vals.length; i++) {
       if (vals[i] > peak) peak = vals[i];
@@ -39,6 +35,13 @@ export default function NavChart({ points, code }) {
     return { slice, x, y, line, area, min, max, iMax, iMin, ret, ddPct: ddPct * 100 };
   }, [points, days]);
 
+  // Translate shared hoveredDate to local active index
+  const activeHoveredIndex = useMemo(() => {
+    if (!hoveredDate || !view) return null;
+    const idx = view.slice.findIndex((p) => p.t === hoveredDate);
+    return idx === -1 ? null : idx;
+  }, [hoveredDate, view]);
+
   if (!points?.length)
     return <div className="grid h-[200px] place-items-center text-[13px] text-ink-faint">NAV history unavailable for this scheme.</div>;
   if (!view)
@@ -47,7 +50,7 @@ export default function NavChart({ points, code }) {
   const up = view.ret >= 0;
   const stroke = up ? "var(--pos, #34d399)" : "var(--neg, #f87171)";
 
-  // Mouse/Touch interaction handlers
+  // Mouse / Touch handlers mapping coordinates to date strings
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const clientX = e.clientX - rect.left;
@@ -55,7 +58,9 @@ export default function NavChart({ points, code }) {
     const spanWidth = W - 2 * PAD;
     const approxIndex = ((svgX - PAD) / spanWidth) * (view.slice.length - 1);
     const index = Math.max(0, Math.min(view.slice.length - 1, Math.round(approxIndex)));
-    setHoveredIndex(index);
+    if (setHoveredDate) {
+      setHoveredDate(view.slice[index].t);
+    }
   };
 
   const handleTouchMove = (e) => {
@@ -66,11 +71,15 @@ export default function NavChart({ points, code }) {
     const spanWidth = W - 2 * PAD;
     const approxIndex = ((svgX - PAD) / spanWidth) * (view.slice.length - 1);
     const index = Math.max(0, Math.min(view.slice.length - 1, Math.round(approxIndex)));
-    setHoveredIndex(index);
+    if (setHoveredDate) {
+      setHoveredDate(view.slice[index].t);
+    }
   };
 
   const handleMouseLeave = () => {
-    setHoveredIndex(null);
+    if (setHoveredDate) {
+      setHoveredDate(null);
+    }
   };
 
   return (
@@ -78,11 +87,11 @@ export default function NavChart({ points, code }) {
       <div className="mb-3 flex items-center justify-between min-h-[28px]">
         {/* Dynamic Interactive Stats */}
         <div className="text-[13px]">
-          {hoveredIndex !== null ? (
+          {activeHoveredIndex !== null ? (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              <span>Date: <strong className="text-white font-semibold">{view.slice[hoveredIndex].t}</strong></span>
+              <span>Date: <strong className="text-white font-semibold">{view.slice[activeHoveredIndex].t}</strong></span>
               <span className="h-1 w-1 rounded-full bg-white/20 hidden sm:inline" />
-              <span>NAV: <strong className="text-accent-soft font-semibold">₹{view.slice[hoveredIndex].v.toFixed(4)}</strong></span>
+              <span>NAV: <strong className="text-accent-soft font-semibold font-mono">₹{view.slice[activeHoveredIndex].v.toFixed(4)}</strong></span>
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -96,12 +105,12 @@ export default function NavChart({ points, code }) {
           )}
         </div>
         
-        {/* Range Selectors */}
+        {/* Range Selector */}
         <div className="flex gap-1">
           {RANGES.map(([l, d]) => (
             <button
               key={l}
-              onClick={() => { setDays(d); setHoveredIndex(null); track("time_range_changed", { code, range: l }); }}
+              onClick={() => { setDays(d); if (setHoveredDate) setHoveredDate(null); track("time_range_changed", { code, range: l }); }}
               className={`rounded-md px-2 py-1 text-[11.5px] transition-colors ${days === d ? "bg-white/[0.08] text-ink" : "text-ink-faint hover:text-ink-muted"}`}
             >
               {l}
@@ -110,7 +119,7 @@ export default function NavChart({ points, code }) {
         </div>
       </div>
 
-      {/* SVG Interactive Canvas */}
+      {/* SVG Canvas */}
       <div className="relative w-full">
         <svg
           viewBox={`0 0 ${W} ${H}`}
@@ -138,8 +147,8 @@ export default function NavChart({ points, code }) {
           <path d={view.area} fill="url(#navfill)" />
           <path d={view.line} fill="none" stroke={stroke} strokeWidth="1.6" />
 
-          {/* High / Low static markers (only shown when not hovering) */}
-          {hoveredIndex === null && (
+          {/* High / Low static markers */}
+          {activeHoveredIndex === null && (
             <>
               <circle cx={view.x(view.iMax)} cy={view.y(view.max)} r="3" fill="var(--pos, #34d399)" />
               <text x={view.x(view.iMax)} y={view.y(view.max) - 7} fill="#8b93a7" fontSize="10" fontWeight="bold" textAnchor="middle">
@@ -153,38 +162,38 @@ export default function NavChart({ points, code }) {
           )}
 
           {/* Hover Crosshairs & Glowing indicator */}
-          {hoveredIndex !== null && (
+          {activeHoveredIndex !== null && (
             <>
-              {/* Vertical line */}
+              {/* Vertical crosshair */}
               <line
-                x1={view.x(hoveredIndex)}
+                x1={view.x(activeHoveredIndex)}
                 y1={PAD}
-                x2={view.x(hoveredIndex)}
+                x2={view.x(activeHoveredIndex)}
                 y2={H - PAD}
                 stroke="rgba(255,255,255,0.12)"
                 strokeDasharray="3 3"
               />
-              {/* Horizontal line */}
+              {/* Horizontal crosshair */}
               <line
                 x1={PAD}
-                y1={view.y(view.slice[hoveredIndex].v)}
+                y1={view.y(view.slice[activeHoveredIndex].v)}
                 x2={W - PAD}
-                y2={view.y(view.slice[hoveredIndex].v)}
+                y2={view.y(view.slice[activeHoveredIndex].v)}
                 stroke="rgba(255,255,255,0.08)"
                 strokeDasharray="3 3"
               />
               {/* Outer halo */}
               <circle
-                cx={view.x(hoveredIndex)}
-                cy={view.y(view.slice[hoveredIndex].v)}
+                cx={view.x(activeHoveredIndex)}
+                cy={view.y(view.slice[activeHoveredIndex].v)}
                 r="6"
                 fill={stroke}
                 opacity="0.3"
               />
               {/* Inner dot */}
               <circle
-                cx={view.x(hoveredIndex)}
-                cy={view.y(view.slice[hoveredIndex].v)}
+                cx={view.x(activeHoveredIndex)}
+                cy={view.y(view.slice[activeHoveredIndex].v)}
                 r="3"
                 fill={stroke}
                 stroke="#06080f"
@@ -195,7 +204,7 @@ export default function NavChart({ points, code }) {
         </svg>
       </div>
 
-      <div className="mt-1 flex justify-between text-[10.5px] text-ink-faint">
+      <div className="mt-1 flex justify-between text-[10.5px] text-ink-faint font-semibold">
         <span>{view.slice[0].t}</span>
         <span>{view.slice[view.slice.length - 1].t}</span>
       </div>
