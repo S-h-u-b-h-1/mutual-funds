@@ -11,6 +11,7 @@ import GlassPanel from "../components/ui/GlassPanel";
 import Badge from "../components/ui/Badge";
 import RecentActivity from "../components/RecentActivity";
 import SavedComparisons from "../components/SavedComparisons";
+import NotebookPreview from "../components/NotebookPreview";
 import { getTopHeadlines, relativeTime } from "../lib/news";
 import daily from "../data/daily.json";
 
@@ -104,10 +105,14 @@ export default async function Dashboard() {
           <RecentActivity />
         </section>
 
-        <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-3">
           <div>
             <SectionHeader title="Saved comparisons" eyebrow="from Compare → Save workspace" />
             <SavedComparisons />
+          </div>
+          <div>
+            <SectionHeader title="Your notebook" eyebrow="private observations, per fund" />
+            <NotebookPreview />
           </div>
           <GlassPanel className="p-5">
             <SectionHeader title="Recent news" action={<a className="hover:text-ink" href="/news">See all →</a>} />

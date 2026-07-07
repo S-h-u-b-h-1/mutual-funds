@@ -6,6 +6,7 @@ import Footer from "./components/Footer";
 import Search from "./components/Search";
 import Tracker from "./components/Tracker";
 import Watchlist from "./components/Watchlist";
+import WatchlistIntelligence from "./components/WatchlistIntelligence";
 import HeroVisual from "./components/HeroVisual";
 import KnowledgeGraphHero from "./components/KnowledgeGraphHero";
 import GuidedJourney from "./components/GuidedJourney";
@@ -142,45 +143,126 @@ export default async function Page() {
     { label: "Latest NAV", value: latest, sub: "AMFI" },
     { label: "Flow signals", value: signals.length, sub: "flows · sample" },
   ];
+  // Live Market Status & Time-of-day greeting (Indian Standard Time)
+  const serverTime = new Date();
+  const utcTime = serverTime.getTime() + (serverTime.getTimezoneOffset() * 60000);
+  const istTime = new Date(utcTime + (3600000 * 5.5));
+  const istHrs = istTime.getHours();
+  const istMins = istTime.getMinutes();
+  const istDay = istTime.getDay();
+  const isWeekday = istDay >= 1 && istDay <= 5;
+  const istTimeVal = istHrs * 100 + istMins;
+  const isMarketOpen = isWeekday && istTimeVal >= 915 && istTimeVal <= 1530;
+
+  let greeting = "Good evening";
+  if (istHrs >= 5 && istHrs < 12) greeting = "Good morning";
+  else if (istHrs >= 12 && istHrs < 17) greeting = "Good afternoon";
+
+  // Dynamic Biggest Mover detection
+  const topGainer = daily.gainers?.[0];
+  const topFaller = daily.fallers?.[0];
+  let biggestMover = null;
+  if (topGainer && topFaller) {
+    biggestMover = Math.abs(topGainer.r1d) >= Math.abs(topFaller.r1d) ? { ...topGainer, isGainer: true } : { ...topFaller, isGainer: false };
+  } else if (topGainer) {
+    biggestMover = { ...topGainer, isGainer: true };
+  } else if (topFaller) {
+    biggestMover = { ...topFaller, isGainer: false };
+  }
 
   return (
     <>
       <Nav active="/" />
       <Tracker event="page_view" payload={{ page: "home" }} />
 
-      <main className="container-px py-8 sm:py-10">
-        {/* Header — what MF Pulse is, in one sentence, above the fold. Every claim in the
-            subtitle/chips is something this platform actually does today (real NAV research,
-            explainable scores, category/AMC tracking, rule-based news impact) — never aspirational. */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="max-w-2xl">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Today&rsquo;s Market Pulse · {latest}</div>
-            <h1 className="mt-2 text-[26px] sm:text-[34px] font-bold tracking-tightest text-ink">India&rsquo;s Explainable Mutual Fund Intelligence Platform</h1>
-            <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink-muted">
-              Not another NAV lookup site. MF Pulse traces every score, rank and market-news link back
-              to its real source and rule — so you understand <em className="text-ink not-italic font-medium">why</em>, not just what.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-1.5 text-[11.5px] text-ink-muted">
-              {["Research every fund", "Understand market moves", "Track category rotations", "Monitor AMC quality", "Never miss a market event"].map((c) => (
-                <span key={c} className="rounded-full border border-line px-2.5 py-1">{c}</span>
-              ))}
+      <main className="container-px py-8 sm:py-10 space-y-8">
+        
+        {/* PREMIUM TERMINAL HEADER */}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between border-b border-line pb-6">
+          <div className="max-w-3xl space-y-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-accent-soft">
+                {greeting}, Analyst
+              </span>
+              <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-muted">
+                <span className={`h-2 w-2 rounded-full ${isMarketOpen ? "bg-pos animate-pulse" : "bg-ink-faint"}`} />
+                <span>Indian Markets {isMarketOpen ? "Open" : "Closed"} (IST)</span>
+              </div>
             </div>
+            <h1 className="text-[32px] sm:text-[40px] font-bold tracking-tightest leading-[1.1] text-ink">
+              India&rsquo;s Explainable Mutual Fund Intelligence
+            </h1>
+            <p className="text-[15px] leading-relaxed text-ink-muted">
+              MF Pulse trace-explains every rating, benchmark correlation, and news impact down to its raw rules.
+              We build terminal-grade tools for wealth managers, advisors, and sophisticated long-term investors.
+            </p>
           </div>
-          <div className="flex gap-2">
-            <PremiumButton href="/categories" variant="ghost">Categories</PremiumButton>
-            <PremiumButton href="/performance">Top Performers</PremiumButton>
+          <div className="flex flex-wrap gap-2 shrink-0">
+            <PremiumButton href="/categories" variant="ghost">Ecosystem Categories</PremiumButton>
+            <PremiumButton href="/performance">Top Performance Rankings</PremiumButton>
           </div>
         </div>
 
-        {/* Market Terminal (Phase 1, terminal sprint) — real Yahoo Finance quotes, ISR-cached
-            5 minutes, honestly labelled unlicensed/delayed. First thing after the hero, matching
-            the "understand today's market in under 60 seconds" goal. */}
+        {/* 4-COLUMN PRODUCT STORYTELLING BLOCK */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4.5 bg-white/[0.01] border border-line rounded-2xl p-5">
+          <div className="space-y-1">
+            <div className="text-[11.5px] font-bold text-accent-soft uppercase tracking-wider">01 / What It Is</div>
+            <h3 className="text-[14px] font-bold text-ink">Explainable Analytics</h3>
+            <p className="text-[12.5px] text-ink-muted leading-relaxed">
+              No black-box ratings. Every Health Score is mapped dynamically to clear sub-metrics and performance indicators.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <div className="text-[11.5px] font-bold text-accent-soft uppercase tracking-wider">02 / Why It Exists</div>
+            <h3 className="text-[14px] font-bold text-ink">Contextual Insight</h3>
+            <p className="text-[12.5px] text-ink-muted leading-relaxed">
+              Standard tools show raw returns. We explain *why* a fund outpaced its category or lagged its benchmark.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <div className="text-[11.5px] font-bold text-accent-soft uppercase tracking-wider">03 / Who It Is For</div>
+            <h3 className="text-[14px] font-bold text-ink">Sophisticated Research</h3>
+            <p className="text-[12.5px] text-ink-muted leading-relaxed">
+              Tailored for wealth managers, family offices, and advisors seeking independent, auditable data validation.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <div className="text-[11.5px] font-bold text-accent-soft uppercase tracking-wider">04 / How To Start</div>
+            <h3 className="text-[14px] font-bold text-ink">Global Search</h3>
+            <p className="text-[12.5px] text-ink-muted leading-relaxed">
+              Use <kbd className="rounded border border-line px-1 text-[11px] font-mono">⌘K</kbd> to find any fund, benchmark, or manager, or review signals below.
+            </p>
+          </div>
+        </div>
+
+        {/* TODAY'S BIGGEST MOVER & HIGHLIGHT STRIP */}
+        {biggestMover && (
+          <div className="glass p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 border-l-accent bg-white/[0.015]">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-ink-faint">Daily Market Gated Highlight</span>
+              <h4 className="text-[14.5px] font-semibold text-ink">
+                Biggest NAV Mover: <a href={`/fund/${biggestMover.code}`} className="text-accent-soft hover:underline font-bold">{biggestMover.name.replace(/ - (Direct|Regular).*/i, "")}</a>
+              </h4>
+              <p className="text-[12px] text-ink-muted">
+                This fund moved <span className={biggestMover.isGainer ? "text-pos font-bold" : "text-neg font-bold"}>{biggestMover.isGainer ? "+" : ""}{biggestMover.r1d.toFixed(2)}%</span> in the last trading session under category {biggestMover.category}.
+              </p>
+            </div>
+            <a
+              href={`/fund/${biggestMover.code}`}
+              className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-accent-soft hover:text-ink transition-colors self-start md:self-auto shrink-0"
+            >
+              <span>Examine Mover Analytics</span>
+              <span className="text-[14px]">→</span>
+            </a>
+          </div>
+        )}
+
+        {/* Market Terminal */}
         <MarketTerminal data={marketTerminal} />
 
-        {/* Real ecosystem graph — every AMC, category and benchmark this platform connects.
-            Node size = real fund count, not decoration. Three.js on capable devices, a
-            layout-matched static SVG everywhere else (SSR, reduced-motion, mobile, no-WebGL). */}
-        <div className="mt-6 rounded-2xl border border-line bg-white/[0.015] p-4 sm:p-5">
+        {/* Dynamic 3D Universe Graph */}
+        <div className="rounded-2xl border border-line bg-white/[0.015] p-4 sm:p-5">
           <KnowledgeGraphHero
             classes={graph.classes}
             amcs={graph.amcs}
@@ -192,6 +274,13 @@ export default async function Page() {
         </div>
 
         <GuidedJourney />
+        {/* Personal-before-market (Personal Operating System sprint, Phase 1): for a returning
+            visitor with a watchlist, their own funds and what changed on them render before any
+            market-wide content — the mission's "what changed FOR ME" ordering. Both components
+            return null with no watchlist, so a first-time visitor sees market content first,
+            unchanged from before. */}
+        <Watchlist amcDeltas={amcDeltas} />
+        <WatchlistIntelligence />
         <RecentActivity />
 
         {/* Market summary strip */}
@@ -395,7 +484,6 @@ export default async function Page() {
           </div>
         </section>
 
-        <Watchlist amcDeltas={amcDeltas} />
         <AlertSignup />
       </main>
 

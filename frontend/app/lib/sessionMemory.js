@@ -6,9 +6,11 @@
 const VIEWS_KEY = "mfp_recent_views";
 const SEARCH_KEY = "mfp_recent_searches";
 const COMPARE_KEY = "mfp_recent_compares";
+const NOTES_KEY = "mfp_research_notes";
 const MAX_VIEWS = 24;
 const MAX_SEARCHES = 10;
 const MAX_COMPARES = 10;
+const MAX_NOTES_PER_FUND = 20;
 
 function read(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; }
@@ -77,4 +79,39 @@ export function preferredAmcs(limit = 3) {
 export function lastVisited() {
   const views = read(VIEWS_KEY, []);
   return views.length ? views[0] : null;
+}
+
+// Research Notebook (Personal Operating System sprint, Phase 3) — freeform observations a user
+// writes themselves against a fund, kept exactly as typed. Never generated, scored, or
+// summarised — this is the user's own research record, not another derived insight. Keyed by
+// scheme_code so a fund page can show its own notes; getAllNotes() powers a notebook overview.
+// Shape: { [code]: [{ id, text, fundName, at }] } — mirrors the object-keyed pattern already
+// used for the watchlist-intelligence snapshot.
+export function saveNote(code, text, fundName) {
+  const trimmed = String(text || "").trim();
+  if (!code || !trimmed) return null;
+  const all = read(NOTES_KEY, {});
+  const entry = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, text: trimmed, fundName: fundName || null, at: new Date().toISOString() };
+  const existing = all[code] || [];
+  all[code] = [entry, ...existing].slice(0, MAX_NOTES_PER_FUND);
+  write(NOTES_KEY, all, "mfp-session");
+  return entry;
+}
+
+export function getNotes(code) {
+  return read(NOTES_KEY, {})[code] || [];
+}
+
+export function deleteNote(code, id) {
+  const all = read(NOTES_KEY, {});
+  if (!all[code]) return;
+  all[code] = all[code].filter((n) => n.id !== id);
+  write(NOTES_KEY, all, "mfp-session");
+}
+
+// Every note across every fund, most recent first — the notebook's own overview.
+export function getAllNotes(limit = 50) {
+  const all = read(NOTES_KEY, {});
+  const flat = Object.entries(all).flatMap(([code, notes]) => notes.map((n) => ({ ...n, code })));
+  return flat.sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, limit);
 }

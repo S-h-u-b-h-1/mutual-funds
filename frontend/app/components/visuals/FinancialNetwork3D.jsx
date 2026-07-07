@@ -2,21 +2,26 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Product-specific 3D capital-allocation network.
+ * Premium Interactive 3D Capital-Allocation Flow Network
  * - Category hubs (Equity / Debt / Hybrid) as glowing nodes.
  * - AMC nodes clustered toward their dominant category; radius ∝ |flow|.
  * - Liquidity "pulses" travel AMC → category along flow lines.
- * - Colour: positive flow = category colour (emerald/blue/gold); negative = amber.
- * Three.js is dynamically imported (never in the main bundle). Pauses on hidden
- * tab, halves node load on mobile, disposes everything on unmount.
+ * - Interactive pointer tilt (parallax) + hover raycasting with floating tooltip.
+ * - Colour: positive flow = category color (emerald/blue/gold); negative = amber.
  */
 export default function FinancialNetwork3D({ nodes = [] }) {
   const ref = useRef(null);
+  const canvasRef = useRef(null);
+  const tooltipRef = useRef(null);
 
   useEffect(() => {
-    const el = ref.current;
+    const el = canvasRef.current;
+    const tooltip = tooltipRef.current;
     if (!el) return;
-    let raf = 0, mounted = true, dispose = () => {};
+    
+    let raf = 0;
+    let mounted = true;
+    let dispose = () => {};
 
     import("three").then((THREE) => {
       if (!mounted || !el) return;
@@ -27,6 +32,7 @@ export default function FinancialNetwork3D({ nodes = [] }) {
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(52, w() / h(), 0.1, 100);
       camera.position.set(0, 0, 17);
+      
       const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       renderer.setSize(w(), h());
@@ -41,22 +47,39 @@ export default function FinancialNetwork3D({ nodes = [] }) {
         Hybrid: { pos: new THREE.Vector3(0, -5, 0), color: 0xfbbf24 },
       };
       const NEG = 0xf59e0b;
+      const interactiveObjects = [];
+      const disposables = [];
 
-      // glowing category hubs
-      for (const c of Object.values(CATS)) {
-        const core = new THREE.Mesh(new THREE.SphereGeometry(0.55, 24, 24), new THREE.MeshBasicMaterial({ color: c.color }));
-        const halo = new THREE.Mesh(new THREE.SphereGeometry(1.5, 20, 20), new THREE.MeshBasicMaterial({ color: c.color, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending }));
-        core.position.copy(c.pos); halo.position.copy(c.pos);
-        root.add(core, halo);
+      // Glowing category hubs
+      for (const [name, c] of Object.entries(CATS)) {
+        const coreGeo = new THREE.SphereGeometry(0.55, 24, 24);
+        const coreMat = new THREE.MeshBasicMaterial({ color: c.color });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        core.position.copy(c.pos);
+        core.userData = { name, type: "Category Hub", details: "Market Flow Aggregation Point" };
+        
+        root.add(core);
+        interactiveObjects.push(core);
+        disposables.push(coreGeo, coreMat);
+
+        const haloGeo = new THREE.SphereGeometry(1.5, 20, 20);
+        const haloMat = new THREE.MeshBasicMaterial({
+          color: c.color,
+          transparent: true,
+          opacity: 0.08,
+          blending: THREE.AdditiveBlending
+        });
+        const halo = new THREE.Mesh(haloGeo, haloMat);
+        halo.position.copy(c.pos);
+        root.add(halo);
+        disposables.push(haloGeo, haloMat);
       }
 
       const maxFlow = Math.max(...nodes.flatMap((n) => [Math.abs(n.equity || 0), Math.abs(n.debt || 0)]), 1);
       const list = (small ? nodes.slice(0, 5) : nodes).slice(0, 9);
       const pulses = [];
-      const disposables = [];
 
       list.forEach((n, i) => {
-        // one link per dominant category the AMC moves into
         const links = [
           { cat: "Equity", v: n.equity || 0 },
           { cat: "Debt", v: n.debt || 0 },
@@ -75,7 +98,14 @@ export default function FinancialNetwork3D({ nodes = [] }) {
           const dotMat = new THREE.MeshBasicMaterial({ color });
           const dot = new THREE.Mesh(dotGeo, dotMat);
           dot.position.copy(node);
+          dot.userData = {
+            name: n.name,
+            type: "AMC Allocation",
+            details: `Net Flow: ${l.v >= 0 ? "+" : ""}₹${Math.round(l.v)} Cr (${l.cat})`
+          };
+          
           root.add(dot);
+          interactiveObjects.push(dot);
           disposables.push(dotGeo, dotMat);
 
           const curve = new THREE.CatmullRomCurve3([node, node.clone().lerp(hub.pos, 0.5).add(new THREE.Vector3(0, 1.2, 1)), hub.pos]);
@@ -93,37 +123,136 @@ export default function FinancialNetwork3D({ nodes = [] }) {
         });
       });
 
-      const onResize = () => { camera.aspect = w() / h(); camera.updateProjectionMatrix(); renderer.setSize(w(), h()); };
+      // Mouse tracking for parallax tilt and raycasting
+      const mouse = new THREE.Vector2(-999, -999);
+      let targetRotX = 0, targetRotY = 0;
+      let curRotX = 0, curRotY = 0;
+      let baseRotY = 0;
+      let hoveredObj = null;
+
+      const onMouseMove = (e) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        // Tilt rotations
+        targetRotX = mouse.y * 0.15;
+        targetRotY = mouse.x * 0.18;
+      };
+
+      const onMouseLeave = () => {
+        mouse.x = -999;
+        mouse.y = -999;
+        targetRotX = 0;
+        targetRotY = 0;
+        if (tooltip) tooltip.style.display = "none";
+      };
+
+      el.addEventListener("mousemove", onMouseMove);
+      el.addEventListener("mouseleave", onMouseLeave);
+
+      const onResize = () => {
+        camera.aspect = w() / h();
+        camera.updateProjectionMatrix();
+        renderer.setSize(w(), h());
+      };
       window.addEventListener("resize", onResize);
 
+      const raycaster = new THREE.Raycaster();
+
+      // Render/update loop
       const frame = () => {
         raf = requestAnimationFrame(frame);
         if (document.hidden) return;
+
+        // Update pulses
         for (const p of pulses) {
           p.t = (p.t + p.speed) % 1;
           p.pulse.position.copy(p.curve.getPointAt(p.t));
         }
-        root.rotation.y += 0.0011;
-        root.rotation.x = Math.sin(Date.now() * 0.00007) * 0.08;
+
+        // Apply hover tilt parallax
+        curRotX += (targetRotX - curRotX) * 0.05;
+        curRotY += (targetRotY - curRotY) * 0.05;
+        root.rotation.x = curRotX;
+        root.rotation.y = baseRotY + curRotY;
+
+        baseRotY += 0.0007; // Slow rotation
+
+        // Raycasting
+        if (mouse.x !== -999) {
+          raycaster.setFromCamera(mouse, camera);
+          const intersects = raycaster.intersectObjects(interactiveObjects);
+          
+          if (intersects.length > 0) {
+            const obj = intersects[0].object;
+            
+            if (hoveredObj !== obj) {
+              if (hoveredObj) hoveredObj.scale.set(1, 1, 1);
+              hoveredObj = obj;
+              obj.scale.set(1.4, 1.4, 1.4); // Highlight scale
+            }
+
+            if (tooltip) {
+              const rect = el.getBoundingClientRect();
+              const hitX = ((mouse.x + 1) / 2) * rect.width;
+              const hitY = ((-mouse.y + 1) / 2) * rect.height;
+              
+              tooltip.innerHTML = `
+                <div className="font-semibold text-white">${obj.userData.name}</div>
+                <div className="text-[10px] text-ink-faint mt-0.5">${obj.userData.type} · ${obj.userData.details}</div>
+              `;
+              tooltip.style.left = `${hitX + 16}px`;
+              tooltip.style.top = `${hitY - 24}px`;
+              tooltip.style.display = "block";
+            }
+          } else {
+            if (hoveredObj) {
+              hoveredObj.scale.set(1, 1, 1);
+              hoveredObj = null;
+            }
+            if (tooltip) tooltip.style.display = "none";
+          }
+        }
+
         renderer.render(scene, camera);
       };
       frame();
 
       dispose = () => {
+        el.removeEventListener("mousemove", onMouseMove);
+        el.removeEventListener("mouseleave", onMouseLeave);
         window.removeEventListener("resize", onResize);
         disposables.forEach((d) => d.dispose && d.dispose());
-        scene.traverse((o) => { o.geometry?.dispose?.(); o.material?.dispose?.(); });
+        scene.traverse((o) => {
+          o.geometry?.dispose?.();
+          o.material?.dispose?.();
+        });
         renderer.dispose();
-        if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
+        if (renderer.domElement.parentNode) {
+          renderer.domElement.parentNode.removeChild(renderer.domElement);
+        }
       };
     }).catch(() => {});
 
-    return () => { mounted = false; cancelAnimationFrame(raf); dispose(); };
+    return () => {
+      mounted = false;
+      cancelAnimationFrame(raf);
+      dispose();
+    };
   }, [nodes]);
 
   return (
-    <div className="relative">
-      <div ref={ref} className="h-[300px] w-full sm:h-[360px]" aria-hidden />
+    <div ref={ref} className="relative w-full overflow-hidden">
+      <div ref={canvasRef} className="h-[300px] w-full sm:h-[360px]" aria-hidden />
+      
+      {/* Floating Glowing Flow Tooltip */}
+      <div
+        ref={tooltipRef}
+        className="pointer-events-none absolute z-20 hidden rounded-xl border border-white/[0.08] bg-[#0a0d14]/95 px-3 py-2 text-[11.5px] text-ink shadow-2xl backdrop-blur-xl transition-all duration-75"
+        style={{ transform: "translateY(-50%)" }}
+      />
+
       <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-ink-faint">
         <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: "#34d399" }} />Equity</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: "#60a5fa" }} />Debt</span>

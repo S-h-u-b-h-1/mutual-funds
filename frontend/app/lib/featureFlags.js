@@ -18,6 +18,7 @@ const CANDIDATES = {
   smsWhatsappAlerts: "SMS / WhatsApp Alerts",
   advisorChat: "Advisor Chat",
   researchReports: "Research Reports",
+  apiAccess: "API Access",
 };
 
 function envKey(flag) {

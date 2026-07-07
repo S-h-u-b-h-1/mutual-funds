@@ -13,6 +13,7 @@ import Badge from "../../components/ui/Badge";
 import AdvisorSoftCTA from "../../components/AdvisorSoftCTA";
 import WatchButton from "../../components/WatchButton";
 import NextActions from "../../components/NextActions";
+import ResearchNotes from "../../components/ResearchNotes";
 import MetricTooltip from "../../components/ui/MetricTooltip";
 import { getFund, cohortOf, asOf, benchmarkSlug, allFunds } from "../../lib/funds";
 import { getNavHistory } from "../../lib/mfapi";
@@ -647,6 +648,15 @@ export default async function FundPage({ params }) {
             <p className="mt-2 text-[11px] text-ink-faint">Matched via this fund&rsquo;s category ({f.category}) or AMC ({f.amc}) — same rule-based engine as /news, not a keyword search on the article itself.</p>
           </section>
         )}
+
+        {/* Research Notebook (Personal Operating System sprint, Phase 3) — the user's own
+            observations, local to this browser, never generated or scored. */}
+        <section className="mt-7">
+          <SectionHeader eyebrow="private to this browser · never shared or scored" title="Your research notes" />
+          <GlassPanel className="p-5">
+            <ResearchNotes code={f.code} name={f.name.replace(/ - (Direct|Regular).*/i, "")} />
+          </GlassPanel>
+        </section>
 
         <NextActions items={[
           { label: `Similar funds in ${f.category}`, href: `/categories/${encodeURIComponent(f.category)}` },

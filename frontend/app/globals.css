@@ -26,6 +26,37 @@
   .tnum { font-variant-numeric: tabular-nums; }
   .container-px { @apply mx-auto w-full max-w-[1120px] px-5 sm:px-6; }
   .hairline { background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent); }
+  
+  /* Dialogue custom animation styles */
+  dialog.cmd-dialog {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), overlay 0.2s allow-discrete, display 0.2s allow-discrete;
+  }
+  dialog.cmd-dialog[open] {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  @starting-style {
+    dialog.cmd-dialog[open] {
+      opacity: 0;
+      transform: scale(0.97) translateY(8px);
+    }
+  }
+  dialog.cmd-dialog::backdrop {
+    background-color: rgba(4, 6, 13, 0.7);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.2s ease, overlay 0.2s allow-discrete, display 0.2s allow-discrete;
+  }
+  dialog.cmd-dialog[open]::backdrop {
+    opacity: 1;
+  }
+  @starting-style {
+    dialog.cmd-dialog[open]::backdrop {
+      opacity: 0;
+    }
+  }
 }
 
 @layer utilities {
@@ -38,11 +69,17 @@
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
     animation: shimmer 1.6s infinite;
   }
+  
+  /* Smooth scroll spring-like easing */
+  .transition-spring {
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  }
 }
 
 /* Custom scrollbar */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.09); border-radius: 8px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.16); }
 
 @media (prefers-reduced-motion: reduce) {
