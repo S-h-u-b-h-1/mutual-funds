@@ -17,6 +17,13 @@ name: Production Refresh
 on:
   schedule:
     - cron: "30 14 * * 1-6"   # 14:30 UTC = 8:00pm IST, Mon-Sat (after AMFI publishes)
+    # Morning catch-up (05:00 UTC = 10:30am IST, daily): AMFI's NAVAll.txt is updated
+    # progressively as AMCs upload — the evening run can catch a partially-updated file (found
+    # live 2026-07-06: only ~5k of 14k schemes had Monday NAVs at 22:54 IST). NAVAll only ever
+    # carries each scheme's LATEST row, so stragglers that upload overnight would leave permanent
+    # holes in fact_nav_daily's history without this second pass. Idempotent: no new data → no
+    # bundle change → no commit/deploy.
+    - cron: "0 5 * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -33,12 +40,26 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
 
+      - name: 0. Download today's AMFI file ONCE — shared by ingestion and bundle rebuild
+        run: |
+          # A single download shared by every later step: AMFI updates NAVAll.txt progressively
+          # through the evening, so separate downloads minutes apart can catch different
+          # snapshots, leaving the warehouse and the site bundles disagreeing about the same run.
+          for attempt in 1 2; do
+            curl -sL --fail "https://portal.amfiindia.com/spages/NAVAll.txt" -o data/NAVAll.txt && exit 0
+            echo "::warning::AMFI download attempt $attempt failed."
+            [ "$attempt" = "1" ] && { echo "Retrying in 15s..."; sleep 15; }
+          done
+          echo "::error::Cause: portal.amfiindia.com unreachable or the NAVAll.txt path changed. Location: this step. Fix: verify the URL resolves manually; check AMFI's own status page."
+          exit 1
+
       - name: 1. Ingest AMFI NAV → Supabase + Neon (refreshes materialized views) — critical, retried once
         id: nav
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NAVALL_PATH: data/NAVAll.txt
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
             echo "::error::Cause: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set. Location: repo secrets. Fix: Settings -> Secrets and variables -> Actions -> add both."
@@ -76,15 +97,7 @@ jobs:
       - name: 3. Rebuild static bundles (funds.json, performance.json, daily.json) — critical
         id: bundles
         run: |
-          for attempt in 1 2; do
-            curl -sL --fail "https://portal.amfiindia.com/spages/NAVAll.txt" -o data/NAVAll.txt && break
-            echo "::warning::AMFI download attempt $attempt failed."
-            if [ "$attempt" = "2" ]; then
-              echo "::error::Cause: portal.amfiindia.com unreachable or the NAVAll.txt path changed. Location: this step. Fix: verify the URL resolves manually; check AMFI's own status page."
-              exit 1
-            fi
-            echo "Retrying in 15s..."; sleep 15
-          done
+          # data/NAVAll.txt was downloaded once in step 0 — the same snapshot step 1 ingested.
           python -m scripts.build_performance
           python -m scripts.build_daily
           if git diff --quiet -- frontend/app/data/; then

@@ -73,7 +73,19 @@ def run() -> int:
     t0 = time.time()
     status, rows_ingested, err, src_date = "failed", 0, None, None
     try:
-        records = list(parse_lines(_download()))
+        # Prefer a pre-downloaded file when the caller provides one (NAVALL_PATH): AMFI updates
+        # NAVAll.txt progressively as AMCs upload through the evening, so two downloads minutes
+        # apart in one workflow run can catch DIFFERENT snapshots — found live 2026-07-06, when
+        # the warehouse ingested one snapshot while the bundle rebuilt from a slightly newer one
+        # a minute later. One download per run = warehouse and bundles always agree.
+        navall_path = os.environ.get("NAVALL_PATH")
+        if navall_path and os.path.exists(navall_path):
+            with open(navall_path, encoding="utf-8", errors="replace") as fh:
+                lines = fh.read().splitlines()
+            print(f"-- using pre-downloaded AMFI file {navall_path} ({len(lines)} lines)", file=sys.stderr)
+        else:
+            lines = _download()
+        records = list(parse_lines(lines))
         # ---- validate ----
         if len(records) < 8000:
             raise ValueError(f"too few rows parsed ({len(records)}) — source may be malformed")
