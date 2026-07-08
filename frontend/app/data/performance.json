@@ -445,6 +445,30 @@
 "r1y": 2.28
 },
 {
+"code": "108202",
+"name": "DSP Natural Resources And New Energy Fund - Regular - Growth",
+"amc": "DSP",
+"category": "Sectoral/ Thematic",
+"nav": 105.817,
+"r1w": 0.75,
+"r1m": -3.62,
+"r3m": -1.09,
+"r6m": 3.34,
+"r1y": 16.62
+},
+{
+"code": "119028",
+"name": "DSP Natural Resources and New Energy Fund - Direct Plan - Growth",
+"amc": "DSP",
+"category": "Sectoral/ Thematic",
+"nav": 119.035,
+"r1w": 0.78,
+"r1m": -3.53,
+"r3m": -0.81,
+"r6m": 3.93,
+"r1y": 17.98
+},
+{
 "code": "152413",
 "name": "quant PSU Fund - Growth Option - Regular Plan",
 "amc": "quant",
@@ -455,30 +479,6 @@
 "r3m": 6.67,
 "r6m": -0.08,
 "r1y": -0.63
-},
-{
-"code": "108202",
-"name": "DSP Natural Resources And New Energy Fund - Regular - Growth",
-"amc": "DSP",
-"category": "Sectoral/ Thematic",
-"nav": 106.199,
-"r1w": 1.12,
-"r1m": -3.27,
-"r3m": -0.73,
-"r6m": 3.71,
-"r1y": 17.04
-},
-{
-"code": "119028",
-"name": "DSP Natural Resources and New Energy Fund - Direct Plan - Growth",
-"amc": "DSP",
-"category": "Sectoral/ Thematic",
-"nav": 119.461,
-"r1w": 1.14,
-"r1m": -3.18,
-"r3m": -0.46,
-"r6m": 4.3,
-"r1y": 18.4
 },
 {
 "code": "152415",
@@ -517,28 +517,28 @@
 "r1y": -9.09
 },
 {
-"code": "100363",
-"name": "ICICI Prudential Technology Fund - Growth",
+"code": "147661",
+"name": "ICICI Prudential Commodities Fund - Growth Option",
 "amc": "ICICI Prudential",
 "category": "Sectoral/ Thematic",
-"nav": 167.36,
-"r1w": 3.3,
-"r1m": -1.68,
-"r3m": -3.64,
-"r6m": -19.98,
-"r1y": -18.87
+"nav": 46.28,
+"r1w": 0.63,
+"r1m": -1.78,
+"r3m": 2.14,
+"r6m": 0.81,
+"r1y": 9.18
 },
 {
-"code": "120594",
-"name": "ICICI Prudential Technology Fund - Direct Plan -  Growth",
+"code": "147662",
+"name": "ICICI Prudential Commodities Fund - Direct Plan - Growth Option",
 "amc": "ICICI Prudential",
 "category": "Sectoral/ Thematic",
-"nav": 187.39,
-"r1w": 3.3,
-"r1m": -1.63,
-"r3m": -3.48,
-"r6m": -19.7,
-"r1y": -18.27
+"nav": 50.45,
+"r1w": 0.66,
+"r1m": -1.7,
+"r3m": 2.39,
+"r6m": 1.31,
+"r1y": 10.27
 },
 {
 "code": "152418",
@@ -614,7 +614,7 @@
 {
 "category": "Flexi Cap",
 "count": 89,
-"avg": 4.8,
+"avg": 4.79,
 "median": 4.9,
 "best": {
 "name": "LIC MF Flexi Cap Fund-Direct Plan-Growth",
@@ -633,7 +633,7 @@
 {
 "category": "Contra",
 "count": 8,
-"avg": 4.73,
+"avg": 4.68,
 "median": 5.18,
 "best": {
 "name": "Motilal Oswal Contra Fund - Direct \u2013 Growth",
@@ -644,7 +644,7 @@
 "worst": {
 "name": "SBI CONTRA FUND - REGULAR PLAN -GROWTH",
 "amc": "SBI",
-"ret": 2.63,
+"ret": 2.43,
 "code": "102414"
 },
 "breadth": 100
@@ -690,8 +690,8 @@
 {
 "category": "Large & Mid Cap",
 "count": 67,
-"avg": 4.52,
-"median": 4.94,
+"avg": 4.5,
+"median": 4.77,
 "best": {
 "name": "Invesco India Large & Mid Cap Fund - Direct Plan - Growth",
 "amc": "Invesco",
@@ -709,8 +709,8 @@
 {
 "category": "Sectoral/ Thematic",
 "count": 493,
-"avg": 4.34,
-"median": 4.67,
+"avg": 4.36,
+"median": 4.65,
 "best": {
 "name": "HDFC Transportation and Logistics Fund - Growth Option - Direct Plan",
 "amc": "HDFC",
@@ -723,7 +723,7 @@
 "ret": -7.75,
 "code": "149328"
 },
-"breadth": 93
+"breadth": 95
 },
 {
 "category": "Mid Cap",
@@ -786,7 +786,7 @@
 "category": "Equity Savings",
 "count": 46,
 "avg": 2.13,
-"median": 2.17,
+"median": 2.13,
 "best": {
 "name": "quant Equity Savings Fund - Growth Option - Direct Plan",
 "amc": "quant",
@@ -823,9 +823,9 @@
 "amc": "WhiteOak Capital",
 "funds": 28,
 "avg": 5.67,
-"pct_outperform": 93,
+"pct_outperform": 96,
 "breadth": 100,
-"score": 95.2
+"score": 97.1
 },
 {
 "amc": "Mirae Asset",
@@ -910,10 +910,10 @@
 {
 "amc": "DSP",
 "funds": 32,
-"avg": 4.54,
+"avg": 4.49,
 "pct_outperform": 69,
 "breadth": 94,
-"score": 78.5
+"score": 78.4
 },
 {
 "amc": "JM Financial",
@@ -942,26 +942,26 @@
 {
 "amc": "Axis",
 "funds": 36,
-"avg": 4.95,
+"avg": 4.94,
 "pct_outperform": 56,
 "breadth": 100,
 "score": 73.5
 },
 {
-"amc": "Sundaram",
-"funds": 44,
-"avg": 4.86,
-"pct_outperform": 55,
-"breadth": 95,
-"score": 71.6
-},
-{
 "amc": "Kotak Mahindra",
 "funds": 54,
-"avg": 4.61,
+"avg": 4.68,
 "pct_outperform": 56,
-"breadth": 93,
-"score": 71.1
+"breadth": 96,
+"score": 72.1
+},
+{
+"amc": "Sundaram",
+"funds": 44,
+"avg": 4.89,
+"pct_outperform": 55,
+"breadth": 95,
+"score": 71.7
 },
 {
 "amc": "Trust",
@@ -1012,33 +1012,41 @@
 "score": 66.7
 },
 {
-"amc": "Franklin Templeton",
-"funds": 30,
-"avg": 4.05,
-"pct_outperform": 40,
-"breadth": 100,
-"score": 63.5
-},
-{
 "amc": "Aditya Birla Sun Life",
 "funds": 66,
-"avg": 3.98,
+"avg": 3.97,
 "pct_outperform": 42,
-"breadth": 94,
-"score": 63.2
+"breadth": 97,
+"score": 63.9
+},
+{
+"amc": "Mahindra Manulife",
+"funds": 30,
+"avg": 4.26,
+"pct_outperform": 40,
+"breadth": 100,
+"score": 63.8
+},
+{
+"amc": "Franklin Templeton",
+"funds": 30,
+"avg": 4.13,
+"pct_outperform": 40,
+"breadth": 100,
+"score": 63.6
 },
 {
 "amc": "ICICI Prudential",
 "funds": 62,
-"avg": 4.08,
-"pct_outperform": 44,
-"breadth": 90,
-"score": 63.1
+"avg": 4.07,
+"pct_outperform": 40,
+"breadth": 94,
+"score": 62.1
 },
 {
 "amc": "Nippon India",
 "funds": 42,
-"avg": 3.65,
+"avg": 3.63,
 "pct_outperform": 38,
 "breadth": 95,
 "score": 60.6
@@ -1052,20 +1060,12 @@
 "score": 60.6
 },
 {
-"amc": "Mahindra Manulife",
-"funds": 30,
-"avg": 4.26,
-"pct_outperform": 33,
-"breadth": 100,
-"score": 60.2
-},
-{
 "amc": "SBI",
 "funds": 56,
 "avg": 3.76,
-"pct_outperform": 39,
-"breadth": 86,
-"score": 59.1
+"pct_outperform": 38,
+"breadth": 89,
+"score": 59.0
 },
 {
 "amc": "Tata",
@@ -1078,10 +1078,10 @@
 {
 "amc": "Edelweiss",
 "funds": 30,
-"avg": 4.09,
+"avg": 4.12,
 "pct_outperform": 27,
 "breadth": 100,
-"score": 56.2
+"score": 56.3
 },
 {
 "amc": "HSBC",
@@ -1142,10 +1142,10 @@
 {
 "amc": "PPFAS",
 "funds": 6,
-"avg": 3.34,
+"avg": 3.38,
 "pct_outperform": 0,
 "breadth": 100,
-"score": 40.3
+"score": 40.4
 },
 {
 "amc": "The Wealth Company",
@@ -1167,7 +1167,7 @@
 "insights": [
 "Small Cap led equity categories at +5.4% (1-month NAV), outpacing Equity Savings (+2.1%) by 3.3 pts.",
 "The top 10 equity funds averaged +9.8% over 1 month, led by HDFC Transportation and Logistics Fund - (+10.5%).",
-"Across 1,191 equity Growth funds, 96% posted positive 1-month NAV returns.",
+"Across 1,191 equity Growth funds, 97% posted positive 1-month NAV returns.",
 "Helios ranks #1 on AMC quality (100% of its funds beat their category median)."
 ]
 }
