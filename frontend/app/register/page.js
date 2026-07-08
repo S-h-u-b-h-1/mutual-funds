@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { migrateLocalDataToCloud } from "../lib/migrateLocalData";
 
 const inputClass =
   "w-full rounded-lg border border-line bg-surface px-3 py-2 text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent";
@@ -42,6 +43,7 @@ export default function RegisterPage() {
       router.push("/login");
       return;
     }
+    migrateLocalDataToCloud(); // fire-and-forget — brings in whatever they built anonymously pre-signup
     router.push("/");
     router.refresh();
   }
