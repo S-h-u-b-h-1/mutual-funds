@@ -5,6 +5,7 @@ const VALID_ALERT_TYPES = new Set([
   "health_score", "attention_score", "news", "factsheet", "benchmark", "category", "amc", "research_queue",
 ]);
 const VALID_TARGET_TYPES = new Set(["fund", "category", "amc", "benchmark"]);
+const MAX_RULES_PER_USER = 50;
 
 export async function GET() {
   const user = await requireUser();
@@ -41,6 +42,14 @@ export async function POST(request) {
   }
   if (!condition || typeof condition !== "object") {
     return Response.json({ error: "condition (object) is required, e.g. {\"op\":\"below\",\"value\":50}" }, { status: 400 });
+  }
+
+  // Every enabled rule, for every user, is loaded and evaluated on every run of
+  // /api/v1/internal/alerts/run — there's no per-user pagination there. An uncapped create
+  // endpoint would let one account permanently degrade that shared job's runtime for everyone.
+  const existingCount = await query(`select count(*) from alert_rules where user_id = $1`, [user.id]);
+  if (Number(existingCount.rows[0].count) >= MAX_RULES_PER_USER) {
+    return Response.json({ error: `Alert rule limit reached (max ${MAX_RULES_PER_USER})` }, { status: 429 });
   }
 
   const r = await query(

@@ -50,8 +50,12 @@ export async function POST(request) {
   // client's locally-generated id, so a retried migration after a partial failure could
   // duplicate notes already imported in the failed attempt. Accepted as a rare-edge-case
   // tradeoff: the common path is exactly one successful run, gated by the marker above.
+  // Object.entries has no length cap of its own the way asArray() caps every array-shaped input
+  // above — an attacker-controlled body could otherwise carry tens of thousands of scheme_code
+  // keys, each spawning its own sequential inserts, tying up pooled connection capacity for one
+  // request far longer than any real localStorage payload ever would.
   const notesByCode = body.notes && typeof body.notes === "object" && !Array.isArray(body.notes) ? body.notes : {};
-  for (const [schemeCode, notes] of Object.entries(notesByCode)) {
+  for (const [schemeCode, notes] of Object.entries(notesByCode).slice(0, MAX_ITEMS)) {
     for (const note of asArray(notes)) {
       const text = typeof note?.text === "string" ? note.text.trim() : "";
       if (!text) continue;

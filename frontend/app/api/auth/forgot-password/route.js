@@ -4,6 +4,12 @@ import { hasResendKey, sendPasswordResetEmail } from "../../../lib/email";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const GENERIC_OK = { message: "If an account exists for that email, a reset link has been sent." };
+// Same trusted constant as app/layout.js's own SITE — never derive a security-sensitive URL
+// (one that will be emailed out with a live, single-use token in it) from the incoming request's
+// own Host/URL. That's forgeable via a spoofed Host or X-Forwarded-Host header, which would let
+// an attacker redirect a real user's reset link — and its embedded token — to an attacker-
+// controlled domain (password-reset-poisoning; full account takeover on click).
+const TRUSTED_ORIGIN = process.env.NEXTAUTH_URL || "https://frontend-six-beta-20.vercel.app";
 
 function hashToken(raw) {
   return crypto.createHash("sha256").update(raw).digest("hex");
@@ -37,11 +43,13 @@ export async function POST(request) {
         `insert into verification_tokens (identifier, token, purpose, expires) values ($1, $2, 'password_reset', $3)`,
         [email, hashToken(rawToken), expires]
       );
-      const origin = process.env.NEXTAUTH_URL || new URL(request.url).origin;
-      const resetUrl = `${origin}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
-      await sendPasswordResetEmail(email, resetUrl).catch(() => {
-        // Swallow send failures too — same reasoning: response must stay generic either way.
-      });
+      const resetUrl = `${TRUSTED_ORIGIN}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
+      // Deliberately not awaited: awaiting a real outbound HTTPS call here (plus the extra
+      // INSERT above) makes this branch measurably slower than the "unknown email" branch below,
+      // which returns after a single SELECT — a timing side-channel that leaks account existence
+      // even though the response body/status are identical either way. Firing-and-forgetting
+      // closes that gap; a delivery failure here was already silent/unsurfaced either way.
+      sendPasswordResetEmail(email, resetUrl).catch(() => {});
     }
   }
 

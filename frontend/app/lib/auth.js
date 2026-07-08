@@ -16,6 +16,15 @@ const hasGoogle = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLI
 const hasGitHub = Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);
 const hasResend = Boolean(process.env.RESEND_API_KEY);
 
+// A fixed, valid bcrypt hash with no real password behind it — compared against on every
+// nonexistent-user / OAuth-only-account login attempt so authorize() always pays the same
+// bcrypt cost regardless of outcome. Without this, "no such user" and "no password set" both
+// return instantly while a real password check takes bcrypt's ~tens-of-ms cost-12 round trip,
+// which is a login-timing side channel for account enumeration (distinct from — and cheaper to
+// close than — the same class of bug on forgot-password, which leaks via an awaited network call
+// instead of local CPU; see that route's own comment).
+const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 12);
+
 const providers = [
   Credentials({
     credentials: { email: { label: "Email" }, password: { label: "Password", type: "password" } },
@@ -24,9 +33,8 @@ const providers = [
       const email = String(credentials.email).trim().toLowerCase();
       const r = await query(`select * from users where email = $1`, [email]);
       const user = r.rows[0];
-      if (!user || !user.password_hash) return null; // no password set => OAuth-only account
-      const valid = await bcrypt.compare(String(credentials.password), user.password_hash);
-      if (!valid) return null;
+      const valid = await bcrypt.compare(String(credentials.password), user?.password_hash || DUMMY_HASH);
+      if (!user || !user.password_hash || !valid) return null;
       return { id: user.id, name: user.name, email: user.email, image: user.image };
     },
   }),

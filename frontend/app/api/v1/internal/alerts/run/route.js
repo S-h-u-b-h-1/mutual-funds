@@ -3,16 +3,26 @@
 // a workflow step to call this is a scheduling decision, deliberately left out of this pass per
 // "no delivery infra"). Gated on a shared secret rather than requireUser() since there is no
 // per-request user — this evaluates every user's rules in one pass.
+import crypto from "crypto";
 import { query } from "../../../../../lib/db";
 import { evaluateRule } from "../../../../../lib/alertEngine";
 
 const hasSecret = Boolean(process.env.ALERTS_INTERNAL_SECRET);
 
+function safeSecretMatch(provided, real) {
+  const a = Buffer.from(provided || "");
+  const b = Buffer.from(real);
+  // timingSafeEqual throws on mismatched lengths rather than returning false — length itself
+  // isn't sensitive (unlike content), so this early return is not a reintroduced timing leak.
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
 export async function POST(request) {
   if (!hasSecret) {
     return Response.json({ error: "Alert evaluation is not configured" }, { status: 503 });
   }
-  if (request.headers.get("x-internal-secret") !== process.env.ALERTS_INTERNAL_SECRET) {
+  if (!safeSecretMatch(request.headers.get("x-internal-secret"), process.env.ALERTS_INTERNAL_SECRET)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
