@@ -164,6 +164,12 @@ export default function CompareFundsClient({ initialFunds, allFundsList }) {
 
         {activeFunds.length > 0 && (
           <div className="flex gap-2">
+            <a
+              href={`/research?import_funds=${selectedCodes.join(",")}`}
+              className="rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-4 py-2 text-[12.5px] font-bold text-white transition-all flex items-center"
+            >
+              Model as Portfolio Strategy →
+            </a>
             <button
               onClick={addBatchToWatchlist}
               className="rounded-xl border border-line bg-white/[0.015] hover:bg-white/[0.04] px-4 py-2 text-[12.5px] font-bold text-ink-muted hover:text-white transition-all"

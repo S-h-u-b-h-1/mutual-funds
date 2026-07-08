@@ -8,19 +8,77 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
 
-  // Load strategies from localStorage
+  const [fundNotes, setFundNotes] = useState({});
+
+  // Load strategies from localStorage, handle URL imports, and load fund notes
   useEffect(() => {
+    let list = [];
     try {
       const stored = localStorage.getItem("mfp_strategies");
       if (stored) {
-        const list = JSON.parse(stored);
-        setStrategies(list);
-        if (list.length > 0) {
-          setSelectedId(list[0].id);
-        }
+        list = JSON.parse(stored);
       }
     } catch {}
-  }, []);
+
+    // Check query params for import_funds
+    const urlParams = new URLSearchParams(window.location.search);
+    const importFundsStr = urlParams.get("import_funds");
+    let activeId = list.length > 0 ? list[0].id : null;
+
+    if (importFundsStr) {
+      const codes = importFundsStr.split(",").filter((code) => {
+        return allFundsList.some((f) => f.code === code);
+      });
+
+      if (codes.length > 0) {
+        const defaultPct = Math.floor(100 / codes.length);
+        const allocations = codes.map((code, idx) => {
+          const pct = idx === codes.length - 1 ? 100 - defaultPct * (codes.length - 1) : defaultPct;
+          return { code, pct };
+        });
+
+        const importedStrat = {
+          id: "strat_" + Date.now(),
+          name: `Imported Strategy (${new Date().toLocaleDateString("en-IN")})`,
+          thesis: "Automatically compiled from active fund selection.",
+          allocations,
+          updatedAt: new Date().toISOString()
+        };
+
+        list = [importedStrat, ...list];
+        activeId = importedStrat.id;
+        try {
+          localStorage.setItem("mfp_strategies", JSON.stringify(list));
+        } catch {}
+
+        // Remove query parameters from address bar to avoid duplicate imports on reload
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+        track("strategy_imported", { id: importedStrat.id, count: codes.length });
+      }
+    }
+
+    setStrategies(list);
+    if (activeId) {
+      setSelectedId(activeId);
+    }
+
+    // Load individual fund notes
+    try {
+      const storedNotes = localStorage.getItem("mfp_research_notes");
+      if (storedNotes) {
+        const notesObj = JSON.parse(storedNotes);
+        const latestNotes = {};
+        Object.entries(notesObj).forEach(([code, notes]) => {
+          if (notes && notes.length > 0) {
+            const sorted = [...notes].sort((a, b) => new Date(b.at) - new Date(a.at));
+            latestNotes[code] = sorted[0].text;
+          }
+        });
+        setFundNotes(latestNotes);
+      }
+    } catch {}
+  }, [allFundsList]);
 
   const persistStrategies = (list) => {
     setStrategies(list);
@@ -337,6 +395,11 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
                               {f.name.replace(/ - (Direct|Regular).*/i, "")}
                             </a>
                             <span className="text-[10px] text-ink-faint mt-0.5 block">{f.category} · {f.plan}</span>
+                            {fundNotes[f.code] && (
+                              <p className="text-[11px] italic text-ink-muted mt-1.5 leading-relaxed border-l-2 border-accent/30 pl-2 max-w-[240px] whitespace-normal break-words" title={fundNotes[f.code]}>
+                                Note: "{fundNotes[f.code]}"
+                              </p>
+                            )}
                           </td>
                           <td className="px-4 py-3 align-middle text-center">
                             <div className="flex items-center justify-center gap-1">

@@ -105,11 +105,17 @@ export default function ScreenerTableClient({ rows, total, asOf, confLabel }) {
             </div>
             
             <div className="flex gap-2">
+              <a
+                href={`/research?import_funds=${selectedCodes.join(",")}`}
+                className="rounded-xl border border-accent/40 bg-accent/15 px-3.5 py-2 text-[12.5px] font-bold text-white hover:bg-accent/25 transition-colors flex items-center"
+              >
+                Model Strategy
+              </a>
               <button
                 onClick={handleCompareClick}
                 className="rounded-xl bg-accent px-4 py-2 text-[12.5px] font-bold text-white hover:bg-accent/80 transition-colors"
               >
-                Compare Side-by-Side
+                Compare
               </button>
               <button
                 onClick={clearSelection}
