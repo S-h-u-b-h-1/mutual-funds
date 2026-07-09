@@ -6,7 +6,6 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { migrateLocalDataToCloud } from "../lib/migrateLocalData";
 
 const inputClass =
   "w-full rounded-lg border border-line bg-surface px-3 py-2 text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent";
@@ -45,7 +44,8 @@ function LoginForm() {
       setError("Incorrect email or password.");
       return;
     }
-    migrateLocalDataToCloud(); // fire-and-forget — no-ops instantly for already-migrated users
+    // Migration is now a user-confirmed prompt (SyncPrompt.jsx, mounted globally in
+    // app/layout.js), not a silent auto-call here — the user gets asked, not just synced.
     router.push(callbackUrl);
     router.refresh();
   }

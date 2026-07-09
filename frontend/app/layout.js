@@ -3,6 +3,7 @@ import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import SentryInit from "./components/SentryInit";
 import PageView from "./components/PageView";
+import SyncPrompt from "./components/SyncPrompt";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
           <SentryInit />
           <PageView />
           {children}
+          <SyncPrompt />
         </SessionProvider>
       </body>
     </html>
