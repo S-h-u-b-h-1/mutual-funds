@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { ALL_LINKS as LINKS } from "../lib/navLinks";
 
 export default function MobileNav({ active }) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef(null);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     function onKey(e) { if (e.key === "Escape") setOpen(false); }
@@ -70,6 +72,22 @@ export default function MobileNav({ active }) {
               <a href="/#alerts" onClick={() => setOpen(false)} className="mt-1 rounded-lg bg-accent px-3 py-3 text-center text-[14px] font-semibold text-white">
                 Get Flow Alerts
               </a>
+              {status !== "loading" && (
+                <div className="mt-1 flex items-center justify-between border-t border-line px-3 pt-3 text-[13px]">
+                  {session ? (
+                    <>
+                      <span className="truncate text-ink-muted">{session.user?.name || session.user?.email}</span>
+                      <button onClick={() => { setOpen(false); signOut({ callbackUrl: "/" }); }} className="shrink-0 text-ink-faint hover:text-ink">
+                        Sign out
+                      </button>
+                    </>
+                  ) : (
+                    <a href="/login" onClick={() => setOpen(false)} className="text-ink-muted hover:text-ink">
+                      Sign in
+                    </a>
+                  )}
+                </div>
+              )}
             </nav>
           </div>
         </>

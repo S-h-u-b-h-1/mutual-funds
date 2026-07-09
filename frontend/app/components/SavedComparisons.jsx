@@ -1,18 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getRecentComparisons } from "../lib/sessionMemory";
+import { getComparisons } from "../lib/cloudSync";
 
-// Research Dashboard building block (Decision Support sprint) — reads the same mfp_recent_compares
-// key CompareClient.jsx writes to on "Save workspace"; renders nothing for a visitor who has
-// never saved a comparison (no clutter, no fabricated "0 comparisons" state).
+// Research Dashboard building block (Decision Support sprint) — reads the same comparisons
+// CompareClient.jsx writes on "Save workspace" (cloud-synced when signed in); renders nothing
+// for a visitor who has never saved a comparison (no clutter, no fabricated "0" state).
 export default function SavedComparisons() {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    function refresh() { setItems(getRecentComparisons(5)); }
+    function refresh() { getComparisons().then((list) => setItems(list.slice(0, 5))); }
     refresh();
-    window.addEventListener("mfp-session", refresh);
-    return () => window.removeEventListener("mfp-session", refresh);
+    window.addEventListener("mfp-sync", refresh);
+    return () => window.removeEventListener("mfp-sync", refresh);
   }, []);
 
   if (!items.length) return null;

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { track } from "../lib/track";
-import { getRecentViews } from "../lib/sessionMemory";
+import { getHistory } from "../lib/cloudSync";
 
 // Soft, non-modal advisor CTA — a single dismissable-by-scrolling-past banner, not a popup.
 // Placed at the natural end of a research page, never interrupts the reading flow above it.
@@ -25,7 +25,7 @@ export default function AdvisorSoftCTA({ context }) {
   const [engaged, setEngaged] = useState(false);
 
   useEffect(() => {
-    setEngaged(getRecentViews(null, 50).length >= ENGAGEMENT_THRESHOLD);
+    getHistory({ limit: 50 }).then((views) => setEngaged(views.length >= ENGAGEMENT_THRESHOLD));
   }, []);
 
   if (!engaged) return null;

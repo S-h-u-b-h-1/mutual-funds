@@ -1,5 +1,6 @@
 import PremiumButton from "./ui/PremiumButton";
 import MobileNav from "./MobileNav";
+import AuthStatus from "./AuthStatus";
 import { asOf } from "../lib/funds";
 import { marketStatus } from "../lib/marketStatus";
 import { PRIMARY_LINKS as LINKS } from "../lib/navLinks";
@@ -39,6 +40,7 @@ export default function Nav({ active }) {
           <PremiumButton href="/#alerts" variant="ghost" className="hidden !px-3.5 !py-2 !text-[12px] sm:inline-flex">
             Get alerts
           </PremiumButton>
+          <AuthStatus />
           <MobileNav active={active} />
         </div>
       </div>

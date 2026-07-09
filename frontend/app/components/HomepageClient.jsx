@@ -15,6 +15,7 @@ import Watchlist from "./Watchlist";
 import WatchlistIntelligence from "./WatchlistIntelligence";
 import RecentActivity from "./RecentActivity";
 import { track } from "../lib/track";
+import { getWatchlist, saveWatchlist, getPreferences, savePreferences } from "../lib/cloudSync";
 
 // Mock Clients data for Advisor Workspace
 const MOCK_CLIENTS = [
@@ -48,26 +49,23 @@ export default function HomepageClient({
   // Watchlist custom state tracker (mocking adding a fund if watchlist is empty)
   const [localWatchlistCount, setLocalWatchlistCount] = useState(0);
 
+  // Was reading a second, bare "watchlist" key (plain scheme-code strings) disconnected from
+  // the real mfp_watchlist WatchButton/Watchlist/WatchlistIntelligence all use — this count and
+  // the sample-add button below never actually matched what showed up as watchlisted elsewhere.
+  // Fixed to go through the same adapter (and therefore the same key/shape) everything else does.
   useEffect(() => {
-    try {
-      const w = localStorage.getItem("watchlist");
-      const list = w ? JSON.parse(w) : [];
-      setLocalWatchlistCount(list.length);
-    } catch {
-      setLocalWatchlistCount(0);
-    }
+    getWatchlist().then((list) => setLocalWatchlistCount(list.length));
+    const refresh = () => getWatchlist().then((list) => setLocalWatchlistCount(list.length));
+    window.addEventListener("mfp-sync", refresh);
+    return () => window.removeEventListener("mfp-sync", refresh);
   }, []);
 
   const triggerAddSampleWatchlist = () => {
-    try {
-      const sample = ["120847", "101997"];
-      localStorage.setItem("watchlist", JSON.stringify(sample));
-      setLocalWatchlistCount(2);
-      playClickSound();
-      alert("Added Quant Small Cap & HDFC Mid-Cap Opportunities to Watchlist. Refresh to see Watchlist telemetry!");
-      track("watchlist_sample_added");
-      window.location.reload();
-    } catch {}
+    MOCK_CLIENT_FUNDS.slice(0, 2).forEach((f) => saveWatchlist({ code: f.code, name: f.name, amc: null }));
+    playClickSound();
+    alert("Added Quant Small Cap & HDFC Mid-Cap Opportunities to Watchlist. Refresh to see Watchlist telemetry!");
+    track("watchlist_sample_added");
+    window.location.reload();
   };
 
   // Keyboard shortcut listener
@@ -98,36 +96,34 @@ export default function HomepageClient({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [audioEnabled]);
 
-  // Sync state preferences
+  // Sync state preferences (cloud-synced when signed in, same mfp_left_collapsed/
+  // mfp_right_collapsed/mfp_audio_enabled keys locally either way)
   useEffect(() => {
-    try {
-      const s = localStorage.getItem("mfp_audio_enabled");
-      if (s) setAudioEnabled(JSON.parse(s));
-      const l = localStorage.getItem("mfp_left_collapsed");
-      if (l) setLeftPanelCollapsed(JSON.parse(l));
-      const r = localStorage.getItem("mfp_right_collapsed");
-      if (r) setRightPanelCollapsed(JSON.parse(r));
-    } catch {}
+    getPreferences().then((p) => {
+      if (p.audioEnabled != null) setAudioEnabled(p.audioEnabled);
+      if (p.leftCollapsed != null) setLeftPanelCollapsed(p.leftCollapsed);
+      if (p.rightCollapsed != null) setRightPanelCollapsed(p.rightCollapsed);
+    });
   }, []);
 
   const toggleLeftPanel = () => {
     const next = !leftPanelCollapsed;
     setLeftPanelCollapsed(next);
     playClickSound();
-    localStorage.setItem("mfp_left_collapsed", JSON.stringify(next));
+    savePreferences({ leftCollapsed: next });
   };
 
   const toggleRightPanel = () => {
     const next = !rightPanelCollapsed;
     setRightPanelCollapsed(next);
     playClickSound();
-    localStorage.setItem("mfp_right_collapsed", JSON.stringify(next));
+    savePreferences({ rightCollapsed: next });
   };
 
   const toggleAudioMode = () => {
     const next = !audioEnabled;
     setAudioEnabled(next);
-    localStorage.setItem("mfp_audio_enabled", JSON.stringify(next));
+    savePreferences({ audioEnabled: next });
     if (next) {
       // Small trigger sound to confirm activation
       try {

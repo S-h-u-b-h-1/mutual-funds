@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { track } from "../lib/track";
+import { getAllNotes } from "../lib/cloudSync";
 
 export default function ResearchWorkspaceClient({ allFundsList }) {
   const [strategies, setStrategies] = useState([]);
@@ -62,23 +63,31 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
     if (activeId) {
       setSelectedId(activeId);
     }
-
-    // Load individual fund notes
-    try {
-      const storedNotes = localStorage.getItem("mfp_research_notes");
-      if (storedNotes) {
-        const notesObj = JSON.parse(storedNotes);
-        const latestNotes = {};
-        Object.entries(notesObj).forEach(([code, notes]) => {
-          if (notes && notes.length > 0) {
-            const sorted = [...notes].sort((a, b) => new Date(b.at) - new Date(a.at));
-            latestNotes[code] = sorted[0].text;
-          }
-        });
-        setFundNotes(latestNotes);
-      }
-    } catch {}
   }, [allFundsList]);
+
+  // Separate effect (was a synchronous localStorage read inline above) — cloudSync's getAllNotes()
+  // is async whether it resolves from the cloud or from the same mfp_research_notes fallback, so
+  // it can't stay inline in the sync effect above without making the whole thing async too.
+  useEffect(() => {
+    let live = true;
+    function loadNotes() {
+      getAllNotes(500).then((notes) => {
+        if (!live) return;
+        const latestNotes = {};
+        for (const n of notes) {
+          if (!latestNotes[n.code] || new Date(n.at) > new Date(latestNotes[n.code].at)) {
+            latestNotes[n.code] = { text: n.text, at: n.at };
+          }
+        }
+        const flat = {};
+        for (const [code, v] of Object.entries(latestNotes)) flat[code] = v.text;
+        setFundNotes(flat);
+      });
+    }
+    loadNotes();
+    window.addEventListener("mfp-sync", loadNotes);
+    return () => { live = false; window.removeEventListener("mfp-sync", loadNotes); };
+  }, []);
 
   const persistStrategies = (list) => {
     setStrategies(list);

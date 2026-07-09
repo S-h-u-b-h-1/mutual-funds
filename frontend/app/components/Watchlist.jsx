@@ -2,25 +2,22 @@
 import { useEffect, useState } from "react";
 import { SUPA } from "../lib/supabase";
 import SectionHeader from "./ui/SectionHeader";
-
-const KEY = "mfp_watchlist";
+import { getWatchlist, removeFromWatchlist } from "../lib/cloudSync";
 
 export default function Watchlist({ amcDeltas = {} }) {
   const [items, setItems] = useState([]);
   const [navs, setNavs] = useState({});
 
-  function load() {
-    try { setItems(JSON.parse(localStorage.getItem(KEY) || "[]")); } catch { setItems([]); }
-  }
-
   useEffect(() => {
+    let live = true;
+    const load = () => getWatchlist().then((list) => { if (live) setItems(list); });
     load();
-    const h = () => load();
-    window.addEventListener("mfp-watchlist", h);
-    window.addEventListener("storage", h);
+    window.addEventListener("mfp-sync", load);
+    window.addEventListener("storage", load);
     return () => {
-      window.removeEventListener("mfp-watchlist", h);
-      window.removeEventListener("storage", h);
+      live = false;
+      window.removeEventListener("mfp-sync", load);
+      window.removeEventListener("storage", load);
     };
   }, []);
 
@@ -41,10 +38,8 @@ export default function Watchlist({ amcDeltas = {} }) {
   }, [items]);
 
   function remove(code) {
-    const next = items.filter((i) => i.code !== code);
-    localStorage.setItem(KEY, JSON.stringify(next));
-    setItems(next);
-    window.dispatchEvent(new Event("mfp-watchlist"));
+    setItems((prev) => prev.filter((i) => i.code !== code)); // optimistic
+    removeFromWatchlist(code);
   }
 
   if (!items.length) return null;

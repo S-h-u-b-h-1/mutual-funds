@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { track } from "../lib/track";
+import { saveWatchlist } from "../lib/cloudSync";
 
 export default function CompareFundsClient({ initialFunds, allFundsList }) {
   const [selectedCodes, setSelectedCodes] = useState(initialFunds.map((f) => f.code));
@@ -60,17 +61,15 @@ export default function CompareFundsClient({ initialFunds, allFundsList }) {
     track("fund_comparison_removed", { code });
   };
 
+  // Was writing a second, bare "watchlist" key (plain scheme-code strings) disconnected from
+  // the real mfp_watchlist WatchButton/Watchlist/WatchlistIntelligence all use — funds added
+  // here never actually showed up as watchlisted anywhere else in the app. Fixed to go through
+  // the same adapter (and therefore the same key/shape, cloud-synced when signed in) everything
+  // else does.
   const addBatchToWatchlist = () => {
-    try {
-      const w = localStorage.getItem("watchlist");
-      let list = w ? JSON.parse(w) : [];
-      selectedCodes.forEach((code) => {
-        if (!list.includes(code)) list.push(code);
-      });
-      localStorage.setItem("watchlist", JSON.stringify(list));
-      alert("Added selected funds to Watchlist successfully!");
-      track("comparison_batch_watchlisted", { count: selectedCodes.length });
-    } catch {}
+    activeFunds.forEach((f) => saveWatchlist({ code: f.code, name: f.name, amc: f.amc }));
+    alert("Added selected funds to Watchlist successfully!");
+    track("comparison_batch_watchlisted", { count: selectedCodes.length });
   };
 
   const rows = [

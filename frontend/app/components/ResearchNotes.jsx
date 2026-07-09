@@ -1,30 +1,35 @@
 "use client";
 import { useEffect, useState } from "react";
 import { track } from "../lib/track";
-import { saveNote, getNotes, deleteNote } from "../lib/sessionMemory";
+import { saveNote, getNotes, deleteNote } from "../lib/cloudSync";
 
 // Research Notebook (Personal Operating System sprint, Phase 3) — the user's own observations
-// against this specific fund, kept exactly as typed, never scored or summarised. Local-only
-// today (mfp_research_notes); the storage shape (per-code array of {id, text, at}) is already
-// what a future login-sync would need — no rework, just a different read/write target.
+// against this specific fund, kept exactly as typed, never scored or summarised. Cloud-synced
+// when signed in (cloudSync.js), local-only (mfp_research_notes) otherwise — same shape either
+// way (per-code array of {id, text, at}), so this component doesn't need to know which.
 export default function ResearchNotes({ code, name }) {
   const [notes, setNotes] = useState([]);
   const [draft, setDraft] = useState("");
 
-  function refresh() { setNotes(getNotes(code)); }
-  useEffect(() => { refresh(); }, [code]);
+  function refresh() { getNotes(code).then(setNotes); }
+  useEffect(() => {
+    refresh();
+    window.addEventListener("mfp-sync", refresh);
+    return () => window.removeEventListener("mfp-sync", refresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code]);
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     if (!draft.trim()) return;
-    saveNote(code, draft, name);
+    await saveNote(code, draft, name);
     setDraft("");
     refresh();
     track("research_note_save", { scheme_code: code });
   }
 
-  function remove(id) {
-    deleteNote(code, id);
+  async function remove(id) {
+    await deleteNote(code, id);
     refresh();
   }
 

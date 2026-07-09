@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { track } from "../lib/track";
-import { recordSearch, getRecentSearches } from "../lib/sessionMemory";
+import { saveSearch, getSearchHistory, getHistory, saveHistory } from "../lib/cloudSync";
 import { SUPA } from "../lib/supabase";
 
 // Predefined suggestion data for a premium experience
@@ -40,9 +40,9 @@ export default function Search() {
 
   // Sync recent, popular, pinned and recent visits from storage
   const syncStorage = () => {
-    setRecent(getRecentSearches(6));
-    
-    // Load pinned pages
+    getSearchHistory(6).then(setRecent);
+
+    // Load pinned pages (local-only — no backend concept for this yet)
     try {
       const p = localStorage.getItem("mfp_pinned_pages");
       setPinned(p ? JSON.parse(p) : []);
@@ -50,13 +50,10 @@ export default function Search() {
       setPinned([]);
     }
 
-    // Load recent visits
-    try {
-      const v = localStorage.getItem("mfp_recent_visits");
-      setVisits(v ? JSON.parse(v).slice(0, 5) : []);
-    } catch {
-      setVisits([]);
-    }
+    // Recent visits — same underlying history as RecentActivity.jsx/mfp_recent_views, not a
+    // separate tracking system (it used to be: a parallel mfp_recent_visits key with no cloud
+    // sync of its own, unified here so this list and "Continue where you left off" always agree).
+    getHistory({ type: "fund", limit: 5 }).then((views) => setVisits(views.map((v) => ({ code: v.id, name: v.name }))));
   };
 
   useEffect(() => {
@@ -173,8 +170,8 @@ export default function Search() {
         setActiveIndex(0);
         track("search", { q: clean, results: hits?.length || 0 });
         if (hits?.length > 0) {
-          recordSearch(clean);
-          setRecent(getRecentSearches(6));
+          saveSearch(clean);
+          getSearchHistory(6).then(setRecent);
         }
       } catch {
         if (myReq === reqId.current) setResults([]);
@@ -240,17 +237,7 @@ export default function Search() {
       runSearch(item.value);
     } else if (item.type === "fund" || item.type === "result") {
       track("search_click", { scheme_code: item.payload, name: item.value });
-      
-      // Save to recent visits
-      try {
-        const v = localStorage.getItem("mfp_recent_visits");
-        let list = v ? JSON.parse(v) : [];
-        const match = list.findIndex((x) => x.code === item.payload);
-        if (match >= 0) list.splice(match, 1);
-        list.unshift({ code: item.payload, name: item.value });
-        localStorage.setItem("mfp_recent_visits", JSON.stringify(list.slice(0, 10)));
-      } catch {}
-
+      saveHistory({ type: "fund", id: item.payload, name: item.value });
       window.location.href = `/fund/${item.payload}`;
       closePalette();
     } else if (item.type === "pinned" || item.type === "visit" || item.type === "shortcut") {

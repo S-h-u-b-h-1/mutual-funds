@@ -3,9 +3,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Sparkline from "./Sparkline";
 import { track } from "../lib/track";
-import { recordComparison } from "../lib/sessionMemory";
-
-const WS_KEY = "mfp_compare_ws";
+import { getComparisons, saveComparison, deleteComparison } from "../lib/cloudSync";
 
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(n);
 
@@ -24,19 +22,30 @@ export default function CompareClient({ amcs, meta = {} }) {
   const [workspaces, setWorkspaces] = useState([]);
   const [wsName, setWsName] = useState("");
 
+  // Was two parallel local-only lists (mfp_compare_ws for this widget, mfp_recent_compares via
+  // sessionMemory's recordComparison() for SavedComparisons.jsx) written together on every save
+  // but never reconciled with each other. Unified onto one cloud-syncable source — same fix
+  // shape as the mfp_recent_visits/mfp_watchlist duplicates elsewhere in this integration pass.
+  function refreshWorkspaces() {
+    getComparisons().then((list) => setWorkspaces(list.map((c) => ({ id: c.id, name: c.name, sel: c.amcs }))));
+  }
   useEffect(() => {
-    try { setWorkspaces(JSON.parse(localStorage.getItem(WS_KEY) || "[]")); } catch {}
+    refreshWorkspaces();
+    window.addEventListener("mfp-sync", refreshWorkspaces);
+    return () => window.removeEventListener("mfp-sync", refreshWorkspaces);
   }, []);
-  function persistWs(next) { setWorkspaces(next); localStorage.setItem(WS_KEY, JSON.stringify(next)); }
-  function saveWs() {
+  async function saveWs() {
     if (!sel.length) return;
     const name = wsName.trim() || `Workspace ${workspaces.length + 1}`;
-    persistWs([{ name, sel }, ...workspaces.filter((w) => w.name !== name)].slice(0, 12));
-    recordComparison(name, sel);
+    await saveComparison(name, sel);
+    refreshWorkspaces();
     setWsName("");
   }
   function loadWs(w) { setSel(w.sel.filter((n) => amcs[n])); }
-  function delWs(name) { persistWs(workspaces.filter((w) => w.name !== name)); }
+  async function delWs(w) {
+    await deleteComparison(w.id, w.name);
+    refreshWorkspaces();
+  }
 
   function toggle(n) {
     setSel((s) => {
@@ -69,7 +78,7 @@ export default function CompareClient({ amcs, meta = {} }) {
         {workspaces.map((w) => (
           <span key={w.name} className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-[12px] text-ink-muted">
             <button onClick={() => loadWs(w)} className="hover:text-ink">{w.name} · {w.sel.length}</button>
-            <button onClick={() => delWs(w.name)} aria-label="Delete workspace" className="text-ink-faint hover:text-neg">✕</button>
+            <button onClick={() => delWs(w)} aria-label="Delete workspace" className="text-ink-faint hover:text-neg">✕</button>
           </span>
         ))}
       </div>

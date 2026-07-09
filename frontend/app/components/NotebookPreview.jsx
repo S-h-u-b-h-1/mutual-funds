@@ -1,18 +1,19 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getAllNotes } from "../lib/sessionMemory";
+import { getAllNotes } from "../lib/cloudSync";
 
 // Research Dashboard building block (Personal Operating System sprint) — the notebook's own
-// overview, reading the same mfp_research_notes key ResearchNotes.jsx writes to on every fund
-// page. Renders nothing for a visitor who has never saved a note (no fabricated empty state).
+// overview, reading the same notes ResearchNotes.jsx writes on every fund page (cloud-synced
+// when signed in, mfp_research_notes locally otherwise). Renders nothing for a visitor who has
+// never saved a note (no fabricated empty state).
 export default function NotebookPreview() {
   const [notes, setNotes] = useState([]);
 
   useEffect(() => {
-    function refresh() { setNotes(getAllNotes(5)); }
+    function refresh() { getAllNotes(5).then(setNotes); }
     refresh();
-    window.addEventListener("mfp-session", refresh);
-    return () => window.removeEventListener("mfp-session", refresh);
+    window.addEventListener("mfp-sync", refresh);
+    return () => window.removeEventListener("mfp-sync", refresh);
   }, []);
 
   if (!notes.length) return null;

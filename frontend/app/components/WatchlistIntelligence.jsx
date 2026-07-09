@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import { track } from "../lib/track";
 import Badge from "./ui/Badge";
 import SectionHeader from "./ui/SectionHeader";
+import { getWatchlist } from "../lib/cloudSync";
 
-const WATCHLIST_KEY = "mfp_watchlist";
+// Local-only on purpose (not routed through cloudSync) — a derived diff-baseline cache specific
+// to this browser, not user-authored data. Re-derives fine from scratch on a new device.
 const SNAPSHOT_KEY = "mfp_watchlist_snapshot"; // { [code]: last-seen intelligence snapshot }
 
 // Watchlist Intelligence (Personal Operating System sprint, Phase 2 + 9) — "yesterday → today →
@@ -72,10 +74,17 @@ export default function WatchlistIntelligence() {
   const [state, setState] = useState({ loading: true, funds: [], diffs: {} });
 
   useEffect(() => {
-    let codes = [];
-    try { codes = (JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]")).map((i) => i.code); } catch { codes = []; }
-    if (!codes.length) { setState({ loading: false, funds: [], diffs: {} }); return; }
+    let cancelled = false;
+    getWatchlist().then((list) => {
+      if (cancelled) return;
+      const codes = list.map((i) => i.code);
+      if (!codes.length) { setState({ loading: false, funds: [], diffs: {} }); return; }
+      loadIntelligence(codes);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
+  function loadIntelligence(codes) {
     fetch(`/api/watchlist-intelligence?codes=${codes.join(",")}`)
       .then((r) => r.json())
       .then((data) => {
@@ -94,7 +103,7 @@ export default function WatchlistIntelligence() {
         setState({ loading: false, funds, diffs });
       })
       .catch(() => setState({ loading: false, funds: [], diffs: {} }));
-  }, []);
+  }
 
   if (state.loading || !state.funds.length) return null;
 

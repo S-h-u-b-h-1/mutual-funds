@@ -1,24 +1,24 @@
 "use client";
 import { useEffect, useState } from "react";
 import { track } from "../lib/track";
-
-const KEY = "mfp_watchlist";
-const read = () => {
-  try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; }
-};
+import { getWatchlist, saveWatchlist, removeFromWatchlist } from "../lib/cloudSync";
 
 export default function WatchButton({ code, name, amc }) {
   const [on, setOn] = useState(false);
-  useEffect(() => setOn(read().some((x) => x.code === code)), [code]);
+  useEffect(() => {
+    let live = true;
+    getWatchlist().then((list) => { if (live) setOn(list.some((x) => x.code === code)); });
+    const refresh = () => getWatchlist().then((list) => { if (live) setOn(list.some((x) => x.code === code)); });
+    window.addEventListener("mfp-sync", refresh);
+    return () => { live = false; window.removeEventListener("mfp-sync", refresh); };
+  }, [code]);
 
-  function toggle() {
-    const list = read();
-    const exists = list.some((x) => x.code === code);
-    const next = exists ? list.filter((x) => x.code !== code) : [...list, { code, name, amc }];
-    localStorage.setItem(KEY, JSON.stringify(next));
-    setOn(!exists);
+  async function toggle() {
+    const exists = on;
+    setOn(!exists); // optimistic — cloudSync's own local mirror + mfp-sync event reconcile the rest
+    if (exists) await removeFromWatchlist(code);
+    else await saveWatchlist({ code, name, amc });
     track(exists ? "watchlist_remove" : "watchlist_add", { scheme_code: code, amc });
-    window.dispatchEvent(new Event("mfp-watchlist"));
   }
 
   return (

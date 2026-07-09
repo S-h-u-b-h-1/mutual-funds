@@ -9,6 +9,11 @@ import ResearchNotes from "./ResearchNotes";
 import MetricTooltip from "./ui/MetricTooltip";
 import SectionHeader from "./ui/SectionHeader";
 import { track } from "../lib/track";
+import { gradeTone } from "../lib/fundHealth";
+import { researchSummary } from "../lib/fundAnalysis";
+import { relativeTime } from "../lib/news";
+import { completenessTone } from "../lib/completeness";
+import { TIER_TONE } from "../lib/decisionEngine";
 
 // Helper components of Design System 2.0
 function WorkspaceCard({ title, subtitle, action, children, id, collapsedDefault = false }) {
@@ -111,17 +116,9 @@ export default function FundPageClient({
     track("onboarding_skipped", { scheme_code: fund.code });
   };
 
-  // Record workspace page visit
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem("mfp_recent_visits");
-      let list = v ? JSON.parse(v) : [];
-      const match = list.findIndex((x) => x.code === fund.code);
-      if (match >= 0) list.splice(match, 1);
-      list.unshift({ code: fund.code, name: fund.name });
-      localStorage.setItem("mfp_recent_visits", JSON.stringify(list.slice(0, 10)));
-    } catch {}
-  }, [fund.code, fund.name]);
+  // Page visits are recorded once, by <Tracker view={...} /> in fund/[scheme_code]/page.js —
+  // this used to duplicate that into a separate mfp_recent_visits key with no cloud sync of its
+  // own; removed rather than migrated, since it's now a straight duplicate of Tracker's own call.
 
   // Table Copy Value helper
   const copyToClipboard = (text, label) => {
