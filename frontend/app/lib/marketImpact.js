@@ -63,7 +63,7 @@ const ASSET_CLASSES = new Set(["Debt", "Equity", "Hybrid", "Other", "Solution"])
 // have no honest equivalent in this taxonomy, so they're left unmapped — sectorExposure() then
 // correctly returns { available: false }, which the UI renders as "Exposure unavailable" rather
 // than a forced/approximate match.
-const SECTOR_MAP = {
+export const SECTOR_MAP = {
   Energy: ["Oil, Gas & Consumable Fuels"],
   IT: ["Information Technology"],
   Auto: ["Automobile And Auto Components"],
