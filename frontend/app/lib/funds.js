@@ -32,3 +32,46 @@ export function getBenchmark(slug) {
   benchmarkIndex ||= buildBenchmarkIndex();
   return benchmarkIndex[slug] || null;
 }
+
+let isinIndex = null;
+function buildIsinIndex() {
+  const idx = {};
+  for (const f of allFunds()) {
+    if (f.isin) idx[f.isin.trim().toUpperCase()] = f;
+  }
+  return idx;
+}
+// Portfolio import (Mission B): brokerage/CAS exports identify holdings by ISIN, not scheme code.
+export function getFundByIsin(isin) {
+  if (!isin) return null;
+  isinIndex ||= buildIsinIndex();
+  return isinIndex[String(isin).trim().toUpperCase()] || null;
+}
+
+const nameIndex = { byNormalized: null };
+function normalizeSchemeName(name) {
+  return String(name || "")
+    .toLowerCase()
+    .replace(/\(erstwhile.*?\)/g, "")
+    .replace(/[-–—]/g, " ")
+    .replace(/[^a-z0-9 ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function buildNameIndex() {
+  const idx = {};
+  for (const f of allFunds()) {
+    const key = normalizeSchemeName(f.name);
+    (idx[key] ||= []).push(f);
+  }
+  return idx;
+}
+// Fallback when a source gives no ISIN: exact match on a normalized scheme name only — never a
+// fuzzy/best-guess match, since silently attributing a holding to the wrong fund is worse than
+// reporting it unmatched. Returns null (not a guess) when zero or more than one fund shares the
+// normalized name.
+export function getFundByExactName(name) {
+  nameIndex.byNormalized ||= buildNameIndex();
+  const matches = nameIndex.byNormalized[normalizeSchemeName(name)];
+  return matches && matches.length === 1 ? matches[0] : null;
+}
