@@ -152,11 +152,26 @@ async function main() {
   const pSet = await a.put("/api/v1/sync/preferences", { theme: "dark" });
   assert(pSet.body?.theme === "dark", "preferences: set + echoed back");
 
-  console.log("Sync: migration idempotency");
-  const migrate1 = await a.post("/api/v1/sync/migrate", { watchlist: [], notes: {}, recentViews: [], recentSearches: [], recentComparisons: [] });
-  assert(typeof migrate1.body?.migrated === "boolean", "migrate: returns a migrated flag");
-  const migrate2 = await a.post("/api/v1/sync/migrate", {});
-  assert(migrate2.body?.migrated === false && migrate2.body?.reason === "already_migrated", "migrate: second call is a no-op");
+  console.log("Sync: migration — full payload, then idempotency");
+  const migratePayload = {
+    watchlist: [{ code: "100037", name: "Migrated Fund", amc: "Migrated AMC" }],
+    notes: { "100037": [{ text: "migrated note", fundName: "Migrated Fund", at: new Date().toISOString() }] },
+    recentViews: [{ type: "fund", id: "100037", name: "Migrated Fund", at: new Date().toISOString() }],
+    recentSearches: ["migrated search"],
+    recentComparisons: [{ name: "Migrated Comparison", amcs: ["HDFC"], at: new Date().toISOString() }],
+  };
+  const migrate1 = await a.post("/api/v1/sync/migrate", migratePayload);
+  assert(migrate1.body?.migrated === true, "migrate: first call reports migrated:true");
+  assert(
+    migrate1.body?.counts?.watchlist === 1 && migrate1.body?.counts?.notes === 1 && migrate1.body?.counts?.history === 2 && migrate1.body?.counts?.comparisons === 1,
+    "migrate: per-category counts match the payload (watchlist 1, notes 1, history 2 [view+search], comparisons 1)"
+  );
+  const migrate2 = await a.post("/api/v1/sync/migrate", migratePayload);
+  assert(migrate2.body?.migrated === false && migrate2.body?.reason === "already_migrated", "migrate: second call is a clean no-op, not a re-import");
+  const postMigrateWatchlist = await a.get("/api/v1/sync/watchlist");
+  assert(postMigrateWatchlist.body?.items?.some((i) => i.scheme_code === "100037"), "migrate: migrated watchlist item is actually queryable, not just counted");
+  const postMigrateComparisons = await a.get("/api/v1/sync/comparisons");
+  assert(postMigrateComparisons.body?.items?.some((c) => c.name === "Migrated Comparison"), "migrate: migrated comparison is actually queryable, not just counted");
 
   console.log("Alerts: rule CRUD");
   const alertCreate = await a.post("/api/v1/sync/alerts", {
@@ -181,6 +196,38 @@ async function main() {
   assert(bDelete.status === 204, "isolation: user B's delete of user A's collection safely no-ops (204, not an error)");
   const aCollectionsAfter = await a.get("/api/v1/sync/collections");
   assert(aCollectionsAfter.body?.items?.length === 1, "isolation: user A's collection survived user B's no-op delete attempt");
+  const bComparisons = await b.get("/api/v1/sync/comparisons");
+  assert(bComparisons.body?.items?.length === 0, "isolation: user B sees zero of user A's comparisons");
+  const bComparisonDelete = await b.del(`/api/v1/sync/comparisons/${c1.body.id}`);
+  assert(bComparisonDelete.status === 204, "isolation: user B's delete of user A's comparison safely no-ops");
+  const aComparisonsAfter = await a.get("/api/v1/sync/comparisons");
+  assert(
+    aComparisonsAfter.body?.items?.some((c) => c.id === c1.body.id && c.name === "Shortlist"),
+    "isolation: user A's comparison survived user B's no-op delete attempt"
+  );
+  await b.put("/api/v1/sync/preferences", { theme: "light" });
+  const aPrefsAfterBWrite = await a.get("/api/v1/sync/preferences");
+  assert(aPrefsAfterBWrite.body?.theme === "dark", "isolation: user B's preference write never touched user A's preferences");
+
+  console.log("Cross-device: same account, two independent sessions (device A writes, device B sees it)");
+  const emailC = `test-c-${randomUUID()}@example.com`;
+  const deviceA = makeSession();
+  const deviceB = makeSession();
+  await deviceA.register(emailC, password, "Cross Device User");
+  await deviceA.login(emailC, password);
+  await deviceA.post("/api/v1/sync/watchlist", { schemeCode: "100033", fundName: "Cross Device Fund", amc: "Test AMC" });
+  const deviceBLogin = await deviceB.login(emailC, password);
+  assert(deviceBLogin.status === 200, "cross-device: device B logs into the same account");
+  const deviceBWatchlist = await deviceB.get("/api/v1/sync/watchlist");
+  assert(deviceBWatchlist.body?.items?.some((i) => i.scheme_code === "100033"), "cross-device: watchlist item added on device A is visible on device B");
+  await deviceA.del("/api/v1/account", { confirmEmail: emailC });
+
+  console.log("Alerts: per-user rule cap (feeds the shared, unpaginated /api/v1/internal/alerts/run batch job)");
+  for (let i = 0; i < 49; i++) {
+    await a.post("/api/v1/sync/alerts", { alertType: "health_score", targetType: "fund", targetId: `cap-${i}`, condition: { op: "below", value: 100 } });
+  }
+  const capHit = await a.post("/api/v1/sync/alerts", { alertType: "health_score", targetType: "fund", targetId: "one-too-many", condition: { op: "below", value: 100 } });
+  assert(capHit.status === 429, "alert rule cap: the 51st rule (1 from earlier + 49 here + 1) is rejected with 429");
 
   console.log("Auth: forgot/reset password (generic response, no enumeration)");
   const forgotKnown = await a.post("/api/auth/forgot-password", { email: userAEmail });
