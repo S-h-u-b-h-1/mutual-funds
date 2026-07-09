@@ -747,8 +747,8 @@
 {
 "category": "Value",
 "count": 44,
-"avg": 3.35,
-"median": 3.24,
+"avg": 3.29,
+"median": 3.15,
 "best": {
 "name": "LIC MF Value Fund-Direct Plan-Growth",
 "amc": "LIC",
@@ -940,14 +940,6 @@
 "score": 73.3
 },
 {
-"amc": "DSP",
-"funds": 32,
-"avg": 3.92,
-"pct_outperform": 56,
-"breadth": 94,
-"score": 70.6
-},
-{
 "amc": "Old Bridge",
 "funds": 4,
 "avg": 4.8,
@@ -1004,6 +996,14 @@
 "score": 67.5
 },
 {
+"amc": "DSP",
+"funds": 32,
+"avg": 3.83,
+"pct_outperform": 50,
+"breadth": 94,
+"score": 67.1
+},
+{
 "amc": "Bank of India",
 "funds": 28,
 "avg": 4.13,
@@ -1012,20 +1012,20 @@
 "score": 67.1
 },
 {
+"amc": "Aditya Birla Sun Life",
+"funds": 66,
+"avg": 3.48,
+"pct_outperform": 45,
+"breadth": 91,
+"score": 63.3
+},
+{
 "amc": "Mahindra Manulife",
 "funds": 30,
 "avg": 3.69,
 "pct_outperform": 40,
 "breadth": 100,
 "score": 62.9
-},
-{
-"amc": "Aditya Birla Sun Life",
-"funds": 66,
-"avg": 3.48,
-"pct_outperform": 44,
-"breadth": 91,
-"score": 62.5
 },
 {
 "amc": "HSBC",
@@ -1060,20 +1060,20 @@
 "score": 57.1
 },
 {
+"amc": "Nippon India",
+"funds": 42,
+"avg": 3.15,
+"pct_outperform": 31,
+"breadth": 95,
+"score": 55.9
+},
+{
 "amc": "Edelweiss",
 "funds": 30,
 "avg": 3.59,
 "pct_outperform": 27,
 "breadth": 100,
 "score": 55.4
-},
-{
-"amc": "Nippon India",
-"funds": 42,
-"avg": 3.15,
-"pct_outperform": 29,
-"breadth": 95,
-"score": 54.6
 },
 {
 "amc": "Tata",
