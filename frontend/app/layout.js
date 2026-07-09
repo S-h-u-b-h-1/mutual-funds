@@ -1,4 +1,5 @@
 import { Inter } from "next/font/google";
+import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import SentryInit from "./components/SentryInit";
 import PageView from "./components/PageView";
@@ -24,7 +25,13 @@ export const viewport = { themeColor: "#080b14" };
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body><SentryInit /><PageView />{children}</body>
+      <body>
+        <SessionProvider>
+          <SentryInit />
+          <PageView />
+          {children}
+        </SessionProvider>
+      </body>
     </html>
   );
 }
