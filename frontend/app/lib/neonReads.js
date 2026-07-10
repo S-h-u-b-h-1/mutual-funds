@@ -9,6 +9,18 @@ import { hasDatabaseUrl, query } from "./db";
 // as a JSX child crashes React ("Objects are not valid as a React child"). This only reproduces
 // when Neon actually has a row to return, so it's easy to miss with no local DATABASE_URL.
 // Fixed once here so every caller gets plain, display-safe strings, matching Supabase's shape.
+//
+// CRITICAL: this only fixes the crash, not the VALUE, for bare `date` columns (e.g.
+// nav_latest_date, source_date). node-postgres parses a date-only value as local-midnight in
+// the machine's system timezone, then represents it as a UTC Date — in any timezone ahead of
+// UTC (IST is +5:30), .toISOString() on that Date silently prints the PREVIOUS calendar day
+// (confirmed live: "2026-07-09" round-tripped as "2026-07-08T18:30:00.000Z"). `timestamptz`
+// columns (captured_at, started_at, finished_at, quote_time, fetched_at) are NOT affected —
+// they carry an unambiguous absolute instant, so Date-object parsing is lossless for them.
+// The real fix is at the query source: every bare `date` column below is cast `::text` so
+// node-postgres never constructs a Date object for it in the first place. stringifyDates()
+// stays as a defense-in-depth net for genuine timestamptz values and any date column a future
+// query forgets to cast — see scripts/test_date_handling.mjs for the regression check.
 function stringifyDates(row) {
   const out = {};
   for (const [k, v] of Object.entries(row)) out[k] = v instanceof Date ? v.toISOString() : v;
@@ -33,8 +45,8 @@ export async function checkNeonConnection() {
 
 export async function getNeonFreshness() {
   const rows = await safeQuery(
-    `select nav_latest_date, nav_staleness_days, total_schemes, total_amcs, total_nav_rows,
-            total_events, status, captured_at
+    `select nav_latest_date::text as nav_latest_date, nav_staleness_days, total_schemes,
+            total_amcs, total_nav_rows, total_events, status, captured_at
      from fact_system_health order by captured_at desc limit 1`
   );
   return rows?.[0] ?? null;
@@ -47,8 +59,8 @@ export async function getNeonNewsCount() {
 
 export async function getNeonPipelineRuns(limit = 5) {
   return safeQuery(
-    `select pipeline, status, source, source_date, rows_ingested, duration_ms, error,
-            started_at, finished_at
+    `select pipeline, status, source, source_date::text as source_date, rows_ingested,
+            duration_ms, error, started_at, finished_at
      from fact_pipeline_runs order by finished_at desc limit $1`,
     [limit]
   );
