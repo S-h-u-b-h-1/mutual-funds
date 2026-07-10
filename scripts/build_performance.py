@@ -50,7 +50,13 @@ def clean_category(cat):
 
 
 def _fetch_window(frm, to):
-    # Retry up to 4 times on transient errors or AMFI rate limit responses
+    # Retry up to 4 times on transient errors, AMFI rate limit responses, or a 200 OK that
+    # parses to zero rows. That last case is a real, observed failure mode (2026-07-10
+    # production run: 3/3 requests for a 90-day recent window came back 200 with no warning
+    # banner and no exception, yet zero parseable rows — while the SAME endpoint/parser
+    # succeeded seconds later for the long-window anchor requests in the same run, and manual
+    # replay of an equivalent range afterwards returned full valid data). Nothing about a
+    # multi-day AMFI range is legitimately all-empty, so treat it as transient, not a real result.
     for attempt in range(4):
         req = urllib.request.Request(f"{REPORT}?frmdt={frm:%d-%b-%Y}&todt={to:%d-%b-%Y}", headers={"User-Agent": "mfpulse/1.0"})
         try:
@@ -73,10 +79,15 @@ def _fetch_window(frm, to):
                         continue
                     if nav > 0:
                         out.setdefault(p[0].strip(), {})[d] = nav
+                if not out:
+                    print(f"AMFI returned 0 parseable rows for {frm} to {to} ({len(content)} bytes, attempt {attempt+1}/4). Retrying in 4s...", file=sys.stderr)
+                    time.sleep(4)
+                    continue
                 return out
         except Exception as e:
             print(f"AMFI fetch error for {frm} to {to}: {e} (attempt {attempt+1}/4). Retrying in 4s...", file=sys.stderr)
             time.sleep(4)
+    print(f"::warning::AMFI fetch for {frm} to {to} produced no usable data after 4 attempts — giving up on this window.", file=sys.stderr)
     return {}
 
 
