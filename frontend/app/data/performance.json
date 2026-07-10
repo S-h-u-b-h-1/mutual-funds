@@ -690,8 +690,8 @@
 {
 "category": "Sectoral/ Thematic",
 "count": 493,
-"avg": 3.88,
-"median": 4.06,
+"avg": 3.89,
+"median": 4.1,
 "best": {
 "name": "SBI Innovative Opportunities Fund - Direct Plan - Growth",
 "amc": "SBI",
@@ -948,20 +948,20 @@
 "score": 71.3
 },
 {
+"amc": "Kotak Mahindra",
+"funds": 54,
+"avg": 4.01,
+"pct_outperform": 56,
+"breadth": 96,
+"score": 71.1
+},
+{
 "amc": "Trust",
 "funds": 8,
 "avg": 4.85,
 "pct_outperform": 50,
 "breadth": 100,
 "score": 70.3
-},
-{
-"amc": "Kotak Mahindra",
-"funds": 54,
-"avg": 3.96,
-"pct_outperform": 54,
-"breadth": 96,
-"score": 69.9
 },
 {
 "amc": "Old Bridge",
@@ -1052,14 +1052,6 @@
 "score": 57.3
 },
 {
-"amc": "HSBC",
-"funds": 30,
-"avg": 3.55,
-"pct_outperform": 30,
-"breadth": 100,
-"score": 57.2
-},
-{
 "amc": "SBI",
 "funds": 56,
 "avg": 3.21,
@@ -1074,6 +1066,14 @@
 "pct_outperform": 27,
 "breadth": 100,
 "score": 55.4
+},
+{
+"amc": "HSBC",
+"funds": 30,
+"avg": 3.55,
+"pct_outperform": 27,
+"breadth": 100,
+"score": 55.3
 },
 {
 "amc": "Nippon India",
