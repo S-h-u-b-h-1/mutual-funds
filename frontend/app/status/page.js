@@ -3,6 +3,7 @@ import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import GlassPanel from "../components/ui/GlassPanel";
 import { getFreshnessChain, getPipelineRuns, getNewsFreshness, getFactsheetFreshness } from "../lib/pipelineHealth";
+import { getFreshnessSummary } from "../lib/freshnessService";
 import { marketStatus } from "../lib/marketStatus";
 import { asOf } from "../lib/funds";
 
@@ -28,8 +29,9 @@ const ago = (ts) => {
 export default async function Status() {
   let byClass = [], headline = [], signals = [], ok = true;
   let chain = { navLatest: null, health: null }, pipelineRuns = [], newsAt = null, factsheetAt = null;
+  let freshness = { explanation: null, rawAheadOfBundle: null };
   try {
-    [byClass, headline, signals, chain, pipelineRuns, newsAt, factsheetAt] = await Promise.all([
+    [byClass, headline, signals, chain, pipelineRuns, newsAt, factsheetAt, freshness] = await Promise.all([
       sb("mv_asset_class_summary?select=*", { revalidate: 300 }),
       sb("v_flow_headline?select=*", { revalidate: 300 }),
       sb("v_signals?select=z_score", { revalidate: 300 }),
@@ -37,6 +39,7 @@ export default async function Status() {
       getPipelineRuns(1),
       getNewsFreshness(),
       getFactsheetFreshness(),
+      getFreshnessSummary(),
     ]);
   } catch {
     ok = false;
@@ -99,6 +102,9 @@ export default async function Status() {
             </div>
           ))}
         </GlassPanel>
+        {freshness.explanation && (
+          <p className={`mt-2 text-[12px] ${freshness.rawAheadOfBundle ? "text-warn" : "text-ink-muted"}`}>{freshness.explanation}</p>
+        )}
         <p className="mt-2 text-[11px] text-ink-faint">
           Refresh schedule: NAV + bundles rebuild after AMFI publishes (evenings, Mon–Sat) with a morning
           catch-up pass; news every 3 hours; factsheets monthly. Deep engineering view: <a className="text-ink-muted hover:text-ink" href="/internal/system-health">/internal/system-health</a>.

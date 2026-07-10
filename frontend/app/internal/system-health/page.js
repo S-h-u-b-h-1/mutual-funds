@@ -12,6 +12,7 @@ import {
   getNewsFreshness,
   getFactsheetFreshness,
 } from "../../lib/pipelineHealth";
+import { getFreshnessSummary } from "../../lib/freshnessService";
 import GlassPanel from "../../components/ui/GlassPanel";
 import SectionHeader from "../../components/ui/SectionHeader";
 import Badge from "../../components/ui/Badge";
@@ -56,13 +57,14 @@ function workflowTone(w) {
 }
 
 export default async function SystemHealth() {
-  const [workflows, deployCurrency, chain, pipelineRuns, newsFreshAt, factsheetFreshAt] = await Promise.all([
+  const [workflows, deployCurrency, chain, pipelineRuns, newsFreshAt, factsheetFreshAt, freshness] = await Promise.all([
     getWorkflowStatuses(),
     getDeploymentCurrency(),
     getFreshnessChain(),
     getPipelineRuns(8),
     getNewsFreshness(),
     getFactsheetFreshness(),
+    getFreshnessSummary(),
   ]);
 
   const navDays = staleDays(chain.navLatest);
@@ -105,6 +107,13 @@ export default async function SystemHealth() {
           <Row label="Analytics snapshot (fact_system_health)" value={chain.health?.nav_latest_date ? `reflects ${chain.health.nav_latest_date}${analyticsCaughtUp ? " — caught up" : " — BEHIND"}` : "no snapshot"} tone={analyticsCaughtUp == null ? "warn" : analyticsCaughtUp ? "pos" : "neg"} />
           <Row label="JSON bundle (daily.json asOf)" value={`${daily.asOf}${bundleCaughtUp == null ? "" : bundleCaughtUp ? " — caught up" : " — BEHIND"}`} tone={bundleCaughtUp == null ? "warn" : bundleCaughtUp ? "pos" : "neg"} />
         </GlassPanel>
+        {/* Same FreshnessService every other surface (/status, /data-status, /api/freshness)
+            reads — shown here too so this page can never disagree with them about what "fresh"
+            means today, even though the chain above (mirroring the CI gate's own logic) is a
+            separate, deliberately more granular comparison. */}
+        {freshness.explanation && (
+          <p className={`mt-2 text-[12px] ${freshness.rawAheadOfBundle ? "text-warn" : "text-ink-muted"}`}>{freshness.explanation}</p>
+        )}
       </section>
 
       <section className="mt-8">

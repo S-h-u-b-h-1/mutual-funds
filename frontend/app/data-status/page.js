@@ -5,6 +5,7 @@ import GlassPanel from "../components/ui/GlassPanel";
 import SectionHeader from "../components/ui/SectionHeader";
 import StatStrip from "../components/ui/StatStrip";
 import DataTable from "../components/ui/DataTable";
+import { getFreshnessSummary } from "../lib/freshnessService";
 
 export const metadata = { title: "Data Status" };
 export const revalidate = 60;
@@ -48,6 +49,10 @@ export default async function DataStatus() {
   } catch {}
   const newsAgo = newsAt ? Math.round((Date.now() - new Date(newsAt).getTime()) / 3600000) : null;
   const h = health[0] || {};
+  let freshness = { explanation: null, rawAheadOfBundle: null, bundleAsOf: null };
+  try {
+    freshness = await getFreshnessSummary();
+  } catch {}
   const latestNav = byClass.map((r) => r.latest_nav_date).sort().at(-1);
   const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
   const stale = daysSince(latestNav);
@@ -97,6 +102,7 @@ export default async function DataStatus() {
             <div className="mt-3 text-[26px] font-bold tnum">{stale == null ? "—" : `${stale}d`}</div>
             <div className="text-[12px] text-ink-muted">since latest AMFI NAV ({latestNav || "—"})</div>
             <div className="mt-2 text-[11px] text-ink-faint">Source: AMFI NAVAll · daily pipeline. {navStatus === "amber" && "Stale — pending next scheduled trading day run (daily at 20:00 IST)."}</div>
+            {freshness.bundleAsOf && <div className="mt-1 text-[11px] text-ink-faint">Site bundle (funds.json/etc.): {freshness.bundleAsOf}{freshness.explanation ? ` — ${freshness.explanation}` : ""}</div>}
           </GlassPanel>
           <GlassPanel className="p-5 sm:p-6">
             <div className="flex items-center justify-between">
