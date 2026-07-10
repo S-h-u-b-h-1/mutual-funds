@@ -142,7 +142,8 @@ jobs:
           # alias the domain to it. Fallback path: if the git deployment never appears (git
           # integration broken again), do a full CLI deploy ourselves, then alias that instead.
           if [ -z "$VERCEL_TOKEN" ]; then
-            echo "::warning::VERCEL_TOKEN not configured — cannot re-point mf-pulse.vercel.app. The git-integration deploy still happens, but the domain will keep serving the previous deployment and step 7 will fail. Fix: add VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID repo secrets."
+            echo "::error::VERCEL_TOKEN not configured — cannot re-point mf-pulse.vercel.app. The git-integration deploy still happens, but the domain will keep serving whatever deployment it was last manually aliased to, no matter how many successful refreshes run behind it. Fix: add VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID repo secrets (Settings -> Secrets and variables -> Actions)."
+            echo "skipped_no_token=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           SHA=$(git rev-parse HEAD)
@@ -203,6 +204,10 @@ jobs:
           # common success case (a same-day refresh).
           EXPECTED=$(python -c "import json; print(json.load(open('frontend/app/data/daily.json'))['asOf'])")
           echo "Expecting production /api/freshness to report asOf: $EXPECTED"
+          if [ "${{ steps.deploy.outputs.skipped_no_token }}" = "true" ]; then
+            echo "::error::Step 6 already confirmed VERCEL_TOKEN is missing and skipped aliasing — failing immediately instead of polling mf-pulse.vercel.app for 4+ minutes for a result we already know. Cause: missing VERCEL_TOKEN/VERCEL_ORG_ID/VERCEL_PROJECT_ID repo secrets. Location: repo secrets (Settings -> Secrets and variables -> Actions). Fix: add all three, generated from a Vercel account token with access to this project."
+            exit 1
+          fi
           sleep 75
           for attempt in 1 2 3 4 5; do
             LIVE=$(curl -sL "https://mf-pulse.vercel.app/api/freshness" | python -c "import sys,json; print(json.load(sys.stdin).get('asOf',''))" 2>/dev/null || echo "")
@@ -220,6 +225,9 @@ jobs:
         if: always()
         run: |
           echo "## Production Refresh Summary" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.deploy.outputs.skipped_no_token }}" = "true" ]; then
+            echo "- **PUBLIC DOMAIN: STALE — VERCEL_TOKEN/VERCEL_ORG_ID/VERCEL_PROJECT_ID not configured.** mf-pulse.vercel.app was NOT touched this run." >> "$GITHUB_STEP_SUMMARY"
+          fi
           echo "- NAV → Supabase/Neon: ${{ steps.nav.outputs.ran || 'FAILED' }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- News → Supabase: ${{ steps.news.outputs.ran || 'failed (non-fatal)' }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Bundles changed: ${{ steps.bundles.outputs.changed }}" >> "$GITHUB_STEP_SUMMARY"
