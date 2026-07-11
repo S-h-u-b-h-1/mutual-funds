@@ -671,8 +671,8 @@
 {
 "category": "Sectoral/ Thematic",
 "count": 493,
-"avg": 5.78,
-"median": 5.78,
+"avg": 5.79,
+"median": 5.82,
 "best": {
 "name": "SBI Innovative Opportunities Fund - Direct Plan - Growth",
 "amc": "SBI",
@@ -828,20 +828,20 @@
 "score": 94.5
 },
 {
-"amc": "LIC",
-"funds": 32,
-"avg": 6.65,
-"pct_outperform": 81,
-"breadth": 100,
-"score": 89.7
-},
-{
 "amc": "Sundaram",
 "funds": 44,
 "avg": 6.78,
 "pct_outperform": 80,
 "breadth": 100,
 "score": 88.8
+},
+{
+"amc": "LIC",
+"funds": 32,
+"avg": 6.65,
+"pct_outperform": 78,
+"breadth": 100,
+"score": 88.0
 },
 {
 "amc": "Mirae Asset",
@@ -924,14 +924,6 @@
 "score": 78.8
 },
 {
-"amc": "Kotak Mahindra",
-"funds": 54,
-"avg": 5.78,
-"pct_outperform": 59,
-"breadth": 100,
-"score": 76.8
-},
-{
 "amc": "Canara Robeco",
 "funds": 26,
 "avg": 6.02,
@@ -954,6 +946,14 @@
 "pct_outperform": 57,
 "breadth": 100,
 "score": 76.0
+},
+{
+"amc": "Kotak Mahindra",
+"funds": 54,
+"avg": 5.81,
+"pct_outperform": 57,
+"breadth": 100,
+"score": 75.9
 },
 {
 "amc": "PGIM India",
@@ -1062,10 +1062,10 @@
 {
 "amc": "Edelweiss",
 "funds": 30,
-"avg": 5.37,
+"avg": 5.47,
 "pct_outperform": 33,
 "breadth": 100,
-"score": 61.9
+"score": 62.1
 },
 {
 "amc": "Jio BlackRock",
@@ -1086,10 +1086,10 @@
 {
 "amc": "Nippon India",
 "funds": 42,
-"avg": 4.78,
-"pct_outperform": 24,
+"avg": 4.8,
+"pct_outperform": 29,
 "breadth": 95,
-"score": 54.6
+"score": 57.2
 },
 {
 "amc": "SBI",
