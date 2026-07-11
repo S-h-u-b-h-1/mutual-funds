@@ -1,96 +1,83 @@
 "use client";
+
 import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { ALL_LINKS as LINKS } from "../lib/navLinks";
+import { MOBILE_PRIMARY_LINKS, NAV_GROUPS } from "../lib/navLinks";
 
 export default function MobileNav({ active }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef(null);
   const panelRef = useRef(null);
   const { data: session, status } = useSession();
 
   useEffect(() => {
-    function onKey(e) { if (e.key === "Escape") setOpen(false); }
+    function onKey(event) {
+      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Tab" || !open) return;
+      const focusable = panelRef.current?.querySelectorAll('a, button:not([disabled])');
+      if (!focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
     if (open) {
       document.addEventListener("keydown", onKey);
       document.body.style.overflow = "hidden";
-      // move focus into the sheet for keyboard users
-      panelRef.current?.querySelector("a")?.focus();
+      requestAnimationFrame(() => panelRef.current?.querySelector("button")?.focus());
     }
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
   }, [open]);
 
+  function close() {
+    setOpen(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  }
+
+  function openSearch() {
+    close();
+    requestAnimationFrame(() => {
+      const searchButton = document.querySelector('#search button');
+      if (searchButton) searchButton.click();
+      else window.location.href = "/funds";
+    });
+  }
+
   return (
-    <div className="md:hidden">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? "Close menu" : "Open menu"}
-        aria-expanded={open}
-        aria-controls="mobile-nav"
-        className="grid h-9 w-9 place-items-center rounded-lg border border-line text-ink-muted transition-colors hover:text-ink"
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-          {open ? (
-            <>
-              <path d="M4 4l10 10" />
-              <path d="M14 4L4 14" />
-            </>
-          ) : (
-            <>
-              <path d="M2 5h14" />
-              <path d="M2 9h14" />
-              <path d="M2 13h14" />
-            </>
-          )}
-        </svg>
+    <div className="xl:hidden">
+      <button ref={triggerRef} type="button" onClick={() => setOpen(true)} aria-label="Open all navigation" aria-expanded={open} aria-controls="mobile-navigation-drawer" className="grid h-10 w-10 place-items-center rounded-full border border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink">
+        <span aria-hidden="true" className="text-lg">☰</span>
       </button>
 
+      <nav className="fixed inset-x-0 bottom-0 z-[60] grid h-[calc(64px+env(safe-area-inset-bottom))] grid-cols-5 border-t border-line bg-surface/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-float backdrop-blur-lg" aria-label="Mobile primary navigation">
+        {MOBILE_PRIMARY_LINKS.map(([label, href, icon]) => href === "#search" ? (
+          <button key={label} type="button" onClick={openSearch} className="flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium text-ink-muted"><span className="text-lg leading-none" aria-hidden="true">{icon}</span>{label}</button>
+        ) : (
+          <a key={href} href={href} aria-current={active === href ? "page" : undefined} className={`flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium ${active === href ? "text-accent" : "text-ink-muted"}`}><span className="text-lg leading-none" aria-hidden="true">{icon}</span>{label}</a>
+        ))}
+      </nav>
+
       {open && (
-        <>
-          <div className="fixed inset-0 top-14 z-40 bg-black/50" onClick={() => setOpen(false)} aria-hidden />
-          <div
-            id="mobile-nav"
-            ref={panelRef}
-            className="fixed inset-x-0 top-14 z-50 border-b border-line bg-[#080b14]/95 p-3 backdrop-blur-md"
-          >
-            <nav className="flex flex-col">
-              {LINKS.map(([l, h]) => (
-                <a
-                  key={h}
-                  href={h}
-                  onClick={() => setOpen(false)}
-                  aria-current={active === h ? "page" : undefined}
-                  className={`rounded-lg px-3 py-3 text-[15px] transition-colors ${
-                    active === h ? "bg-white/[0.06] text-ink" : "text-ink-muted hover:text-ink"
-                  }`}
-                >
-                  {l}
-                </a>
-              ))}
-              <a href="/#alerts" onClick={() => setOpen(false)} className="mt-1 rounded-lg bg-accent px-3 py-3 text-center text-[14px] font-semibold text-white">
-                Get Flow Alerts
-              </a>
-              {status !== "loading" && (
-                <div className="mt-1 flex items-center justify-between border-t border-line px-3 pt-3 text-[13px]">
-                  {session ? (
-                    <>
-                      <span className="truncate text-ink-muted">{session.user?.name || session.user?.email}</span>
-                      <button onClick={() => { setOpen(false); signOut({ callbackUrl: "/" }); }} className="shrink-0 text-ink-faint hover:text-ink">
-                        Sign out
-                      </button>
-                    </>
-                  ) : (
-                    <a href="/login" onClick={() => setOpen(false)} className="text-ink-muted hover:text-ink">
-                      Sign in
-                    </a>
-                  )}
+        <div className="fixed inset-0 z-[70] xl:hidden" role="dialog" aria-modal="true" aria-label="All navigation">
+          <button type="button" className="absolute inset-0 bg-bg/70 backdrop-blur-sm" onClick={close} aria-label="Close navigation" />
+          <section id="mobile-navigation-drawer" ref={panelRef} className="absolute inset-y-0 right-0 flex w-[min(92vw,420px)] flex-col overflow-hidden border-l border-line bg-surface shadow-float">
+            <div className="flex items-center justify-between border-b border-line px-5 py-4">
+              <div><div className="text-sm font-semibold text-ink">Research areas</div><div className="mt-1 text-xs text-ink-faint">Move through MF Pulse by task</div></div>
+              <button type="button" onClick={close} className="grid h-10 w-10 place-items-center rounded-full border border-line text-lg text-ink-muted" aria-label="Close navigation">×</button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-5">
+              {NAV_GROUPS.map((group) => (
+                <div key={group.label} className="mb-6">
+                  <div className="eyebrow px-2">{group.label}</div>
+                  <nav className="mt-2 grid grid-cols-2 gap-1" aria-label={group.label}>
+                    {group.links.map(([label, href]) => <a key={`${group.label}-${href}`} href={href} onClick={close} aria-current={active === href ? "page" : undefined} className={`min-h-11 rounded-xl px-3 py-3 text-sm font-medium ${active === href ? "bg-accent/10 text-accent" : "text-ink-muted hover:bg-surface-strong hover:text-ink"}`}>{label}</a>)}
+                  </nav>
                 </div>
-              )}
-            </nav>
-          </div>
-        </>
+              ))}
+            </div>
+            {status !== "loading" && <div className="border-t border-line p-5 text-sm">{session ? <div className="flex items-center justify-between gap-3"><span className="truncate text-ink-muted">{session.user?.name || session.user?.email}</span><button type="button" onClick={() => signOut({ callbackUrl: "/" })} className="font-medium text-ink">Sign out</button></div> : <a href="/login" className="font-medium text-accent">Sign in to sync your research →</a>}</div>}
+          </section>
+        </div>
       )}
     </div>
   );

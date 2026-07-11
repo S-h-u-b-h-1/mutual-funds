@@ -1,22 +1,25 @@
-// Single source of truth for site navigation — Nav.jsx (desktop, top bar) and MobileNav.jsx
-// (hamburger sheet) previously hand-maintained separate, silently-diverged LINKS arrays: mobile
-// had Analytics + Data status, desktop had neither, so desktop users had no primary-nav path to
-// either page. PRIMARY = the top-bar set (kept short by design); ALL = primary + secondary
-// utility pages, shown in the mobile sheet where there's room for a longer list.
-export const PRIMARY_LINKS = [
-  ["Funds", "/funds"],
-  ["Performance", "/performance"],
-  ["Categories", "/categories"],
-  ["Market Map", "/market-map"],
-  ["News", "/news"],
-  ["Discover", "/discover"],
-  ["Compare", "/compare"],
-  ["Research", "/research"],
+export const NAV_GROUPS = [
+  { label: "Overview", links: [["Home", "/"], ["Morning Brief", "/brief"], ["Market Pulse", "/performance"]] },
+  { label: "Research", links: [["Funds", "/funds"], ["Categories", "/categories"], ["AMCs", "/amc"], ["Compare", "/compare"], ["Discover", "/discover"]] },
+  { label: "Intelligence", links: [["News Intelligence", "/news"], ["Signals", "/signals"], ["Market Map", "/market-map"], ["Research Queue", "/dashboard"]] },
+  { label: "Workspace", links: [["Dashboard", "/dashboard"], ["Watchlist", "/dashboard#watchlist"], ["Research Notebook", "/dashboard#notebook"], ["Strategy Builder", "/research"], ["Portfolio Intelligence", "/portfolio"]] },
+  { label: "Support", links: [["Methodology", "/methodology"], ["Data Status", "/data-status"], ["Advisor", "/advisor"], ["About", "/about"]] },
 ];
 
-export const ALL_LINKS = [
-  ...PRIMARY_LINKS,
-  ["Dashboard", "/dashboard"],
-  ["Analytics", "/analytics"],
-  ["Data status", "/data-status"],
+export const PRIMARY_LINKS = [
+  ["Morning Brief", "/brief"],
+  ["Funds", "/funds"],
+  ["Compare", "/compare"],
+  ["News", "/news"],
+  ["Workspace", "/dashboard"],
+];
+
+export const ALL_LINKS = NAV_GROUPS.flatMap((group) => group.links);
+
+export const MOBILE_PRIMARY_LINKS = [
+  ["Home", "/", "⌂"],
+  ["Search", "#search", "⌕"],
+  ["Brief", "/brief", "◫"],
+  ["Watchlist", "/dashboard#watchlist", "◇"],
+  ["Workspace", "/dashboard", "▦"],
 ];
