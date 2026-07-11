@@ -1,244 +1,106 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import { track } from "../lib/track";
 import { saveWatchlist } from "../lib/cloudSync";
 
+const metricRows = [
+  ["Health score", "_h", (value, fund) => value == null ? "Missing" : `${value}/100 · ${fund._g}`],
+  ["1-month return", "r1m", (value) => value == null ? "Missing" : `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`],
+  ["3-month return", "r3m", (value) => value == null ? "Missing" : `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`],
+  ["1-year return", "r1y", (value) => value == null ? "Missing" : `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`],
+  ["90-day volatility", "vol90", (value) => value == null ? "Missing" : value],
+  ["90-day max drawdown", "maxdd90", (value) => value == null ? "Missing" : value],
+  ["Consistency", "consistency", (value) => value == null ? "Missing" : `${value}%`],
+  ["SEBI category", "category", (value) => value || "Missing"],
+  ["Fund house", "amc", (value) => value || "Missing"],
+  ["Plan", "plan", (value, fund) => `${value || "Unknown"} · ${fund.isDirect ? "Direct" : "Regular"}`],
+];
+
+const cleanName = (name = "") => name.replace(/ - (Direct|Regular).*/i, "").trim();
+
+function observedBest(funds, key, direction = "max") {
+  const available = funds.filter((fund) => fund[key] != null);
+  if (!available.length) return null;
+  return [...available].sort((a, b) => direction === "min" ? a[key] - b[key] : b[key] - a[key])[0];
+}
+
 export default function CompareFundsClient({ initialFunds, allFundsList }) {
-  const [selectedCodes, setSelectedCodes] = useState(initialFunds.map((f) => f.code));
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
+  const [selectedCodes, setSelectedCodes] = useState(initialFunds.map((fund) => fund.code));
+  const [query, setQuery] = useState("");
+  const [notice, setNotice] = useState("");
 
-  // Compute active fund details based on selected codes
-  const activeFunds = selectedCodes.map((code) => {
-    return allFundsList.find((f) => f.code === code);
-  }).filter(Boolean);
+  const activeFunds = useMemo(() => selectedCodes.map((code) => allFundsList.find((fund) => fund.code === code)).filter(Boolean), [selectedCodes, allFundsList]);
+  const searchResults = useMemo(() => {
+    const clean = query.trim().toLowerCase();
+    if (clean.length < 2) return [];
+    return allFundsList.filter((fund) => fund.name.toLowerCase().includes(clean) || fund.amc.toLowerCase().includes(clean) || fund.code.includes(clean)).slice(0, 6);
+  }, [query, allFundsList]);
 
-  // Update URL to match selection
   useEffect(() => {
-    const sp = new URLSearchParams(window.location.search);
-    if (selectedCodes.length > 0) {
-      sp.set("funds", selectedCodes.join(","));
-    } else {
-      sp.delete("funds");
-    }
-    const newUrl = `${window.location.pathname}?${sp.toString()}`;
-    window.history.replaceState({}, "", newUrl);
+    const params = new URLSearchParams(window.location.search);
+    if (selectedCodes.length) params.set("funds", selectedCodes.join(",")); else params.delete("funds");
+    window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? `?${params}` : ""}`);
   }, [selectedCodes]);
 
-  // Handle client-side search autocomplete
-  useEffect(() => {
-    const clean = searchQuery.trim().toLowerCase();
-    if (clean.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    const matches = allFundsList
-      .filter((f) => {
-        return (
-          f.name.toLowerCase().includes(clean) ||
-          f.amc.toLowerCase().includes(clean) ||
-          f.code.includes(clean)
-        );
-      })
-      .slice(0, 5);
-    setSearchResults(matches);
-  }, [searchQuery, allFundsList]);
-
-  const addFund = (code) => {
+  function addFund(code) {
     if (selectedCodes.includes(code)) return;
-    if (selectedCodes.length >= 4) {
-      alert("You can compare up to 4 funds side-by-side.");
-      return;
-    }
-    setSelectedCodes([...selectedCodes, code]);
-    setSearchQuery("");
-    setSearchResults([]);
+    if (selectedCodes.length >= 4) { setNotice("Remove a fund before adding another. Comparisons support up to four funds."); return; }
+    setSelectedCodes((codes) => [...codes, code]);
+    setQuery("");
+    setNotice("");
     track("fund_comparison_added", { code });
-  };
+  }
 
-  const removeFund = (code) => {
-    setSelectedCodes(selectedCodes.filter((c) => c !== code));
+  function removeFund(code) {
+    setSelectedCodes((codes) => codes.filter((item) => item !== code));
     track("fund_comparison_removed", { code });
-  };
+  }
 
-  // Was writing a second, bare "watchlist" key (plain scheme-code strings) disconnected from
-  // the real mfp_watchlist WatchButton/Watchlist/WatchlistIntelligence all use — funds added
-  // here never actually showed up as watchlisted anywhere else in the app. Fixed to go through
-  // the same adapter (and therefore the same key/shape, cloud-synced when signed in) everything
-  // else does.
-  const addBatchToWatchlist = () => {
-    activeFunds.forEach((f) => saveWatchlist({ code: f.code, name: f.name, amc: f.amc }));
-    alert("Added selected funds to Watchlist successfully!");
-    track("comparison_batch_watchlisted", { count: selectedCodes.length });
-  };
+  async function addAllToWatchlist() {
+    await Promise.all(activeFunds.map((fund) => saveWatchlist({ code: fund.code, name: fund.name, amc: fund.amc })));
+    setNotice(`${activeFunds.length} fund${activeFunds.length === 1 ? "" : "s"} added to your watchlist.`);
+    track("comparison_batch_watchlisted", { count: activeFunds.length });
+  }
 
-  const rows = [
-    {
-      label: "Pulse Health Score",
-      render: (f) => (
-        <div className="flex flex-col items-center">
-          <span className={`text-[16px] font-bold ${
-            f._h >= 70 ? "text-pos" : f._h >= 55 ? "text-warn" : "text-neg"
-          }`}>
-            {f._h}/100
-          </span>
-          <span className="text-[10px] text-ink-faint uppercase font-bold">Grade {f._g}</span>
-        </div>
-      )
-    },
-    {
-      label: "1-Month Return",
-      render: (f) => {
-        const v = f.r1m;
-        return v == null ? <span className="text-ink-faint">—</span> : <span className={`font-mono font-bold ${v >= 0 ? "text-pos" : "text-neg"}`}>{v >= 0 ? "+" : ""}{v.toFixed(2)}%</span>;
-      }
-    },
-    {
-      label: "3-Month Return",
-      render: (f) => {
-        const v = f.r3m;
-        return v == null ? <span className="text-ink-faint">—</span> : <span className={`font-mono font-bold ${v >= 0 ? "text-pos" : "text-neg"}`}>{v >= 0 ? "+" : ""}{v.toFixed(2)}%</span>;
-      }
-    },
-    {
-      label: "1-Year Return",
-      render: (f) => {
-        const v = f.r1y;
-        return v == null ? <span className="text-ink-faint">—</span> : <span className={`font-mono font-bold ${v >= 0 ? "text-pos" : "text-neg"}`}>{v >= 0 ? "+" : ""}{v.toFixed(2)}%</span>;
-      }
-    },
-    {
-      label: "90d Volatility",
-      render: (f) => f.vol90 == null ? <span className="text-ink-faint">—</span> : <span className="font-mono text-ink-muted">{f.vol90}</span>
-    },
-    {
-      label: "90d Max Drawdown",
-      render: (f) => f.maxdd90 == null ? <span className="text-ink-faint">—</span> : <span className="font-mono text-neg">{f.maxdd90}</span>
-    },
-    {
-      label: "Consistency Score",
-      render: (f) => f.consistency == null ? <span className="text-ink-faint">—</span> : <span className="font-mono text-white font-bold">{f.consistency}%</span>
-    },
-    {
-      label: "SEBI Category",
-      render: (f) => <span className="text-ink-muted">{f.category}</span>
-    },
-    {
-      label: "Fund House",
-      render: (f) => <span className="text-ink-muted">{f.amc}</span>
-    },
-    {
-      label: "Plan Option",
-      render: (f) => <span className="text-[11.5px] text-ink-faint font-semibold uppercase">{f.plan} · {f.isDirect ? "Direct" : "Regular"}</span>
-    }
+  function exportCsv() {
+    const header = ["Metric", ...activeFunds.map((fund) => cleanName(fund.name))];
+    const lines = [header, ...metricRows.map(([label, key, format]) => [label, ...activeFunds.map((fund) => format(fund[key], fund))])];
+    const csv = lines.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url; link.download = "mf-pulse-fund-comparison.csv"; link.click(); URL.revokeObjectURL(url);
+    track("comparison_exported", { count: activeFunds.length });
+  }
+
+  const strongestReturn = observedBest(activeFunds, "r1y") || observedBest(activeFunds, "r3m") || observedBest(activeFunds, "r1m");
+  const lowestRisk = observedBest(activeFunds, "vol90", "min");
+  const downside = observedBest(activeFunds, "maxdd90");
+  const readiness = observedBest(activeFunds, "_h");
+  const incomplete = activeFunds.map((fund) => ({ fund, count: ["r1m", "r3m", "r1y", "vol90", "maxdd90", "consistency", "_h"].filter((key) => fund[key] == null).length })).sort((a, b) => b.count - a.count)[0];
+  const conclusions = [
+    ["Stronger observed return", strongestReturn, strongestReturn?.r1y != null ? `${strongestReturn.r1y.toFixed(2)}% over 1 year` : "Longest available return period"],
+    ["Lower observed volatility", lowestRisk, lowestRisk?.vol90 != null ? `${lowestRisk.vol90} over 90 days` : "Not enough risk data"],
+    ["Shallower observed drawdown", downside, downside?.maxdd90 != null ? `${downside.maxdd90} over 90 days` : "Not enough drawdown data"],
+    ["Stronger research readiness", readiness, readiness?._h != null ? `${readiness._h}/100 health score` : "Health score unavailable"],
   ];
 
   return (
-    <div className="space-y-6">
-      
-      {/* Top action row */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.08] pb-4.5">
-        <div className="relative w-full max-w-sm">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Type fund name to add to comparison…"
-            className="w-full rounded-xl border border-line bg-white/[0.03] px-3.5 py-2 text-[13px] text-white outline-none focus:border-accent"
-          />
-          {searchResults.length > 0 && (
-            <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border border-line bg-[#090b11] p-1.5 shadow-2xl space-y-0.5">
-              {searchResults.map((r) => (
-                <button
-                  key={r.code}
-                  onClick={() => addFund(r.code)}
-                  className="w-full text-left rounded-lg px-3 py-2 text-[12.5px] text-ink-muted hover:bg-white/[0.06] hover:text-white transition-all block truncate"
-                >
-                  {r.name.replace(/ - (Direct|Regular).*/i, "")} <span className="text-ink-faint">({r.plan})</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+    <div className="space-y-9">
+      <section className="rounded-2xl border border-line bg-surface p-4 sm:p-5" aria-label="Fund selection">
+        <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="eyebrow">Selection</div><h2 className="mt-2 text-base font-semibold text-ink">Add up to four funds</h2></div><span className="financial-number text-xs text-ink-faint">{activeFunds.length}/4 selected</span></div>
+        <div className="relative mt-4 max-w-xl"><label className="sr-only" htmlFor="compare-fund-search">Search funds to compare</label><input id="compare-fund-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by fund, AMC, or scheme code" className="min-h-11 w-full rounded-xl border border-line bg-bg px-3.5 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent" />{searchResults.length > 0 && <div className="absolute inset-x-0 top-full z-50 mt-2 rounded-xl border border-line bg-surface p-1.5 shadow-float">{searchResults.map((fund) => <button type="button" key={fund.code} onClick={() => addFund(fund.code)} className="block min-h-11 w-full rounded-lg px-3 text-left text-sm text-ink-muted hover:bg-surface-strong hover:text-ink"><span className="font-medium">{cleanName(fund.name)}</span><span className="ml-2 text-xs text-ink-faint">{fund.plan}</span></button>)}</div>}</div>
+        {notice && <p className="mt-3 text-xs text-ink-muted" role="status">{notice}</p>}
+        {activeFunds.length > 0 && <div className="mt-5 flex flex-wrap gap-2"><a href={`/research?import_funds=${selectedCodes.join(",")}`} className="inline-flex min-h-10 items-center rounded-xl bg-accent px-4 text-xs font-semibold text-white">Model as strategy</a><button type="button" onClick={addAllToWatchlist} className="min-h-10 rounded-xl border border-line px-4 text-xs font-semibold text-ink">Add all to watchlist</button><button type="button" onClick={exportCsv} className="min-h-10 rounded-xl border border-line px-4 text-xs font-semibold text-ink">Export CSV</button><button type="button" onClick={() => setSelectedCodes([])} className="min-h-10 rounded-xl px-3 text-xs font-medium text-ink-muted">Clear</button></div>}
+      </section>
 
-        {activeFunds.length > 0 && (
-          <div className="flex gap-2">
-            <a
-              href={`/research?import_funds=${selectedCodes.join(",")}`}
-              className="rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-4 py-2 text-[12.5px] font-bold text-white transition-all flex items-center"
-            >
-              Model as Portfolio Strategy →
-            </a>
-            <button
-              onClick={addBatchToWatchlist}
-              className="rounded-xl border border-line bg-white/[0.015] hover:bg-white/[0.04] px-4 py-2 text-[12.5px] font-bold text-ink-muted hover:text-white transition-all"
-            >
-              Add all to Watchlist
-            </button>
-            <button
-              onClick={() => setSelectedCodes([])}
-              className="rounded-xl border border-line bg-white/[0.015] hover:bg-white/[0.04] px-4 py-2 text-[12.5px] font-bold text-ink-faint hover:text-neg transition-all"
-            >
-              Clear Selection
-            </button>
-          </div>
-        )}
-      </div>
+      {!activeFunds.length ? <div className="rounded-2xl border border-dashed border-line p-10 text-center"><h2 className="text-base font-semibold text-ink">No funds selected</h2><p className="mt-2 text-sm text-ink-muted">Search above or select funds from the screener to begin an evidence-led comparison.</p></div> : <>
+        <section aria-labelledby="comparison-conclusions"><div className="eyebrow">At a glance</div><h2 id="comparison-conclusions" className="section-title mt-2">Observed differences—not a universal winner.</h2><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{conclusions.map(([label, fund, detail]) => <article key={label} className="research-surface p-4"><div className="eyebrow">{label}</div><div className="mt-3 text-sm font-semibold leading-snug text-ink">{fund ? cleanName(fund.name) : "Data unavailable"}</div><div className="financial-number mt-2 text-xs text-ink-muted">{detail}</div></article>)}</div>{incomplete?.count > 0 && <p className="mt-3 rounded-xl border border-missing/30 bg-missing/10 p-3 text-xs text-ink-muted"><b className="text-ink">Most incomplete:</b> {cleanName(incomplete.fund.name)} is missing {incomplete.count} comparison measure{incomplete.count === 1 ? "" : "s"}.</p>}</section>
 
-      {activeFunds.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/[0.08] p-12 text-center max-w-md mx-auto">
-          <div className="text-[28px]">⇄</div>
-          <h3 className="text-[14px] font-bold text-white mt-2">No funds selected</h3>
-          <p className="text-[12px] text-ink-faint mt-1 leading-relaxed">
-            Use the search box above to add up to 4 mutual funds for side-by-side analytical comparison.
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-2xl border border-line bg-white/[0.01]">
-          <table className="w-full border-collapse text-[12.5px] text-left">
-            <thead>
-              <tr className="border-b border-line bg-white/[0.01]">
-                <th className="px-4 py-3.5 font-bold uppercase tracking-wider text-[10px] text-ink-faint w-[20%]">
-                  Comparison Metric
-                </th>
-                {activeFunds.map((f) => (
-                  <th key={f.code} className="px-4 py-3.5 w-[20%] text-center border-l border-white/[0.04]">
-                    <div className="flex flex-col items-center">
-                      <a
-                        href={`/fund/${f.code}`}
-                        className="font-bold text-white hover:text-accent-soft text-[13px] leading-tight block text-center max-w-[150px] truncate"
-                        title={f.name}
-                      >
-                        {f.name.replace(/ - (Direct|Regular).*/i, "")}
-                      </a>
-                      <span className="text-[10px] text-ink-faint mt-1 font-mono">{f.code}</span>
-                      <button
-                        onClick={() => removeFund(f.code)}
-                        className="text-[11px] text-ink-faint hover:text-neg mt-2 block transition-all"
-                      >
-                        [ Remove ]
-                      </button>
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.label} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.005]">
-                  <td className="px-4 py-3 font-semibold text-ink-muted">{row.label}</td>
-                  {activeFunds.map((f) => (
-                    <td key={f.code} className="px-4 py-3 text-center border-l border-white/[0.04] align-middle">
-                      {row.render(f)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        <section aria-labelledby="metric-comparison"><div className="eyebrow">Metric comparison</div><h2 id="metric-comparison" className="section-title mt-2">Evidence by fund</h2><div className="mt-5 overflow-x-auto rounded-2xl border border-line bg-surface"><table className="w-full min-w-[720px] border-collapse text-[13px]"><thead className="bg-surface-2"><tr className="border-b border-line"><th className="sticky left-0 bg-surface-2 px-4 py-4 text-left text-[10px] font-medium uppercase tracking-wider text-ink-faint">Metric</th>{activeFunds.map((fund) => <th key={fund.code} className="min-w-[170px] border-l border-line px-4 py-4 text-left align-top"><a href={`/fund/${fund.code}`} className="block font-semibold leading-snug text-ink hover:text-accent">{cleanName(fund.name)}</a><button type="button" onClick={() => removeFund(fund.code)} className="mt-2 text-[11px] font-medium text-ink-faint hover:text-neg">Remove</button></th>)}</tr></thead><tbody>{metricRows.map(([label, key, format]) => <tr key={label} className="border-b border-line last:border-0"><th className="sticky left-0 bg-surface px-4 py-3 text-left font-medium text-ink-muted">{label}</th>{activeFunds.map((fund) => <td key={fund.code} className={`border-l border-line px-4 py-3 ${fund[key] == null ? "text-missing" : "text-ink"}`}>{format(fund[key], fund)}</td>)}</tr>)}</tbody></table></div></section>
 
+        <section className="grid gap-4 lg:grid-cols-3" aria-label="Research differences"><div className="research-surface p-5"><div className="eyebrow">Where they differ</div><p className="mt-3 text-sm leading-6 text-ink-muted">Compare return periods alongside volatility and drawdown. A stronger recent return may coexist with greater downside variation.</p></div><div className="research-surface p-5"><div className="eyebrow">What is similar</div><p className="mt-3 text-sm leading-6 text-ink-muted">{new Set(activeFunds.map((fund) => fund.category)).size === 1 ? `All selected records share the ${activeFunds[0].category} category.` : "The selected records span different categories; category-relative comparisons matter."}</p></div><div className="research-surface p-5"><div className="eyebrow">What remains unknown</div><p className="mt-3 text-sm leading-6 text-ink-muted">Missing measures remain labelled. Review holdings, manager history, benchmark fit, and factsheet completeness on each fund page before drawing a conclusion.</p></div></section>
+      </>}
     </div>
   );
 }

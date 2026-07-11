@@ -70,7 +70,7 @@ export default function CompareClient({ amcs, meta = {} }) {
           value={wsName}
           onChange={(e) => setWsName(e.target.value)}
           placeholder="Name this comparison…"
-          className="rounded-lg border border-line bg-white/[0.03] px-3 py-1.5 text-[12px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
+          className="rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-[12px] text-ink placeholder:text-ink-faint outline-none focus:border-accent"
         />
         <button onClick={saveWs} className="rounded-lg border border-accent/40 bg-accent/15 px-3 py-1.5 text-[12px] font-medium text-ink hover:bg-accent/25">
           Save workspace
@@ -117,7 +117,7 @@ export default function CompareClient({ amcs, meta = {} }) {
             })}
           </div>
 
-          <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-white/[0.015]">
+          <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-surface">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="border-b border-line">

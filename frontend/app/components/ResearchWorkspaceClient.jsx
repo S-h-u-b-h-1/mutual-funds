@@ -282,7 +282,7 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
           </span>
           <button
             onClick={createNewStrategy}
-            className="rounded-lg bg-accent px-3 py-1.5 text-[11.5px] font-bold text-white hover:bg-accent/80 transition-colors"
+            className="rounded-lg bg-accent px-3 py-1.5 text-[11.5px] font-bold text-white hover:bg-accent-soft transition-colors"
           >
             New Strategy
           </button>
@@ -294,11 +294,11 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
               key={s.id}
               onClick={() => setSelectedId(s.id)}
               className={`w-full text-left rounded-xl border p-4 transition-all cursor-pointer flex justify-between items-start group ${
-                selectedId === s.id ? "border-accent bg-accent/5" : "border-line bg-white/[0.005] hover:bg-white/[0.02]"
+                selectedId === s.id ? "border-accent bg-accent/5" : "border-line bg-surface hover:bg-surface-2"
               }`}
             >
               <div className="min-w-0 flex-1 pr-2">
-                <h4 className="text-[13px] font-bold text-white truncate leading-snug">
+                <h4 className="text-[13px] font-bold text-ink truncate leading-snug">
                   {s.name}
                 </h4>
                 <div className="text-[11px] text-ink-faint mt-1">
@@ -325,7 +325,7 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
       {/* RIGHT COLUMN: Active Workspace */}
       <div className="lg:col-span-9">
         {activeStrategy ? (
-          <div className="rounded-2xl border border-line bg-white/[0.01] p-6 space-y-6">
+          <div className="rounded-2xl border border-line bg-surface p-6 space-y-6">
             
             {/* Strategy Name & Thesis */}
             <div className="space-y-3">
@@ -334,7 +334,7 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
                 value={activeStrategy.name}
                 onChange={(e) => updateActiveStrategyField("name", e.target.value)}
                 placeholder="Title your strategy..."
-                className="w-full bg-transparent text-[22px] font-black text-white outline-none border-b border-dashed border-white/10 pb-1 focus:border-accent"
+                className="w-full bg-transparent text-[22px] font-black text-ink outline-none border-b border-dashed border-line pb-1 focus:border-accent"
               />
               
               <div>
@@ -346,7 +346,7 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
                   onChange={(e) => updateActiveStrategyField("thesis", e.target.value)}
                   placeholder="Document your strategy objectives, asset allocations rule, and target horizon..."
                   rows={3}
-                  className="w-full rounded-xl border border-line bg-white/[0.02] px-3.5 py-2.5 text-[12.5px] text-white outline-none placeholder:text-ink-faint focus:border-line-strong leading-relaxed"
+                  className="w-full rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-[12.5px] text-ink outline-none placeholder:text-ink-faint focus:border-line-strong leading-relaxed"
                 />
               </div>
             </div>
@@ -362,15 +362,15 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Type fund name or code to add..."
-                  className="w-full rounded-xl border border-line bg-white/[0.03] px-3.5 py-2 text-[12.5px] text-white outline-none focus:border-accent"
+                  className="w-full rounded-xl border border-line bg-surface-2 px-3.5 py-2 text-[12.5px] text-ink outline-none focus:border-accent"
                 />
                 {searchResults.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border border-line bg-[#090b11] p-1.5 shadow-2xl space-y-0.5">
+                  <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border border-line bg-surface p-1.5 shadow-2xl space-y-0.5">
                     {searchResults.map((r) => (
                       <button
                         key={r.code}
                         onClick={() => addFundToStrategy(r.code)}
-                        className="w-full text-left rounded-lg px-3 py-2 text-[12.5px] text-ink-muted hover:bg-white/[0.06] hover:text-white transition-all block truncate"
+                        className="w-full text-left rounded-lg px-3 py-2 text-[12.5px] text-ink-muted hover:bg-surface-strong hover:text-ink transition-all block truncate"
                       >
                         {r.name.replace(/ - (Direct|Regular).*/i, "")} <span className="text-ink-faint">({r.plan})</span>
                       </button>
@@ -383,10 +383,10 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
             {/* Fund Allocations Table */}
             {compiledFunds.length > 0 ? (
               <div className="space-y-5">
-                <div className="overflow-x-auto rounded-xl border border-line bg-white/[0.01]">
+                <div className="overflow-x-auto rounded-xl border border-line bg-surface">
                   <table className="w-full border-collapse text-[12.5px] text-left">
                     <thead>
-                      <tr className="border-b border-line bg-white/[0.01] text-[10px] uppercase font-bold tracking-wider text-ink-faint">
+                      <tr className="border-b border-line bg-surface text-[10px] uppercase font-bold tracking-wider text-ink-faint">
                         <th className="px-4 py-3 w-[40%]">Holdings Name</th>
                         <th className="px-4 py-3 text-center w-[15%]">Allocation</th>
                         <th className="px-4 py-3 text-right">Pulse Health</th>
@@ -398,9 +398,9 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
                     </thead>
                     <tbody>
                       {compiledFunds.map((f) => (
-                        <tr key={f.code} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.005]">
+                        <tr key={f.code} className="border-b border-line last:border-0 hover:bg-surface">
                           <td className="px-4 py-3">
-                            <a href={`/fund/${f.code}`} className="font-bold text-white hover:text-accent-soft block truncate max-w-[240px]">
+                            <a href={`/fund/${f.code}`} className="font-bold text-ink hover:text-accent-soft block truncate max-w-[240px]">
                               {f.name.replace(/ - (Direct|Regular).*/i, "")}
                             </a>
                             <span className="text-[10px] text-ink-faint mt-0.5 block">{f.category} · {f.plan}</span>
@@ -418,9 +418,9 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
                                 max="100"
                                 value={f.pct}
                                 onChange={(e) => updateAllocationPct(f.code, e.target.value)}
-                                className="w-14 rounded border border-line bg-white/[0.02] text-center py-1 text-[12.5px] font-mono text-white outline-none focus:border-accent"
+                                className="w-14 rounded border border-line bg-surface-2 text-center py-1 text-[12.5px] font-mono text-ink outline-none focus:border-accent"
                               />
-                              <span className="text-white font-mono">%</span>
+                              <span className="text-ink font-mono">%</span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-right align-middle font-mono font-bold">
@@ -452,7 +452,7 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
                 </div>
 
                 {/* Allocation validation & summary block */}
-                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/[0.05] pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-4">
                   <div className="text-[12.5px]">
                     <span className="text-ink-faint">Allocation Total: </span>
                     <strong className={`font-mono ${totalAllocationPct === 100 ? "text-pos" : "text-warn"}`}>
@@ -467,7 +467,7 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
 
                   <button
                     onClick={copyStrategyMarkdown}
-                    className="rounded-xl border border-accent/40 bg-accent/15 hover:bg-accent/25 px-4 py-2 text-[12.5px] font-bold text-white transition-all"
+                    className="rounded-xl border border-accent/40 bg-accent/15 hover:bg-accent/25 px-4 py-2 text-[12.5px] font-bold text-ink transition-all"
                   >
                     Copy Strategy Brief 📄
                   </button>
@@ -475,7 +475,7 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
 
                 {/* Live Weighted Analytics block */}
                 {aggregates && (
-                  <div className="rounded-xl border border-line bg-white/[0.02] p-5 space-y-4">
+                  <div className="rounded-xl border border-line bg-surface-2 p-5 space-y-4">
                     <span className="text-[9.5px] uppercase font-bold tracking-wider text-ink-faint block">
                       Combined Weighted Analytics
                     </span>
@@ -506,7 +506,7 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
 
                       <div className="space-y-0.5">
                         <span className="text-[10px] text-ink-faint block uppercase">Volatility</span>
-                        <strong className="text-[16px] text-white font-mono block">
+                        <strong className="text-[16px] text-ink font-mono block">
                           {aggregates.vol.toFixed(2)}%
                         </strong>
                       </div>
@@ -524,9 +524,9 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
 
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-white/[0.08] p-8 text-center bg-white/[0.005]">
+              <div className="rounded-xl border border-dashed border-line p-8 text-center bg-surface">
                 <div className="text-[24px]">📂</div>
-                <h4 className="text-[13px] font-bold text-white mt-1.5">This strategy is empty</h4>
+                <h4 className="text-[13px] font-bold text-ink mt-1.5">This strategy is empty</h4>
                 <p className="text-[11.5px] text-ink-faint mt-0.5 leading-relaxed max-w-xs mx-auto">
                   Type a fund name in the search box above to add holdings and start allocation modeling.
                 </p>
@@ -535,15 +535,15 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
 
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-white/[0.08] p-16 text-center max-w-md mx-auto">
+          <div className="rounded-2xl border border-dashed border-line p-16 text-center max-w-md mx-auto">
             <div className="text-[32px] select-none">📈</div>
-            <h3 className="text-[14px] font-bold text-white mt-3">Portfolio Strategy Workspace</h3>
+            <h3 className="text-[14px] font-bold text-ink mt-3">Portfolio Strategy Workspace</h3>
             <p className="text-[12px] text-ink-faint mt-1.5 leading-relaxed">
               Create named strategies, model custom allocation spreads, auto-calculate weighted risk/return averages, and copy strategies.
             </p>
             <button
               onClick={createNewStrategy}
-              className="mt-5 rounded-lg bg-accent px-4 py-2 text-[12.5px] font-bold text-white hover:bg-accent/80 transition-all"
+              className="mt-5 rounded-lg bg-accent px-4 py-2 text-[12.5px] font-bold text-white hover:bg-accent-soft transition-all"
             >
               Create First Strategy
             </button>

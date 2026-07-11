@@ -50,11 +50,10 @@ export default async function Compare({ searchParams }) {
     return (
       <>
         <Nav active="/compare" />
-        <main className="container-px py-10">
-          <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tightest text-ink">Fund Comparison Center</h1>
-          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
-            Compare mutual funds side-by-side on explainable diagnostics, peer returns, and risk metrics.
-          </p>
+        <main className="container-px py-10 sm:py-14">
+          <div className="eyebrow text-accent">Comparison research</div>
+          <h1 className="page-title mt-3">Understand differences before choosing what to research next.</h1>
+          <p className="measure mt-4 text-sm leading-6 text-ink-muted">Compare observed performance, risk, health, and data completeness. MF Pulse does not label one fund a universal winner.</p>
           <div className="mt-8">
             <CompareFundsClient initialFunds={initialFunds} allFundsList={allFundsList} />
           </div>
@@ -88,9 +87,10 @@ export default async function Compare({ searchParams }) {
   return (
     <>
       <Nav active="/compare" />
-      <main className="container-px py-10">
-        <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tightest text-ink">AMC Comparison Center</h1>
-        <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">AMC comparison</div>
+        <h1 className="page-title mt-3">Compare fund houses in the same research frame.</h1>
+        <p className="measure mt-4 text-sm leading-6 text-ink-muted">
           Compare AMCs side-by-side on 30-day equity performance, scheme mix, and breadth — from real
           AMFI NAV history.
         </p>

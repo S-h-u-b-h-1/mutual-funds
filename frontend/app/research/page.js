@@ -30,14 +30,11 @@ export default function Research() {
   return (
     <>
       <Nav active="/research" />
-      <main className="container-px py-10 space-y-8">
+      <main className="container-px space-y-8 py-10 sm:py-14">
         <div>
-          <h1 className="text-[26px] sm:text-[32px] font-black tracking-tightest text-white">
-            Strategy & Research Notebook
-          </h1>
-          <p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-ink-muted">
-            Model multi-fund portfolios with custom weightings. We calculate weighted overall health scores, return profiles, volatility, and drawdowns.
-          </p>
+          <div className="eyebrow text-accent">Strategy workspace</div>
+          <h1 className="page-title mt-3">Turn a fund list into a documented research thesis.</h1>
+          <p className="measure mt-4 text-sm leading-6 text-ink-muted">Model multi-fund allocations with custom weights and preserve the reasoning behind them. Calculations remain deterministic and use existing fund measures.</p>
         </div>
 
         <ResearchWorkspaceClient allFundsList={allFundsList} />
