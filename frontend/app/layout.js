@@ -1,11 +1,12 @@
-import { Inter } from "next/font/google";
+import { Manrope, IBM_Plex_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import SentryInit from "./components/SentryInit";
 import PageView from "./components/PageView";
 import SyncPrompt from "./components/SyncPrompt";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-research-sans", display: "swap" });
+const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-research-mono", display: "swap" });
 
 const SITE = "https://frontend-six-beta-20.vercel.app";
 const DESC =
@@ -21,16 +22,23 @@ export const metadata = {
   robots: { index: true, follow: true },
 };
 
-export const viewport = { themeColor: "#080b14" };
+export const viewport = { themeColor: [
+  { media: "(prefers-color-scheme: light)", color: "#f6f4ee" },
+  { media: "(prefers-color-scheme: dark)", color: "#10191a" },
+] };
+
+const themeScript = `(() => { try { const saved = localStorage.getItem('mfp-theme'); const system = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; document.documentElement.dataset.theme = saved || system; } catch (_) { document.documentElement.dataset.theme = 'light'; } })()`;
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${manrope.variable} ${plexMono.variable}`} suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body>
+        <a href="#main-content" className="skip-link">Skip to main content</a>
         <SessionProvider>
           <SentryInit />
           <PageView />
-          {children}
+          <div id="main-content" tabIndex={-1}>{children}</div>
           <SyncPrompt />
         </SessionProvider>
       </body>

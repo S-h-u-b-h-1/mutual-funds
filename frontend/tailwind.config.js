@@ -1,44 +1,40 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ["./app/**/*.{js,jsx}"],
+  darkMode: ["selector", '[data-theme="dark"]'],
   theme: {
     extend: {
       colors: {
-        bg: "#06080f",
-        ink: { DEFAULT: "#e9edf6", muted: "#8b93a7", faint: "#5b6577" },
-        accent: { DEFAULT: "#6366f1", soft: "#818cf8" },
-        pos: "#34d399",
-        neg: "#f87171",
-        warn: "#fbbf24",
-        line: "rgba(255,255,255,0.08)",
-        "line-strong": "rgba(255,255,255,0.14)",
-        surface: "rgba(255,255,255,0.025)",
-        "surface-2": "rgba(255,255,255,0.045)",
+        bg: "rgb(var(--color-canvas) / <alpha-value>)",
+        ink: {
+          DEFAULT: "rgb(var(--color-text) / <alpha-value>)",
+          muted: "rgb(var(--color-text-muted) / <alpha-value>)",
+          faint: "rgb(var(--color-text-faint) / <alpha-value>)",
+        },
+        accent: {
+          DEFAULT: "rgb(var(--color-brand) / <alpha-value>)",
+          soft: "rgb(var(--color-brand-hover) / <alpha-value>)",
+        },
+        pos: "rgb(var(--color-positive) / <alpha-value>)",
+        neg: "rgb(var(--color-negative) / <alpha-value>)",
+        warn: "rgb(var(--color-warning) / <alpha-value>)",
+        info: "rgb(var(--color-information) / <alpha-value>)",
+        confidence: "rgb(var(--color-confidence) / <alpha-value>)",
+        missing: "rgb(var(--color-missing) / <alpha-value>)",
+        line: "rgb(var(--color-border) / <alpha-value>)",
+        "line-strong": "rgb(var(--color-border-strong) / <alpha-value>)",
+        surface: "rgb(var(--color-surface) / <alpha-value>)",
+        "surface-2": "rgb(var(--color-surface-raised) / <alpha-value>)",
+        "surface-strong": "rgb(var(--color-surface-strong) / <alpha-value>)",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["var(--font-research-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-research-mono)", "ui-monospace", "monospace"],
       },
-      boxShadow: {
-        glass: "0 1px 0 rgba(255,255,255,0.05) inset, 0 24px 60px -30px rgba(0,0,0,0.9)",
-        glow: "0 0 0 1px rgba(99,102,241,0.35), 0 8px 40px -8px rgba(99,102,241,0.45)",
-      },
+      boxShadow: { glass: "var(--shadow-surface)", glow: "0 0 0 1px rgb(var(--color-brand) / 0.22), 0 14px 36px rgb(var(--color-brand) / 0.14)", float: "var(--shadow-float)" },
       letterSpacing: { tightest: "-0.04em" },
-      keyframes: {
-        "fade-up": {
-          "0%": { opacity: "0", transform: "translateY(10px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        shimmer: { "100%": { transform: "translateX(100%)" } },
-        ring: {
-          "0%": { boxShadow: "0 0 0 0 rgba(52,211,153,0.5)" },
-          "70%": { boxShadow: "0 0 0 7px rgba(52,211,153,0)" },
-          "100%": { boxShadow: "0 0 0 0 rgba(52,211,153,0)" },
-        },
-      },
-      animation: {
-        "fade-up": "fade-up 0.55s cubic-bezier(0.22,1,0.36,1) both",
-        ring: "ring 2.4s infinite",
-      },
+      keyframes: { "fade-up": { "0%": { opacity: "0", transform: "translateY(8px)" }, "100%": { opacity: "1", transform: "translateY(0)" } }, shimmer: { "100%": { transform: "translateX(100%)" } } },
+      animation: { "fade-up": "fade-up var(--duration-slow) var(--ease-research) both" },
     },
   },
   plugins: [],

@@ -2,86 +2,120 @@
 @tailwind components;
 @tailwind utilities;
 
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --color-canvas: 246 244 238;
+  --color-surface: 255 254 250;
+  --color-surface-raised: 249 248 243;
+  --color-surface-strong: 238 238 231;
+  --color-text: 25 38 38;
+  --color-text-muted: 78 94 91;
+  --color-text-faint: 111 124 120;
+  --color-border: 211 214 204;
+  --color-border-strong: 173 184 176;
+  --color-brand: 20 100 91;
+  --color-brand-hover: 13 78 72;
+  --color-brand-soft: 214 236 228;
+  --color-positive: 23 112 78;
+  --color-negative: 177 66 59;
+  --color-warning: 157 104 27;
+  --color-information: 54 91 135;
+  --color-confidence: 123 91 28;
+  --color-missing: 131 119 101;
+  --color-focus: 30 113 104;
+  --shadow-surface: 0 1px 1px rgb(24 41 38 / 0.04), 0 12px 36px rgb(24 41 38 / 0.07);
+  --shadow-float: 0 20px 60px rgb(24 41 38 / 0.16);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 360ms;
+  --ease-research: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: 16 25 26;
+  --color-surface: 22 34 34;
+  --color-surface-raised: 28 42 41;
+  --color-surface-strong: 36 53 51;
+  --color-text: 237 239 232;
+  --color-text-muted: 169 183 176;
+  --color-text-faint: 124 143 136;
+  --color-border: 52 71 68;
+  --color-border-strong: 76 98 92;
+  --color-brand: 79 169 151;
+  --color-brand-hover: 107 194 175;
+  --color-brand-soft: 25 71 64;
+  --color-positive: 105 185 137;
+  --color-negative: 226 127 113;
+  --color-warning: 213 166 84;
+  --color-information: 127 164 201;
+  --color-confidence: 208 177 112;
+  --color-missing: 155 148 132;
+  --color-focus: 112 205 185;
+  --shadow-surface: 0 1px 0 rgb(255 255 255 / 0.035), 0 18px 44px rgb(0 0 0 / 0.2);
+  --shadow-float: 0 24px 72px rgb(0 0 0 / 0.42);
+}
+
 @layer base {
-  html {
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; scroll-behavior: smooth; }
   body {
     @apply bg-bg text-ink font-sans;
-    letter-spacing: -0.011em;
+    min-height: 100vh;
+    letter-spacing: -0.008em;
     background-image:
-      radial-gradient(1100px 560px at 80% -10%, rgba(99, 102, 241, 0.13), transparent 60%),
-      radial-gradient(820px 480px at 2% 0%, rgba(52, 211, 153, 0.07), transparent 55%);
+      radial-gradient(900px 440px at 92% -8%, rgb(var(--color-brand) / 0.08), transparent 64%),
+      linear-gradient(180deg, rgb(var(--color-canvas)), rgb(var(--color-canvas)));
     background-attachment: fixed;
   }
-  ::selection { background: rgba(99, 102, 241, 0.35); }
+  h1, h2, h3 { text-wrap: balance; }
+  p { text-wrap: pretty; }
+  a { text-underline-offset: 0.2em; }
+  button, a, input, select, textarea { transition-duration: var(--duration-fast); transition-property: color, background-color, border-color, box-shadow, opacity, transform; }
+  :focus-visible { outline: 3px solid rgb(var(--color-focus) / 0.5); outline-offset: 3px; }
+  ::selection { background: rgb(var(--color-brand) / 0.22); }
 }
 
 @layer components {
-  .glass {
-    @apply bg-surface border border-line rounded-2xl shadow-glass;
-    backdrop-filter: saturate(150%) blur(10px);
+  .glass, .research-surface {
+    @apply rounded-2xl border border-line bg-surface shadow-glass;
   }
-  .tnum { font-variant-numeric: tabular-nums; }
-  .container-px { @apply mx-auto w-full max-w-[1120px] px-5 sm:px-6; }
-  .hairline { background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent); }
-  
-  /* Dialogue custom animation styles */
-  dialog.cmd-dialog {
-    opacity: 0;
-    transform: scale(0.97) translateY(8px);
-    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), overlay 0.2s allow-discrete, display 0.2s allow-discrete;
-  }
-  dialog.cmd-dialog[open] {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-  @starting-style {
-    dialog.cmd-dialog[open] {
-      opacity: 0;
-      transform: scale(0.97) translateY(8px);
-    }
-  }
-  dialog.cmd-dialog::backdrop {
-    background-color: rgba(4, 6, 13, 0.7);
-    backdrop-filter: blur(8px);
-    opacity: 0;
-    transition: opacity 0.2s ease, overlay 0.2s allow-discrete, display 0.2s allow-discrete;
-  }
-  dialog.cmd-dialog[open]::backdrop {
-    opacity: 1;
-  }
-  @starting-style {
-    dialog.cmd-dialog[open]::backdrop {
-      opacity: 0;
-    }
-  }
+  .research-surface-raised { @apply rounded-2xl border border-line bg-surface-2 shadow-glass; }
+  .tnum, .financial-number { font-family: var(--font-research-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums slashed-zero; letter-spacing: -0.025em; }
+  .container-px { @apply mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8; }
+  .measure { max-width: 68ch; }
+  .eyebrow { @apply text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint; }
+  .page-title { @apply text-[2rem] font-semibold leading-[1.08] tracking-[-0.035em] text-ink sm:text-[2.65rem]; }
+  .section-title { @apply text-lg font-semibold leading-tight tracking-[-0.02em] text-ink sm:text-xl; }
+  .skip-link { @apply fixed left-4 top-3 z-[100] -translate-y-20 rounded-lg bg-ink px-4 py-2 text-bg shadow-float; }
+  .skip-link:focus { @apply translate-y-0; }
+  .hairline { background: linear-gradient(90deg, transparent, rgb(var(--color-border-strong) / 0.75), transparent); }
+
+  dialog.cmd-dialog { opacity: 0; transform: scale(0.98) translateY(6px); transition: opacity var(--duration-base) var(--ease-research), transform var(--duration-base) var(--ease-research), overlay var(--duration-base) allow-discrete, display var(--duration-base) allow-discrete; }
+  dialog.cmd-dialog[open] { opacity: 1; transform: scale(1) translateY(0); }
+  dialog.cmd-dialog::backdrop { background: rgb(7 16 16 / 0.62); backdrop-filter: blur(6px); }
+  @starting-style { dialog.cmd-dialog[open] { opacity: 0; transform: scale(0.98) translateY(6px); } }
 }
 
 @layer utilities {
-  .skeleton {
-    @apply relative overflow-hidden bg-white/[0.04] rounded-md;
-  }
-  .skeleton::after {
-    content: "";
-    @apply absolute inset-0 -translate-x-full;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
-    animation: shimmer 1.6s infinite;
-  }
-  
-  /* Smooth scroll spring-like easing */
-  .transition-spring {
-    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.1);
-  }
+  .skeleton { @apply relative overflow-hidden rounded-md bg-surface-strong; }
+  .skeleton::after { content: ""; @apply absolute inset-0 -translate-x-full; background: linear-gradient(90deg, transparent, rgb(var(--color-text) / 0.055), transparent); animation: shimmer 1.6s infinite; }
+  .transition-spring { transition: all var(--duration-slow) var(--ease-research); }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 8px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.16); }
+::-webkit-scrollbar-thumb { background: rgb(var(--color-border-strong) / 0.65); border: 2px solid transparent; background-clip: padding-box; border-radius: 999px; }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.001ms !important; }
+}
+
+@media print {
+  :root, [data-theme] { color-scheme: light; --color-canvas: 255 255 255; --color-surface: 255 255 255; --color-text: 12 20 20; --color-text-muted: 52 61 59; --color-border: 196 200 195; }
+  body { background: white !important; }
+  .no-print { display: none !important; }
+  .glass, .research-surface, .research-surface-raised { box-shadow: none !important; break-inside: avoid; }
 }
