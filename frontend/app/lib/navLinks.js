@@ -11,7 +11,7 @@ export const PRIMARY_LINKS = [
   ["Funds", "/funds"],
   ["Compare", "/compare"],
   ["News", "/news"],
-  ["Workspace", "/dashboard"],
+  ["Portfolio", "/portfolio"],
 ];
 
 export const ALL_LINKS = NAV_GROUPS.flatMap((group) => group.links);

@@ -23,7 +23,7 @@ const WORKFLOWS = [
   { label: "Compare funds", detail: "Understand meaningful differences without forcing a universal winner.", href: "/compare", icon: "02" },
   { label: "Understand risk", detail: "Read volatility and drawdown in category and benchmark context.", href: "/performance", icon: "03" },
   { label: "Track a watchlist", detail: "Return to funds you follow and review what changed since your last visit.", href: "/dashboard#watchlist", icon: "04" },
-  { label: "Review a portfolio", detail: "Use your actual holdings with deterministic portfolio intelligence.", href: "/dashboard", icon: "05" },
+  { label: "Review a portfolio", detail: "Use your actual holdings with deterministic portfolio intelligence.", href: "/portfolio", icon: "05" },
   { label: "Explore news impact", detail: "Connect financial events to AMCs, categories and relevant funds.", href: "/news", icon: "06" },
   { label: "Build a strategy", detail: "Organize a multi-fund research thesis and compare allocations.", href: "/research", icon: "07" },
   { label: "Save research notes", detail: "Keep observations attached to the fund and evidence you reviewed.", href: "/dashboard#notebook", icon: "08" },
