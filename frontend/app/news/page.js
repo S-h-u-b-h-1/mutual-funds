@@ -5,6 +5,7 @@ import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import GlassPanel from "../components/ui/GlassPanel";
 import NewsClient from "../components/NewsClient";
+import FreshnessBadge from "../components/ui/FreshnessBadge";
 
 export const metadata = { title: "Market News Intelligence" };
 export const revalidate = 300;
@@ -89,16 +90,13 @@ export default async function News() {
   return (
     <>
       <Nav active="/news" />
-      <main className="container-px py-10">
-        <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tightest text-ink">
-          Indian Market News Intelligence
-        </h1>
-        <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
-          Verified financial news, regulatory updates, and market-moving events mapped to mutual fund
-          relevance.
-        </p>
+      <main className="container-px py-10 sm:py-14">
+        <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div><div className="eyebrow text-accent">News intelligence</div><h1 className="page-title mt-3">Connect financial events to mutual-fund research.</h1><p className="measure mt-4 text-sm leading-6 text-ink-muted">Near-real-time financial news, regulatory updates, and market events mapped to relevant categories, AMCs, sectors, and funds through traceable rules.</p></div>
+          <FreshnessBadge status={status.tone === "pos" ? "current" : status.tone === "warn" ? "delayed" : "stale"}>{status.tone === "pos" ? "Near-real-time feed" : status.label}</FreshnessBadge>
+        </div>
 
-        <GlassPanel className="mt-6 p-4 sm:p-5">
+        <GlassPanel className="mt-8 p-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div>
               <div className="text-[10px] font-medium uppercase tracking-[0.09em] text-ink-faint">
@@ -121,7 +119,7 @@ export default async function News() {
                   status.tone === "pos" ? "text-pos" : status.tone === "warn" ? "text-warn" : "text-neg"
                 }`}
               >
-                {status.isLive ? "Live" : status.tone === "warn" ? "Delayed" : "Not running"}
+                {status.tone === "pos" ? "Recently updated" : status.tone === "warn" ? "Delayed" : "Not running"}
               </div>
             </div>
           </div>
@@ -136,7 +134,14 @@ export default async function News() {
           )}
         </GlassPanel>
 
-        <div className="mt-8">
+        <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Market impact overview">
+          <div className="research-surface p-4"><div className="eyebrow">Articles</div><div className="financial-number mt-2 text-xl font-semibold text-ink">{articles.length}</div><p className="mt-1 text-xs text-ink-faint">Current fetched window</p></div>
+          <div className="research-surface p-4"><div className="eyebrow">Themes</div><div className="financial-number mt-2 text-xl font-semibold text-ink">{Object.values(themeCounts).filter(Boolean).length}</div><p className="mt-1 text-xs text-ink-faint">Themes with matching articles</p></div>
+          <div className="research-surface p-4"><div className="eyebrow">Sources active</div><div className="financial-number mt-2 text-xl font-semibold text-ink">{activeSources}</div><p className="mt-1 text-xs text-ink-faint">Successful recent ingestion</p></div>
+          <div className="research-surface p-4"><div className="eyebrow">Method</div><div className="mt-2 text-sm font-semibold text-ink">Rule-based links</div><p className="mt-1 text-xs text-ink-faint">No generative classification</p></div>
+        </section>
+
+        <div className="mt-10">
           <NewsClient articles={articles} runs={runs} themeCounts={themeCounts} allThemes={THEMES} />
         </div>
       </main>

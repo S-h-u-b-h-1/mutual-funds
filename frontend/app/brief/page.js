@@ -8,6 +8,7 @@ import StatStrip from "../components/ui/StatStrip";
 import TrustBar from "../components/ui/TrustBar";
 import SignalCard from "../components/ui/SignalCard";
 import NextActions from "../components/NextActions";
+import BriefActions from "../components/BriefActions";
 
 export const metadata = { title: "Market Brief" };
 export const revalidate = 600;
@@ -67,13 +68,13 @@ export default async function Brief() {
   return (
     <>
       <Nav active="/brief" />
-      <main className="container-px py-10">
+      <main className="container-px py-10 sm:py-14">
         {/* Masthead */}
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Research Note · Fund Flows · {flow.month || "—"}</div>
-        <h1 className="mt-2 max-w-3xl text-[28px] sm:text-[36px] font-bold leading-tight tracking-tightest text-ink">
-          India Mutual-Fund Flow Brief
-        </h1>
+        <div className="eyebrow text-accent">Morning brief · Fund flows · {flow.month || "—"}</div>
+        <h1 className="page-title mt-3 max-w-3xl">What changed, why it matters, and what to research next.</h1>
+        <p className="measure mt-4 text-sm leading-6 text-ink-muted">A concise deterministic briefing from the latest available NAV, flow, and signal data. Designed to be reviewed in under five minutes.</p>
         <TrustBar asOf={latest} className="mt-3" sources={[{ label: "Generated", value: generated }, { label: "Method", value: "rule-based" }]} />
+        <div className="mt-5"><BriefActions date={latest || generated} /></div>
 
         {isStale && (
           <div className="mt-4 max-w-3xl rounded-xl border border-neg/40 bg-neg/10 px-4 py-3 text-[13px] text-neg">
