@@ -64,7 +64,7 @@ export default function FundPageClient({
   sharpe, sortino, riskStats, calReturns, rollReturns, comparisons, relatedNews,
   priority, attentionReasons, completeness, readiness, aRank, asOf,
   categoryAvgVol, categoryAvgDvol, categoryAvgMaxdd, categoryAvgConsistency,
-  thesis, strengthsWeak, fit, dna, quality, decisionSupport, newsInsights, similarPastEvents
+  thesis, strengthsWeak, fit, dna, quality, decisionSupport, newsInsights, similarPastEvents, report
 }) {
   const [viewMode, setViewMode] = useState("workspace"); // "workspace" (tabbed) or "report" (scroll)
   const [activeTab, setActiveTab] = useState("identity"); // tabs: identity, performance, risk, research, news, compare
@@ -373,11 +373,34 @@ export default function FundPageClient({
               <span className="font-mono text-[10.5px] text-ink-faint">{fund.code}</span>
             </button>
             <button
-              onClick={() => window.print()}
+              onClick={() => {
+                // "Print Research PDF" only means what it says if every section is actually on
+                // the page when the browser's print dialog opens — Focused sections mode shows
+                // just one tab at a time, which would silently print an incomplete report.
+                if (viewMode !== "report") {
+                  setViewMode("report");
+                  setTimeout(() => window.print(), 150);
+                } else {
+                  window.print();
+                }
+                track("research_report_printed", { scheme_code: fund.code });
+              }}
               className="w-full text-left rounded-lg px-2.5 py-1.5 text-ink-muted hover:bg-surface-2 transition-colors"
             >
               Print Research PDF
             </button>
+            {report && (
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(JSON.stringify(report, null, 2));
+                  alert("Structured research report copied as JSON — every section from this page in one object, ready to paste into an advisor tool or export pipeline.");
+                  track("research_report_json_copied", { scheme_code: fund.code });
+                }}
+                className="w-full text-left rounded-lg px-2.5 py-1.5 text-ink-muted hover:bg-surface-2 transition-colors"
+              >
+                Copy Research Report (JSON)
+              </button>
+            )}
             <button
               onClick={() => setOnboardStep(1)}
               className="w-full text-left rounded-lg px-2.5 py-1.5 text-accent-soft hover:bg-accent/5 transition-colors"
@@ -866,7 +889,10 @@ export default function FundPageClient({
                         </span>
                       </div>
                       <div className="flex justify-between text-[12.5px]">
-                        <span className="text-ink-faint">Consistency Rating</span>
+                        <span className="text-ink-faint flex items-center gap-1.5">
+                          Consistency Rating
+                          <MetricTooltip>Share of trading days in the observed window where the NAV didn't fall. Higher means fewer down-days, not necessarily higher returns — a fund can be highly consistent (few down-days) while still returning less than a more volatile fund. Best read alongside returns, not instead of them.</MetricTooltip>
+                        </span>
                         <span className="text-ink font-semibold font-mono">
                           {fund.consistency}% {categoryAvgConsistency != null && <span className="text-[11.5px] text-ink-faint font-normal"> (Category Avg: {categoryAvgConsistency}%)</span>}
                         </span>
@@ -882,13 +908,19 @@ export default function FundPageClient({
                     <div className="space-y-3">
                       {sharpe != null && (
                         <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
-                          <span className="text-ink-faint">Sharpe Ratio (1Y, rf 6.5%)</span>
+                          <span className="text-ink-faint flex items-center gap-1.5">
+                            Sharpe Ratio (1Y, rf 6.5%)
+                            <MetricTooltip>Return earned per unit of total risk taken, above the risk-free rate. Above 1 is generally considered good, above 2 very good, below 0 means the fund underperformed a risk-free investment. Example: a Sharpe of 1.2 means the fund earned 1.2 units of return for every unit of volatility.</MetricTooltip>
+                          </span>
                           <span className={`font-bold font-mono ${sharpe >= 1 ? "text-pos" : "text-ink"}`}>{sharpe}</span>
                         </div>
                       )}
                       {sortino != null && (
                         <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
-                          <span className="text-ink-faint">Sortino Ratio (1Y, rf 6.5%)</span>
+                          <span className="text-ink-faint flex items-center gap-1.5">
+                            Sortino Ratio (1Y, rf 6.5%)
+                            <MetricTooltip>Like Sharpe, but only penalises downside volatility — a fund that swings up sharply isn't treated as "risky" here. Above 1.5 is generally considered good. Useful alongside Sharpe: a much higher Sortino than Sharpe suggests the fund's volatility skews more upside than downside.</MetricTooltip>
+                          </span>
                           <span className={`font-bold font-mono ${sortino >= 1.5 ? "text-pos" : "text-ink"}`}>{sortino}</span>
                         </div>
                       )}
@@ -896,7 +928,10 @@ export default function FundPageClient({
                         <>
                           <div className="border-b border-line pb-2.5">
                             <div className="flex justify-between text-[12.5px]">
-                              <span className="text-ink-faint">Beta vs Benchmark Proxy</span>
+                              <span className="text-ink-faint flex items-center gap-1.5">
+                                Beta vs Benchmark Proxy
+                                <MetricTooltip>How much the fund tends to move for every 1% move in its benchmark index. Beta of 1.0 means it moves in step with the index; above 1.0 means it amplifies moves (both up and down); below 1.0 means it's more muted. Neither direction is inherently "better" — it depends on whether you want amplified or dampened market exposure.</MetricTooltip>
+                              </span>
                               <span className="text-ink font-semibold font-mono">{riskStats.beta}</span>
                             </div>
                             <div className="mt-1.5">
@@ -904,14 +939,20 @@ export default function FundPageClient({
                             </div>
                           </div>
                           <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
-                            <span className="text-ink-faint">Alpha (Annualised)</span>
+                            <span className="text-ink-faint flex items-center gap-1.5">
+                              Alpha (Annualised)
+                              <MetricTooltip>Return the fund generated beyond what its Beta alone would predict, given the benchmark's actual performance — the part of the return not explained by simply tracking the market. Positive alpha suggests genuine outperformance after adjusting for risk; negative means it underperformed even accounting for its market exposure.</MetricTooltip>
+                            </span>
                             <span className={`font-bold font-mono ${riskStats.alpha >= 0 ? "text-pos" : "text-neg"}`}>
                               {riskStats.alpha >= 0 ? "+" : ""}{riskStats.alpha}%
                             </span>
                           </div>
                           {riskStats.informationRatio != null && (
                             <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
-                              <span className="text-ink-faint">Information Ratio</span>
+                              <span className="text-ink-faint flex items-center gap-1.5">
+                                Information Ratio
+                                <MetricTooltip>How consistently the fund beats its benchmark, relative to how much its outperformance varies. A high, stable information ratio suggests skill rather than a few lucky bets; a fund that occasionally spikes ahead then lags will score lower here even with the same average outperformance.</MetricTooltip>
+                              </span>
                               <span className="text-ink font-semibold font-mono">{riskStats.informationRatio}</span>
                             </div>
                           )}
