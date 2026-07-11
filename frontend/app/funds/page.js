@@ -2,106 +2,91 @@ import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import Tracker from "../components/Tracker";
 import ScreenerPresets from "../components/ScreenerPresets";
-import SectionHeader from "../components/ui/SectionHeader";
 import ScreenerTableClient from "../components/ScreenerTableClient";
-import DataTable from "../components/ui/DataTable";
-import Badge from "../components/ui/Badge";
-import HealthCell from "../components/ui/HealthCell";
+import FreshnessBadge from "../components/ui/FreshnessBadge";
 import { allFunds, coverage, asOf } from "../lib/funds";
-import { fundHealth, gradeTone } from "../lib/fundHealth";
-import { short } from "../lib/format";
+import { fundHealth } from "../lib/fundHealth";
 
-export const metadata = { title: "Fund Screener" };
-
-const pct = (v) => (v == null ? <span className="text-ink-faint">—</span> : <span className={v >= 0 ? "text-pos tnum" : "text-neg tnum"}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>);
+export const metadata = { title: "Fund Research Screener" };
 
 const SORTS = {
-  health: { label: "Health score", get: (f) => f._h, dir: -1 },
-  r1m: { label: "1M return", get: (f) => f.r1m, dir: -1 },
-  r3m: { label: "3M return", get: (f) => f.r3m, dir: -1 },
-  r1y: { label: "1Y return", get: (f) => f.r1y, dir: -1 },
-  vol90: { label: "Lowest volatility", get: (f) => f.vol90, dir: 1 },
-  maxdd90: { label: "Lowest drawdown", get: (f) => f.maxdd90, dir: -1 },
-  consistency: { label: "Consistency", get: (f) => f.consistency, dir: -1 },
+  health: { label: "Health score", get: (fund) => fund._h, direction: -1 },
+  r1m: { label: "1-month return", get: (fund) => fund.r1m, direction: -1 },
+  r3m: { label: "3-month return", get: (fund) => fund.r3m, direction: -1 },
+  r1y: { label: "1-year return", get: (fund) => fund.r1y, direction: -1 },
+  vol90: { label: "Lowest volatility", get: (fund) => fund.vol90, direction: 1 },
+  maxdd90: { label: "Lowest drawdown", get: (fund) => fund.maxdd90, direction: -1 },
+  consistency: { label: "Consistency", get: (fund) => fund.consistency, direction: -1 },
 };
 
-const cols = [
-  { key: "name", label: "Fund", render: (r) => <a className="text-ink hover:text-accent-soft" href={`/fund/${r.code}`}>{short(r.name)}<span className="block text-[11px] text-ink-faint">{r.amc} · {r.category} · {r.plan}</span></a> },
-  { key: "health", label: "Health", align: "right", render: (r) => <HealthCell score={r._h} grade={r._g} tone={r._h != null ? gradeTone(r._g) : null} /> },
-  { key: "r1m", label: "1M", align: "right", render: (r) => pct(r.r1m) },
-  { key: "r1y", label: "1Y", align: "right", render: (r) => pct(r.r1y) },
-  { key: "vol90", label: "Vol", align: "right", render: (r) => (r.vol90 == null ? <span className="text-ink-faint">—</span> : <span className="tnum text-ink-muted">{r.vol90}</span>) },
-  { key: "maxdd90", label: "MaxDD", align: "right", render: (r) => (r.maxdd90 == null ? <span className="text-ink-faint">—</span> : <span className="tnum text-neg">{r.maxdd90}</span>) },
-];
-
-export default function Funds({ searchParams }) {
+export default function FundsPage({ searchParams }) {
+  const universe = allFunds();
   const q = (searchParams?.q || "").toLowerCase().trim();
   const plan = searchParams?.plan || "all";
-  const opt = searchParams?.opt || "growth";
+  const option = searchParams?.opt || "growth";
+  const category = searchParams?.category || "all";
+  const amc = searchParams?.amc || "all";
   const sort = SORTS[searchParams?.sort] ? searchParams.sort : "health";
   const fresh = searchParams?.fresh === "1";
-  const needY = searchParams?.hist === "1y";
-  const conf = SORTS[sort];
+  const needYear = searchParams?.hist === "1y";
+  const sortConfig = SORTS[sort];
+  const categories = [...new Set(universe.map((fund) => fund.category).filter(Boolean))].sort();
+  const amcs = [...new Set(universe.map((fund) => fund.amc).filter(Boolean))].sort();
 
-  let rows = allFunds().filter((f) => {
-    if (opt === "growth" && !f.isGrowth) return false;
-    if (opt === "idcw" && !f.isIdcw) return false;
-    if (plan === "direct" && !f.isDirect) return false;
-    if (plan === "regular" && f.isDirect) return false;
-    if (fresh && f.staleDays !== 0) return false;
-    if (needY && f.r1y == null) return false;
-    if (q && !(f.name.toLowerCase().includes(q) || f.amc.toLowerCase().includes(q) || f.category.toLowerCase().includes(q) || f.code === q)) return false;
-    return f.r1m != null;
-  }).map((f) => {
-    const h = fundHealth(f);
-    return { ...f, _h: h?.overall ?? null, _g: h?.grade ?? null };
-  }).filter((f) => conf.get(f) != null);
+  let rows = universe.filter((fund) => {
+    if (option === "growth" && !fund.isGrowth) return false;
+    if (option === "idcw" && !fund.isIdcw) return false;
+    if (plan === "direct" && !fund.isDirect) return false;
+    if (plan === "regular" && fund.isDirect) return false;
+    if (category !== "all" && fund.category !== category) return false;
+    if (amc !== "all" && fund.amc !== amc) return false;
+    if (fresh && fund.staleDays !== 0) return false;
+    if (needYear && fund.r1y == null) return false;
+    if (q && !(fund.name.toLowerCase().includes(q) || fund.amc.toLowerCase().includes(q) || fund.category.toLowerCase().includes(q) || fund.code === q)) return false;
+    return fund.r1m != null;
+  }).map((fund) => {
+    const health = fundHealth(fund);
+    return { ...fund, _h: health?.overall ?? null, _g: health?.grade ?? null };
+  }).filter((fund) => sortConfig.get(fund) != null);
 
-  rows.sort((a, b) => (conf.get(b) - conf.get(a)) * (conf.dir === 1 ? -1 : 1));
+  rows.sort((a, b) => (sortConfig.get(b) - sortConfig.get(a)) * (sortConfig.direction === 1 ? -1 : 1));
   const total = rows.length;
-  rows = rows.slice(0, 80).map((f) => ({ ...f, _key: f.code }));
+  rows = rows.slice(0, 80).map((fund) => ({ ...fund, _key: fund.code }));
 
-  const chip = (label, params) => {
-    const sp = new URLSearchParams({ q: searchParams?.q || "", plan, opt, sort, ...(fresh ? { fresh: "1" } : {}), ...(needY ? { hist: "1y" } : {}), ...params });
-    return <a href={`/funds?${sp}`} className="rounded-full border border-line px-3 py-1 text-[12px] text-ink-muted hover:text-ink">{label}</a>;
-  };
+  function quickFilter(label, params) {
+    const query = new URLSearchParams({ q: searchParams?.q || "", plan, opt: option, category, amc, sort, ...(fresh ? { fresh: "1" } : {}), ...(needYear ? { hist: "1y" } : {}), ...params });
+    return <a href={`/funds?${query}`} className="inline-flex min-h-9 items-center rounded-full border border-line bg-surface px-3 text-xs font-medium text-ink-muted hover:border-line-strong hover:text-ink">{label}</a>;
+  }
 
   return (
     <>
       <Nav active="/funds" />
-      <Tracker event="fund_filter_used" payload={{ q, plan, opt, sort, fresh, needY, results: total }} />
-      <main className="container-px py-9">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Screener</div>
-        <h1 className="mt-2 text-[28px] sm:text-[32px] font-bold tracking-tightest text-ink">Fund screener</h1>
-        <p className="mt-2 max-w-2xl text-[14px] text-ink-muted">
-          {coverage.priced.toLocaleString("en-IN")} priced · {coverage.withRisk.toLocaleString("en-IN")} with risk metrics · {coverage.with1y.toLocaleString("en-IN")} with 1Y history.
-          Daily NAV intelligence, not real-time. <a className="underline-offset-2 hover:text-ink hover:underline" href="/data-quality">Coverage →</a>
-        </p>
+      <Tracker event="fund_filter_used" payload={{ q, plan, option, category, amc, sort, fresh, needYear, results: total }} />
+      <main className="container-px py-10 sm:py-14">
+        <header className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div><div className="eyebrow text-accent">Fund research</div><h1 className="page-title mt-3">Find evidence, not a leaderboard winner.</h1><p className="measure mt-4 text-sm leading-6 text-ink-muted">Screen direct and regular plans separately, keep missing measures visible, and move selected funds into comparison or strategy research.</p></div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faint"><FreshnessBadge status="current">NAV {asOf}</FreshnessBadge><a href="/data-quality" className="font-medium text-accent">Review coverage →</a></div>
+        </header>
 
-        <form className="mt-5 flex flex-wrap items-center gap-2" action="/funds" method="get">
-          <input name="q" defaultValue={searchParams?.q || ""} placeholder="Search fund, AMC, category, or code…" className="min-w-[220px] flex-1 rounded-lg border border-line bg-white/[0.02] px-3.5 py-2 text-[13px] text-ink outline-none placeholder:text-ink-faint focus:border-line-strong" />
-          <select name="plan" defaultValue={plan} className="rounded-lg border border-line bg-bg px-3 py-2 text-[13px] text-ink-muted"><option value="all">All plans</option><option value="direct">Direct</option><option value="regular">Regular</option></select>
-          <select name="opt" defaultValue={opt} className="rounded-lg border border-line bg-bg px-3 py-2 text-[13px] text-ink-muted"><option value="growth">Growth</option><option value="idcw">IDCW</option><option value="all">All options</option></select>
-          <select name="sort" defaultValue={sort} className="rounded-lg border border-line bg-bg px-3 py-2 text-[13px] text-ink-muted">{Object.entries(SORTS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
-          <button className="rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white">Apply</button>
-        </form>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {chip("Top health", { sort: "health" })}
-          {chip("Direct Growth", { plan: "direct", opt: "growth" })}
-          {chip("1Y history", { hist: "1y" })}
-          {chip("Lowest drawdown", { sort: "maxdd90" })}
-          {chip("Strong consistency", { sort: "consistency" })}
-          {chip("Fresh only", { fresh: "1" })}
-          <span className="mx-1 h-4 w-px bg-line" />
-          <ScreenerPresets />
-        </div>
+        <section className="mt-8 rounded-2xl border border-line bg-surface p-4 sm:p-5" aria-label="Fund filters">
+          <form action="/funds" method="get" className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
+            <label className="md:col-span-2 lg:col-span-2"><span className="eyebrow">Search</span><input name="q" defaultValue={searchParams?.q || ""} placeholder="Fund, AMC, category, or code" className="mt-2 min-h-11 w-full rounded-xl border border-line bg-bg px-3.5 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent" /></label>
+            <label><span className="eyebrow">Plan</span><select name="plan" defaultValue={plan} className="mt-2 min-h-11 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option value="all">All plans</option><option value="direct">Direct</option><option value="regular">Regular</option></select></label>
+            <label><span className="eyebrow">Option</span><select name="opt" defaultValue={option} className="mt-2 min-h-11 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option value="growth">Growth</option><option value="idcw">IDCW</option><option value="all">All options</option></select></label>
+            <label><span className="eyebrow">Category</span><select name="category" defaultValue={category} className="mt-2 min-h-11 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option value="all">All categories</option>{categories.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+            <label><span className="eyebrow">AMC</span><select name="amc" defaultValue={amc} className="mt-2 min-h-11 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option value="all">All AMCs</option>{amcs.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+            <label className="md:col-span-2"><span className="eyebrow">Sort evidence</span><select name="sort" defaultValue={sort} className="mt-2 min-h-11 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink">{Object.entries(SORTS).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}</select></label>
+            <div className="flex items-end"><button className="min-h-11 w-full rounded-xl bg-accent px-5 text-sm font-semibold text-white hover:bg-accent-soft">Apply filters</button></div>
+          </form>
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">{quickFilter("Top health", { sort: "health" })}{quickFilter("Direct Growth", { plan: "direct", opt: "growth" })}{quickFilter("1Y history", { hist: "1y" })}{quickFilter("Lowest drawdown", { sort: "maxdd90" })}{quickFilter("Consistency", { sort: "consistency" })}{quickFilter("Fresh NAV only", { fresh: "1" })}<ScreenerPresets /></div>
+        </section>
 
-        <section className="mt-6">
-          <SectionHeader eyebrow={`${total.toLocaleString("en-IN")} matches · showing top 80`} title="Results" action={<Badge tone="pos" dot>real NAV</Badge>} />
-          <ScreenerTableClient rows={rows} total={total} asOf={asOf} confLabel={conf.label} />
+        <section className="mt-8" aria-labelledby="results-title">
+          <div className="flex flex-wrap items-end justify-between gap-4"><div><div className="eyebrow">{total.toLocaleString("en-IN")} matches · showing 80</div><h2 id="results-title" className="section-title mt-2">Research results</h2></div><div className="text-xs leading-5 text-ink-faint">{coverage.priced.toLocaleString("en-IN")} priced · {coverage.withRisk.toLocaleString("en-IN")} with risk · {coverage.with1y.toLocaleString("en-IN")} with 1Y history</div></div>
+          <div className="mt-5"><ScreenerTableClient rows={rows} total={total} asOf={asOf} confLabel={sortConfig.label} /></div>
         </section>
       </main>
-      <Footer />
+      <Footer note={<span>Daily NAV research, not real-time. Missing values remain visible. Direct and regular plans are evaluated as separate records.</span>} />
     </>
   );
 }

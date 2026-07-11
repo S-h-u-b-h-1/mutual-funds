@@ -19,8 +19,8 @@ import { TIER_TONE } from "../lib/decisionEngine";
 function WorkspaceCard({ title, subtitle, action, children, id, collapsedDefault = false }) {
   const [collapsed, setCollapsed] = useState(collapsedDefault);
   return (
-    <div id={id} className="scroll-mt-24 rounded-2xl border border-line-strong bg-white/[0.015] p-5 sm:p-6 shadow-sm hover:border-white/10 transition-all">
-      <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/[0.05]">
+    <div id={id} className="scroll-mt-24 rounded-2xl border border-line-strong bg-surface p-5 sm:p-6 shadow-sm hover:border-line-strong transition-all">
+      <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
         <div>
           <h3 className="text-[14.5px] font-bold text-ink tracking-tight">{title}</h3>
           {subtitle && <p className="text-[11px] text-ink-faint mt-0.5">{subtitle}</p>}
@@ -29,7 +29,7 @@ function WorkspaceCard({ title, subtitle, action, children, id, collapsedDefault
           {action}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-[11px] font-mono text-ink-faint hover:text-ink-muted transition-colors px-2 py-0.5 bg-white/[0.04] rounded"
+            className="text-[11px] font-mono text-ink-faint hover:text-ink-muted transition-colors px-2 py-0.5 bg-surface-strong rounded"
           >
             {collapsed ? "Expand" : "Collapse"}
           </button>
@@ -42,7 +42,7 @@ function WorkspaceCard({ title, subtitle, action, children, id, collapsedDefault
 
 function MetricTile({ label, value, sub, tone, tooltip }) {
   return (
-    <div className="rounded-xl border border-line bg-white/[0.01] px-4 py-3 hover:bg-white/[0.03] transition-colors relative group">
+    <div className="rounded-xl border border-line bg-surface px-4 py-3 hover:bg-surface-2 transition-colors relative group">
       <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-ink-faint">
         <span>{label}</span>
         {tooltip && <MetricTooltip>{tooltip}</MetricTooltip>}
@@ -167,13 +167,13 @@ export default function FundPageClient({
   ].filter(Boolean);
 
   return (
-    <div className="container-px py-6 relative">
+    <div className="container-px relative py-8 sm:py-10">
       
       {/* Onboarding Walkthrough Overlay */}
       {onboardStep !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#0c0e16] p-6 shadow-2xl transition-spring">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.05]">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-bg/85 p-4 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="fund-tour-title">
+          <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-2xl transition-spring">
+            <div className="flex items-center justify-between pb-3 border-b border-line">
               <span className="text-[10px] uppercase font-bold tracking-widest text-accent-soft">
                 Workspace Tour · Step {onboardStep} of 4
               </span>
@@ -185,15 +185,15 @@ export default function FundPageClient({
             <div className="mt-4">
               {onboardStep === 1 && (
                 <div>
-                  <h4 className="text-[16px] font-bold text-white">Interactive Research Workspace</h4>
+                  <h4 id="fund-tour-title" className="text-[16px] font-semibold text-ink">Choose your research format</h4>
                   <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
-                    We support both standard scrolling <strong>Full Reports</strong> and tabbed <strong>Decision Workspaces</strong>. Toggle between modes at the top right to filter details cleanly without endless scrolling.
+                    Use <strong>Focused sections</strong> to investigate one question at a time, or open the <strong>Full report</strong> for continuous reading.
                   </p>
                 </div>
               )}
               {onboardStep === 2 && (
                 <div>
-                  <h4 className="text-[16px] font-bold text-white">Dynamic Health Score</h4>
+                  <h4 className="text-[16px] font-bold text-ink">Dynamic Health Score</h4>
                   <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
                     Blend of performance, risk, consistency, AMC standing, and factsheet data. The confidence score dynamically measures how much real verified data backed this analysis.
                   </p>
@@ -201,7 +201,7 @@ export default function FundPageClient({
               )}
               {onboardStep === 3 && (
                 <div>
-                  <h4 className="text-[16px] font-bold text-white">Synchronized Charts</h4>
+                  <h4 className="text-[16px] font-bold text-ink">Synchronized Charts</h4>
                   <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
                     Hovering or sliding across any chart automatically aligns the cursor and dates on the other chart. You see risk and price at the exact same point in time.
                   </p>
@@ -209,7 +209,7 @@ export default function FundPageClient({
               )}
               {onboardStep === 4 && (
                 <div>
-                  <h4 className="text-[16px] font-bold text-white">Private Research Notes</h4>
+                  <h4 className="text-[16px] font-bold text-ink">Private Research Notes</h4>
                   <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
                     Your observations are saved locally to this specific browser. Write notes, pin pages, or check data quality scores as you navigate the platform.
                   </p>
@@ -217,11 +217,11 @@ export default function FundPageClient({
               )}
             </div>
 
-            <div className="mt-6 flex items-center justify-between pt-4 border-t border-white/[0.05]">
+            <div className="mt-6 flex items-center justify-between pt-4 border-t border-line">
               {onboardStep > 1 ? (
                 <button
                   onClick={() => setOnboardStep(onboardStep - 1)}
-                  className="rounded-lg bg-white/[0.04] px-3.5 py-1.5 text-[12.5px] font-semibold text-ink-muted hover:bg-white/[0.08]"
+                  className="rounded-lg bg-surface-strong px-3.5 py-1.5 text-[12.5px] font-semibold text-ink-muted hover:bg-surface-strong"
                 >
                   Back
                 </button>
@@ -231,7 +231,7 @@ export default function FundPageClient({
               {onboardStep < 4 ? (
                 <button
                   onClick={() => setOnboardStep(onboardStep + 1)}
-                  className="rounded-lg bg-accent px-4 py-1.5 text-[12.5px] font-semibold text-white hover:bg-accent/80 transition-colors"
+                  className="rounded-lg bg-accent px-4 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-accent/80 transition-colors"
                 >
                   Next
                 </button>
@@ -250,7 +250,7 @@ export default function FundPageClient({
 
       {/* Header Breadcrumbs */}
       <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint flex flex-wrap items-center gap-1.5 mb-2.5">
-        <span>Workspace</span>
+        <span>Research</span>
         <span>/</span>
         <span>Funds</span>
         <span>/</span>
@@ -260,10 +260,10 @@ export default function FundPageClient({
       </div>
 
       {/* Pinned Metrics Floating Sub-header */}
-      <div className="sticky top-0 z-30 -mx-4 px-4 py-3 bg-[#06080f]/90 border-b border-line-strong backdrop-blur flex items-center justify-between gap-4 mb-6 transition-all">
+      <div className="sticky top-16 z-30 -mx-4 mb-7 flex items-center justify-between gap-4 border-y border-line bg-bg px-4 py-3 shadow-sm transition-all">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-[14px] font-bold text-ink truncate">{fund.name.replace(/ - (Direct|Regular).*/i, "")}</h2>
+            <h1 className="truncate text-[15px] font-semibold text-ink">{fund.name.replace(/ - (Direct|Regular).*/i, "")}</h1>
             <Badge>{fund.plan}</Badge>
           </div>
           <p className="text-[11px] text-ink-faint truncate hidden sm:block">{fund.amc} · {fund.category}</p>
@@ -289,37 +289,37 @@ export default function FundPageClient({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* LEFT COLUMN: Research Sidebar */}
-        <aside className="lg:col-span-3 lg:sticky lg:top-20 space-y-5">
+        <aside className="order-2 space-y-5 lg:order-none lg:col-span-3 lg:sticky lg:top-20">
           
           {/* Workspace / Scroll Navigation Selector */}
-          <div className="rounded-xl border border-line bg-white/[0.015] p-3 space-y-2">
+          <div className="rounded-xl border border-line bg-surface p-3 space-y-2">
             <div className="text-[9.5px] uppercase font-bold tracking-widest text-ink-faint px-2">
-              Viewing Mode
+              Research format
             </div>
             <div className="grid grid-cols-2 gap-1">
               <button
                 onClick={() => setViewMode("workspace")}
                 className={`py-1.5 rounded-lg text-[12.5px] font-semibold transition-all ${
-                  viewMode === "workspace" ? "bg-white/[0.08] text-ink" : "text-ink-faint hover:text-ink-muted"
+                  viewMode === "workspace" ? "bg-surface-strong text-ink" : "text-ink-faint hover:text-ink-muted"
                 }`}
               >
-                Decision Tabs
+                Focused sections
               </button>
               <button
                 onClick={() => setViewMode("report")}
                 className={`py-1.5 rounded-lg text-[12.5px] font-semibold transition-all ${
-                  viewMode === "report" ? "bg-white/[0.08] text-ink" : "text-ink-faint hover:text-ink-muted"
+                  viewMode === "report" ? "bg-surface-strong text-ink" : "text-ink-faint hover:text-ink-muted"
                 }`}
               >
-                Full Report
+                Full report
               </button>
             </div>
           </div>
 
           {/* Table of Contents / Jump Navigation */}
-          <div className="rounded-xl border border-line bg-white/[0.015] p-3">
+          <div className="rounded-xl border border-line bg-surface p-3">
             <div className="text-[9.5px] uppercase font-bold tracking-widest text-ink-faint px-2 mb-2">
-              Sections Table
+              Research sections
             </div>
             <nav className="space-y-0.5">
               {[
@@ -344,7 +344,7 @@ export default function FundPageClient({
                       }
                     }}
                     className={`w-full text-left rounded-lg px-2.5 py-1.5 text-[12.5px] font-semibold transition-all flex items-center justify-between ${
-                      isActive ? "bg-accent/10 text-accent-soft border-l-2 border-accent" : "text-ink-faint hover:bg-white/[0.02] hover:text-ink-muted"
+                      isActive ? "bg-accent/10 text-accent-soft border-l-2 border-accent" : "text-ink-faint hover:bg-surface-2 hover:text-ink-muted"
                     }`}
                   >
                     <span>{s.label}</span>
@@ -358,20 +358,20 @@ export default function FundPageClient({
           </div>
 
           {/* Collapsible Action Widgets */}
-          <div className="rounded-xl border border-line bg-white/[0.015] p-3 text-[12px] space-y-2">
+          <div className="rounded-xl border border-line bg-surface p-3 text-[12px] space-y-2">
             <div className="text-[9.5px] uppercase font-bold tracking-widest text-ink-faint px-2">
               Workspace Actions
             </div>
             <button
               onClick={() => copyToClipboard(fund.code, "Scheme Code")}
-              className="w-full text-left rounded-lg px-2.5 py-1.5 text-ink-muted hover:bg-white/[0.03] transition-colors flex items-center justify-between"
+              className="w-full text-left rounded-lg px-2.5 py-1.5 text-ink-muted hover:bg-surface-2 transition-colors flex items-center justify-between"
             >
               <span>Copy Scheme Code</span>
               <span className="font-mono text-[10.5px] text-ink-faint">{fund.code}</span>
             </button>
             <button
               onClick={() => window.print()}
-              className="w-full text-left rounded-lg px-2.5 py-1.5 text-ink-muted hover:bg-white/[0.03] transition-colors"
+              className="w-full text-left rounded-lg px-2.5 py-1.5 text-ink-muted hover:bg-surface-2 transition-colors"
             >
               Print Research PDF
             </button>
@@ -386,11 +386,11 @@ export default function FundPageClient({
         </aside>
 
         {/* RIGHT COLUMN: Main Research Contents */}
-        <main className="lg:col-span-9 space-y-6">
+        <main className="order-1 space-y-6 lg:order-none lg:col-span-9">
           
           {/* NOTICE WARNING BOARD */}
           {notice && (
-            <div className="rounded-xl border border-line bg-white/[0.02] px-4 py-3 text-[12.5px] text-ink-muted animate-fade-in">
+            <div className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-[12.5px] text-ink-muted animate-fade-in">
               <span className="font-semibold text-ink">{notice[0]}.</span> {notice[1]}
             </div>
           )}
@@ -410,7 +410,7 @@ export default function FundPageClient({
                 <p className="text-[13.5px] leading-relaxed text-ink-muted">
                   {fund.name.replace(/ - (Direct|Regular).*/i, "")} is a <strong>{fund.category}</strong> plan managed by <strong>{fund.amc}</strong>. {cohort ? `It is benchmarked against ${fund.benchmark || "category standards"} and ranked against a cohort of ${cohort.count} peer funds.` : ""}
                 </p>
-                <div className="mt-4 p-4 rounded-xl border border-line bg-white/[0.015] text-[13px] leading-relaxed text-ink-muted">
+                <div className="mt-4 p-4 rounded-xl border border-line bg-surface text-[13px] leading-relaxed text-ink-muted">
                   {researchSummary(fund, cohort)}
                 </div>
               </WorkspaceCard>
@@ -432,7 +432,7 @@ export default function FundPageClient({
                     <div className="flex items-center gap-5">
                       <div className="relative h-20 w-20 shrink-0">
                         <svg className="h-full w-full -rotate-90" viewBox="0 0 80 80">
-                          <circle cx="40" cy="40" r="34" className="stroke-white/[0.05]" strokeWidth="6" fill="none" />
+                          <circle cx="40" cy="40" r="34" className="stroke-line" strokeWidth="6" fill="none" />
                           <circle
                             cx="40"
                             cy="40"
@@ -447,19 +447,19 @@ export default function FundPageClient({
                             strokeLinecap="round"
                           />
                         </svg>
-                        <div className="absolute inset-0 grid place-items-center text-[18px] font-bold text-white font-mono">
+                        <div className="absolute inset-0 grid place-items-center text-[18px] font-bold text-ink font-mono">
                           {health.overall}
                         </div>
                       </div>
                       <div>
                         <div className="text-[11px] uppercase tracking-wider text-ink-faint">Overall Diagnostics</div>
-                        <div className="text-[20px] font-bold text-white leading-tight font-mono">{health.overall}<span className="text-[12px] text-ink-faint">/100</span></div>
+                        <div className="text-[20px] font-bold text-ink leading-tight font-mono">{health.overall}<span className="text-[12px] text-ink-faint">/100</span></div>
                         <div className="text-[11px] text-ink-faint mt-0.5">{health.confidence} confidence ratio</div>
                       </div>
                     </div>
 
                     {/* Breakdown bars */}
-                    <div className="grid flex-1 grid-cols-2 gap-x-5 gap-y-2 sm:grid-cols-3 border-t sm:border-t-0 sm:border-l border-white/[0.06] pt-4 sm:pt-0 sm:pl-5">
+                    <div className="grid flex-1 grid-cols-2 gap-x-5 gap-y-2 sm:grid-cols-3 border-t sm:border-t-0 sm:border-l border-line pt-4 sm:pt-0 sm:pl-5">
                       {health.breakdown.map((b) => (
                         <div key={b.key}>
                           <div className="flex items-center justify-between text-[11px]">
@@ -468,7 +468,7 @@ export default function FundPageClient({
                             </span>
                             <span className="font-mono text-ink-muted">{b.score}</span>
                           </div>
-                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-strong">
                             <div className="h-full rounded-full bg-accent-soft" style={{ width: `${b.score}%` }} />
                           </div>
                         </div>
@@ -491,9 +491,9 @@ export default function FundPageClient({
                   action={priority ? <Badge tone={TIER_TONE[priority.tier]}>{priority.tier} Priority</Badge> : null}
                 >
                   {priority && (
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.05] pb-4">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
                       <div className="flex items-center gap-4">
-                        <div className="text-[32px] font-black tnum text-white leading-none font-mono">
+                        <div className="text-[32px] font-black tnum text-ink leading-none font-mono">
                           {priority.score}
                           <span className="text-[13px] text-ink-faint font-normal font-sans">/100</span>
                         </div>
@@ -506,7 +506,7 @@ export default function FundPageClient({
                       </div>
 
                       {/* Suggested actions block */}
-                      <div className="rounded-xl border border-line bg-white/[0.03] px-3.5 py-2">
+                      <div className="rounded-xl border border-line bg-surface-2 px-3.5 py-2">
                         <span className="text-[9.5px] uppercase font-bold tracking-wider text-ink-faint block">Suggested Action</span>
                         <span className="text-[12.5px] font-bold text-accent-soft mt-0.5 block">
                           {priority.score >= 70 ? "Investigate AMC Overlaps" : priority.score >= 40 ? "Monitor Return Spreads" : "Maintain Watchlist Monitor"}
@@ -518,7 +518,7 @@ export default function FundPageClient({
                   {attentionReasons.length > 0 ? (
                     <div className="space-y-3">
                       {attentionReasons.map((r, i) => (
-                        <div key={i} className="border-b border-white/[0.04] pb-3 last:border-0 last:pb-0">
+                        <div key={i} className="border-b border-line pb-3 last:border-0 last:pb-0">
                           <div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-accent-soft">{r.metric}</div>
                           <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">{r.detail}</p>
                           <p className="mt-1 text-[10.5px] text-ink-faint font-semibold">Source: {r.source} · as of {r.timestamp || "—"}</p>
@@ -545,7 +545,7 @@ export default function FundPageClient({
                 {rets.length ? (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {rets.map(([l, v, s]) => (
-                      <div key={l} className="rounded-xl border border-line bg-white/[0.015] px-3.5 py-3 hover:bg-white/[0.03] transition-all">
+                      <div key={l} className="rounded-xl border border-line bg-surface px-3.5 py-3 hover:bg-surface-2 transition-all">
                         <div className="text-[10.5px] uppercase tracking-wider text-ink-faint flex items-center gap-1.5">
                           <span>{l}</span>
                           {s && <span className="text-[9.5px] lowercase text-ink-faint">({s})</span>}
@@ -557,19 +557,19 @@ export default function FundPageClient({
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-line bg-white/[0.01] px-4 py-3 text-[12.5px] text-ink-faint">
+                  <div className="rounded-xl border border-line bg-surface px-4 py-3 text-[12.5px] text-ink-faint">
                     Insufficient historical data to compute returns.
                   </div>
                 )}
 
                 {fund.catRank && (
-                  <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1.5 text-[12.5px] text-ink-muted border-t border-white/[0.04] pt-3">
-                    <span>Category Rank: <strong className="text-white font-mono">#{fund.catRank}</strong> of {fund.catSize}</span>
-                    <span className="text-white/20">·</span>
-                    <span>Category Percentile: <strong className="text-white font-mono">{fund.catPct}%</strong></span>
-                    <span className="text-white/20">·</span>
+                  <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1.5 text-[12.5px] text-ink-muted border-t border-line pt-3">
+                    <span>Category Rank: <strong className="text-ink font-mono">#{fund.catRank}</strong> of {fund.catSize}</span>
+                    <span className="text-ink/20">·</span>
+                    <span>Category Percentile: <strong className="text-ink font-mono">{fund.catPct}%</strong></span>
+                    <span className="text-ink/20">·</span>
                     {fund.trend != null && (
-                      <span>Trend Index: <strong className="text-white font-mono">{fund.trend}/100</strong> ({fund.trend >= 60 ? "Improving" : fund.trend <= 40 ? "Weakening" : "Steady"})</span>
+                      <span>Trend Index: <strong className="text-ink font-mono">{fund.trend}/100</strong> ({fund.trend >= 60 ? "Improving" : fund.trend <= 40 ? "Weakening" : "Steady"})</span>
                     )}
                   </div>
                 )}
@@ -599,7 +599,7 @@ export default function FundPageClient({
                     />
                   </div>
 
-                  <div className="border-t border-white/[0.05] pt-5">
+                  <div className="border-t border-line pt-5">
                     <VolatilityChart
                       points={history?.points}
                       hoveredDate={hoveredDate}
@@ -617,7 +617,7 @@ export default function FundPageClient({
                     <WorkspaceCard title="Calendar Returns" subtitle="NAV returns calculated for each calendar year">
                       <div className="space-y-2 mt-1">
                         {calReturns.map((c) => (
-                          <div key={c.year} className="flex items-center justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5 last:border-0 last:pb-0">
+                          <div key={c.year} className="flex items-center justify-between text-[12.5px] border-b border-line pb-1.5 last:border-0 last:pb-0">
                             <span className="text-ink-muted">
                               {c.year}
                               {c.from.slice(5) !== "01-01" || c.to.slice(5, 7) !== "12" ? (
@@ -637,13 +637,13 @@ export default function FundPageClient({
                     <WorkspaceCard title="Rolling 12M Return" subtitle="Computed dynamically over periods">
                       <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-2 text-center">
-                          <div className="p-2.5 rounded-lg border border-line bg-white/[0.01]">
+                          <div className="p-2.5 rounded-lg border border-line bg-surface">
                             <span className="text-[10px] text-ink-faint block">Minimum 12M</span>
                             <span className="text-[15px] font-bold text-neg font-mono mt-1 block">
                               {Math.min(...rollReturns.map((r) => r.v)).toFixed(1)}%
                             </span>
                           </div>
-                          <div className="p-2.5 rounded-lg border border-line bg-white/[0.01]">
+                          <div className="p-2.5 rounded-lg border border-line bg-surface">
                             <span className="text-[10px] text-ink-faint block">Maximum 12M</span>
                             <span className="text-[15px] font-bold text-pos font-mono mt-1 block">
                               {Math.max(...rollReturns.map((r) => r.v)).toFixed(1)}%
@@ -672,29 +672,29 @@ export default function FundPageClient({
                 <WorkspaceCard title="Risk & Drawdown Ratios" subtitle="Standard daily NAV ratios calculated over 90 days">
                   {fund.vol90 != null ? (
                     <div className="space-y-3">
-                      <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                      <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                         <span className="text-ink-faint">Annualised Volatility (90d)</span>
-                        <span className="text-white font-semibold font-mono">
+                        <span className="text-ink font-semibold font-mono">
                           {fund.vol90}% {categoryAvgVol != null && <span className="text-[11.5px] text-ink-faint font-normal"> (Category Avg: {categoryAvgVol}%)</span>}
                         </span>
                       </div>
-                      <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                      <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                         <span className="text-ink-faint">Volatility (30d)</span>
-                        <span className="text-white font-semibold font-mono">{fund.vol30}%</span>
+                        <span className="text-ink font-semibold font-mono">{fund.vol30}%</span>
                       </div>
-                      <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                      <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                         <span className="text-ink-faint">Downside Volatility</span>
-                        <span className="text-white font-semibold font-mono">
+                        <span className="text-ink font-semibold font-mono">
                           {fund.dvol90}% {categoryAvgDvol != null && <span className="text-[11.5px] text-ink-faint font-normal"> (Category Avg: {categoryAvgDvol}%)</span>}
                         </span>
                       </div>
-                      <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                      <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                         <span className="text-ink-faint">Peak Drawdown (90d)</span>
                         <span className="text-neg font-bold font-mono">
                           {fund.maxdd90}% {categoryAvgMaxdd != null && <span className="text-[11.5px] text-ink-faint font-normal"> (Category Avg: {categoryAvgMaxdd}%)</span>}
                         </span>
                       </div>
-                      <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                      <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                         <span className="text-ink-faint">Current Drawdown from High</span>
                         <span className={`font-mono font-semibold ${fund.ddFromHigh < 0 ? "text-neg" : "text-pos"}`}>
                           {fund.ddFromHigh >= 0 ? "+" : ""}{fund.ddFromHigh.toFixed(2)}%
@@ -702,7 +702,7 @@ export default function FundPageClient({
                       </div>
                       <div className="flex justify-between text-[12.5px]">
                         <span className="text-ink-faint">Consistency Rating</span>
-                        <span className="text-white font-semibold font-mono">
+                        <span className="text-ink font-semibold font-mono">
                           {fund.consistency}% {categoryAvgConsistency != null && <span className="text-[11.5px] text-ink-faint font-normal"> (Category Avg: {categoryAvgConsistency}%)</span>}
                         </span>
                       </div>
@@ -716,33 +716,33 @@ export default function FundPageClient({
                   {fund.vol90 != null ? (
                     <div className="space-y-3">
                       {sharpe != null && (
-                        <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                        <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                           <span className="text-ink-faint">Sharpe Ratio (1Y, rf 6.5%)</span>
-                          <span className={`font-bold font-mono ${sharpe >= 1 ? "text-pos" : "text-white"}`}>{sharpe}</span>
+                          <span className={`font-bold font-mono ${sharpe >= 1 ? "text-pos" : "text-ink"}`}>{sharpe}</span>
                         </div>
                       )}
                       {sortino != null && (
-                        <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                        <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                           <span className="text-ink-faint">Sortino Ratio (1Y, rf 6.5%)</span>
-                          <span className={`font-bold font-mono ${sortino >= 1.5 ? "text-pos" : "text-white"}`}>{sortino}</span>
+                          <span className={`font-bold font-mono ${sortino >= 1.5 ? "text-pos" : "text-ink"}`}>{sortino}</span>
                         </div>
                       )}
                       {riskStats && (
                         <>
-                          <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                          <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                             <span className="text-ink-faint">Beta vs Benchmark Proxy</span>
-                            <span className="text-white font-semibold font-mono">{riskStats.beta}</span>
+                            <span className="text-ink font-semibold font-mono">{riskStats.beta}</span>
                           </div>
-                          <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                          <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                             <span className="text-ink-faint">Alpha (Annualised)</span>
                             <span className={`font-bold font-mono ${riskStats.alpha >= 0 ? "text-pos" : "text-neg"}`}>
                               {riskStats.alpha >= 0 ? "+" : ""}{riskStats.alpha}%
                             </span>
                           </div>
                           {riskStats.informationRatio != null && (
-                            <div className="flex justify-between text-[12.5px] border-b border-white/[0.03] pb-1.5">
+                            <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                               <span className="text-ink-faint">Information Ratio</span>
-                              <span className="text-white font-semibold font-mono">{riskStats.informationRatio}</span>
+                              <span className="text-ink font-semibold font-mono">{riskStats.informationRatio}</span>
                             </div>
                           )}
                         </>
@@ -762,23 +762,23 @@ export default function FundPageClient({
               {port && (
                 <WorkspaceCard title="Factsheet Portfolio Risks" subtitle="Calculated from monthly AMC filing updates">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-3.5 rounded-xl border border-line bg-white/[0.01]">
+                    <div className="p-3.5 rounded-xl border border-line bg-surface">
                       <span className="text-[10.5px] text-ink-faint block uppercase tracking-wider">Holding Risk Level</span>
                       <span className="text-[16px] font-bold text-accent-soft block mt-1">{port.level}</span>
-                      <span className="text-[11.5px] text-white font-mono mt-0.5 block">{port.score}/100 Score</span>
+                      <span className="text-[11.5px] text-ink font-mono mt-0.5 block">{port.score}/100 Score</span>
                     </div>
-                    <div className="p-3.5 rounded-xl border border-line bg-white/[0.01]">
+                    <div className="p-3.5 rounded-xl border border-line bg-surface">
                       <span className="text-[10.5px] text-ink-faint block uppercase tracking-wider">Top 3 Sectors</span>
-                      <span className="text-[20px] font-bold text-white font-mono block mt-1">{port.sectorTop3}%</span>
+                      <span className="text-[20px] font-bold text-ink font-mono block mt-1">{port.sectorTop3}%</span>
                       <span className="text-[10.5px] text-ink-faint block mt-0.5">Aggregated Allocation</span>
                     </div>
-                    <div className="p-3.5 rounded-xl border border-line bg-white/[0.01]">
+                    <div className="p-3.5 rounded-xl border border-line bg-surface">
                       <span className="text-[10.5px] text-ink-faint block uppercase tracking-wider">Top 10 Holdings</span>
-                      <span className="text-[20px] font-bold text-white font-mono block mt-1">{port.top10}%</span>
+                      <span className="text-[20px] font-bold text-ink font-mono block mt-1">{port.top10}%</span>
                       <span className="text-[10.5px] text-ink-faint block mt-0.5">Concentration Weight</span>
                     </div>
                   </div>
-                  <p className="mt-3.5 text-[12px] text-ink-muted border-t border-white/[0.04] pt-2.5">
+                  <p className="mt-3.5 text-[12px] text-ink-muted border-t border-line pt-2.5">
                     <strong>Portfolio Insight:</strong> {port.insights.join(" ")}
                   </p>
                 </WorkspaceCard>
@@ -793,10 +793,10 @@ export default function FundPageClient({
               
               {/* Research readiness checklist */}
               <WorkspaceCard title="Research Readiness & Completeness Check" subtitle="Checklist tracking available sourced factual parameters">
-                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.05] pb-4 mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4 mb-4">
                   <div>
                     <span className="text-[10.5px] uppercase font-bold tracking-wider text-ink-faint">Data Readiness Rating</span>
-                    <h4 className="text-[22px] font-bold text-white font-mono mt-1">
+                    <h4 className="text-[22px] font-bold text-ink font-mono mt-1">
                       {readiness.answered} <span className="text-[13px] text-ink-faint font-normal font-sans">of {readiness.total} questions answered</span>
                     </h4>
                   </div>
@@ -812,7 +812,7 @@ export default function FundPageClient({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {readiness.questions.map((q) => (
-                    <div key={q.question} className="rounded-xl border border-line bg-white/[0.01] p-3 text-[12.5px] flex items-start gap-2.5">
+                    <div key={q.question} className="rounded-xl border border-line bg-surface p-3 text-[12.5px] flex items-start gap-2.5">
                       <span className={`text-[14px] ${q.answered ? "text-pos font-bold" : "text-ink-faint"}`}>
                         {q.answered ? "✓" : "○"}
                       </span>
@@ -844,13 +844,13 @@ export default function FundPageClient({
               {/* Documents & PDF Factsheets */}
               <WorkspaceCard title="Verified Factsheet Documents" subtitle="Official filings stored and managed locally">
                 {meta?.source_url ? (
-                  <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-line bg-white/[0.015] text-[13px]">
+                  <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-line bg-surface text-[13px]">
                     <div>
-                      <span className="text-white font-bold block">AMC Factsheet Filing</span>
+                      <span className="text-ink font-bold block">AMC Factsheet Filing</span>
                       <span className="text-[11px] text-ink-faint mt-0.5 block">As of {meta.source_date || "Unknown Date"}</span>
                     </div>
                     <a
-                      className="rounded-lg bg-accent px-4 py-2 text-[12.5px] font-bold text-white hover:bg-accent/80 transition-colors"
+                      className="rounded-lg bg-accent px-4 py-2 text-[12.5px] font-bold text-ink hover:bg-accent/80 transition-colors"
                       href={meta.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -875,7 +875,7 @@ export default function FundPageClient({
                         href={n.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="glass block p-4 text-[12.5px] hover:bg-white/[0.04] transition-colors rounded-xl border border-line"
+                        className="glass block p-4 text-[12.5px] hover:bg-surface-strong transition-colors rounded-xl border border-line"
                       >
                         <div className="text-ink-faint font-semibold">
                           {n.source?.name || "Market Feed"} · {relativeTime ? relativeTime(n.publishedAt) : "recent"}
@@ -886,7 +886,7 @@ export default function FundPageClient({
                   </div>
                 </WorkspaceCard>
               ) : (
-                <div className="rounded-xl border border-line bg-white/[0.01] p-5 text-center text-ink-faint text-[12.5px]">
+                <div className="rounded-xl border border-line bg-surface p-5 text-center text-ink-faint text-[12.5px]">
                   No linked market articles for {fund.amc} or {fund.category} in the last 24 hours.
                 </div>
               )}
@@ -906,24 +906,24 @@ export default function FundPageClient({
                   <div className="overflow-x-auto">
                     <table className="w-full text-[12.5px] text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-white/[0.08] text-[10px] uppercase font-bold tracking-wider text-ink-faint">
+                        <tr className="border-b border-line text-[10px] uppercase font-bold tracking-wider text-ink-faint">
                           <th className="py-2.5 pr-4">
-                            <button onClick={() => toggleSort("window")} className="flex items-center gap-1 hover:text-white">
+                            <button onClick={() => toggleSort("window")} className="flex items-center gap-1 hover:text-ink">
                               Window {tableSortKey === "window" && (tableSortDesc ? "▼" : "▲")}
                             </button>
                           </th>
                           <th className="py-2.5 text-right">
-                            <button onClick={() => toggleSort("fund")} className="flex items-center gap-1 justify-end ml-auto hover:text-white">
+                            <button onClick={() => toggleSort("fund")} className="flex items-center gap-1 justify-end ml-auto hover:text-ink">
                               Fund {tableSortKey === "fund" && (tableSortDesc ? "▼" : "▲")}
                             </button>
                           </th>
                           <th className="py-2.5 text-right">
-                            <button onClick={() => toggleSort("peer")} className="flex items-center gap-1 justify-end ml-auto hover:text-white">
+                            <button onClick={() => toggleSort("peer")} className="flex items-center gap-1 justify-end ml-auto hover:text-ink">
                               Peer Avg {tableSortKey === "peer" && (tableSortDesc ? "▼" : "▲")}
                             </button>
                           </th>
                           <th className="py-2.5 text-right">
-                            <button onClick={() => toggleSort("delta")} className="flex items-center gap-1 justify-end ml-auto hover:text-white">
+                            <button onClick={() => toggleSort("delta")} className="flex items-center gap-1 justify-end ml-auto hover:text-ink">
                               Outperformance {tableSortKey === "delta" && (tableSortDesc ? "▼" : "▲")}
                             </button>
                           </th>
@@ -933,7 +933,7 @@ export default function FundPageClient({
                         {sortedBench.map((b) => (
                           <tr
                             key={b.label}
-                            className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group"
+                            className="border-b border-line hover:bg-surface-2 transition-colors group"
                           >
                             <td className="py-3 font-semibold text-ink-muted">
                               {b.label} {b.pa ? <span className="text-[9.5px] text-ink-faint font-normal">(p.a.)</span> : null}
@@ -976,7 +976,7 @@ export default function FundPageClient({
                       <a
                         key={c.code}
                         href={`/fund/${c.code}`}
-                        className="glass block p-4 text-[12.5px] hover:bg-white/[0.04] transition-colors rounded-xl border border-line"
+                        className="glass block p-4 text-[12.5px] hover:bg-surface-strong transition-colors rounded-xl border border-line"
                       >
                         <div className="font-bold text-ink truncate">{c.name}</div>
                         <div className="text-[11px] text-ink-faint mt-0.5 truncate">{c.amc}</div>
@@ -1003,7 +1003,7 @@ export default function FundPageClient({
                     <a
                       key={idx}
                       href={item.href}
-                      className="flex items-center justify-between p-3.5 rounded-xl border border-line bg-white/[0.015] hover:bg-white/[0.03] transition-colors group"
+                      className="flex items-center justify-between p-3.5 rounded-xl border border-line bg-surface hover:bg-surface-2 transition-colors group"
                     >
                       <span className="text-[12.5px] text-ink-muted group-hover:text-ink font-semibold">
                         {item.label}
