@@ -64,7 +64,7 @@ export default function FundPageClient({
   sharpe, sortino, riskStats, calReturns, rollReturns, comparisons, relatedNews,
   priority, attentionReasons, completeness, readiness, aRank, asOf,
   categoryAvgVol, categoryAvgDvol, categoryAvgMaxdd, categoryAvgConsistency,
-  thesis, strengthsWeak, fit, dna, quality, decisionSupport
+  thesis, strengthsWeak, fit, dna, quality, decisionSupport, newsInsights, similarPastEvents
 }) {
   const [viewMode, setViewMode] = useState("workspace"); // "workspace" (tabbed) or "report" (scroll)
   const [activeTab, setActiveTab] = useState("identity"); // tabs: identity, performance, risk, research, news, compare
@@ -1035,24 +1035,65 @@ export default function FundPageClient({
                 )}
               </WorkspaceCard>
 
-              {/* Linked news articles */}
+              {/* Linked news articles — News Intelligence 4.0 (Phase 9): why it matters, affected
+                  sectors/categories/AMCs, expected impact, confidence, rule used, related funds. */}
               {relatedNews.length > 0 ? (
-                <WorkspaceCard title="Linked Market News" subtitle="Articles linked to this fund's category or AMC house">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {relatedNews.map((n) => (
-                      <a
-                        key={n.id}
-                        href={n.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="glass block p-4 text-[12.5px] hover:bg-surface-strong transition-colors rounded-xl border border-line"
-                      >
-                        <div className="text-ink-faint font-semibold">
-                          {n.source?.name || "Market Feed"} · {relativeTime ? relativeTime(n.publishedAt) : "recent"}
+                <WorkspaceCard title="Linked Market News" subtitle="Why each article matters to this fund, not just that it exists">
+                  <div className="space-y-4">
+                    {relatedNews.map((n, i) => {
+                      const ins = newsInsights?.[n.id];
+                      return (
+                        <div key={n.id} className="rounded-xl border border-line bg-surface p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-[11px] text-ink-faint font-semibold">
+                                {n.source?.name || "Market Feed"} · {relativeTime ? relativeTime(n.publishedAt) : "recent"}
+                              </div>
+                              <a href={n.url} target="_blank" rel="noopener noreferrer" className="mt-1 font-bold text-ink hover:text-accent-soft block">{n.title}</a>
+                            </div>
+                            {ins?.expectedImpact && (
+                              <Badge tone={ins.expectedImpact === "Critical" || ins.expectedImpact === "High" ? "neg" : ins.expectedImpact === "Medium" ? "warn" : "neutral"}>
+                                {ins.expectedImpact} Impact
+                              </Badge>
+                            )}
+                          </div>
+
+                          {ins && (
+                            <div className="mt-3 space-y-2 border-t border-line pt-3">
+                              {ins.whyItMatters && (
+                                <p className="text-[11.5px] leading-relaxed text-ink-muted"><span className="font-semibold text-ink">Why it matters: </span>{ins.whyItMatters}</p>
+                              )}
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10.5px] text-ink-faint">
+                                {ins.affectedSectors.length > 0 && <span>Sectors: <strong className="text-ink-muted">{ins.affectedSectors.join(", ")}</strong></span>}
+                                {ins.affectedCategories.length > 0 && <span>Categories: <strong className="text-ink-muted">{ins.affectedCategories.join(", ")}</strong></span>}
+                                {ins.affectedAmcs.length > 0 && <span>AMCs: <strong className="text-ink-muted">{ins.affectedAmcs.join(", ")}</strong></span>}
+                                {ins.ruleUsed && <span>Rule: <strong className="text-ink-muted font-mono">{ins.ruleUsed}</strong></span>}
+                                <span>Confidence: <strong className="text-ink-muted">{ins.confidence}</strong> (source: {n.source?.credibility || "unverified"})</span>
+                              </div>
+                              {ins.relatedFunds.length > 0 && (
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                  {ins.relatedFunds.map((rf) => (
+                                    <a key={rf.code} href={`/fund/${rf.code}`} className="text-[10.5px] rounded-full border border-line px-2 py-0.5 text-ink-muted hover:text-accent-soft hover:border-accent-soft/40 transition-colors">
+                                      {rf.name.replace(/ - (Direct|Regular).*/i, "")} {rf.health != null ? `· ${rf.health}/100` : ""}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                              {i === 0 && similarPastEvents?.length > 0 && (
+                                <div className="pt-1.5">
+                                  <span className="text-[10.5px] text-ink-faint">Historical similar events ({similarPastEvents.length}): </span>
+                                  {similarPastEvents.map((p, j) => (
+                                    <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer" className="text-[10.5px] text-accent-soft hover:underline">
+                                      {j > 0 && ", "}{p.title.slice(0, 50)}{p.title.length > 50 ? "…" : ""}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div className="mt-1.5 font-bold text-ink hover:text-accent-soft line-clamp-2">{n.title}</div>
-                      </a>
-                    ))}
+                      );
+                    })}
                   </div>
                 </WorkspaceCard>
               ) : (

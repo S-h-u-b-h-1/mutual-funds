@@ -23,7 +23,8 @@ import { fundHealth, gradeTone, LABELS } from "../../lib/fundHealth";
 import { getMetadata, managerSlug } from "../../lib/metadata";
 import { portfolioRisk } from "../../lib/portfolio";
 import { fundCompleteness, researchReadiness, completenessTone } from "../../lib/completeness";
-import { getArticlesForEntity, relativeTime } from "../../lib/news";
+import { getArticlesForEntity, getSimilarPastArticles, relativeTime } from "../../lib/news";
+import { newsInsight } from "../../lib/marketImpact";
 import { betaAlphaFor, rollingBenchmarkWinRate } from "../../lib/riskMetrics";
 import { calendarReturns, rollingReturns } from "../../lib/rollingReturns";
 import { amcIntel, amcSlugify } from "../../lib/amcIntel";
@@ -142,6 +143,19 @@ export default async function FundPage({ params }) {
       .sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0))
       .slice(0, 3);
   });
+
+  // News Intelligence 4.0 (Fund Research Engine, Phase 9) — why each linked article matters,
+  // affected sectors/categories/AMCs, expected impact, confidence, rule used, related funds
+  // (all synchronous composition, marketImpact.js's newsInsight()). Historical similar events is
+  // the one part that needs a DB round-trip — fetched only for the top article to bound latency.
+  // Plain object, not a Map — Server → Client Component props must be JSON-serializable.
+  const newsInsights = Object.fromEntries(relatedNews.map((n) => [n.id, newsInsight(n)]));
+  const topNewsArticle = relatedNews[0] || null;
+  const topNewsRuleId = topNewsArticle ? newsInsights[topNewsArticle.id]?.ruleUsed : null;
+  const similarPastEvents = topNewsRuleId
+    ? await getSimilarPastArticles({ ruleId: topNewsRuleId, excludeArticleId: topNewsArticle.id, limit: 3 })
+    : [];
+
   // Institutional risk ratios — computed only when 1Y return + risk series exist (no estimation).
   const RF = 6.5; // disclosed risk-free (≈ India 1Y T-bill)
   const sharpe = f.r1y != null && f.vol90 ? +((f.r1y - RF) / f.vol90).toFixed(2) : null;
@@ -228,7 +242,7 @@ export default async function FundPage({ params }) {
     <>
       <Nav active="/funds" />
       <Tracker event="fund_view" payload={{ code: f.code, category: f.category, amc: f.amc }} view={{ type: "fund", id: f.code, name: f.name.replace(/ - (Direct|Regular).*/i, ""), amc: f.amc, category: f.category }} />
-      <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} categoryAvgVol={categoryAvgVol} categoryAvgDvol={categoryAvgDvol} categoryAvgMaxdd={categoryAvgMaxdd} categoryAvgConsistency={categoryAvgConsistency} thesis={thesis} strengthsWeak={strengthsWeak} fit={fit} dna={dna} quality={quality} decisionSupport={decisionSupport} />
+      <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} categoryAvgVol={categoryAvgVol} categoryAvgDvol={categoryAvgDvol} categoryAvgMaxdd={categoryAvgMaxdd} categoryAvgConsistency={categoryAvgConsistency} thesis={thesis} strengthsWeak={strengthsWeak} fit={fit} dna={dna} quality={quality} decisionSupport={decisionSupport} newsInsights={newsInsights} similarPastEvents={similarPastEvents} />
       <Footer note={<span>NAV as of {f.navDate} · daily data, not real-time · past performance ≠ future returns · source AMFI / MFAPI. Platform as of {asOf}.</span>} />
     </>
   );

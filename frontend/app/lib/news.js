@@ -83,26 +83,35 @@ export async function getTopHeadlines({ limit = 5 } = {}) {
 // Entity Graph (Phase 2) — "recent news about this AMC/category/sector", reusable across the
 // AMC page, category page, and (later) the fund page's news timeline. Two real round-trips
 // (resolve entity -> its links), not a fabricated join — an unmatched entity honestly returns [].
+//
+// Extended for News Intelligence 4.0 (Fund Research Engine, Phase 9): the original query only
+// selected a few inline fields from news_articles, so callers reading n.relevance / n.importance
+// (fund/[scheme_code]/page.js's newsImpact calc, api/watchlist-intelligence/route.js's topNews)
+// were silently reading `undefined` — relevance always fell back to 0, not "no data", which fed
+// a phantom "Recent linked news impact 0/100" into every fund's Research Priority Score whenever
+// it had any linked news at all. Now reuses shapeArticle() (the same normalization
+// getRecentArticles/getTopHeadlines use) via a second query for the full article rows, so this
+// returns real relevance/importance/summary/sentiment and a proper `links` array — the shape
+// marketImpact.js's impactChainsFor/themesFor/researchLinksFor all expect. Purely additive: the
+// legacy relation/ruleId fields stay for the one caller (this file's own downstream callers) that
+// reads them, so no existing caller's behavior changes except gaining previously-missing fields.
 export async function getArticlesForEntity({ entityType, entityName, limit = 3 } = {}) {
   if (!entityType || !entityName) return [];
   try {
     const entities = await sb(`news_entities?entity_type=eq.${entityType}&name=eq.${encodeURIComponent(entityName)}&select=id`);
     if (!entities.length) return [];
-    const rows = await sb(
-      `news_market_links?entity_id=eq.${entities[0].id}&select=relation,rule_id,news_articles(id,title,url,published_at,category,news_sources(name,credibility))&order=created_at.desc&limit=${limit}`
+    const linkRows = await sb(
+      `news_market_links?entity_id=eq.${entities[0].id}&select=article_id,relation,rule_id&order=created_at.desc&limit=${limit}`
     );
-    return rows
-      .filter((r) => r.news_articles)
-      .map((r) => ({
-        id: r.news_articles.id,
-        title: r.news_articles.title,
-        url: r.news_articles.url,
-        publishedAt: r.news_articles.published_at,
-        category: r.news_articles.category,
-        source: r.news_articles.news_sources ? { name: r.news_articles.news_sources.name, credibility: r.news_articles.news_sources.credibility } : null,
-        relation: r.relation,
-        ruleId: r.rule_id,
-      }));
+    if (!linkRows.length) return [];
+    const articleIds = [...new Set(linkRows.map((r) => r.article_id).filter(Boolean))];
+    if (!articleIds.length) return [];
+    const rows = await sb(`news_articles?id=in.(${articleIds.join(",")})&select=${ARTICLE_SELECT}`);
+    const byId = new Map(rows.map((r) => [r.id, shapeArticle(r)]));
+    return linkRows
+      .map((l) => byId.get(l.article_id))
+      .filter(Boolean)
+      .map((a) => ({ ...a, relation: linkRows.find((l) => l.article_id === a.id)?.relation, ruleId: linkRows.find((l) => l.article_id === a.id)?.rule_id }));
   } catch {
     return [];
   }

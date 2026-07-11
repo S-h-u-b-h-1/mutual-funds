@@ -4,6 +4,7 @@
 // Never imported from a "use client" component — mirrors funds.js's own server-only contract.
 import { allFunds, benchmarkSlug } from "./funds";
 import { fundHealth } from "./fundHealth";
+import { canonicalKey } from "./canonical";
 import metaData from "../data/metadata.json";
 
 // Mirrors ingestion/market_reaction.py's RULE_META exactly — that Python file is the source of
@@ -146,11 +147,23 @@ export function fundsWorthResearching(link, { limit = 3 } = {}) {
     });
   }
   pool = pool.filter((f) => f.active !== false && f.nav != null);
-  return pool
-    .map((f) => {
-      const h = fundHealth(f);
-      return { code: f.code, name: f.name, amc: f.amc, category: f.category, r1m: f.r1m ?? null, health: h?.overall ?? null, grade: h?.grade ?? null };
-    })
+  const scored = pool.map((f) => {
+    const h = fundHealth(f);
+    return { code: f.code, name: f.name, amc: f.amc, category: f.category, r1m: f.r1m ?? null, health: h?.overall ?? null, grade: h?.grade ?? null };
+  });
+  // Dedupe Direct/Regular/Growth/IDCW variants of the same underlying fund (canonicalKey, same
+  // normalization the search/rankings surfaces already use) — without this, a fund's Direct and
+  // Regular plans can both land in the top-N with near-identical scores and show as the same
+  // fund name twice, which reads as a bug even though the codes genuinely differ.
+  const bestByCanonical = new Map();
+  for (const s of scored) {
+    const k = canonicalKey(s.name);
+    const prev = bestByCanonical.get(k);
+    if (!prev || (s.health ?? -1) > (prev.health ?? -1) || ((s.health ?? -1) === (prev.health ?? -1) && (s.r1m ?? -999) > (prev.r1m ?? -999))) {
+      bestByCanonical.set(k, s);
+    }
+  }
+  return [...bestByCanonical.values()]
     .sort((a, b) => (b.health ?? -1) - (a.health ?? -1) || (b.r1m ?? -999) - (a.r1m ?? -999))
     .slice(0, limit);
 }
@@ -202,6 +215,43 @@ const REPORT_LINKS = {
 // benchmarkSlug(entityName) link would 404. Map to the actual plain-index-tracker benchmark
 // string (also used by fundsWorthResearching's index matching) before slugifying.
 const INDEX_BENCHMARK_STRING = { "Nifty 50": "NIFTY 50 TRI", Sensex: "S&P BSE SENSEX TRI" };
+
+// News Intelligence 4.0 (Fund Research Engine, Phase 9) — composes the impact-chain machinery
+// above into one object a fund page can render directly: what happened (article itself), why it
+// matters (chain), affected sectors/categories/AMCs (themes + links), confidence (source
+// credibility — real, not invented), the rule that fired, and related funds worth a look. This is
+// pure composition — no new scoring here, impactScoreFor/impactChainsFor/fundsWorthResearching
+// already do the real work. "Historical similar events" is deliberately NOT included here (it
+// needs an async DB call via news.js's getSimilarPastArticles) — callers fetch that separately
+// and attach it, so this function stays synchronous and cheap to call per-article.
+const CONFIDENCE_FROM_CREDIBILITY = { official: "High", tier1_business: "Medium", tier2: "Limited" };
+
+export function newsInsight(article) {
+  if (!article) return null;
+  const chains = impactChainsFor(article.links);
+  const themes = themesFor(article.links);
+  const impact = impactScoreFor(article);
+  const primaryLink = article.links?.find((l) => RULE_META[l.ruleId]) || article.links?.[0] || null;
+  const relatedFunds = primaryLink ? fundsWorthResearching(primaryLink, { limit: 3 }) : [];
+  const sectors = [...new Set((article.links || []).filter((l) => l.entityType === "sector").map((l) => l.entityName))];
+  const categories = [...new Set((article.links || []).filter((l) => l.entityType === "category").map((l) => l.entityName))];
+  const amcs = [...new Set((article.links || []).filter((l) => l.entityType === "amc").map((l) => l.entityName))];
+  const confidence = CONFIDENCE_FROM_CREDIBILITY[article.source?.credibility] || "Limited";
+
+  return {
+    whatHappened: article.summary || article.title,
+    whyItMatters: chains[0]?.chain?.join(" → ") || null,
+    ruleUsed: primaryLink?.ruleId || null,
+    affectedSectors: sectors,
+    affectedCategories: categories,
+    affectedAmcs: amcs,
+    expectedImpact: impact.tier,
+    impactScore: impact.score,
+    confidence,
+    relatedFunds,
+    secondaryThemes: themes.filter((t) => t !== chains[0]?.theme),
+  };
+}
 
 export function researchLinksFor(article) {
   const links = [];
