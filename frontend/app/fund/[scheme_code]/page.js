@@ -30,7 +30,7 @@ import { amcIntel, amcSlugify } from "../../lib/amcIntel";
 import { researchPriority, TIER_TONE, CONFIDENCE_LABEL, CONFIDENCE_TONE } from "../../lib/decisionEngine";
 import { investmentThesis, strengthsAndWeaknesses, investorFit } from "../../lib/investorAnalyst";
 import { fundDNA } from "../../lib/fundDNA";
-import { qualityEngine } from "../../lib/qualityEngine";
+import { qualityEngine, explainQuality } from "../../lib/qualityEngine";
 
 export const revalidate = 3600;
 
@@ -180,6 +180,7 @@ export default async function FundPage({ params }) {
   const fit = investorFit(f);
   const dna = fundDNA(f, { cohortRisk, betaAlpha: riskStats });
   const quality = qualityEngine(enrichedF, meta);
+  const decisionSupport = explainQuality(quality, f); // Phase 7 — drivers/detractors/monitor narrative
 
   // Decision Engine (Decision Support sprint) — Research Priority Score extends the existing
   // attention_score (real 1M-vs-3M category rank movement, from scripts/explain.py) with AMC
@@ -227,7 +228,7 @@ export default async function FundPage({ params }) {
     <>
       <Nav active="/funds" />
       <Tracker event="fund_view" payload={{ code: f.code, category: f.category, amc: f.amc }} view={{ type: "fund", id: f.code, name: f.name.replace(/ - (Direct|Regular).*/i, ""), amc: f.amc, category: f.category }} />
-      <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} categoryAvgVol={categoryAvgVol} categoryAvgDvol={categoryAvgDvol} categoryAvgMaxdd={categoryAvgMaxdd} categoryAvgConsistency={categoryAvgConsistency} thesis={thesis} strengthsWeak={strengthsWeak} fit={fit} dna={dna} quality={quality} />
+      <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} categoryAvgVol={categoryAvgVol} categoryAvgDvol={categoryAvgDvol} categoryAvgMaxdd={categoryAvgMaxdd} categoryAvgConsistency={categoryAvgConsistency} thesis={thesis} strengthsWeak={strengthsWeak} fit={fit} dna={dna} quality={quality} decisionSupport={decisionSupport} />
       <Footer note={<span>NAV as of {f.navDate} · daily data, not real-time · past performance ≠ future returns · source AMFI / MFAPI. Platform as of {asOf}.</span>} />
     </>
   );

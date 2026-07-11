@@ -73,7 +73,9 @@ export function investmentThesis(f, cohort, { rollingWinRate = null, cohortRisk 
     if (cohortRisk?.avgVol90 != null) {
       const rel = f.vol90 - cohortRisk.avgVol90;
       const cmp = Math.abs(rel) < 1.5 ? "in line with" : rel < 0 ? "below" : "above";
-      sentences.push(`Its volatility has run ${cmp} the ${f.category} category average (${f.vol90}% vs ${cohortRisk.avgVol90}% over 90 days)${f.maxdd90 != null && cohortRisk.avgMaxdd90 != null ? `, with drawdowns ${f.maxdd90 <= cohortRisk.avgMaxdd90 ? "shallower than" : "deeper than"} the category average (${f.maxdd90}% vs ${cohortRisk.avgMaxdd90}%)` : ""}.`);
+      // maxdd90 is <= 0 (more negative = deeper/worse) — "shallower" means f.maxdd90 is the
+      // LARGER (less negative) of the two, i.e. >=, not <=.
+      sentences.push(`Its volatility has run ${cmp} the ${f.category} category average (${f.vol90}% vs ${cohortRisk.avgVol90}% over 90 days)${f.maxdd90 != null && cohortRisk.avgMaxdd90 != null ? `, with drawdowns ${f.maxdd90 >= cohortRisk.avgMaxdd90 ? "shallower than" : "deeper than"} the category average (${f.maxdd90}% vs ${cohortRisk.avgMaxdd90}%)` : ""}.`);
     } else {
       const abs = riskInterpretation(f);
       if (abs && !abs.startsWith("Insufficient")) sentences.push(abs.split(". ")[0] + ".");

@@ -66,7 +66,12 @@ export function fundDNA(f, { cohortRisk = null, betaAlpha = null } = {}) {
   // peer average exists (cohortRiskStats, investorAnalyst.js); absolute severity otherwise.
   if (f.maxdd90 != null) {
     if (cohortRisk?.avgMaxdd90 != null) {
-      const score = clamp(50 + (cohortRisk.avgMaxdd90 - f.maxdd90) * 3);
+      // maxdd90 is <= 0 (more negative = deeper/worse). A shallower-than-average drawdown
+      // (f.maxdd90 > avgMaxdd90) must score ABOVE 50 — the difference must be added, not
+      // subtracted, or a fund with zero drawdown against a negative category average scores
+      // BELOW 50 (confirmed live: Quantum Liquid Fund, maxdd90=0% vs category avg -1.78%, needs
+      // to read as protective, not "weaker than category").
+      const score = clamp(50 + (f.maxdd90 - cohortRisk.avgMaxdd90) * 3);
       const label = score >= 65 ? "Better than category" : score >= 35 ? "In line with category" : "Weaker than category";
       dims.push(dim("downsideProtection", "Downside Protection", score, `${label} — max drawdown ${f.maxdd90}% vs category average ${cohortRisk.avgMaxdd90}%.`, { styleLabel: label }));
     } else {

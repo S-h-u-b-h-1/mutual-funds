@@ -63,7 +63,7 @@ export default function FundPageClient({
   sharpe, sortino, riskStats, calReturns, rollReturns, comparisons, relatedNews,
   priority, attentionReasons, completeness, readiness, aRank, asOf,
   categoryAvgVol, categoryAvgDvol, categoryAvgMaxdd, categoryAvgConsistency,
-  thesis, strengthsWeak, fit, dna, quality
+  thesis, strengthsWeak, fit, dna, quality, decisionSupport
 }) {
   const [viewMode, setViewMode] = useState("workspace"); // "workspace" (tabbed) or "report" (scroll)
   const [activeTab, setActiveTab] = useState("identity"); // tabs: identity, performance, risk, research, news, compare
@@ -588,6 +588,38 @@ export default function FundPageClient({
                   <p className="mt-4 border-t border-line pt-3.5 text-[12.5px] leading-relaxed text-ink-muted">
                     {health.explanation}
                   </p>
+
+                  {/* Decision Support (Phase 7) — what's driving this score, what's holding it
+                      back, what to watch. Composition, not a fabricated before/after delta — see
+                      qualityEngine.js's explainQuality() for why. */}
+                  {decisionSupport && (decisionSupport.drivers.length > 0 || decisionSupport.detractors.length > 0 || decisionSupport.monitor || decisionSupport.rankMovement) && (
+                    <div className="mt-3.5 border-t border-line pt-3.5 space-y-2.5">
+                      {decisionSupport.drivers.length > 0 && (
+                        <p className="text-[12px] leading-relaxed">
+                          <span className="font-bold text-pos">Driving this score: </span>
+                          <span className="text-ink-muted">{decisionSupport.drivers.map((d) => `${QUALITY_LABELS[d.key] || d.key} (${d.score}/100)`).join(", ")}.</span>
+                        </p>
+                      )}
+                      {decisionSupport.detractors.length > 0 && (
+                        <p className="text-[12px] leading-relaxed">
+                          <span className="font-bold text-neg">Holding it back: </span>
+                          <span className="text-ink-muted">{decisionSupport.detractors.map((d) => `${QUALITY_LABELS[d.key] || d.key} (${d.score}/100)`).join(", ")}.</span>
+                        </p>
+                      )}
+                      {decisionSupport.monitor && (
+                        <p className="text-[12px] leading-relaxed">
+                          <span className="font-bold text-warn">Monitor: </span>
+                          <span className="text-ink-muted">{decisionSupport.monitor}</span>
+                        </p>
+                      )}
+                      {decisionSupport.rankMovement && (
+                        <p className="text-[12px] leading-relaxed">
+                          <span className="font-bold text-accent-soft">Recent rank movement: </span>
+                          <span className="text-ink-muted">{decisionSupport.rankMovement}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </WorkspaceCard>
               )}
 

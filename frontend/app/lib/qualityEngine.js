@@ -69,3 +69,53 @@ export const QUALITY_LABELS = {
   performance: "Performance", risk: "Risk", consistency: "Consistency", diversification: "Diversification",
   momentum: "Momentum", reliability: "Reliability", transparency: "Transparency", dataCompleteness: "Data Completeness",
 };
+
+// Decision Support (Phase 7) — turns the breakdown into a narrative: what's driving the score
+// today, what's holding it back, and what to watch next.
+//
+// Deliberately NOT a "score improved from X to Y" delta: no per-fund historical score is
+// persisted anywhere server-side today. The one real candidate found for this — a per-fund
+// rank_snapshots.jsonl written by scripts/build_daily.py — turned out to be frozen since
+// 2026-07-04 (the production-refresh workflow computes it fresh every run but its commit step
+// never stages data/warehouse/, so 11+ days of real accrual were silently discarded each run).
+// That's a genuine, fixable pipeline gap, but fixing the workflow file is CI/CD, out of scope for
+// this product mission — flagged in the final report instead. So this composes what IS real and
+// current: today's breakdown (drivers/detractors) plus the one live "recent change" signal that
+// exists independent of any snapshot file — attentionScore/attentionReason's 1-month-vs-3-month
+// category rank movement (scripts/explain.py), surfaced as its own labeled item, never blended
+// into a fabricated score delta.
+// Investment-merit dimensions only — reliability/transparency/dataCompleteness describe how much
+// (and how trustworthy) the underlying DATA is, not how good the FUND is; spotlighting "Reliability
+// 100/100" as a "driver" of the score is technically true but not what an investor means by "why
+// is this a good fund" (they still appear in the full breakdown grid, just not cherry-picked here).
+const MERIT_KEYS = new Set(["performance", "risk", "consistency", "diversification", "momentum"]);
+
+export function explainQuality(quality, f) {
+  if (!quality) return null;
+  const merit = quality.breakdown.filter((b) => MERIT_KEYS.has(b.key));
+  const sorted = [...merit].sort((a, b) => b.score - a.score);
+  const drivers = sorted.filter((b) => b.score >= 65).slice(0, 3);
+  const detractors = sorted.filter((b) => b.score <= 45).slice(-3).reverse();
+  const weakest = sorted[sorted.length - 1];
+
+  let monitor = null;
+  if (weakest && weakest.score <= 55) {
+    monitor = `${QUALITY_LABELS[weakest.key] || weakest.key} is this fund's weakest scored dimension at ${weakest.score}/100 — ${weakest.explanation}`;
+  } else if (f.trend != null && f.trend <= 45) {
+    monitor = `Momentum is decelerating (trend ${f.trend}/100) — its 1-month pace is running behind its 3-month pace; watch for continued softening.`;
+  } else if (f.quality?.status === "stale") {
+    monitor = `NAV data is ${f.staleDays} day(s) old — scores here may not reflect the most recent market moves.`;
+  }
+
+  const transparency = quality.breakdown.find((b) => b.key === "transparency");
+  if (!monitor && transparency != null && transparency.score <= 30) {
+    monitor = `Limited factsheet disclosure (Transparency ${transparency.score}/100) — manager, holdings, and sector data aren't yet available for independent verification.`;
+  }
+
+  return {
+    drivers,
+    detractors,
+    monitor,
+    rankMovement: f.attentionScore != null && f.attentionReason ? f.attentionReason : null,
+  };
+}
