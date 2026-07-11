@@ -601,6 +601,7 @@ export default function FundPageClient({
                             <span className="text-ink-faint truncate flex items-center gap-1">
                               {QUALITY_LABELS[b.key] || (b.key === "categoryRank" ? "Category Rank" : b.key === "dataQuality" ? "Data Quality" : b.key.charAt(0).toUpperCase() + b.key.slice(1))}
                               {b.key === "momentum" && <TrendArrow value={b.score - 50} />}
+                              {b.weight != null && <span className="text-[9.5px] text-ink-faint/70">({b.weight}% weight)</span>}
                             </span>
                             <span className="font-mono text-ink-muted">{b.score}</span>
                           </div>
