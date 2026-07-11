@@ -36,24 +36,20 @@ export default function MobileNav({ active }) {
 
   function openSearch() {
     close();
-    requestAnimationFrame(() => {
-      const searchButton = document.querySelector('#search button');
-      if (searchButton) searchButton.click();
-      else window.location.href = "/funds";
-    });
+    requestAnimationFrame(() => window.dispatchEvent(new Event("mfp-open-search")));
   }
 
   return (
     <div className="xl:hidden">
-      <button ref={triggerRef} type="button" onClick={() => setOpen(true)} aria-label="Open all navigation" aria-expanded={open} aria-controls="mobile-navigation-drawer" className="grid h-10 w-10 place-items-center rounded-full border border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink">
-        <span aria-hidden="true" className="text-lg">☰</span>
+      <button ref={triggerRef} type="button" onClick={() => setOpen(true)} aria-label="Open all navigation" aria-expanded={open} aria-controls="mobile-navigation-drawer" className="grid h-10 w-10 place-items-center rounded-xl border border-line bg-surface text-ink-muted shadow-sm transition hover:border-accent/40 hover:text-accent">
+        <span aria-hidden="true" className="text-base">☰</span>
       </button>
 
-      <nav className="fixed inset-x-0 bottom-0 z-[60] grid h-[calc(64px+env(safe-area-inset-bottom))] grid-cols-5 border-t border-line bg-surface/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-float backdrop-blur-lg" aria-label="Mobile primary navigation">
+      <nav className="fixed inset-x-2 bottom-2 z-[60] grid h-[calc(60px+env(safe-area-inset-bottom))] grid-cols-5 overflow-hidden rounded-2xl border border-line bg-surface/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-float backdrop-blur-xl" aria-label="Mobile primary navigation">
         {MOBILE_PRIMARY_LINKS.map(([label, href, icon]) => href === "#search" ? (
-          <button key={label} type="button" onClick={openSearch} className="flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium text-ink-muted"><span className="text-lg leading-none" aria-hidden="true">{icon}</span>{label}</button>
+          <button key={label} type="button" onClick={openSearch} className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium text-ink-muted transition hover:bg-accent/10 hover:text-accent"><span className="text-lg leading-none" aria-hidden="true">{icon}</span>{label}</button>
         ) : (
-          <a key={href} href={href} aria-current={active === href ? "page" : undefined} className={`flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium ${active === href ? "text-accent" : "text-ink-muted"}`}><span className="text-lg leading-none" aria-hidden="true">{icon}</span>{label}</a>
+          <a key={href} href={href} aria-current={active === href ? "page" : undefined} className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium transition ${active === href ? "bg-accent/10 text-accent" : "text-ink-muted hover:bg-surface-2 hover:text-ink"}`}><span className="text-lg leading-none" aria-hidden="true">{icon}</span>{label}</a>
         ))}
       </nav>
 

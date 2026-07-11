@@ -21,7 +21,7 @@ const WORKSPACE_SHORTCUTS = [
   { label: "Go to Performance Leaderboards", path: "/performance", key: "/performance" }
 ];
 
-export default function Search() {
+export default function Search({ listenForOpenRequest = false, triggerClassName = "flex" }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
@@ -66,6 +66,13 @@ export default function Search() {
       .catch(() => {});
   }, [open]);
 
+  useEffect(() => {
+    if (!listenForOpenRequest) return undefined;
+    function handleOpenRequest() { openPalette(); }
+    window.addEventListener("mfp-open-search", handleOpenRequest);
+    return () => window.removeEventListener("mfp-open-search", handleOpenRequest);
+  }, [listenForOpenRequest]);
+
   // Toggle pinning an item
   const togglePin = (e, item) => {
     e.preventDefault();
@@ -89,14 +96,14 @@ export default function Search() {
   const openPalette = () => {
     setOpen(true);
     syncStorage();
-    dialogRef.current?.showModal();
+    if (dialogRef.current && !dialogRef.current.open) dialogRef.current.showModal();
     requestAnimationFrame(() => {
       inputRef.current?.focus();
     });
   };
 
   const closePalette = () => {
-    dialogRef.current?.close();
+    if (dialogRef.current?.open) dialogRef.current.close();
     setOpen(false);
     setQ("");
     setResults([]);
@@ -250,8 +257,9 @@ export default function Search() {
     <div className="w-full">
       {/* Trigger Button */}
       <button
+        type="button"
         onClick={openPalette}
-        className="flex w-full items-center justify-between rounded-2xl border border-line-strong bg-white/[0.02] py-3.5 pl-4 pr-5 text-left text-[14px] text-ink-muted hover:bg-white/[0.04] hover:border-white/20 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+        className={`${triggerClassName} w-full items-center justify-between rounded-xl border border-line-strong bg-surface py-2.5 pl-3.5 pr-3 text-left text-[12.5px] text-ink-muted shadow-sm transition-all hover:border-accent/30 hover:bg-surface-2 focus:outline-none focus:ring-2 focus:ring-accent/40`}
       >
         <div className="flex items-center gap-3">
           <svg className="h-5 w-5 shrink-0 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -270,7 +278,7 @@ export default function Search() {
         ref={dialogRef}
         closedby="any"
         onClose={closePalette}
-        className="cmd-dialog fixed inset-0 z-50 m-0 h-full w-full max-h-none max-w-none overflow-hidden bg-transparent p-0 outline-none flex items-start justify-center pt-[8vh]"
+        className="cmd-dialog fixed inset-0 z-50 m-0 hidden h-full w-full max-h-none max-w-none overflow-hidden bg-transparent p-0 pt-[8vh] outline-none open:flex open:items-start open:justify-center"
       >
         <div className="w-full max-w-2.5xl overflow-hidden rounded-2xl border border-white/[0.08] bg-[#090b11]/97 shadow-2xl backdrop-blur-3xl transition-spring flex flex-col max-h-[82vh] mx-4" style={{ maxWidth: "720px" }}>
           

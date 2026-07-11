@@ -38,6 +38,7 @@ export default function AuthStatus() {
       </span>
       <span className="hidden max-w-[120px] truncate text-ink-muted md:inline">{session.user?.name || session.user?.email}</span>
       <button
+        type="button"
         onClick={() => signOut({ callbackUrl: "/" })}
         className="text-ink-faint transition-colors hover:text-ink-muted"
       >

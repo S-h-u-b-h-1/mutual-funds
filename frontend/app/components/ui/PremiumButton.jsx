@@ -21,6 +21,6 @@ export default function PremiumButton({ href, children, variant = "primary", cla
   return href ? (
     <a href={href} className={cls} onClick={handleClick} {...props}>{children}</a>
   ) : (
-    <button className={cls} onClick={handleClick} {...props}>{children}</button>
+    <button type="button" className={cls} onClick={handleClick} {...props}>{children}</button>
   );
 }
