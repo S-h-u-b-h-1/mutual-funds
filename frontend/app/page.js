@@ -1,245 +1,112 @@
-// MF Pulse — Market Intelligence homepage. Dense, terminal-grade, trust-signaled.
-import { sb } from "./lib/supabase";
-import { marketIntel } from "./lib/intel";
+import Link from "next/link";
 import Nav from "./components/Nav";
 import Footer from "./components/Footer";
 import Search from "./components/Search";
-import HomepageClient from "./components/HomepageClient";
 import Tracker from "./components/Tracker";
-import Watchlist from "./components/Watchlist";
-import WatchlistIntelligence from "./components/WatchlistIntelligence";
-import HeroVisual from "./components/HeroVisual";
-import KnowledgeGraphHero from "./components/KnowledgeGraphHero";
-import GuidedJourney from "./components/GuidedJourney";
 import RecentActivity from "./components/RecentActivity";
-import FlowHeatmap from "./components/FlowHeatmap";
+import WatchlistIntelligence from "./components/WatchlistIntelligence";
 import AlertSignup from "./components/AlertSignup";
-import MarketNewsPulse from "./components/MarketNewsPulse";
-import MarketTerminal from "./components/MarketTerminal";
-import SectionHeader from "./components/ui/SectionHeader";
-import GlassPanel from "./components/ui/GlassPanel";
-import StatStrip from "./components/ui/StatStrip";
-import Leaderboard from "./components/Leaderboard";
-import DataTable from "./components/ui/DataTable";
-import SignalCard from "./components/ui/SignalCard";
-import PremiumButton from "./components/ui/PremiumButton";
-import Badge from "./components/ui/Badge";
-import { allFunds } from "./lib/funds";
+import KnowledgeGraphHero from "./components/KnowledgeGraphHero";
+import FreshnessBadge from "./components/ui/FreshnessBadge";
+import DataGapNotice from "./components/ui/DataGapNotice";
+import { allFunds, asOf } from "./lib/funds";
 import { graphNodes } from "./lib/graphNodes";
 import { getTopHeadlines } from "./lib/news";
-import { impactChainsFor, impactScoreFor, researchLinksFor, fundsWorthResearching } from "./lib/marketImpact";
-import { getMarketTerminal } from "./lib/marketTerminal";
-import trendData from "./data/amc_trend.json";
-import performance from "./data/performance.json";
+import { marketStatus } from "./lib/marketStatus";
 import daily from "./data/daily.json";
 
-const fmt = (n) => new Intl.NumberFormat("en-IN").format(n);
-const inr = (n) => `${n >= 0 ? "+" : "−"}₹${fmt(Math.abs(Math.round(n)))} Cr`;
-const lakhCr = (n) => `₹${(n / 100000).toFixed(2)}L Cr`;
-const strip = (s) => s.replace(" Mutual Fund", "");
-const trendDelta = (amc) => {
-  const p = trendData.amcs[amc];
-  return p ? p[p.length - 1][1] - p[0][1] : null;
-};
+const formatNumber = (value) => new Intl.NumberFormat("en-IN").format(value);
+const shortName = (name = "") => name.replace(/ - (Direct|Regular).*/i, "").replace(/\s+/g, " ").trim();
 
-export default async function Page() {
-  const [byClass, amcSummary, headline, amcFlows, signals, flowHistory] = await Promise.all([
-    sb("mv_asset_class_summary?select=*"),
-    sb("mv_amc_summary?select=*"),
-    sb("v_flow_headline?select=*"),
-    sb("v_amc_flows?select=amc_name,asset_class,net_flow_cr"),
-    sb("v_signals?select=*"),
-    sb("v_flow_history?select=*"),
-  ]);
-  const newsHeadlines = await getTopHeadlines({ limit: 5 }).catch(() => []);
-  const marketTerminal = await getMarketTerminal({ revalidate: 300 }).catch(() => null);
-  // Phase 8 — enrich each headline with real market-impact data (chains/score/research/funds).
-  // Defensive per-article try/catch: a single bad article can never break the homepage.
-  const enrichedHeadlines = newsHeadlines.map((article) => {
-    try {
-      const entityLink = article.links?.find((l) => l.entityType === "category" || l.entityType === "amc");
-      return {
-        ...article,
-        chains: impactChainsFor(article.links),
-        impact: impactScoreFor(article),
-        research: researchLinksFor(article),
-        topFunds: entityLink ? fundsWorthResearching(entityLink, { limit: 2 }) : [],
-      };
-    } catch {
-      return article;
-    }
-  });
-  const flow = headline[0] || {};
-  const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
-  const latest = byClass.map((r) => r.latest_nav_date).sort().at(-1);
-  const intel = marketIntel(trendData.amcs);
+const WORKFLOWS = [
+  { label: "Research funds", detail: "Study returns, risk, portfolio evidence, management and known data gaps.", href: "/funds", icon: "01" },
+  { label: "Compare funds", detail: "Understand meaningful differences without forcing a universal winner.", href: "/compare", icon: "02" },
+  { label: "Understand risk", detail: "Read volatility and drawdown in category and benchmark context.", href: "/performance", icon: "03" },
+  { label: "Track a watchlist", detail: "Return to funds you follow and review what changed since your last visit.", href: "/dashboard#watchlist", icon: "04" },
+  { label: "Review a portfolio", detail: "Use your actual holdings with deterministic portfolio intelligence.", href: "/dashboard", icon: "05" },
+  { label: "Explore news impact", detail: "Connect financial events to AMCs, categories and relevant funds.", href: "/news", icon: "06" },
+  { label: "Build a strategy", detail: "Organize a multi-fund research thesis and compare allocations.", href: "/research", icon: "07" },
+  { label: "Save research notes", detail: "Keep observations attached to the fund and evidence you reviewed.", href: "/dashboard#notebook", icon: "08" },
+];
+
+function ResearchStrip({ funds, headlines, market }) {
+  const amcCount = new Set(funds.map((fund) => fund.amc).filter(Boolean)).size;
+  const latestNews = headlines[0]?.publishedAt || headlines[0]?.published_at || null;
+  const items = [
+    ["Latest NAV", asOf || "Unavailable", "AMFI"],
+    ["News update", latestNews ? new Date(latestNews).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Unavailable", "Published source time"],
+    ["Schemes tracked", formatNumber(funds.length), "Current research universe"],
+    ["AMC coverage", `${amcCount} fund houses`, "Derived from scheme records"],
+    ["Market session", market.sessionLabel, "Clock-derived, not holiday-aware"],
+  ];
+  return (
+    <section aria-label="Research data status" className="grid overflow-hidden rounded-2xl border border-line bg-surface sm:grid-cols-2 lg:grid-cols-5">
+      {items.map(([label, value, note]) => <div key={label} className="border-b border-line p-4 last:border-0 sm:border-r lg:border-b-0"><div className="eyebrow">{label}</div><div className="mt-2 text-sm font-semibold text-ink tnum">{value}</div><div className="mt-1 text-[11px] leading-snug text-ink-faint">{note}</div></div>)}
+    </section>
+  );
+}
+
+export default async function HomePage() {
   const funds = allFunds();
-  const graph = graphNodes(funds); // top-18 AMCs shown visually; real totals below are unclipped
-  const realAmcCount = new Set(funds.map((f) => f.amc).filter(Boolean)).size;
-  const realBenchmarkCount = new Set(funds.map((f) => f.benchmark).filter(Boolean)).size;
-  const amcDeltas = Object.fromEntries(Object.entries(trendData.amcs).map(([k, p]) => [k, p[p.length - 1][1] - p[0][1]]));
-  const moverCol = (label) => [
-    { key: "name", label, render: (r) => <a className="text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(r.amc)}`}>{r.name}</a> },
-    { key: "change", label: "30d Δ", align: "right", render: (r) => <span className={r.change >= 0 ? "text-pos tnum" : "text-neg tnum"}>{r.change >= 0 ? "+" : ""}{r.change.toFixed(2)}</span> },
+  const graph = graphNodes(funds);
+  const headlines = await getTopHeadlines({ limit: 5 }).catch(() => []);
+  const market = marketStatus(asOf);
+  const amcCount = new Set(funds.map((fund) => fund.amc).filter(Boolean)).size;
+  const benchmarkCount = new Set(funds.map((fund) => fund.benchmark).filter(Boolean)).size;
+  const queue = (daily.explained || []).slice(0, 4);
+  const primaryNews = headlines[0];
+  const changed = [
+    { label: "Category movement", value: daily.topCategory || "Unavailable", detail: daily.topCategory ? `${daily.topCategory} leads the current category summary in the daily calculated bundle.` : "No category summary is available for this update.", href: "/categories" },
+    { label: "AMC movement", value: daily.topAmc || "Unavailable", detail: daily.topAmc ? `${daily.topAmc} leads the current AMC summary in the daily calculated bundle.` : "No AMC summary is available for this update.", href: "/amc" },
+    { label: "Fund attention", value: queue[0]?.title || "No new attention flag", detail: queue[0]?.why || "The current daily bundle contains no new rule-based fund flag.", href: queue[0]?.entity_id ? `/fund/${queue[0].entity_id}` : "/funds" },
+    { label: "News context", value: primaryNews?.title || "No recent headline available", detail: primaryNews ? `${primaryNews.source?.name || "Published source"} · source timestamp retained` : "News availability is shown honestly when the source feed is empty.", href: "/news" },
   ];
-  const amcCols = [
-    { key: "rank", label: "#", muted: true, render: (r) => r._rank },
-    { key: "amc", label: "AMC", render: (r) => <a className="text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(r.amc + " Mutual Fund")}`}>{r.amc}</a> },
-    { key: "funds", label: "Funds", align: "right", mono: true, muted: true },
-    { key: "avg", label: "Avg 1M", align: "right", render: (r) => <span className={r.avg >= 0 ? "text-pos tnum" : "text-neg tnum"}>{r.avg >= 0 ? "+" : ""}{r.avg.toFixed(1)}%</span> },
-    { key: "score", label: "Quality", align: "right", render: (r) => <span className="font-semibold tnum text-ink">{r.score.toFixed(0)}</span> },
-  ];
-  const dailyCol = [
-    { key: "name", label: "Fund", render: (r) => <a className="text-ink hover:text-accent-soft" href={`/fund/${r.code}`}>{r.name.replace(/ - (Direct|Regular).*/i, "")}<span className="block text-[11px] text-ink-faint">{r.amc}</span></a> },
-    { key: "r1d", label: "1D", align: "right", render: (r) => <span className={r.r1d >= 0 ? "text-pos tnum" : "text-neg tnum"}>{r.r1d >= 0 ? "+" : ""}{r.r1d.toFixed(2)}%</span> },
-  ];
-
-  // Per-AMC aggregation for leaderboard
-  const agg = {};
-  for (const r of amcSummary) {
-    const a = (agg[r.amc_name] ||= { total: 0, equity: 0 });
-    a.total += Number(r.schemes);
-    if (r.asset_class === "Equity") a.equity += Number(r.schemes);
-  }
-  const flowByAmc = {};
-  for (const r of amcFlows) {
-    const f = (flowByAmc[r.amc_name] ||= { equity: null, debt: null });
-    if (r.asset_class === "Equity") f.equity = Number(r.net_flow_cr);
-    if (r.asset_class === "Debt") f.debt = Number(r.net_flow_cr);
-  }
-  const sigCount = {};
-  for (const s of signals) sigCount[s.amc_name] = (sigCount[s.amc_name] || 0) + 1;
-
-  const leaderboard = Object.entries(agg)
-    .map(([amc, a]) => {
-      const f = flowByAmc[amc] || {};
-      const eq = f.equity ?? null, db = f.debt ?? null;
-      const total = eq == null && db == null ? null : (eq || 0) + (db || 0);
-      return {
-        amc, name: strip(amc), equity: a.equity, idx: trendDelta(amc),
-        equityFlow: eq, debtFlow: db, totalFlow: total, signals: sigCount[amc] || 0,
-      };
-    })
-    .sort((x, y) => y.equity - x.equity)
-    .slice(0, 15);
-
-  // Flow network nodes (AMCs with monthly flow data)
-  const netAgg = {};
-  for (const r of amcFlows) {
-    const a = (netAgg[r.amc_name] ||= { name: strip(r.amc_name), equity: 0, debt: 0 });
-    if (r.asset_class === "Equity") a.equity = Number(r.net_flow_cr);
-    if (r.asset_class === "Debt") a.debt = Number(r.net_flow_cr);
-  }
-  const networkNodes = Object.values(netAgg)
-    .sort((a, b) => Math.abs(b.equity) + Math.abs(b.debt) - (Math.abs(a.equity) + Math.abs(a.debt)))
-    .slice(0, 7);
-
-  // Hero strip leads with REAL, traceable metrics (no synthetic AUM/flows up top).
-  const topPerf = performance.top[0];
-  const stats = [
-    { label: "Schemes tracked", value: fmt(totalSchemes), sub: "AMFI · daily" },
-    { label: "AMC houses", value: "51", sub: "AMFI" },
-    { label: "Top fund · 1M", value: `+${topPerf.r1m.toFixed(1)}%`, tone: "pos", sub: topPerf.amc },
-    { label: "Market momentum", value: `${intel.avg >= 0 ? "+" : ""}${intel.avg.toFixed(2)}`, tone: intel.avg >= 0 ? "pos" : "neg", sub: "avg AMC 30d index" },
-    { label: "Latest NAV", value: latest, sub: "AMFI" },
-    { label: "Flow signals", value: signals.length, sub: "flows · sample" },
-  ];
-  // Live Market Status & Time-of-day greeting (Indian Standard Time)
-  const serverTime = new Date();
-  const utcTime = serverTime.getTime() + (serverTime.getTimezoneOffset() * 60000);
-  const istTime = new Date(utcTime + (3600000 * 5.5));
-  const istHrs = istTime.getHours();
-  const istMins = istTime.getMinutes();
-  const istDay = istTime.getDay();
-  const isWeekday = istDay >= 1 && istDay <= 5;
-  const istTimeVal = istHrs * 100 + istMins;
-  const isMarketOpen = isWeekday && istTimeVal >= 915 && istTimeVal <= 1530;
-
-  let greeting = "Good evening";
-  if (istHrs >= 5 && istHrs < 12) greeting = "Good morning";
-  else if (istHrs >= 12 && istHrs < 17) greeting = "Good afternoon";
-
-  // Dynamic Biggest Mover detection
-  const topGainer = daily.gainers?.[0];
-  const topFaller = daily.fallers?.[0];
-  let biggestMover = null;
-  if (topGainer && topFaller) {
-    biggestMover = Math.abs(topGainer.r1d) >= Math.abs(topFaller.r1d) ? { ...topGainer, isGainer: true } : { ...topFaller, isGainer: false };
-  } else if (topGainer) {
-    biggestMover = { ...topGainer, isGainer: true };
-  } else if (topFaller) {
-    biggestMover = { ...topFaller, isGainer: false };
-  }
 
   return (
     <>
       <Nav active="/" />
       <Tracker event="page_view" payload={{ page: "home" }} />
-
-      <main className="container-px py-8 sm:py-10 space-y-8">
-        
-        {/* Command Palette search workspace trigger */}
-        <div className="max-w-2xl mx-auto"><Search /></div>
-
-        <HomepageClient
-          byClass={byClass}
-          amcSummary={amcSummary}
-          headline={headline}
-          amcFlows={amcFlows}
-          signals={signals}
-          flowHistory={flowHistory}
-          newsHeadlines={newsHeadlines}
-          marketTerminal={marketTerminal}
-          totalSchemes={totalSchemes}
-          realAmcCount={realAmcCount}
-          realBenchmarkCount={realBenchmarkCount}
-          amcDeltas={amcDeltas}
-          leaderboard={leaderboard}
-          networkNodes={networkNodes}
-          stats={stats}
-          greeting={greeting}
-          isMarketOpen={isMarketOpen}
-          biggestMover={biggestMover}
-          daily={daily}
-          enrichedHeadlines={enrichedHeadlines}
-          performance={performance}
-          intel={intel}
-        />
-
-        {/* Dynamic 3D Universe Graph */}
-        <div className="rounded-2xl border border-line bg-white/[0.015] p-4 sm:p-5">
-          <KnowledgeGraphHero
-            classes={graph.classes}
-            amcs={graph.amcs}
-            fundCount={totalSchemes}
-            amcCount={realAmcCount}
-            categoryCount={graph.classes.length}
-            benchmarkCount={realBenchmarkCount}
-          />
-        </div>
-
-        {/* Why investors use MF Pulse */}
-        <section className="mt-9">
-          <SectionHeader eyebrow="not another screener" title="Why investors use MF Pulse" />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {[
-              { t: "It explains why, not just what", d: "Every score, rank and attention flag shows its metric, previous value, current value and source — nothing asks to be taken on faith.", href: "/funds", cta: "Open any fund →" },
-              { t: "It connects news to your funds", d: "A deterministic rule engine maps RBI, SEBI and market events to the categories, sectors and AMCs they may affect — every link traceable to a rule, never a black box.", href: "/news", cta: "See today's news →" },
-              { t: "It updates itself, and proves it", d: "NAVs, analytics and news refresh automatically on a published schedule, and the live status page shows exactly when each layer last updated.", href: "/status", cta: "Check the refresh timeline →" },
-            ].map((c) => (
-              <a key={c.t} href={c.href} className="glass group flex flex-col p-5 transition-colors hover:bg-white/[0.045]">
-                <span className="text-[13.5px] font-semibold text-ink">{c.t}</span>
-                <span className="mt-1.5 flex-1 text-[12.5px] leading-relaxed text-ink-muted">{c.d}</span>
-                <span className="mt-3 text-[12px] text-accent-soft">{c.cta}</span>
-              </a>
-            ))}
+      <main>
+        <section className="container-px grid gap-10 pb-10 pt-12 lg:grid-cols-[1.08fr_.92fr] lg:items-center lg:pb-16 lg:pt-20">
+          <div>
+            <div className="eyebrow text-accent">Indian mutual fund research · evidence before claims</div>
+            <h1 className="mt-5 max-w-3xl text-[2.65rem] font-semibold leading-[1.02] tracking-[-0.055em] text-ink sm:text-[3.6rem] lg:text-[4.25rem]">Understand Indian mutual funds beyond returns.</h1>
+            <p className="measure mt-6 text-base leading-7 text-ink-muted sm:text-lg">Research funds, compare risk, follow market changes, connect news to portfolios, and understand what deserves your attention.</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/funds" className="inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-semibold text-white hover:bg-accent-soft">Research a fund</Link>
+              <Link href="/compare" className="inline-flex min-h-11 items-center rounded-full border border-line-strong bg-surface px-5 text-sm font-semibold text-ink hover:bg-surface-strong">Compare funds</Link>
+              <Link href="/dashboard" className="inline-flex min-h-11 items-center rounded-full border border-line bg-transparent px-5 text-sm font-medium text-ink-muted hover:text-ink">Open my workspace</Link>
+            </div>
+            <Link href="/brief" className="mt-5 inline-flex text-sm font-medium text-accent hover:text-accent-soft">Read the Morning Brief →</Link>
+          </div>
+          <div className="research-surface-raised p-4 sm:p-6">
+            <div className="flex items-start justify-between gap-4"><div><div className="eyebrow">Start with a question</div><h2 className="mt-2 text-lg font-semibold text-ink">Search the research universe</h2></div><FreshnessBadge status={market.tone === "pos" ? "current" : market.tone === "warn" ? "delayed" : "stale"}>{asOf || "NAV unknown"}</FreshnessBadge></div>
+            <div className="mt-5"><Search /></div>
+            <div className="mt-5 grid grid-cols-3 gap-2 border-t border-line pt-5 text-center"><div><div className="financial-number text-lg font-semibold text-ink">{formatNumber(funds.length)}</div><div className="mt-1 text-[10px] uppercase tracking-wider text-ink-faint">Schemes</div></div><div><div className="financial-number text-lg font-semibold text-ink">{amcCount}</div><div className="mt-1 text-[10px] uppercase tracking-wider text-ink-faint">AMCs</div></div><div><div className="financial-number text-lg font-semibold text-ink">{benchmarkCount}</div><div className="mt-1 text-[10px] uppercase tracking-wider text-ink-faint">Benchmarks</div></div></div>
           </div>
         </section>
 
-        <AlertSignup />
-      </main>
+        <div className="container-px"><ResearchStrip funds={funds} headlines={headlines} market={market} /></div>
 
-      <Footer note={<span><b className="text-ink-muted">Daily NAV intelligence</b> from AMFI — latest available: {latest} ({fmt(totalSchemes)} schemes, 51 AMCs). Monthly net-flow figures are <b className="text-warn">sample data</b> until the SEBI export is wired in. <a className="text-ink-muted hover:text-ink" href="/data-status">Data status →</a></span>} />
+        <section className="container-px py-14 sm:py-20">
+          <div className="grid gap-8 lg:grid-cols-[.36fr_.64fr]"><div><div className="eyebrow">What changed today</div><h2 className="section-title mt-3">A short evidence-led market read.</h2><p className="mt-3 text-sm leading-6 text-ink-muted">Daily NAV measures and published news are shown separately so market movement is not confused with event context.</p><Link href="/brief" className="mt-5 inline-flex text-sm font-medium text-accent">Open the full brief →</Link></div><div className="divide-y divide-line rounded-2xl border border-line bg-surface">{changed.map((item) => <Link key={item.label} href={item.href} className="group grid gap-2 p-5 hover:bg-surface-2 sm:grid-cols-[150px_1fr_20px] sm:items-start"><div className="eyebrow pt-1">{item.label}</div><div><div className="text-sm font-semibold leading-snug text-ink">{item.value}</div><p className="mt-1.5 text-[13px] leading-5 text-ink-muted">{item.detail}</p></div><span className="text-ink-faint group-hover:translate-x-1 group-hover:text-accent" aria-hidden="true">→</span></Link>)}</div></div>
+        </section>
+
+        <section className="border-y border-line bg-surface-2"><div className="container-px py-14 sm:py-20"><div className="flex flex-wrap items-end justify-between gap-5"><div><div className="eyebrow">What deserves attention</div><h2 className="section-title mt-3">Research suggestions, not recommendations.</h2></div><Link href="/dashboard" className="text-sm font-medium text-accent">Open research queue →</Link></div>{queue.length ? <div className="mt-8 grid gap-3 lg:grid-cols-2">{queue.map((item) => <article key={`${item.type}-${item.entity_id}`} className="research-surface p-5"><div className="flex items-center justify-between gap-4"><span className="rounded-full border border-confidence/30 bg-confidence/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-confidence">Rule-based signal</span><span className="financial-number text-xs text-ink-faint">{item.previous_value} → {item.current_value}</span></div><h3 className="mt-4 text-base font-semibold leading-snug text-ink">{item.title}</h3><p className="mt-2 text-[13px] leading-5 text-ink-muted">{item.why}</p><p className="mt-3 border-l-2 border-line-strong pl-3 text-xs leading-5 text-ink-faint">{item.context}</p><Link href={`/fund/${item.entity_id}`} className="mt-4 inline-flex text-sm font-medium text-accent">Investigate the fund →</Link></article>)}</div> : <DataGapNotice className="mt-8">The daily intelligence bundle contains no new research suggestions. MF Pulse does not fill an empty queue with fabricated insights.</DataGapNotice>}</div></section>
+
+        <section className="container-px py-14 sm:py-20"><div className="max-w-2xl"><div className="eyebrow">What you can do</div><h2 className="section-title mt-3">Move from a question to traceable evidence.</h2></div><div className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">{WORKFLOWS.map((item) => <Link key={item.label} href={item.href} className="group min-h-[190px] bg-surface p-5 hover:bg-surface-2"><span className="financial-number text-xs text-ink-faint">{item.icon}</span><h3 className="mt-8 text-base font-semibold text-ink">{item.label}</h3><p className="mt-2 text-[13px] leading-5 text-ink-muted">{item.detail}</p><span className="mt-5 inline-flex text-sm text-accent group-hover:translate-x-1" aria-hidden="true">→</span></Link>)}</div></section>
+
+        <section className="container-px pb-14 sm:pb-20"><div className="grid gap-8 lg:grid-cols-[.4fr_.6fr]"><div><div className="eyebrow">Research universe</div><h2 className="section-title mt-3">Capital flows through a connected evidence network.</h2><p className="mt-3 text-sm leading-6 text-ink-muted">Asset classes form the research clusters. AMC node size reflects the number of real scheme records connected to each cluster. This is a map of coverage—not a prediction or simulated live flow.</p><DataGapNotice title="How to read this view" className="mt-5">The network uses the current scheme bundle. It does not claim to visualize investor money movement or recommend an AMC.</DataGapNotice></div><div className="research-surface min-h-[360px] p-4"><KnowledgeGraphHero classes={graph.classes} amcs={graph.amcs} fundCount={funds.length} amcCount={amcCount} categoryCount={graph.classes.length} benchmarkCount={benchmarkCount} /></div></div></section>
+
+        <section className="border-y border-line bg-surface-2"><div className="container-px py-14 sm:py-20"><div className="flex items-end justify-between gap-5"><div><div className="eyebrow">Personal workspace</div><h2 className="section-title mt-3">Continue where your research stopped.</h2></div><Link href="/dashboard" className="text-sm font-medium text-accent">Open workspace →</Link></div><div className="mt-8 grid gap-5 lg:grid-cols-2"><RecentActivity /><WatchlistIntelligence /></div></div></section>
+
+        <section className="container-px py-14 sm:py-20"><div className="grid gap-8 lg:grid-cols-[.38fr_.62fr]"><div><div className="eyebrow">Why trust MF Pulse</div><h2 className="section-title mt-3">Confidence begins with visible limitations.</h2><p className="mt-3 text-sm leading-6 text-ink-muted">The product distinguishes source data, calculated measures, research suggestions and missing evidence.</p></div><div className="grid gap-3 sm:grid-cols-2">{[["Source-backed data","AMFI NAV records and attributed news sources remain visible."],["Transparent calculations","Ranks and signals expose the metric and observed change."],["Freshness timeline","Update dates are stated; daily NAV data is never described as live."],["Coverage disclosure","Missing metadata stays visible instead of being silently inferred."]].map(([title, detail]) => <div key={title} className="research-surface p-5"><h3 className="text-sm font-semibold text-ink">{title}</h3><p className="mt-2 text-[13px] leading-5 text-ink-muted">{detail}</p></div>)}</div></div></section>
+
+        <section className="container-px pb-16"><div className="rounded-3xl border border-line bg-accent px-6 py-10 text-white sm:px-10 sm:py-12"><div className="max-w-2xl"><div className="text-xs font-medium uppercase tracking-[0.15em] text-white/65">Research first</div><h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">Build conviction from evidence, then seek professional guidance when needed.</h2><div className="mt-7 flex flex-wrap gap-3"><Link href="/funds" className="inline-flex min-h-11 items-center rounded-full bg-white px-5 text-sm font-semibold text-accent">Start researching</Link><Link href="/advisor" className="inline-flex min-h-11 items-center rounded-full border border-white/35 px-5 text-sm font-medium text-white">Review with an advisor</Link></div></div></div></section>
+
+        <section className="container-px pb-16"><AlertSignup /></section>
+      </main>
+      <Footer note={<span>Daily NAV intelligence from AMFI · latest available date: <b className="text-ink-muted">{asOf || "unavailable"}</b> · <Link href="/data-status" className="text-accent">Review data status →</Link></span>} />
     </>
   );
 }

@@ -254,7 +254,7 @@ export default function Search() {
         className="flex w-full items-center justify-between rounded-2xl border border-line-strong bg-white/[0.02] py-3.5 pl-4 pr-5 text-left text-[14px] text-ink-muted hover:bg-white/[0.04] hover:border-white/20 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
       >
         <div className="flex items-center gap-3">
-          <svg className="h-4.5 w-4.5 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg className="h-5 w-5 shrink-0 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
