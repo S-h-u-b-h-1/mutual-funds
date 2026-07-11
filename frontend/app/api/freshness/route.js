@@ -13,5 +13,10 @@ import { getFreshnessSummary } from "../../lib/freshnessService";
 
 export async function GET() {
   const summary = await getFreshnessSummary();
-  return Response.json({ asOf, ...summary });
+  // VERCEL_GIT_COMMIT_SHA is auto-injected at build time by Vercel's git integration (same
+  // source pipelineHealth.js's getDeploymentCurrency() already trusts) — lets a caller verify
+  // not just "the date looks right" but "this exact commit is what's actually being served",
+  // e.g. scripts/verify_public_domain_freshness.py's --expected-sha check.
+  const deployedCommitSha = process.env.VERCEL_GIT_COMMIT_SHA || null;
+  return Response.json({ asOf, deployedCommitSha, ...summary });
 }

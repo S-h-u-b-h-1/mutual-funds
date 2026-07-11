@@ -268,27 +268,12 @@ jobs:
       - name: 7. Verify production actually reflects the refresh
         if: steps.bundles.outputs.changed == 'true'
         run: |
-          # Compares /api/freshness (the exact asOf baked into the deployed bundle) instead of
-          # grepping rendered HTML — the banner's copy legitimately varies by staleness ("today
-          # (…)", "(2d ago)", a prose sentence), and the old text-scrape failed on the most
-          # common success case (a same-day refresh).
-          EXPECTED=$(python -c "import json; print(json.load(open('frontend/app/data/daily.json'))['asOf'])")
-          echo "Expecting production /api/freshness to report asOf: $EXPECTED"
           # Step 6 now hard-fails (and this step is skipped entirely, per its default success()
           # condition) if any Vercel secret is missing or invalid — reaching this line means
           # aliasing was actually attempted, so a genuine poll for propagation is warranted.
-          sleep 75
-          for attempt in 1 2 3 4 5; do
-            LIVE=$(curl -sL "https://mf-pulse.vercel.app/api/freshness" | python -c "import sys,json; print(json.load(sys.stdin).get('asOf',''))" 2>/dev/null || echo "")
-            if [ "$LIVE" = "$EXPECTED" ]; then
-              echo "Verified: production reports asOf=$LIVE — matches."
-              exit 0
-            fi
-            echo "Attempt $attempt: production reports '$LIVE', expected '$EXPECTED'."
-            [ "$attempt" != "5" ] && { echo "Waiting 45s for deploy to propagate..."; sleep 45; }
-          done
-          echo "::error::Cause: mf-pulse.vercel.app is still serving an older deployment ~5 minutes after the refreshed bundles were pushed and built. Location: known failure mode — the mf-pulse.vercel.app domain does not auto-follow new production deployments on this project (see docs/PIPELINE_ARCHITECTURE.md). Fix: EITHER re-point the domain to follow Production in Vercel dashboard -> project mutual-funds -> Settings -> Domains -> mf-pulse.vercel.app, OR add VERCEL_TOKEN/VERCEL_ORG_ID/VERCEL_PROJECT_ID repo secrets so step 6 aliases it explicitly every refresh."
-          exit 1
+          python -m scripts.verify_public_domain_freshness \
+            --expected-sha "$(git rev-parse HEAD)" \
+            --initial-wait 75 --retries 5 --wait 45
 
       - name: Summary
         if: always()
