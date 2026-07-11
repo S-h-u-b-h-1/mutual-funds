@@ -1,8 +1,5 @@
 "use client";
 
-// Intentionally minimal/unstyled beyond the app's existing base tokens (bg/ink/surface/line) —
-// Antigravity owns the design system; this page exists only so the Auth.js backend (auth.js)
-// has somewhere for a human to actually sign in. See auth.js for provider registration.
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -60,11 +57,13 @@ function LoginForm() {
   }
 
   return (
-    <div className="container-px py-16 max-w-sm mx-auto">
-      <h1 className="text-xl font-semibold text-ink mb-6">Sign in to MF Pulse</h1>
+    <main className="container-px mx-auto max-w-md py-12 sm:py-20">
+      <div className="eyebrow text-accent">Research workspace</div>
+      <h1 className="page-title mt-3">Welcome back.</h1>
+      <p className="mt-3 text-sm leading-relaxed text-ink-muted">Sign in to sync watchlists, comparisons, and portfolio research across devices.</p>
 
       {providers?.google || providers?.github ? (
-        <div className="space-y-2 mb-6">
+        <div className="mb-6 mt-8 space-y-2">
           {providers.google && (
             <button className={oauthButtonClass} disabled={busy} onClick={() => signIn("google", { callbackUrl })}>
               Continue with Google
@@ -78,11 +77,11 @@ function LoginForm() {
         </div>
       ) : null}
 
-      <form onSubmit={handleCredentials} className="space-y-3">
-        <input type="email" required placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
-        <input type="password" required placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} />
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        <button type="submit" disabled={busy} className={buttonClass}>Sign in</button>
+      <form onSubmit={handleCredentials} className="mt-8 space-y-4">
+        <label className="block text-sm text-ink">Email<input type="email" autoComplete="email" required placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className={`${inputClass} mt-1.5`} /></label>
+        <label className="block text-sm text-ink">Password<input type="password" autoComplete="current-password" required placeholder="Your password" value={password} onChange={(e) => setPassword(e.target.value)} className={`${inputClass} mt-1.5`} /></label>
+        {error && <p role="alert" className="text-sm text-neg">{error}</p>}
+        <button type="submit" disabled={busy} className={buttonClass}>{busy ? "Signing in…" : "Sign in"}</button>
       </form>
 
       <div className="flex justify-between text-sm text-ink-muted mt-3">
@@ -97,13 +96,13 @@ function LoginForm() {
           ) : (
             <form onSubmit={handleMagicLink} className="space-y-3">
               <p className="text-sm text-ink-muted">Or sign in with a magic link</p>
-              <input type="email" required placeholder="Email" value={magicEmail} onChange={(e) => setMagicEmail(e.target.value)} className={inputClass} />
+              <label className="block text-sm text-ink">Email<input type="email" autoComplete="email" required placeholder="you@example.com" value={magicEmail} onChange={(e) => setMagicEmail(e.target.value)} className={`${inputClass} mt-1.5`} /></label>
               <button type="submit" disabled={busy} className={oauthButtonClass}>Send sign-in link</button>
             </form>
           )}
         </div>
       )}
-    </div>
+    </main>
   );
 }
 

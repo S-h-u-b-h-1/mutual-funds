@@ -25,21 +25,22 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="container-px py-16 max-w-sm mx-auto">
-      <h1 className="text-xl font-semibold text-ink mb-6">Reset your password</h1>
+    <main className="container-px mx-auto max-w-md py-12 sm:py-20">
+      <div className="eyebrow text-accent">Account recovery</div>
+      <h1 className="page-title mt-3">Reset your password.</h1>
       {sent ? (
         <p className="text-sm text-ink-muted">
           If an account exists for {email}, a reset link has been sent. It expires in 1 hour.
         </p>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <input type="email" required placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
-          <button type="submit" disabled={busy} className={buttonClass}>Send reset link</button>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <label className="block text-sm text-ink">Email<input type="email" autoComplete="email" required placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className={`${inputClass} mt-1.5`} /></label>
+          <button type="submit" disabled={busy} className={buttonClass}>{busy ? "Sending…" : "Send reset link"}</button>
         </form>
       )}
       <p className="text-sm text-ink-muted mt-3">
         <a href="/login" className="hover:text-ink">Back to sign in</a>
       </p>
-    </div>
+    </main>
   );
 }

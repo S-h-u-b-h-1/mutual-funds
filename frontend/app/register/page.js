@@ -49,11 +49,14 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="container-px py-16 max-w-sm mx-auto">
-      <h1 className="text-xl font-semibold text-ink mb-6">Create your MF Pulse account</h1>
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <input type="text" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
-        <input type="email" required placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+    <main className="container-px mx-auto max-w-md py-12 sm:py-20">
+      <div className="eyebrow text-accent">Personal research account</div>
+      <h1 className="page-title mt-3">Build a research trail.</h1>
+      <p className="mt-3 text-sm leading-relaxed text-ink-muted">Save funds, preserve comparisons, and keep portfolio analysis available across devices.</p>
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <label className="block text-sm text-ink">Name<input type="text" autoComplete="name" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} className={`${inputClass} mt-1.5`} /></label>
+        <label className="block text-sm text-ink">Email<input type="email" autoComplete="email" required placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className={`${inputClass} mt-1.5`} /></label>
+        <label className="block text-sm text-ink">Password
         <input
           type="password"
           required
@@ -63,12 +66,13 @@ export default function RegisterPage() {
           onChange={(e) => setPassword(e.target.value)}
           className={inputClass}
         />
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        <button type="submit" disabled={busy} className={buttonClass}>Create account</button>
+        </label>
+        {error && <p role="alert" className="text-sm text-neg">{error}</p>}
+        <button type="submit" disabled={busy} className={buttonClass}>{busy ? "Creating account…" : "Create account"}</button>
       </form>
       <p className="text-sm text-ink-muted mt-3">
         Already have an account? <a href="/login" className="hover:text-ink">Sign in</a>
       </p>
-    </div>
+    </main>
   );
 }

@@ -14,6 +14,7 @@ import { researchSummary } from "../lib/fundAnalysis";
 import { relativeTime } from "../lib/news";
 import { completenessTone } from "../lib/completeness";
 import { TIER_TONE } from "../lib/decisionEngine";
+import { QUALITY_LABELS } from "../lib/qualityEngine";
 
 // Helper components of Design System 2.0
 function WorkspaceCard({ title, subtitle, action, children, id, collapsedDefault = false }) {
@@ -61,7 +62,8 @@ export default function FundPageClient({
   fund, cohort, history, sig, rets, bench, meta, port, health, notice, fTone, fLabel,
   sharpe, sortino, riskStats, calReturns, rollReturns, comparisons, relatedNews,
   priority, attentionReasons, completeness, readiness, aRank, asOf,
-  categoryAvgVol, categoryAvgDvol, categoryAvgMaxdd, categoryAvgConsistency
+  categoryAvgVol, categoryAvgDvol, categoryAvgMaxdd, categoryAvgConsistency,
+  thesis, strengthsWeak, fit, dna, quality
 }) {
   const [viewMode, setViewMode] = useState("workspace"); // "workspace" (tabbed) or "report" (scroll)
   const [activeTab, setActiveTab] = useState("identity"); // tabs: identity, performance, risk, research, news, compare
@@ -415,6 +417,109 @@ export default function FundPageClient({
                 </div>
               </WorkspaceCard>
 
+              {/* Investment Thesis — every sentence traceable to a real metric, no LLM. */}
+              {thesis && (
+                <WorkspaceCard title="Investment Thesis" subtitle="Generated from deterministic rules over real returns, risk, and rank data">
+                  <p className="text-[13.5px] leading-relaxed text-ink-muted">{thesis}</p>
+                </WorkspaceCard>
+              )}
+
+              {/* Strengths & Weaknesses */}
+              {strengthsWeak && (
+                <WorkspaceCard title="Strengths & Weaknesses" subtitle="Every point backed by a real, computed number">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div>
+                      <div className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-pos mb-2">Top Strengths</div>
+                      {strengthsWeak.strengths.length ? (
+                        <ul className="space-y-2">
+                          {strengthsWeak.strengths.map((s, i) => (
+                            <li key={i} className="text-[12.5px] leading-relaxed text-ink-muted pl-3 border-l-2 border-pos/40">{s}</li>
+                          ))}
+                        </ul>
+                      ) : <p className="text-[12px] text-ink-faint">None flagged from current data.</p>}
+                    </div>
+                    <div>
+                      <div className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-neg mb-2">Top Risks</div>
+                      {strengthsWeak.risks.length ? (
+                        <ul className="space-y-2">
+                          {strengthsWeak.risks.map((s, i) => (
+                            <li key={i} className="text-[12.5px] leading-relaxed text-ink-muted pl-3 border-l-2 border-neg/40">{s}</li>
+                          ))}
+                        </ul>
+                      ) : <p className="text-[12px] text-ink-faint">None flagged from current data.</p>}
+                    </div>
+                    <div>
+                      <div className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-warn mb-2">Watch Carefully</div>
+                      {strengthsWeak.watch.length ? (
+                        <ul className="space-y-2">
+                          {strengthsWeak.watch.map((s, i) => (
+                            <li key={i} className="text-[12.5px] leading-relaxed text-ink-muted pl-3 border-l-2 border-warn/40">{s}</li>
+                          ))}
+                        </ul>
+                      ) : <p className="text-[12px] text-ink-faint">No data-quality warnings.</p>}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-line pt-4">
+                    <div className="rounded-xl border border-line bg-surface p-3">
+                      <div className="text-[9.5px] uppercase font-bold tracking-wider text-ink-faint">Recent Improvement</div>
+                      <p className="text-[12px] text-ink-muted mt-1 leading-relaxed">{strengthsWeak.recentImprovement || "None detected in category rank movement."}</p>
+                    </div>
+                    <div className="rounded-xl border border-line bg-surface p-3">
+                      <div className="text-[9.5px] uppercase font-bold tracking-wider text-ink-faint">Recent Deterioration</div>
+                      <p className="text-[12px] text-ink-muted mt-1 leading-relaxed">{strengthsWeak.recentDeterioration || "None detected in category rank movement."}</p>
+                    </div>
+                    <div className="rounded-xl border border-line bg-surface p-3">
+                      <div className="text-[9.5px] uppercase font-bold tracking-wider text-ink-faint">Why Rank Changed</div>
+                      <p className="text-[12px] text-ink-muted mt-1 leading-relaxed">{strengthsWeak.whyRankChanged}</p>
+                    </div>
+                  </div>
+                </WorkspaceCard>
+              )}
+
+              {/* Investor Fit — suitability, never a recommendation. */}
+              {fit && fit.length > 0 && (
+                <WorkspaceCard title="Investor Fit" subtitle="Structural suitability by investor profile — not a recommendation">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {fit.map((p) => (
+                      <div key={p.profile} className={`rounded-xl border p-3 ${p.suitable ? "border-pos/25 bg-pos/[0.03]" : "border-line bg-surface"}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[12.5px] font-bold text-ink">{p.profile}</span>
+                          <Badge tone={p.suitable ? "pos" : null}>{p.suitable ? "Suitable" : "Not typical"}</Badge>
+                        </div>
+                        <p className="text-[11.5px] text-ink-faint leading-relaxed mt-1.5">{p.why}</p>
+                      </div>
+                    ))}
+                  </div>
+                </WorkspaceCard>
+              )}
+
+              {/* Fund DNA — 10 dimensions, each a real score + plain-language explanation. */}
+              {dna && (
+                <WorkspaceCard title="Fund DNA" subtitle={`${dna.availableCount} of ${dna.totalCount} dimensions available for this fund`}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                    {dna.dimensions.map((d) => (
+                      <div key={d.key}>
+                        <div className="flex items-center justify-between text-[12px]">
+                          <span className="font-semibold text-ink-muted">{d.label}</span>
+                          {d.available ? (
+                            <span className="font-mono text-ink-faint">{d.score}/100</span>
+                          ) : (
+                            <span className="text-[10.5px] text-ink-faint">n/a</span>
+                          )}
+                        </div>
+                        {d.available && (
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-strong">
+                            <div className="h-full rounded-full bg-accent-soft" style={{ width: `${d.score}%` }} />
+                          </div>
+                        )}
+                        <p className="text-[11px] text-ink-faint leading-relaxed mt-1">{d.explanation}</p>
+                      </div>
+                    ))}
+                  </div>
+                </WorkspaceCard>
+              )}
+
               {/* Dynamic Health Score Ring & Ratios */}
               {health && (
                 <WorkspaceCard
@@ -458,19 +563,22 @@ export default function FundPageClient({
                       </div>
                     </div>
 
-                    {/* Breakdown bars */}
-                    <div className="grid flex-1 grid-cols-2 gap-x-5 gap-y-2 sm:grid-cols-3 border-t sm:border-t-0 sm:border-l border-line pt-4 sm:pt-0 sm:pl-5">
-                      {health.breakdown.map((b) => (
+                    {/* Breakdown bars — Quality Engine's 9-dimension recomposition of this same
+                        score (see lib/qualityEngine.js), each with its own real explanation.
+                        Falls back to the original 7-part breakdown if quality wasn't computed. */}
+                    <div className="grid flex-1 grid-cols-1 gap-x-5 gap-y-2.5 sm:grid-cols-2 border-t sm:border-t-0 sm:border-l border-line pt-4 sm:pt-0 sm:pl-5">
+                      {(quality?.breakdown || health.breakdown).map((b) => (
                         <div key={b.key}>
                           <div className="flex items-center justify-between text-[11px]">
                             <span className="text-ink-faint truncate">
-                              {b.key === "categoryRank" ? "Category Rank" : b.key === "dataQuality" ? "Data Quality" : b.key.charAt(0).toUpperCase() + b.key.slice(1)}
+                              {QUALITY_LABELS[b.key] || (b.key === "categoryRank" ? "Category Rank" : b.key === "dataQuality" ? "Data Quality" : b.key.charAt(0).toUpperCase() + b.key.slice(1))}
                             </span>
                             <span className="font-mono text-ink-muted">{b.score}</span>
                           </div>
                           <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-strong">
                             <div className="h-full rounded-full bg-accent-soft" style={{ width: `${b.score}%` }} />
                           </div>
+                          {b.explanation && <p className="text-[10.5px] text-ink-faint leading-relaxed mt-1">{b.explanation}</p>}
                         </div>
                       ))}
                     </div>

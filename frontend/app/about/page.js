@@ -10,10 +10,11 @@ export default function About() {
   return (
     <>
       <Nav active="/about" />
-      <main className="container-px py-10">
-        <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tightest text-ink">About MF Pulse</h1>
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">Product and provenance</div>
+        <h1 className="page-title mt-3">Research infrastructure, made legible.</h1>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
-          A daily Indian mutual-fund intelligence platform, built entirely on free public data.
+          MF Pulse turns public Indian mutual-fund data into evidence-led research without presenting rankings as advice.
         </p>
 
         <section className="mt-8">

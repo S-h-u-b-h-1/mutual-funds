@@ -83,9 +83,9 @@ export default async function DataStatus() {
   return (
     <>
       <Nav active="/status" />
-      <main className="container-px py-10">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Observability</div>
-        <h1 className="mt-2 text-[28px] sm:text-[34px] font-bold tracking-tightest text-ink">Data Status</h1>
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">Observability</div>
+        <h1 className="page-title mt-3">Data status</h1>
         <div className="mt-2 flex items-center gap-2 text-[14px]">
           <Dot status={overall} />
           <span className="font-medium" style={{ color: COLOR[overall] }}>{LABEL[overall]}</span>

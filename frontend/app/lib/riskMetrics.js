@@ -79,3 +79,40 @@ export function betaAlphaFor(fundNavPoints, benchmark, { riskFreeAnnualPct = 6.5
     indexUsed: idx.actual_series,
   };
 }
+
+// Rolling N-month fund-vs-index win rate (Fund Research Engine, Investment Thesis) — same
+// real-index precondition as betaAlphaFor (exact NIFTY 50 TRI / S&P BSE SENSEX TRI match only).
+// Samples every ~5th NAV date (mirrors rollingReturns.js's stride) and compares the fund's and
+// the index's return over the same trailing window, so "beat its benchmark in N% of rolling
+// 3-year periods" is a real count over real overlapping windows, never estimated from a single
+// point-in-time comparison.
+export function rollingBenchmarkWinRate(fundNavPoints, benchmark, months = 36) {
+  const idx = indexSeriesFor(benchmark);
+  if (!idx || !fundNavPoints?.length) return null;
+  const fundByDate = new Map(fundNavPoints.map((p) => [p.t, p.v]));
+  const idxByDate = new Map(idx.points.map((p) => [p.t, p.v]));
+  const dates = fundNavPoints.map((p) => p.t).sort();
+
+  let wins = 0, periods = 0;
+  for (let i = 0; i < dates.length; i += 5) {
+    const t = dates[i];
+    if (!fundByDate.has(t) || !idxByDate.has(t)) continue;
+    const target = new Date(t);
+    target.setMonth(target.getMonth() - months);
+    let matchDate = null;
+    for (let d = 0; d <= 10; d++) {
+      const before = new Date(target); before.setDate(before.getDate() - d);
+      const after = new Date(target); after.setDate(after.getDate() + d);
+      const bStr = before.toISOString().slice(0, 10), aStr = after.toISOString().slice(0, 10);
+      if (fundByDate.has(bStr) && idxByDate.has(bStr)) { matchDate = bStr; break; }
+      if (fundByDate.has(aStr) && idxByDate.has(aStr)) { matchDate = aStr; break; }
+    }
+    if (!matchDate) continue;
+    const fundRet = fundByDate.get(t) / fundByDate.get(matchDate) - 1;
+    const idxRet = idxByDate.get(t) / idxByDate.get(matchDate) - 1;
+    periods++;
+    if (fundRet > idxRet) wins++;
+  }
+  if (periods < 6) return null; // too few real rolling windows for a meaningful win rate
+  return { winPct: Math.round((100 * wins) / periods), periods, months };
+}

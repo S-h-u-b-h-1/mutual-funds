@@ -42,12 +42,12 @@ function ResetPasswordForm() {
   }
 
   if (!token || !email) {
-    return <p className="text-sm text-red-400">This reset link is invalid. Request a new one from the forgot-password page.</p>;
+    return <p role="alert" className="text-sm text-neg">This reset link is invalid. Request a new one from the forgot-password page.</p>;
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <input
+      <label className="block text-sm text-ink">New password<input
         type="password"
         required
         minLength={8}
@@ -55,8 +55,8 @@ function ResetPasswordForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         className={inputClass}
-      />
-      <input
+      /></label>
+      <label className="block text-sm text-ink">Confirm password<input
         type="password"
         required
         minLength={8}
@@ -64,20 +64,21 @@ function ResetPasswordForm() {
         value={confirm}
         onChange={(e) => setConfirm(e.target.value)}
         className={inputClass}
-      />
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      <button type="submit" disabled={busy} className={buttonClass}>Set new password</button>
+      /></label>
+      {error && <p role="alert" className="text-sm text-neg">{error}</p>}
+      <button type="submit" disabled={busy} className={buttonClass}>{busy ? "Updating…" : "Set new password"}</button>
     </form>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <div className="container-px py-16 max-w-sm mx-auto">
-      <h1 className="text-xl font-semibold text-ink mb-6">Choose a new password</h1>
+    <main className="container-px mx-auto max-w-md py-12 sm:py-20">
+      <div className="eyebrow text-accent">Account security</div>
+      <h1 className="page-title mt-3 mb-8">Choose a new password.</h1>
       <Suspense fallback={null}>
         <ResetPasswordForm />
       </Suspense>
-    </div>
+    </main>
   );
 }

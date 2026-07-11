@@ -10,10 +10,10 @@ export default function AdvisorPage() {
     <>
       <Nav active="/advisor" />
       <Tracker event="page_view" payload={{ page: "advisor" }} />
-      <main className="container-px py-8 sm:py-10">
+      <main className="container-px py-10 sm:py-14">
         <div className="mx-auto max-w-xl">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Need help interpreting this data?</div>
-          <h1 className="mt-2 text-[24px] sm:text-[28px] font-bold tracking-tightest text-ink">Talk to an advisor</h1>
+          <div className="eyebrow text-accent">Human guidance</div>
+          <h1 className="page-title mt-3">Turn research into a considered next step.</h1>
           <p className="mt-2.5 text-[14px] leading-relaxed text-ink-muted">
             MF Pulse gives you the research — health scores, risk, benchmark comparisons, AMC
             intelligence. If you&rsquo;d like help turning that into a decision, or a full

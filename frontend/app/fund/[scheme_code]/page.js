@@ -24,10 +24,13 @@ import { getMetadata, managerSlug } from "../../lib/metadata";
 import { portfolioRisk } from "../../lib/portfolio";
 import { fundCompleteness, researchReadiness, completenessTone } from "../../lib/completeness";
 import { getArticlesForEntity, relativeTime } from "../../lib/news";
-import { betaAlphaFor } from "../../lib/riskMetrics";
+import { betaAlphaFor, rollingBenchmarkWinRate } from "../../lib/riskMetrics";
 import { calendarReturns, rollingReturns } from "../../lib/rollingReturns";
 import { amcIntel, amcSlugify } from "../../lib/amcIntel";
 import { researchPriority, TIER_TONE, CONFIDENCE_LABEL, CONFIDENCE_TONE } from "../../lib/decisionEngine";
+import { investmentThesis, strengthsAndWeaknesses, investorFit } from "../../lib/investorAnalyst";
+import { fundDNA } from "../../lib/fundDNA";
+import { qualityEngine } from "../../lib/qualityEngine";
 
 export const revalidate = 3600;
 
@@ -116,12 +119,13 @@ export default async function FundPage({ params }) {
   const bench = benchmarkRows(f, cohort);
   const meta = getMetadata(f.code);                       // factsheet metadata when available
   const port = portfolioRisk(meta);                       // portfolio risk from real holdings/sectors
-  const health = fundHealth({
+  const enrichedF = {
     ...f,
     expenseRatio: meta?.expense_ratio ?? null,            // cost activates with real TER
     metaComplete: meta?.completeness ?? null,             // factsheet component activates with real data
     portfolioScore: port?.score ?? null,
-  });
+  };
+  const health = fundHealth(enrichedF);
   const [fTone, fLabel] = freshness(f.staleDays === 9999 ? null : f.staleDays);
   const notice = listingNotice(f);
   const histDays = history?.points?.length || 0;
@@ -165,6 +169,17 @@ export default async function FundPage({ params }) {
 
   const peerConsistency = peers.map(x => x.consistency).filter(v => v != null);
   const categoryAvgConsistency = peerConsistency.length ? +(peerConsistency.reduce((s, v) => s + v, 0) / peerConsistency.length).toFixed(1) : null;
+
+  // Fund Research Engine (institutional-grade research report mission) — Investment Thesis,
+  // Strengths/Weaknesses, Investor Fit, Fund DNA, Quality Engine. All compose the real signals
+  // already computed above (cohort, riskStats, categoryAvg*) rather than duplicating their math.
+  const cohortRisk = (categoryAvgVol != null || categoryAvgMaxdd != null) ? { avgVol90: categoryAvgVol, avgMaxdd90: categoryAvgMaxdd } : null;
+  const rollWinRate = rollingBenchmarkWinRate(history?.points, f.benchmark, 36); // rolling 3Y fund-vs-index win rate, real funds only (see riskMetrics.js)
+  const thesis = investmentThesis(f, cohort, { rollingWinRate: rollWinRate, cohortRisk });
+  const strengthsWeak = strengthsAndWeaknesses(f, cohort, { cohortRisk });
+  const fit = investorFit(f);
+  const dna = fundDNA(f, { cohortRisk, betaAlpha: riskStats });
+  const quality = qualityEngine(enrichedF, meta);
 
   // Decision Engine (Decision Support sprint) — Research Priority Score extends the existing
   // attention_score (real 1M-vs-3M category rank movement, from scripts/explain.py) with AMC
@@ -212,7 +227,7 @@ export default async function FundPage({ params }) {
     <>
       <Nav active="/funds" />
       <Tracker event="fund_view" payload={{ code: f.code, category: f.category, amc: f.amc }} view={{ type: "fund", id: f.code, name: f.name.replace(/ - (Direct|Regular).*/i, ""), amc: f.amc, category: f.category }} />
-      <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} categoryAvgVol={categoryAvgVol} categoryAvgDvol={categoryAvgDvol} categoryAvgMaxdd={categoryAvgMaxdd} categoryAvgConsistency={categoryAvgConsistency} />
+      <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} categoryAvgVol={categoryAvgVol} categoryAvgDvol={categoryAvgDvol} categoryAvgMaxdd={categoryAvgMaxdd} categoryAvgConsistency={categoryAvgConsistency} thesis={thesis} strengthsWeak={strengthsWeak} fit={fit} dna={dna} quality={quality} />
       <Footer note={<span>NAV as of {f.navDate} · daily data, not real-time · past performance ≠ future returns · source AMFI / MFAPI. Platform as of {asOf}.</span>} />
     </>
   );

@@ -35,9 +35,9 @@ export default async function DataQuality() {
   return (
     <>
       <Nav active="/research" />
-      <main className="container-px py-10">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Trust · Data Quality Report</div>
-        <h1 className="mt-2 text-[28px] sm:text-[34px] font-bold tracking-tightest text-ink">Data Quality</h1>
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">Trust · Data quality report</div>
+        <h1 className="page-title mt-3">Data quality</h1>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
           Full transparency on every dataset. <b className="text-pos">Real</b> data is sourced live from AMFI and
           recalculated daily. <b className="text-warn">Sample</b> data (monthly flows and everything derived from it)
@@ -57,7 +57,7 @@ export default async function DataQuality() {
 
         <section className="mt-8">
           <SectionHeader eyebrow="source · freshness · lineage" title="Dataset classification" />
-          <div className="overflow-x-auto rounded-xl border border-line bg-white/[0.015]">
+          <div className="overflow-x-auto rounded-xl border border-line bg-surface">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="border-b border-line text-[10.5px] uppercase tracking-[0.08em] text-ink-faint">

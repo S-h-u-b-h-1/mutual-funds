@@ -61,8 +61,9 @@ export default async function Status() {
   return (
     <>
       <Nav active="/status" />
-      <main className="container-px py-10">
-        <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tightest text-ink">System status</h1>
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">Operational transparency</div>
+        <h1 className="page-title mt-3">System status</h1>
         <div className={`mt-2 flex items-center gap-2 text-[14px] font-medium ${allGood ? "text-pos" : "text-neg"}`}>
           <span className="h-2 w-2 rounded-full bg-current animate-ring" />
           {allGood ? "All systems operational" : "Degraded — see below"}
