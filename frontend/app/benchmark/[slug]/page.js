@@ -67,9 +67,9 @@ export default function BenchmarkPage({ params }) {
     <>
       <Nav active="/funds" />
       <Tracker event="page_view" payload={{ page: "benchmark", benchmark: b.name }} view={{ type: "benchmark", id: params.slug, name: b.name }} />
-      <main className="container-px py-9">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Benchmark</div>
-        <h1 className="mt-2 text-[24px] sm:text-[30px] font-bold tracking-tightest text-ink">{b.name}</h1>
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">Benchmark</div>
+        <h1 className="page-title mt-3">{b.name}</h1>
         <p className="mt-2 max-w-2xl text-[14px] text-ink-muted">
           {rows.length} fund{rows.length === 1 ? "" : "s"} track this benchmark (SEBI category-standard mapping, or the fund's own named index). Index-level return comparison needs an index NAV series we don&rsquo;t ingest yet — figures below are the funds' own real NAV performance.
         </p>

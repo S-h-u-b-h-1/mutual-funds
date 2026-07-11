@@ -69,9 +69,9 @@ export default async function DiscoverPage() {
     <>
       <Nav active="/discover" />
       <Tracker event="page_view" payload={{ page: "discover" }} />
-      <main className="container-px py-8 sm:py-10">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Discover · {asOf}</div>
-        <h1 className="mt-2 text-[26px] sm:text-[32px] font-bold tracking-tightest text-ink">What&rsquo;s worth looking at</h1>
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">Discover · {asOf}</div>
+        <h1 className="page-title mt-3">Find evidence worth investigating.</h1>
         <p className="mt-2 max-w-2xl text-[14px] text-ink-muted">
           Real signals from the data, and real activity from investors using MF Pulse. Nothing
           here is ranked by guesswork — sections based on tracked behaviour show exactly what
@@ -84,7 +84,7 @@ export default async function DiscoverPage() {
             {improved.length ? (
               <div className="space-y-2">
                 {improved.map((e) => (
-                  <a key={e.entity_id} href={`/fund/${e.entity_id}`} className="glass block p-3 transition-colors hover:bg-white/[0.045]">
+                  <a key={e.entity_id} href={`/fund/${e.entity_id}`} className="glass block p-3 transition-colors hover:bg-surface-strong">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[13px] font-medium text-ink">{e.title}</span>
                       <Badge tone="pos">{e.current_value}</Badge>
@@ -101,7 +101,7 @@ export default async function DiscoverPage() {
             {steady.length ? (
               <div className="space-y-2">
                 {steady.map((f) => (
-                  <a key={f.code} href={`/fund/${f.code}`} className="glass block p-3 transition-colors hover:bg-white/[0.045]">
+                  <a key={f.code} href={`/fund/${f.code}`} className="glass block p-3 transition-colors hover:bg-surface-strong">
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate text-[13px] font-medium text-ink">{f.name.replace(/ - (Direct|Regular).*/i, "")}</span>
                       <Badge tone="pos">+{f.r3m.toFixed(1)}%</Badge>
@@ -119,7 +119,7 @@ export default async function DiscoverPage() {
             {resilient.length ? (
               <div className="space-y-2">
                 {resilient.map((f) => (
-                  <a key={f.code} href={`/fund/${f.code}`} className="glass block p-3 transition-colors hover:bg-white/[0.045]">
+                  <a key={f.code} href={`/fund/${f.code}`} className="glass block p-3 transition-colors hover:bg-surface-strong">
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate text-[13px] font-medium text-ink">{f.name.replace(/ - (Direct|Regular).*/i, "")}</span>
                       <Badge tone="pos">{f.maxdd90.toFixed(1)}% max dip</Badge>
@@ -137,7 +137,7 @@ export default async function DiscoverPage() {
             {launched.length ? (
               <div className="space-y-2">
                 {launched.map((m) => (
-                  <a key={m.scheme_code} href={`/fund/${m.scheme_code}`} className="glass flex items-center justify-between gap-3 p-3 transition-colors hover:bg-white/[0.045]">
+                  <a key={m.scheme_code} href={`/fund/${m.scheme_code}`} className="glass flex items-center justify-between gap-3 p-3 transition-colors hover:bg-surface-strong">
                     <span className="truncate text-[13px] text-ink">{m.scheme_name?.split(" - ")[0]}</span>
                     <span className="shrink-0 text-[11.5px] tnum text-ink-faint">{m.launch_date}</span>
                   </a>
@@ -161,7 +161,7 @@ export default async function DiscoverPage() {
             {viewedFunds.length ? (
               <div className="space-y-2">
                 {viewedFunds.map((v) => (
-                  <a key={v.scheme_code} href={`/fund/${v.scheme_code}`} className="glass flex items-center justify-between gap-3 p-3 transition-colors hover:bg-white/[0.045]">
+                  <a key={v.scheme_code} href={`/fund/${v.scheme_code}`} className="glass flex items-center justify-between gap-3 p-3 transition-colors hover:bg-surface-strong">
                     <span className="truncate text-[13px] text-ink">{v.fund.name.replace(/ - (Direct|Regular).*/i, "")}</span>
                     <span className="shrink-0 text-[11.5px] tnum text-ink-faint">{v.views} view{v.views === 1 ? "" : "s"}</span>
                   </a>
@@ -202,7 +202,7 @@ export default async function DiscoverPage() {
                 {watchlisted.map((w) => {
                   const f = getFund(w.scheme_code);
                   return f ? (
-                    <a key={w.scheme_code} href={`/fund/${w.scheme_code}`} className="glass flex items-center justify-between gap-3 p-3 transition-colors hover:bg-white/[0.045]">
+                    <a key={w.scheme_code} href={`/fund/${w.scheme_code}`} className="glass flex items-center justify-between gap-3 p-3 transition-colors hover:bg-surface-strong">
                       <span className="truncate text-[13px] text-ink">{f.name.replace(/ - (Direct|Regular).*/i, "")}</span>
                       <span className="shrink-0 text-[11.5px] tnum text-ink-faint">{w.adds} add{w.adds === 1 ? "" : "s"}</span>
                     </a>

@@ -56,9 +56,9 @@ export default async function AmcPage({ params }) {
       <Nav />
       <Tracker event="amc_view" payload={{ amc }} view={{ type: "amc", id: amc, name: amc.replace(" Mutual Fund", "") }} />
 
-      <main className="container-px py-8 sm:py-10">
+      <main className="container-px py-10 sm:py-14">
         <a href="/" className="text-[13px] text-ink-muted transition-colors hover:text-ink">← Dashboard</a>
-        <h1 className="mt-4 text-[27px] sm:text-[34px] font-bold tracking-tightest text-ink">{amc}</h1>
+        <h1 className="page-title mt-3">{amc}</h1>
         <div className="mt-1.5 text-[13px] text-ink-muted">{fmt(total)} schemes · latest AMFI NAV</div>
 
         <div className="mt-7 grid grid-cols-2 gap-3.5 sm:grid-cols-4">
@@ -118,7 +118,7 @@ export default async function AmcPage({ params }) {
             <SectionHeader eyebrow="rule-based market-relevance links" title="Recent news mentioning this AMC" action={<a className="hover:text-ink" href="/news">See all news →</a>} />
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               {news.map((n) => (
-                <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="glass block p-3.5 text-[12.5px] transition-colors hover:bg-white/[0.04]">
+                <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="glass block p-3.5 text-[12.5px] transition-colors hover:bg-surface-strong">
                   <div className="text-ink-faint">{n.source?.name || "Unknown source"} · {relativeTime(n.publishedAt)}</div>
                   <div className="mt-1 font-medium text-ink">{n.title}</div>
                 </a>
@@ -145,7 +145,7 @@ export default async function AmcPage({ params }) {
                   const nav = (s.fact_nav_daily && s.fact_nav_daily[0]) || {};
                   const category = getFund(String(s.scheme_code))?.category;
                   return (
-                    <tr key={s.scheme_code} className="border-t border-line transition-colors hover:bg-white/[0.02]">
+                    <tr key={s.scheme_code} className="border-t border-line transition-colors hover:bg-surface-2">
                       <td className="px-4 py-3 text-center"><WatchButton code={s.scheme_code} name={s.scheme_name} amc={amc} /></td>
                       <td className="px-2 py-3">
                         <a className="text-ink hover:text-accent-soft" href={`/fund/${s.scheme_code}`}>{s.scheme_name}</a>

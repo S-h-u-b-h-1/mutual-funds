@@ -20,7 +20,7 @@ const cols = [
   { key: "count", label: "Funds", align: "right", mono: true, muted: true },
   { key: "avg", label: "Avg 1M", align: "right", render: (r) => pct(r.avg) },
   { key: "breadth", label: "Breadth", align: "right", mono: true, render: (r) => `${r.breadth.toFixed(0)}%` },
-  { key: "best", label: "Best fund", render: (r) => <span className="text-[12px]"><a className="text-ink hover:text-accent-soft" href={`/fund/${r.best.code}`}>{short(r.best.name).slice(0, 34)}</a> <span className="text-pos">+{r.best.ret.toFixed(1)}%</span></span> },
+  { key: "best", label: "Highest observed 1M", render: (r) => <span className="text-[12px]"><a className="text-ink hover:text-accent-soft" href={`/fund/${r.best.code}`}>{short(r.best.name).slice(0, 34)}</a> <span className="text-pos">+{r.best.ret.toFixed(1)}%</span></span> },
 ];
 
 const csvCols = [
@@ -36,9 +36,9 @@ export default function Categories() {
     <>
       <Nav active="/categories" />
       <Tracker event="category_view" payload={{ page: "categories" }} />
-      <main className="container-px py-10">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Category Intelligence</div>
-        <h1 className="mt-2 text-[28px] sm:text-[34px] font-bold tracking-tightest text-ink">Which categories are leading?</h1>
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">Category Intelligence</div>
+        <h1 className="page-title mt-3">Compare category movement in context.</h1>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
           One-month NAV performance by equity category across {performance.universe.toLocaleString("en-IN")} Direct/Growth
           funds. {lead && <><b className="text-pos">{lead.category}</b> leads at +{lead.avg.toFixed(1)}%.</>} Real AMFI NAV.
@@ -46,7 +46,7 @@ export default function Categories() {
         <TrustBar asOf={performance.asOf} label="AMFI NAV" className="mt-3" sources={[{ label: "Categories", value: `${performance.categories.length}` }, { label: "Window", value: "1 month" }]} />
 
         <section className="mt-8">
-          <SectionHeader eyebrow="ranked by 1-month avg NAV return" title="Category leaderboard" action={<div className="flex items-center gap-2"><Badge tone="pos" dot>live</Badge><ExportCsv csv={toCsv(performance.categories, csvCols)} filename="mfpulse-categories.csv" report="categories" /></div>} />
+          <SectionHeader eyebrow="ranked by 1-month avg NAV return" title="Category movement" action={<div className="flex items-center gap-2"><Badge tone="pos" dot>daily NAV</Badge><ExportCsv csv={toCsv(performance.categories, csvCols)} filename="mfpulse-categories.csv" report="categories" /></div>} />
           <DataTable columns={cols} rows={rows} footnote="Avg = mean 1-month NAV return of the category's equity Growth funds. Breadth = % with positive returns. Source: AMFI." />
         </section>
       </main>

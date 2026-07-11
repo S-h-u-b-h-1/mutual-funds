@@ -43,9 +43,9 @@ export default function Performance() {
     <>
       <Nav active="/research" />
       <Tracker event="performance_view" payload={{ page: "performance" }} />
-      <main className="container-px py-10">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Performance Intelligence</div>
-        <h1 className="mt-2 text-[28px] sm:text-[34px] font-bold tracking-tightest text-ink">Equity fund performance</h1>
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">Performance Intelligence</div>
+        <h1 className="page-title mt-3">Read performance alongside risk and coverage.</h1>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
           Real point-to-point NAV returns over 1W–1Y for {performance.universe.toLocaleString("en-IN")} equity
           <b className="text-ink"> Direct/Growth</b> plans. Every figure is a direct AMFI NAV calculation — no sample data.
@@ -64,7 +64,7 @@ export default function Performance() {
 
         {/* Top performers, multi-window */}
         <section className="mt-9">
-          <SectionHeader eyebrow="real NAV returns" title="Top performers" action={<div className="flex items-center gap-2"><Badge tone="pos" dot>live</Badge><ExportCsv csv={toCsv(performance.top, csvCols)} filename="mfpulse-top-funds.csv" report="top_funds" /></div>} />
+          <SectionHeader eyebrow="real NAV returns" title="Highest observed returns" action={<div className="flex items-center gap-2"><Badge tone="pos" dot>daily NAV</Badge><ExportCsv csv={toCsv(performance.top, csvCols)} filename="mfpulse-top-funds.csv" report="top_funds" /></div>} />
           <DataTable columns={fundCols} rows={topFunds} footnote="Point-to-point NAV return per window. Source: AMFI NAV history." />
         </section>
 

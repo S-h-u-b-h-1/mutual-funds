@@ -66,9 +66,9 @@ export default async function CategoryDetail({ params }) {
     <>
       <Nav active="/categories" />
       <Tracker event="category_view" payload={{ category, funds: funds.length }} view={{ type: "category", id: category, name: category }} />
-      <main className="container-px py-9">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint"><a className="hover:text-ink" href="/categories">Categories</a> · {category}</div>
-        <h1 className="mt-2 text-[28px] sm:text-[32px] font-bold tracking-tightest text-ink">{category}</h1>
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent"><a className="hover:text-ink" href="/categories">Categories</a> · {category}</div>
+        <h1 className="page-title mt-3">{category}</h1>
         <p className="mt-2 max-w-2xl text-[14px] text-ink-muted">
           {funds.length} equity Growth funds · momentum is <b className="text-ink">{momentum}</b> ({improving} improving / {weakening} weakening) · risk is <b className="text-ink">{riskLevel.toLowerCase()}</b>. Real AMFI NAV, as of {asOf}.
         </p>
@@ -94,7 +94,7 @@ export default async function CategoryDetail({ params }) {
             <SectionHeader eyebrow="rule-based market-relevance links" title="Recent news relevant to this category" action={<a className="hover:text-ink" href="/news">See all news →</a>} />
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               {news.map((n) => (
-                <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="glass block p-3.5 text-[12.5px] transition-colors hover:bg-white/[0.04]">
+                <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer" className="glass block p-3.5 text-[12.5px] transition-colors hover:bg-surface-strong">
                   <div className="text-ink-faint">{n.source?.name || "Unknown source"} · {relativeTime(n.publishedAt)}</div>
                   <div className="mt-1 font-medium text-ink">{n.title}</div>
                 </a>

@@ -34,9 +34,9 @@ export default function AmcIndex() {
     <>
       <Nav active="/amc" />
       <Tracker event="page_view" payload={{ page: "amc_index" }} />
-      <main className="container-px py-8 sm:py-10">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Explore AMCs · {asOf}</div>
-        <h1 className="mt-2 text-[26px] sm:text-[32px] font-bold tracking-tightest text-ink">Every fund house in one place</h1>
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">Explore AMCs · {asOf}</div>
+        <h1 className="page-title mt-3">Research every fund house in one frame.</h1>
         <p className="mt-2 max-w-2xl text-[14px] text-ink-muted">
           {rows.length} AMCs, real scheme counts from AMFI. Open any AMC for its performance score,
           peer rank, and category strength — or use{" "}

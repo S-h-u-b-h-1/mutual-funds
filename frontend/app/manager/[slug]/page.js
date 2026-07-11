@@ -65,9 +65,9 @@ export default function ManagerPage({ params }) {
     <>
       <Nav active="/funds" />
       <Tracker event="manager_view" payload={{ manager: mgr.slug, funds: rows.length }} view={{ type: "manager", id: mgr.slug, name: mgr.name }} />
-      <main className="container-px py-9">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Fund Manager</div>
-        <h1 className="mt-2 text-[28px] sm:text-[32px] font-bold tracking-tightest text-ink">{mgr.name}</h1>
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">Fund Manager</div>
+        <h1 className="page-title mt-3">{mgr.name}</h1>
         <p className="mt-2 max-w-2xl text-[14px] text-ink-muted">
           {rows.length} fund{rows.length === 1 ? "" : "s"} managed (from real factsheet attribution). Health &amp; returns are real NAV-derived; manager mapping is from AMC factsheets.
         </p>

@@ -59,9 +59,9 @@ export default function MarketMap() {
     <>
       <Nav active="/market-map" />
       <Tracker event="page_view" payload={{ page: "market_map" }} />
-      <main className="container-px py-9">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Market Map</div>
-        <h1 className="mt-2 text-[26px] sm:text-[32px] font-bold tracking-tightest text-ink">
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">Market Map</div>
+        <h1 className="page-title mt-3">
           The Indian equity mutual fund industry, at a glance
         </h1>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">

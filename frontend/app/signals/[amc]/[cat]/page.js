@@ -106,7 +106,7 @@ export default async function AmcIntel({ params }) {
         {/* category strength */}
         <section className="mt-7">
           <SectionHeader eyebrow="by fund health + 1Y return · not marketing language" title={`Where ${it.amcName} is strongest in ${it.assetClass}`} />
-          <div className="overflow-x-auto rounded-xl border border-line bg-white/[0.015]">
+          <div className="overflow-x-auto rounded-xl border border-line bg-surface">
             <table className="w-full text-[13px]">
               <thead><tr className="border-b border-line text-[10.5px] uppercase tracking-[0.08em] text-ink-faint">
                 <th className="px-3.5 py-2.5 text-left">Sub-category</th><th className="px-3.5 py-2.5 text-right">Funds</th><th className="px-3.5 py-2.5 text-right">Avg health</th><th className="px-3.5 py-2.5 text-right">Avg 1Y</th><th className="px-3.5 py-2.5 text-left">Top fund</th><th className="px-3.5 py-2.5 text-right">Rating</th>
@@ -143,7 +143,7 @@ export default async function AmcIntel({ params }) {
         <section className="mt-7">
           <SectionHeader eyebrow="canonical funds · Direct/Regular collapsed" title={`All ${it.amcName} ${it.assetClass} funds`} action={<Badge tone="pos" dot>real AMFI NAV</Badge>} />
           <DataTable columns={fundCols} rows={rows} footnote={`Canonical funds (one per investment idea). Health = MF Pulse Fund Health Score. Source: AMFI NAV, as of ${asOf}.`} />
-          <details className="mt-3 rounded-lg border border-line bg-white/[0.015] px-4 py-2.5">
+          <details className="mt-3 rounded-lg border border-line bg-surface px-4 py-2.5">
             <summary className="cursor-pointer text-[12.5px] text-ink-muted hover:text-ink">Show all {it.totalVariants} scheme variants (Direct / Regular / IDCW)</summary>
             <div className="mt-3 space-y-1">
               {it.canon.flatMap((c) => c.variants).map((v) => (

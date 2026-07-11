@@ -18,8 +18,9 @@ export default async function Signals() {
   return (
     <>
       <Nav active="/signals" />
-      <main className="container-px py-10">
-        <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tightest text-ink">Flow signals</h1>
+      <main className="container-px py-10 sm:py-14">
+        <div className="eyebrow text-accent">Signal research</div>
+        <h1 className="page-title mt-3">Investigate movements outside their recent baseline.</h1>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
           Months where an AMC&rsquo;s net flow into a category deviated sharply from its trailing average
           (z-score ≥ 1.8). A fast read on where money is unusually rotating.
