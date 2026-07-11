@@ -13,8 +13,9 @@ import { gradeTone } from "../lib/fundHealth";
 import { researchSummary } from "../lib/fundAnalysis";
 import { relativeTime } from "../lib/news";
 import { completenessTone } from "../lib/completeness";
-import { TIER_TONE } from "../lib/decisionEngine";
+import { TIER_TONE, CONFIDENCE_LABEL, CONFIDENCE_TONE } from "../lib/decisionEngine";
 import { QUALITY_LABELS } from "../lib/qualityEngine";
+import { TrendArrow, PercentileBar, Sparkline, Gauge } from "./ui/Visualizations";
 
 // Helper components of Design System 2.0
 function WorkspaceCard({ title, subtitle, action, children, id, collapsedDefault = false }) {
@@ -559,7 +560,11 @@ export default function FundPageClient({
                       <div>
                         <div className="text-[11px] uppercase tracking-wider text-ink-faint">Overall Diagnostics</div>
                         <div className="text-[20px] font-bold text-ink leading-tight font-mono">{health.overall}<span className="text-[12px] text-ink-faint">/100</span></div>
-                        <div className="text-[11px] text-ink-faint mt-0.5">{health.confidence} confidence ratio</div>
+                        <div className="mt-1">
+                          <Badge tone={health.confidence === "high" ? "pos" : health.confidence === "medium" ? "warn" : "neg"}>
+                            {health.confidence === "high" ? "High Confidence" : health.confidence === "medium" ? "Medium Confidence" : "Limited Data"}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
 
@@ -570,13 +575,14 @@ export default function FundPageClient({
                       {(quality?.breakdown || health.breakdown).map((b) => (
                         <div key={b.key}>
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-ink-faint truncate">
+                            <span className="text-ink-faint truncate flex items-center gap-1">
                               {QUALITY_LABELS[b.key] || (b.key === "categoryRank" ? "Category Rank" : b.key === "dataQuality" ? "Data Quality" : b.key.charAt(0).toUpperCase() + b.key.slice(1))}
+                              {b.key === "momentum" && <TrendArrow value={b.score - 50} />}
                             </span>
                             <span className="font-mono text-ink-muted">{b.score}</span>
                           </div>
-                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-strong">
-                            <div className="h-full rounded-full bg-accent-soft" style={{ width: `${b.score}%` }} />
+                          <div className="mt-1">
+                            <PercentileBar value={b.score} tone={b.score >= 65 ? "pos" : b.score <= 35 ? "neg" : "accent"} />
                           </div>
                           {b.explanation && <p className="text-[10.5px] text-ink-faint leading-relaxed mt-1">{b.explanation}</p>}
                         </div>
@@ -584,6 +590,14 @@ export default function FundPageClient({
                     </div>
 
                   </div>
+
+                  {quality?.confidence && (
+                    <div className="mt-4 flex items-center gap-2">
+                      <span className="text-[10.5px] uppercase tracking-wider text-ink-faint">Research Confidence</span>
+                      <Badge tone={CONFIDENCE_TONE[quality.confidence]}>{CONFIDENCE_LABEL[quality.confidence]}</Badge>
+                      <span className="text-[10.5px] text-ink-faint">— {quality.coverage} of {quality.totalPossible} dimensions available</span>
+                    </div>
+                  )}
 
                   <p className="mt-4 border-t border-line pt-3.5 text-[12.5px] leading-relaxed text-ink-muted">
                     {health.explanation}
@@ -703,14 +717,22 @@ export default function FundPageClient({
                 )}
 
                 {fund.catRank && (
-                  <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1.5 text-[12.5px] text-ink-muted border-t border-line pt-3">
-                    <span>Category Rank: <strong className="text-ink font-mono">#{fund.catRank}</strong> of {fund.catSize}</span>
-                    <span className="text-ink/20">·</span>
-                    <span>Category Percentile: <strong className="text-ink font-mono">{fund.catPct}%</strong></span>
-                    <span className="text-ink/20">·</span>
-                    {fund.trend != null && (
-                      <span>Trend Index: <strong className="text-ink font-mono">{fund.trend}/100</strong> ({fund.trend >= 60 ? "Improving" : fund.trend <= 40 ? "Weakening" : "Steady"})</span>
-                    )}
+                  <div className="mt-4 border-t border-line pt-3 space-y-2.5">
+                    <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-[12.5px] text-ink-muted">
+                      <span>Category Rank: <strong className="text-ink font-mono">#{fund.catRank}</strong> of {fund.catSize}</span>
+                      <span className="text-ink/20">·</span>
+                      <span>Category Percentile: <strong className="text-ink font-mono">{fund.catPct}%</strong></span>
+                      <span className="text-ink/20">·</span>
+                      {fund.trend != null && (
+                        <span className="inline-flex items-center gap-1">
+                          Trend Index: <strong className="text-ink font-mono">{fund.trend}/100</strong> ({fund.trend >= 60 ? "Improving" : fund.trend <= 40 ? "Weakening" : "Steady"})
+                          <TrendArrow value={fund.trend - 50} />
+                        </span>
+                      )}
+                    </div>
+                    <div className="max-w-xs">
+                      <PercentileBar value={fund.catPct} markerValue={50} markerLabel="Category median" tone={fund.catPct >= 65 ? "pos" : fund.catPct <= 35 ? "neg" : "accent"} />
+                    </div>
                   </div>
                 )}
               </WorkspaceCard>
@@ -780,15 +802,18 @@ export default function FundPageClient({
                           <div className="p-2.5 rounded-lg border border-line bg-surface">
                             <span className="text-[10px] text-ink-faint block">Minimum 12M</span>
                             <span className="text-[15px] font-bold text-neg font-mono mt-1 block">
-                              {Math.min(...rollReturns.map((r) => r.v)).toFixed(1)}%
+                              {Math.min(...rollReturns.map((r) => r.return)).toFixed(1)}%
                             </span>
                           </div>
                           <div className="p-2.5 rounded-lg border border-line bg-surface">
                             <span className="text-[10px] text-ink-faint block">Maximum 12M</span>
                             <span className="text-[15px] font-bold text-pos font-mono mt-1 block">
-                              {Math.max(...rollReturns.map((r) => r.v)).toFixed(1)}%
+                              {Math.max(...rollReturns.map((r) => r.return)).toFixed(1)}%
                             </span>
                           </div>
+                        </div>
+                        <div className="flex justify-center py-1">
+                          <Sparkline values={rollReturns.map((r) => r.return)} width={220} height={40} />
                         </div>
                         <p className="text-[11px] text-ink-faint leading-relaxed text-center">
                           Based on {rollReturns.length} rolling 12-month periods calculated dynamically.
@@ -869,9 +894,14 @@ export default function FundPageClient({
                       )}
                       {riskStats && (
                         <>
-                          <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
-                            <span className="text-ink-faint">Beta vs Benchmark Proxy</span>
-                            <span className="text-ink font-semibold font-mono">{riskStats.beta}</span>
+                          <div className="border-b border-line pb-2.5">
+                            <div className="flex justify-between text-[12.5px]">
+                              <span className="text-ink-faint">Beta vs Benchmark Proxy</span>
+                              <span className="text-ink font-semibold font-mono">{riskStats.beta}</span>
+                            </div>
+                            <div className="mt-1.5">
+                              <Gauge value={riskStats.beta} min={0} max={2} refValue={1} label="1.0 = matches benchmark" />
+                            </div>
                           </div>
                           <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                             <span className="text-ink-faint">Alpha (Annualised)</span>
