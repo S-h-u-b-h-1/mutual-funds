@@ -141,14 +141,73 @@ jobs:
           # only wait for THAT deployment (matched by commit SHA, never "latest") to be READY and
           # alias the domain to it. Fallback path: if the git deployment never appears (git
           # integration broken again), do a full CLI deploy ourselves, then alias that instead.
-          if [ -z "$VERCEL_TOKEN" ]; then
-            echo "::error::VERCEL_TOKEN not configured — cannot re-point mf-pulse.vercel.app. The git-integration deploy still happens, but the domain will keep serving whatever deployment it was last manually aliased to, no matter how many successful refreshes run behind it. Fix: add VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID repo secrets (Settings -> Secrets and variables -> Actions)."
-            echo "skipped_no_token=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          # Verify secret access BEFORE attempting anything — a present-but-wrong token/org/
+          # project ID must fail here with a specific reason, not surface as a confusing error
+          # three API calls later. Never prints secret values, only names and API responses.
+          #
+          # Every python heredoc in this step is run through textwrap.dedent — bash heredocs
+          # preserve the YAML block's leading indentation verbatim, and Python's parser rejects
+          # an indented first line (IndentationError: unexpected indent) no matter how
+          # internally consistent that indentation is. This went undetected until 2026-07-11
+          # because every prior run had a missing VERCEL_TOKEN, which short-circuited before
+          # any of these heredocs ever actually executed — confirmed by extracting and running
+          # the raw heredoc bytes directly, reproducing the exact error.
+          python3 -c '
+          import sys, textwrap
+          exec(compile(textwrap.dedent(sys.stdin.read()), "<step6-verify>", "exec"))
+          ' <<'PY'
+          import json, os, sys, urllib.error, urllib.request
+          token = os.environ.get("VERCEL_TOKEN", "")
+          org_id = os.environ.get("VERCEL_ORG_ID", "")
+          project_id = os.environ.get("VERCEL_PROJECT_ID", "")
+          missing = [n for n, v in [("VERCEL_TOKEN", token), ("VERCEL_ORG_ID", org_id), ("VERCEL_PROJECT_ID", project_id)] if not v]
+          if missing:
+              print(f"::error::Missing repo secret(s): {', '.join(missing)}. Cannot re-point mf-pulse.vercel.app — "
+                    f"the git-integration deploy still happens, but the domain will keep serving whatever it was "
+                    f"last manually aliased to, no matter how many successful refreshes run behind it. "
+                    f"Location: repo secrets (Settings -> Secrets and variables -> Actions). "
+                    f"Fix: add the missing secret(s), generated from a Vercel account token with access to this project.",
+                    file=sys.stderr)
+              sys.exit(1)
+
+          def vercel_get(path):
+              req = urllib.request.Request(f"https://api.vercel.com{path}", headers={"Authorization": f"Bearer {token}"})
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      return r.status, json.loads(r.read())
+              except urllib.error.HTTPError as e:
+                  try:
+                      return e.code, json.loads(e.read() or b"{}")
+                  except json.JSONDecodeError:
+                      return e.code, {}
+
+          status, body = vercel_get(f"/v9/projects/{project_id}?teamId={org_id}")
+          if status != 200:
+              print(f"::error::VERCEL_TOKEN/VERCEL_ORG_ID/VERCEL_PROJECT_ID invalid — GET /v9/projects/{{id}} "
+                    f"returned {status}: {body.get('error', {}).get('message', body)}. "
+                    f"Cause: the token lacks access to this project, or VERCEL_ORG_ID/VERCEL_PROJECT_ID is wrong. "
+                    f"Location: repo secrets. Fix: regenerate a token scoped to this team/project and verify the "
+                    f"IDs in the Vercel dashboard -> project Settings -> General.", file=sys.stderr)
+              sys.exit(1)
+          print(f"Vercel project resolved: {body.get('name')} (id {project_id[:12]}...)", file=sys.stderr)
+
+          status, body = vercel_get(f"/v9/projects/{project_id}/domains?teamId={org_id}")
+          domains = [d.get("name") for d in body.get("domains", [])] if status == 200 else []
+          if "mf-pulse.vercel.app" not in domains:
+              print(f"::error::mf-pulse.vercel.app is not attached to project {project_id} "
+                    f"(domains on this project: {domains or 'none / lookup failed'}). "
+                    f"Cause: VERCEL_PROJECT_ID points to the wrong project, or the domain moved. "
+                    f"Location: Vercel dashboard -> project Settings -> Domains. "
+                    f"Fix: verify VERCEL_PROJECT_ID matches the project that owns mf-pulse.vercel.app.", file=sys.stderr)
+              sys.exit(1)
+          print("Vercel secret access verified: token authenticates, project resolves, mf-pulse.vercel.app is attached.", file=sys.stderr)
+          PY
           SHA=$(git rev-parse HEAD)
           echo "Waiting for the git-integration deployment of $SHA to be READY..."
-          DEPLOY_UID=$(python - "$SHA" <<'PY'
+          DEPLOY_UID=$(python3 -c '
+          import sys, textwrap
+          exec(compile(textwrap.dedent(sys.stdin.read()), "<step6-lookup>", "exec"))
+          ' "$SHA" <<'PY'
           import json, os, sys, time, urllib.request
           sha, token = sys.argv[1], os.environ["VERCEL_TOKEN"]
           base = (f"https://api.vercel.com/v6/deployments?projectId={os.environ['VERCEL_PROJECT_ID']}"
@@ -184,15 +243,26 @@ jobs:
             exit 0
           fi
           echo "Aliasing mf-pulse.vercel.app -> deployment $DEPLOY_UID"
-          python - "$DEPLOY_UID" <<'PY'
-          import json, os, sys, urllib.request
+          python3 -c '
+          import sys, textwrap
+          exec(compile(textwrap.dedent(sys.stdin.read()), "<step6-alias>", "exec"))
+          ' "$DEPLOY_UID" <<'PY'
+          import json, os, sys, urllib.error, urllib.request
           uid, token = sys.argv[1], os.environ["VERCEL_TOKEN"]
           url = f"https://api.vercel.com/v2/deployments/{uid}/aliases?teamId={os.environ['VERCEL_ORG_ID']}"
           req = urllib.request.Request(url, data=json.dumps({"alias": "mf-pulse.vercel.app"}).encode(),
                                        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
                                        method="POST")
-          with urllib.request.urlopen(req, timeout=30) as r:
-              print("alias response:", r.status, r.read().decode()[:300])
+          try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  print(f"alias response: {r.status} {r.read().decode()[:300]}", file=sys.stderr)
+          except urllib.error.HTTPError as e:
+              body = e.read().decode()[:500]
+              print(f"::error::Aliasing mf-pulse.vercel.app -> {uid} failed: HTTP {e.code} {body}. "
+                    f"Cause: the Vercel API rejected the alias request. Location: Vercel API "
+                    f"(/v2/deployments/{{id}}/aliases). Fix: check the deployment {uid} still exists "
+                    f"and VERCEL_TOKEN has alias permission on this project.", file=sys.stderr)
+              sys.exit(1)
           PY
 
       - name: 7. Verify production actually reflects the refresh
@@ -204,10 +274,9 @@ jobs:
           # common success case (a same-day refresh).
           EXPECTED=$(python -c "import json; print(json.load(open('frontend/app/data/daily.json'))['asOf'])")
           echo "Expecting production /api/freshness to report asOf: $EXPECTED"
-          if [ "${{ steps.deploy.outputs.skipped_no_token }}" = "true" ]; then
-            echo "::error::Step 6 already confirmed VERCEL_TOKEN is missing and skipped aliasing — failing immediately instead of polling mf-pulse.vercel.app for 4+ minutes for a result we already know. Cause: missing VERCEL_TOKEN/VERCEL_ORG_ID/VERCEL_PROJECT_ID repo secrets. Location: repo secrets (Settings -> Secrets and variables -> Actions). Fix: add all three, generated from a Vercel account token with access to this project."
-            exit 1
-          fi
+          # Step 6 now hard-fails (and this step is skipped entirely, per its default success()
+          # condition) if any Vercel secret is missing or invalid — reaching this line means
+          # aliasing was actually attempted, so a genuine poll for propagation is warranted.
           sleep 75
           for attempt in 1 2 3 4 5; do
             LIVE=$(curl -sL "https://mf-pulse.vercel.app/api/freshness" | python -c "import sys,json; print(json.load(sys.stdin).get('asOf',''))" 2>/dev/null || echo "")
@@ -225,8 +294,8 @@ jobs:
         if: always()
         run: |
           echo "## Production Refresh Summary" >> "$GITHUB_STEP_SUMMARY"
-          if [ "${{ steps.deploy.outputs.skipped_no_token }}" = "true" ]; then
-            echo "- **PUBLIC DOMAIN: STALE — VERCEL_TOKEN/VERCEL_ORG_ID/VERCEL_PROJECT_ID not configured.** mf-pulse.vercel.app was NOT touched this run." >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.deploy.outcome }}" = "failure" ]; then
+            echo "- **PUBLIC DOMAIN: STALE — step 6 (Vercel secret verification or aliasing) failed.** mf-pulse.vercel.app was NOT touched this run. See that step's log for the exact cause." >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "- NAV → Supabase/Neon: ${{ steps.nav.outputs.ran || 'FAILED' }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- News → Supabase: ${{ steps.news.outputs.ran || 'failed (non-fatal)' }}" >> "$GITHUB_STEP_SUMMARY"
