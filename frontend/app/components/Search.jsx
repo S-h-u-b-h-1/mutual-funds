@@ -36,6 +36,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
   const reqId = useRef(0);
   const inputRef = useRef(null);
   const dialogRef = useRef(null);
+  const triggerRef = useRef(null);
   const listRef = useRef(null);
 
   // Sync recent, popular, pinned and recent visits from storage
@@ -68,7 +69,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
 
   useEffect(() => {
     if (!listenForOpenRequest) return undefined;
-    function handleOpenRequest() { openPalette(); }
+    function handleOpenRequest() { triggerRef.current?.click(); }
     window.addEventListener("mfp-open-search", handleOpenRequest);
     return () => window.removeEventListener("mfp-open-search", handleOpenRequest);
   }, [listenForOpenRequest]);
@@ -257,6 +258,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
     <div className="w-full">
       {/* Trigger Button */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={openPalette}
         className={`${triggerClassName} w-full items-center justify-between rounded-xl border border-line-strong bg-surface py-2.5 pl-3.5 pr-3 text-left text-[12.5px] text-ink-muted shadow-sm transition-all hover:border-accent/30 hover:bg-surface-2 focus:outline-none focus:ring-2 focus:ring-accent/40`}
@@ -307,6 +309,8 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
               Workspace Launcher
             </span>
             <button
+              type="button"
+              aria-label="Close search"
               onClick={closePalette}
               className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-wide text-ink-faint hover:text-ink transition-colors"
             >
@@ -342,6 +346,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                             }`}
                           >
                             <button
+                              type="button"
                               onClick={() => triggerItem({ type: "pinned", payload: p.path })}
                               className="flex items-center gap-2.5 truncate w-full text-left"
                             >
@@ -349,6 +354,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                               <span className="truncate">{p.label}</span>
                             </button>
                             <button
+                              type="button"
                               onClick={(e) => togglePin(e, p)}
                               className="text-[11px] text-ink-faint hover:text-neg px-2"
                               title="Unpin"
@@ -381,6 +387,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                           }`}
                         >
                           <button
+                            type="button"
                             onClick={() => triggerItem({ type: "shortcut", payload: s.path })}
                             className="flex items-center gap-2.5 truncate text-left w-full"
                           >
@@ -388,6 +395,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                             <span className="truncate">{s.label}</span>
                           </button>
                           <button
+                            type="button"
                             onClick={(e) => togglePin(e, { label: s.label, path: s.path })}
                             className={`text-[12px] px-2 ${isPinned ? "text-accent-soft" : "text-ink-faint hover:text-ink"}`}
                             title={isPinned ? "Unpin Page" : "Pin Page"}
@@ -421,6 +429,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                             }`}
                           >
                             <button
+                              type="button"
                               onClick={() => triggerItem({ type: "visit", payload: targetPath })}
                               className="flex items-center gap-2.5 truncate text-left w-full"
                             >
@@ -428,6 +437,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                               <span className="truncate">{v.name.replace(/ - (Direct|Regular).*/i, "")}</span>
                             </button>
                             <button
+                              type="button"
                               onClick={(e) => togglePin(e, { label: v.name.replace(/ - (Direct|Regular).*/i, ""), path: targetPath })}
                               className={`text-[12px] px-2 ${isPinned ? "text-accent-soft" : "text-ink-faint hover:text-ink"}`}
                             >
@@ -463,6 +473,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                             }`}
                           >
                             <button
+                              type="button"
                               onClick={() => triggerItem({ type: "fund", value: f.name, payload: f.code })}
                               className="flex items-center gap-2.5 truncate text-left w-full"
                             >
@@ -470,6 +481,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                               <span className="truncate">{f.name}</span>
                             </button>
                             <button
+                              type="button"
                               onClick={(e) => togglePin(e, { label: f.name, path: targetPath })}
                               className={`text-[12px] px-2 ${isPinned ? "text-accent-soft" : "text-ink-faint hover:text-ink"}`}
                             >
@@ -501,6 +513,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                             }`}
                           >
                             <button
+                              type="button"
                               onClick={() => triggerItem({ type: "amc", value: amc })}
                               className="flex items-center gap-2.5 truncate text-left w-full"
                             >
@@ -508,6 +521,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                               <span className="truncate">{amc.replace(" Mutual Fund", "")}</span>
                             </button>
                             <button
+                              type="button"
                               onClick={(e) => togglePin(e, { label: amc.replace(" Mutual Fund", ""), path: targetPath })}
                               className={`text-[12px] px-2 ${isPinned ? "text-accent-soft" : "text-ink-faint hover:text-ink"}`}
                             >
@@ -534,6 +548,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                         const globalIndex = selectableItems.findIndex((x) => x.type === "category" && x.value === c);
                         return (
                           <button
+                            type="button"
                             key={c}
                             data-selectable
                             onMouseMove={() => setActiveIndex(globalIndex)}
@@ -569,6 +584,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                             }`}
                           >
                             <button
+                              type="button"
                               onClick={() => triggerItem({ type: "benchmark", value: b })}
                               className="flex items-center gap-2.5 truncate text-left w-full"
                             >
@@ -576,6 +592,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                               <span className="truncate">{b}</span>
                             </button>
                             <button
+                              type="button"
                               onClick={(e) => togglePin(e, { label: b, path: targetPath })}
                               className={`text-[12px] px-2 ${isPinned ? "text-accent-soft" : "text-ink-faint hover:text-ink"}`}
                             >
@@ -613,6 +630,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                         }`}
                       >
                         <button
+                          type="button"
                           onClick={() => triggerItem({ type: "result", value: r.name, payload: r.code })}
                           className="flex flex-col gap-0.5 min-w-0 text-left w-full"
                         >
@@ -635,6 +653,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                             {r.code}
                           </span>
                           <button
+                            type="button"
                             onClick={(e) => togglePin(e, { label: r.name.replace(/ - (Direct|Regular).*/i, ""), path: targetPath })}
                             className={`text-[12px] px-2 ${isPinned ? "text-accent-soft" : "text-ink-faint hover:text-ink"}`}
                           >

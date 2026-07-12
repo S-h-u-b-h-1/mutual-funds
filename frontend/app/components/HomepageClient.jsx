@@ -198,11 +198,14 @@ export default function HomepageClient({
     // Ingest signals
     if (signals?.length) {
       signals.slice(0, 3).forEach((s, idx) => {
+        const netFlow = Number(s.net_flow_cr || 0);
+        const flowLabel = netFlow >= 0 ? "net inflow" : "net outflow";
+        const flowAmount = `${netFlow >= 0 ? "+" : "-"}₹${new Intl.NumberFormat("en-IN").format(Math.abs(Math.round(netFlow)))} Cr`;
         list.push({
           type: "signal",
           label: `${s.amc_name.replace(" Mutual Fund", "")} flow anomaly`,
           time: `${idx * 2 + 1}h ago`,
-          desc: `Z-score of ${Number(s.z_score).toFixed(1)} triggered for asset class ${s.asset_class} with net flow ${new Intl.NumberFormat("en-IN").format(Math.abs(s.net_flow_cr))} Cr.`,
+          desc: `Z-score of ${Number(s.z_score).toFixed(1)} triggered for asset class ${s.asset_class} with ${flowLabel} of ${flowAmount}.`,
           badge: "Signal alert",
           href: "/signals"
         });
@@ -274,6 +277,7 @@ export default function HomepageClient({
         {/* Toggle Workspace Audio */}
         <div className="flex items-center gap-3 shrink-0 self-start lg:self-auto">
           <button
+            type="button"
             onClick={toggleAudioMode}
             className={`rounded-lg border px-3 py-1.5 text-[11.5px] font-bold tracking-wide transition-all ${
               audioEnabled ? "border-accent bg-accent/10 text-accent-soft" : "border-line bg-white/[0.02] text-ink-faint hover:text-ink-muted"
@@ -293,6 +297,7 @@ export default function HomepageClient({
         ].map((tab) => (
           <button
             key={tab.key}
+            type="button"
             onClick={() => { setActiveWorkspace(tab.key); playClickSound(); }}
             className={`flex-1 py-2 text-[12.5px] font-semibold rounded-lg transition-all ${
               activeWorkspace === tab.key ? "bg-white/[0.08] text-white" : "text-ink-faint hover:text-ink"
@@ -314,6 +319,7 @@ export default function HomepageClient({
                 {leftPanelCollapsed ? "Brief" : "Telemetry Brief"}
               </span>
               <button
+                type="button"
                 onClick={toggleLeftPanel}
                 className="text-[11px] font-mono text-ink-faint hover:text-ink px-1.5 py-0.5 bg-white/[0.04] rounded"
               >
@@ -453,6 +459,7 @@ export default function HomepageClient({
                     Watchlists act as custom real-time telemetry feeds. Pin funds using the Cmd+K launcher or search details page.
                   </p>
                   <button
+                    type="button"
                     onClick={triggerAddSampleWatchlist}
                     className="mt-3.5 rounded-lg bg-accent/15 px-3 py-1.5 text-[11.5px] font-bold text-accent-soft hover:bg-accent/25 transition-colors"
                   >
@@ -471,6 +478,7 @@ export default function HomepageClient({
                 {rightPanelCollapsed ? "Rank" : "Analytics Rank"}
               </span>
               <button
+                type="button"
                 onClick={toggleRightPanel}
                 className="text-[11px] font-mono text-ink-faint hover:text-ink px-1.5 py-0.5 bg-white/[0.04] rounded"
               >
@@ -637,6 +645,7 @@ export default function HomepageClient({
               {MOCK_CLIENTS.map((c) => (
                 <button
                   key={c.id}
+                  type="button"
                   onClick={() => { setSelectedClient(c.id); playClickSound(); }}
                   className={`w-full text-left rounded-xl border p-4 transition-all block ${
                     selectedClient === c.id ? "border-accent bg-accent/5 shadow-sm" : "border-line bg-white/[0.005] hover:bg-white/[0.02]"
@@ -696,6 +705,7 @@ export default function HomepageClient({
                 </div>
 
                 <button
+                  type="button"
                   onClick={handleGenerateBrief}
                   className="w-full rounded-lg bg-accent py-2 text-[12.5px] font-bold text-white hover:bg-accent/80 transition-colors"
                 >
@@ -729,6 +739,7 @@ export default function HomepageClient({
 
                   <div className="pt-2 flex justify-end">
                     <button
+                      type="button"
                       onClick={() => alert("Report exported to clipboard (mock placeholder action).")}
                       className="rounded bg-white/[0.06] hover:bg-white/[0.1] px-3 py-1 text-[11px] font-semibold text-ink-muted hover:text-white transition-all"
                     >
