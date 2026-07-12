@@ -1,17 +1,19 @@
 export const NAV_GROUPS = [
-  { label: "Overview", links: [["Home", "/"], ["Morning Brief", "/brief"], ["Market Pulse", "/performance"]] },
-  { label: "Research", links: [["Funds", "/funds"], ["Categories", "/categories"], ["AMCs", "/amc"], ["Compare", "/compare"], ["Discover", "/discover"]] },
-  { label: "Intelligence", links: [["News Intelligence", "/news"], ["Signals", "/signals"], ["Market Map", "/market-map"], ["Research Queue", "/dashboard"]] },
-  { label: "Workspace", links: [["Dashboard", "/dashboard"], ["Watchlist", "/dashboard#watchlist"], ["Research Notebook", "/dashboard#notebook"], ["Strategy Builder", "/research"], ["Portfolio Intelligence", "/portfolio"]] },
+  { label: "Overview", links: [["Home", "/"], ["Markets", "/performance"], ["Morning Brief", "/brief"]] },
+  { label: "Research", links: [["Funds", "/funds"], ["Research", "/research"], ["Categories", "/categories"], ["AMCs", "/amc"], ["Compare", "/compare"], ["Discover", "/discover"]] },
+  { label: "Intelligence", links: [["News", "/news"], ["Signals", "/signals"], ["Market Map", "/market-map"], ["Research Queue", "/dashboard"]] },
+  { label: "Workspace", links: [["Dashboard", "/dashboard"], ["Portfolio", "/portfolio"], ["Watchlist", "/dashboard#watchlist"], ["Research Notebook", "/dashboard#notebook"], ["Strategy Builder", "/research"]] },
   { label: "Support", links: [["Methodology", "/methodology"], ["Data Status", "/data-status"], ["Advisor", "/advisor"], ["About", "/about"]] },
 ];
 
 export const PRIMARY_LINKS = [
-  ["Morning Brief", "/brief"],
+  ["Markets", "/performance"],
   ["Funds", "/funds"],
+  ["Research", "/research"],
+  ["Portfolio", "/portfolio"],
   ["Compare", "/compare"],
   ["News", "/news"],
-  ["Portfolio", "/portfolio"],
+  ["Dashboard", "/dashboard"],
 ];
 
 export const ALL_LINKS = NAV_GROUPS.flatMap((group) => group.links);
@@ -19,7 +21,7 @@ export const ALL_LINKS = NAV_GROUPS.flatMap((group) => group.links);
 export const MOBILE_PRIMARY_LINKS = [
   ["Home", "/", "⌂"],
   ["Search", "#search", "⌕"],
-  ["Brief", "/brief", "◫"],
-  ["Watchlist", "/dashboard#watchlist", "◇"],
+  ["Markets", "/performance", "◫"],
+  ["Portfolio", "/portfolio", "◇"],
   ["Workspace", "/dashboard", "▦"],
 ];

@@ -22,25 +22,28 @@ export default function AuthStatus() {
 
   if (!session) {
     return (
-      <a href="/login" className="text-[12px] text-ink-faint transition-colors hover:text-ink-muted">
-        Sign in
+      <a href="/login" className="hidden min-h-10 items-center rounded-full border border-line/80 bg-surface px-3.5 text-[12px] font-semibold text-ink-muted shadow-sm transition hover:border-accent/35 hover:text-ink sm:inline-flex">
+        Profile
       </a>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 text-[12px]">
+    <div className="hidden items-center gap-2 rounded-full border border-line/80 bg-surface px-1.5 py-1 text-[12px] shadow-sm sm:flex">
+      <span className="grid h-7 w-7 place-items-center rounded-full bg-accent/12 text-[11px] font-semibold text-accent" aria-hidden="true">
+        {(session.user?.name || session.user?.email || "P").slice(0, 1).toUpperCase()}
+      </span>
       <span
-        className="hidden text-ink-faint sm:inline"
+        className="hidden text-ink-faint lg:inline"
         title={syncMode === "cloud" ? "Your research is synced to your account" : "Saved on this device only"}
       >
-        {syncMode === "cloud" ? "☁ Synced" : "⚠ Local only"}
+        {syncMode === "cloud" ? "Synced" : "Local"}
       </span>
-      <span className="hidden max-w-[120px] truncate text-ink-muted md:inline">{session.user?.name || session.user?.email}</span>
+      <span className="hidden max-w-[110px] truncate font-medium text-ink-muted xl:inline">{session.user?.name || session.user?.email}</span>
       <button
         type="button"
         onClick={() => signOut({ callbackUrl: "/" })}
-        className="text-ink-faint transition-colors hover:text-ink-muted"
+        className="rounded-full px-2.5 py-1.5 text-ink-faint transition-colors hover:bg-surface-2 hover:text-ink-muted"
       >
         Sign out
       </button>

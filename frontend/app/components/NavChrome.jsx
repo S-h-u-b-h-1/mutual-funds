@@ -1,0 +1,23 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+export default function NavChrome({ children }) {
+  const [condensed, setCondensed] = useState(false);
+
+  useEffect(() => {
+    const update = () => setCondensed(window.scrollY > 16);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
+
+  return (
+    <header
+      data-condensed={condensed ? "true" : "false"}
+      className="nav-shell sticky top-0 z-50 pointer-events-none px-0 pt-3 transition-all duration-300 ease-out"
+    >
+      {children}
+    </header>
+  );
+}
