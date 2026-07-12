@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { generateRecommendations } from "../lib/portfolioIntelligence/recommendationEngine";
 import { generateRebalanceActions } from "../lib/portfolioIntelligence/rebalanceEngine";
 import { GOALS, planGoal } from "../lib/portfolioIntelligence/goalPlanning";
+import { buildTaxProfile } from "../lib/portfolioIntelligence/taxEngine";
 
 const emptyEntry = () => ({ schemeName: "", isin: "", units: "", avgCost: "", purchaseValue: "", folioNumber: "" });
 const money = (value) => value == null ? "Not available" : new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
@@ -152,6 +153,33 @@ export default function PortfolioWorkspace() {
           {rb.consolidate.length > 0 && <div className="mt-4"><div className="text-xs font-semibold text-warn mb-1">Consider consolidating</div>{rb.consolidate.map((a, i) => <Row key={i} a={a} tone="text-warn" />)}</div>}
           {rb.maintain.length > 0 && <details className="mt-4"><summary className="cursor-pointer text-xs font-semibold text-ink-muted">Maintain as-is ({rb.maintain.length})</summary><div className="mt-2">{rb.maintain.map((a, i) => <Row key={i} a={a} tone="text-ink-faint" />)}</div></details>}
           <p className="mt-3 text-[11px] text-ink-faint">{rb.methodology}</p>
+        </section>;
+      })()}
+
+      {/* Tax Intelligence (Phase 9) — classifies each real held category into its real FY 2026-27
+          capital-gains tax treatment (report.allocations.category, real weights). This app does
+          not track purchase dates, so it explains which rule determines short-term vs long-term
+          rather than asserting a specific verdict for holdings it can't actually verify. */}
+      {(() => {
+        const tax = buildTaxProfile(report);
+        if (!tax) return null;
+        return <section className="research-surface p-5">
+          <div className="eyebrow">Tax intelligence</div>
+          <p className="mt-1 text-xs text-ink-faint">How your real category allocation is taxed under current capital-gains rules — never a specific fund, never a filed-return estimate.</p>
+          <div className="mt-4 space-y-3">
+            {tax.rollup.map((t) => <div key={t.treatment} className="rounded-xl border border-line p-4 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2"><b className="text-ink">{t.label}</b><span className="financial-number text-ink">{t.weightPct}% of portfolio</span></div>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2 text-xs text-ink-muted">
+                <div><b className="text-ink">Long-term:</b> {t.ltcgHoldingPeriod} — {t.ltcgRate}</div>
+                <div><b className="text-ink">Short-term:</b> {t.stcgHoldingPeriod} — {t.stcgRate}</div>
+              </div>
+              <p className="mt-2 text-[11px] text-ink-faint">{t.note}</p>
+            </div>)}
+            {tax.unclassifiedPct > 0 && <p className="text-xs text-ink-muted">{tax.unclassifiedPct}% of your portfolio is in a category this engine doesn't yet classify for tax purposes.</p>}
+          </div>
+          <div className="mt-4 rounded-xl border border-line bg-surface-2 p-4 text-xs text-ink-muted"><b className="text-ink">ELSS / Section 123 (formerly 80C):</b> {tax.elss.note}</div>
+          <p className="mt-3 text-xs text-ink-muted">{tax.exitLoadGuidance}</p>
+          <p className="mt-3 text-[11px] text-ink-faint">{tax.methodology}</p>
         </section>;
       })()}
 

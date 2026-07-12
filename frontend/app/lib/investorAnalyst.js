@@ -173,8 +173,8 @@ export function investorFit(f) {
   const fits = [];
 
   fits.push(elss
-    ? { profile: "Tax Saving", suitable: true, why: "ELSS category — qualifies for Section 80C tax deduction, with a mandatory 3-year lock-in." }
-    : { profile: "Tax Saving", suitable: false, why: "Not an ELSS fund — no Section 80C tax benefit under this scheme." });
+    ? { profile: "Tax Saving", suitable: true, why: "ELSS category — qualifies for a Section 123 tax deduction (Income-tax Act, 2025; the section formerly numbered 80C), with a mandatory 3-year lock-in." }
+    : { profile: "Tax Saving", suitable: false, why: "Not an ELSS fund — no Section 123 (formerly 80C) tax benefit under this scheme." });
 
   fits.push(liquidLike
     ? { profile: "Emergency Corpus", suitable: true, why: `${cat} funds are built for short holding periods and capital preservation, a common choice for emergency funds.` }

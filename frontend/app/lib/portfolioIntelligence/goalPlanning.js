@@ -36,7 +36,7 @@ export const GOALS = {
   taxSaving: {
     label: "Tax saving", typicalHorizonYears: 3,
     allocation: [{ category: "Large Cap", pct: 50 }, { category: "Mid Cap", pct: 30 }, { category: "Small Cap", pct: 20 }],
-    rationale: "ELSS is structurally equity-only with a mandatory 3-year lock-in (Section 80C) — the category split here reflects typical ELSS portfolio composition, not a separate asset-allocation choice; the tax benefit itself is a fund-type fact, not a return driver.",
+    rationale: "ELSS is structurally equity-only with a mandatory 3-year lock-in (Section 123 of the Income-tax Act, 2025, the section formerly numbered 80C) — the category split here reflects typical ELSS portfolio composition, not a separate asset-allocation choice; the tax benefit itself is a fund-type fact, not a return driver.",
   },
   internationalDiversification: {
     label: "International diversification", typicalHorizonYears: 7,
