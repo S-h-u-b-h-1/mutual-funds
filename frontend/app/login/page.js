@@ -65,12 +65,12 @@ function LoginForm() {
       {providers?.google || providers?.github ? (
         <div className="mb-6 mt-8 space-y-2">
           {providers.google && (
-            <button className={oauthButtonClass} disabled={busy} onClick={() => signIn("google", { callbackUrl })}>
+            <button type="button" className={oauthButtonClass} disabled={busy} onClick={() => signIn("google", { callbackUrl })}>
               Continue with Google
             </button>
           )}
           {providers.github && (
-            <button className={oauthButtonClass} disabled={busy} onClick={() => signIn("github", { callbackUrl })}>
+            <button type="button" className={oauthButtonClass} disabled={busy} onClick={() => signIn("github", { callbackUrl })}>
               Continue with GitHub
             </button>
           )}
