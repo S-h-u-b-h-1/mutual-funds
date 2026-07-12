@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { generateRecommendations } from "../lib/portfolioIntelligence/recommendationEngine";
 
 const emptyEntry = () => ({ schemeName: "", isin: "", units: "", avgCost: "", purchaseValue: "", folioNumber: "" });
 const money = (value) => value == null ? "Not available" : new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
@@ -35,6 +36,11 @@ export default function PortfolioWorkspace() {
   const [report, setReport] = useState(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  // Ephemeral, session-only — never sent to the server or persisted. The permanent Investor
+  // Profile feature is explicitly deferred elsewhere in this project; these two inputs let the
+  // Recommendation Engine tailor its guidance without reopening that feature.
+  const [riskTolerance, setRiskTolerance] = useState(null);
+  const [horizonYears, setHorizonYears] = useState(null);
 
   async function loadHoldings() {
     const response = await fetch("/api/v1/portfolio/holdings");
@@ -127,7 +133,51 @@ export default function PortfolioWorkspace() {
 
       {report.missingCategories?.length > 0 && <section className="research-surface p-5"><div className="eyebrow">Missing allocations</div><p className="mt-1 text-xs text-ink-faint">Category buckets with zero detected exposure in this portfolio.</p><div className="mt-3 flex flex-wrap gap-2">{report.missingCategories.map((c) => <span key={c} className="rounded-full border border-warn/30 bg-warn/10 px-3 py-1 text-xs font-medium text-warn">{c}</span>)}</div></section>}
 
-      <section className="research-surface p-5"><div className="eyebrow">Research opportunities</div><div className="mt-4 grid gap-3 sm:grid-cols-2">{(report.researchOpportunities || []).map((item, index) => <article key={index} className="rounded-xl border border-line bg-surface-2 p-4 text-sm leading-6 text-ink-muted">{typeof item === "string" ? item : item.note || item.reason || item.question || JSON.stringify(item)}</article>)}</div><a href="/advisor" className="mt-5 inline-flex min-h-10 items-center rounded-xl border border-line px-4 text-xs font-semibold text-ink">Review with an advisor</a></section>
+      {/* Recommendation Engine (Phase 6) — supersedes the old bare "Research opportunities" list
+          with why/expected benefit/expected risk/confidence/data coverage per category, all
+          traceable to real computed numbers. Risk tolerance + horizon are optional, ephemeral
+          (component state only, never sent to the server) — the permanent Investor Profile
+          feature is explicitly out of scope here; this degrades honestly without it. */}
+      <section className="research-surface p-5">
+        <div className="eyebrow">Recommendations</div>
+        <p className="mt-1 text-xs text-ink-faint">Category-level research suggestions from your real portfolio gaps — never a specific fund, never a recommendation to buy.</p>
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs">
+          <span className="text-ink-faint">Optional, not saved:</span>
+          <select value={riskTolerance || ""} onChange={(e) => setRiskTolerance(e.target.value || null)} className="min-h-9 rounded-lg border border-line bg-bg px-2.5 text-ink">
+            <option value="">Risk tolerance</option>
+            <option value="conservative">Conservative</option>
+            <option value="moderate">Moderate</option>
+            <option value="aggressive">Aggressive</option>
+          </select>
+          <select value={horizonYears ?? ""} onChange={(e) => setHorizonYears(e.target.value ? Number(e.target.value) : null)} className="min-h-9 rounded-lg border border-line bg-bg px-2.5 text-ink">
+            <option value="">Investment horizon</option>
+            <option value="2">Under 3 years</option>
+            <option value="4">3-5 years</option>
+            <option value="7">5-10 years</option>
+            <option value="12">10+ years</option>
+          </select>
+        </div>
+        {(() => {
+          const rec = generateRecommendations(report, { riskTolerance, horizonYears });
+          if (!rec || (!rec.recommendations.length && !rec.cautions.length)) return <p className="mt-4 text-sm text-ink-muted">No category gaps detected — your holdings already cover every tracked category bucket.</p>;
+          return <div className="mt-4 space-y-3">
+            {rec.cautions.map((c, i) => <div key={`c${i}`} className="rounded-xl border border-warn/30 bg-warn/10 p-4 text-sm text-ink-muted">{c.why}</div>)}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {rec.recommendations.map((r) => <article key={r.category} className={`rounded-xl border p-4 text-sm leading-6 text-ink-muted ${r.suitable === false ? "border-line opacity-70" : "border-line bg-surface-2"}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2"><b className="text-ink">{r.category}</b>{r.suitable === true && <span className="rounded-full bg-pos/10 px-2 py-0.5 text-[10px] font-semibold text-pos">Fits your profile</span>}{r.suitable === false && <span className="rounded-full bg-warn/10 px-2 py-0.5 text-[10px] font-semibold text-warn">Outside your stated profile</span>}</div>
+                  <span className={`text-[10px] font-semibold uppercase tracking-wide ${r.confidence === "high" ? "text-pos" : r.confidence === "medium" ? "text-warn" : "text-ink-faint"}`}>{r.confidence} confidence</span>
+                </div>
+                <p className="mt-1.5">{r.why}</p>
+                <p className="mt-1.5 text-xs"><b className="text-ink">Expected benefit:</b> {r.expectedBenefit}</p>
+                <p className="mt-1 text-xs"><b className="text-ink">Expected risk:</b> {r.expectedRisk}</p>
+                <p className="mt-1.5 text-[11px] text-ink-faint">{r.dataCoverage}</p>
+              </article>)}
+            </div>
+          </div>;
+        })()}
+        <a href="/advisor" className="mt-5 inline-flex min-h-10 items-center rounded-xl border border-line px-4 text-xs font-semibold text-ink">Review with an advisor</a>
+      </section>
     </section>}
   </div>;
 }
