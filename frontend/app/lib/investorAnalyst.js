@@ -72,7 +72,12 @@ export function investmentThesis(f, cohort, { rollingWinRate = null, cohortRisk 
   if (f.vol90 != null) {
     if (cohortRisk?.avgVol90 != null) {
       const rel = f.vol90 - cohortRisk.avgVol90;
-      const cmp = Math.abs(rel) < 1.5 ? "in line with" : rel < 0 ? "below" : "above";
+      // Relative, not a fixed 1.5pp band — same fix and reasoning as strengthsAndWeaknesses()
+      // below: a 1.5pp gap is real signal for equity-scale volatility but was calling a fund
+      // "in line with" its peers even when it ran 20%+ above or below them, for any category
+      // (Arbitrage, Liquid) whose peer average sits under ~10%.
+      const relPct = cohortRisk.avgVol90 > 0 ? rel / cohortRisk.avgVol90 : 0;
+      const cmp = Math.abs(relPct) < 0.15 ? "in line with" : rel < 0 ? "below" : "above";
       // maxdd90 is <= 0 (more negative = deeper/worse) — "shallower" means f.maxdd90 is the
       // LARGER (less negative) of the two, i.e. >=, not <=.
       sentences.push(`Its volatility has run ${cmp} the ${f.category} category average (${f.vol90}% vs ${cohortRisk.avgVol90}% over 90 days)${f.maxdd90 != null && cohortRisk.avgMaxdd90 != null ? `, with drawdowns ${f.maxdd90 >= cohortRisk.avgMaxdd90 ? "shallower than" : "deeper than"} the category average (${f.maxdd90}% vs ${cohortRisk.avgMaxdd90}%)` : ""}.`);
