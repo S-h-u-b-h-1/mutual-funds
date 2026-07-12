@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { generateRecommendations } from "../lib/portfolioIntelligence/recommendationEngine";
 import { generateRebalanceActions } from "../lib/portfolioIntelligence/rebalanceEngine";
+import { GOALS, planGoal } from "../lib/portfolioIntelligence/goalPlanning";
 
 const emptyEntry = () => ({ schemeName: "", isin: "", units: "", avgCost: "", purchaseValue: "", folioNumber: "" });
 const money = (value) => value == null ? "Not available" : new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
@@ -42,6 +43,7 @@ export default function PortfolioWorkspace() {
   // Recommendation Engine tailor its guidance without reopening that feature.
   const [riskTolerance, setRiskTolerance] = useState(null);
   const [horizonYears, setHorizonYears] = useState(null);
+  const [goalKey, setGoalKey] = useState("");
 
   async function loadHoldings() {
     const response = await fetch("/api/v1/portfolio/holdings");
@@ -199,5 +201,45 @@ export default function PortfolioWorkspace() {
         <a href="/advisor" className="mt-5 inline-flex min-h-10 items-center rounded-xl border border-line px-4 text-xs font-semibold text-ink">Review with an advisor</a>
       </section>
     </section>}
+
+    {/* Goal Planning (Phase 8) — a standalone template tool, usable before any holdings are
+        imported. When a report exists, it also diffs the template against your real category
+        allocation; without one, it still stands on its own. */}
+    <section className="research-surface p-5 sm:p-6">
+      <div className="eyebrow">Goal planning</div>
+      <h2 className="section-title mt-2">What would a portfolio built for this goal look like?</h2>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">A documented allocation template per goal — category-level only, never a specific fund, never a guarantee.</p>
+      <select value={goalKey} onChange={(e) => setGoalKey(e.target.value)} className="mt-4 min-h-11 rounded-xl border border-line bg-bg px-3 text-sm text-ink">
+        <option value="">Choose a goal…</option>
+        {Object.entries(GOALS).map(([key, g]) => <option key={key} value={key}>{g.label}</option>)}
+      </select>
+      {goalKey && (() => {
+        const plan = planGoal(goalKey, { currentAllocation: report?.allocations?.category ?? null });
+        if (!plan) return null;
+        return <div className="mt-5 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="research-surface p-4"><div className="eyebrow">Typical horizon</div><div className="financial-number mt-2 text-lg font-semibold text-ink">{plan.typicalHorizonYears === 0 ? "Immediate access" : `${plan.typicalHorizonYears}+ years`}</div></div>
+            <div className="research-surface p-4"><div className="eyebrow">Expected volatility</div><div className="financial-number mt-2 text-lg font-semibold text-ink capitalize">{plan.expectedVolatility}</div></div>
+            <div className="research-surface p-4"><div className="eyebrow">Categories in template</div><div className="financial-number mt-2 text-lg font-semibold text-ink">{plan.suggestedAllocation.length}</div></div>
+          </div>
+          <div className="research-surface p-5">
+            <div className="eyebrow">Suggested allocation</div>
+            <div className="mt-3 space-y-2.5">
+              {plan.suggestedAllocation.map((a) => <div key={a.category}><div className="flex items-center justify-between text-xs"><span className="text-ink-muted">{a.category}</span><span className="financial-number text-ink">{a.pct}%</span></div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-strong"><div className="h-full rounded-full bg-accent" style={{ width: `${a.pct}%` }} /></div></div>)}
+            </div>
+            <p className="mt-3 text-xs text-ink-muted">{plan.rationale}</p>
+          </div>
+          {plan.gapVsCurrent && <div className="research-surface p-5">
+            <div className="eyebrow">Your current allocation vs this template</div>
+            <div className="mt-3 space-y-2">{plan.gapVsCurrent.map((g) => <div key={g.category} className="flex items-center justify-between text-xs"><span className="text-ink-muted">{g.category}</span><span className="financial-number text-ink">{g.currentPct}% → target {g.targetPct}%<span className={`ml-2 ${g.gapPct > 0 ? "text-pos" : g.gapPct < 0 ? "text-neg" : "text-ink-faint"}`}>({g.gapPct > 0 ? "+" : ""}{g.gapPct}pt)</span></span></div>)}</div>
+          </div>}
+          <div className="grid gap-4 sm:grid-cols-2 text-xs text-ink-muted">
+            <div><b className="text-ink">Typically suitable:</b> {plan.suitableCategories.join(", ")}</div>
+            <div><b className="text-ink">Typically not part of this goal:</b> {plan.unsuitableCategories.join(", ")}</div>
+          </div>
+          <p className="text-[11px] text-ink-faint">{plan.methodology}</p>
+        </div>;
+      })()}
+    </section>
   </div>;
 }

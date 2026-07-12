@@ -4,8 +4,10 @@ import { computeExposure } from "./exposureEngine";
 
 // Canonical research-category buckets, keyword-matched against real AMFI category strings
 // (case-insensitive substring — same explainable-matching approach as exposureEngine.js). A
-// bucket with zero matching holdings is a genuine gap, not an estimate.
-const CANONICAL_CATEGORIES = {
+// bucket with zero matching holdings is a genuine gap, not an estimate. Exported so other
+// deterministic modules (goalPlanning.js) can bucket a raw category allocation into the same
+// canonical set rather than re-deriving a second, possibly-inconsistent mapping.
+export const CANONICAL_CATEGORIES = {
   "Large Cap": ["large cap"],
   "Mid Cap": ["mid cap"],
   "Small Cap": ["small cap"],
@@ -13,16 +15,28 @@ const CANONICAL_CATEGORIES = {
   Gold: ["gold"],
   International: ["international", "overseas", "global", "fund of funds"],
   Hybrid: ["hybrid", "balanced advantage", "multi asset"],
-  Index: ["index fund", "etf"],
+  // "index" alone (not just "index fund"/"etf") — the real AMFI-derived category string for
+  // index funds in this dataset is "Indexs" (a known upstream taxonomy artifact, not a typo to
+  // fix here), which "index fund" does not match as a substring. Confirmed live: without the
+  // bare "index" keyword, index funds were being reported as a *missing* category even when
+  // held, silently wrong-footing missingCategories(), the Recommendation Engine, and the
+  // Rebalancing Engine all at once.
+  Index: ["index", "etf"],
 };
+
+export function categoryToCanonicalBucket(category) {
+  const cat = (category || "").toLowerCase();
+  for (const [bucket, keywords] of Object.entries(CANONICAL_CATEGORIES)) {
+    if (keywords.some((k) => cat.includes(k))) return bucket;
+  }
+  return null;
+}
 
 function missingCategories(holdings) {
   const present = new Set();
   for (const h of holdings) {
-    const cat = (h.category || "").toLowerCase();
-    for (const [bucket, keywords] of Object.entries(CANONICAL_CATEGORIES)) {
-      if (keywords.some((k) => cat.includes(k))) present.add(bucket);
-    }
+    const bucket = categoryToCanonicalBucket(h.category);
+    if (bucket) present.add(bucket);
   }
   return Object.keys(CANONICAL_CATEGORIES).filter((bucket) => !present.has(bucket));
 }

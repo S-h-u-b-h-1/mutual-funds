@@ -11,7 +11,7 @@
 // auditable classification (same spirit as portfolioIntelligence/healthReport.js's own
 // CANONICAL_CATEGORIES keyword mapping, which this reuses the exact same bucket names from so a
 // recommendation here always corresponds to a real "missing category" the health report found).
-const CATEGORY_PROFILE = {
+export const CATEGORY_PROFILE = {
   "Large Cap": { riskBand: "moderate", minHorizonYears: 3, note: "Broad, well-known market exposure — typically the most familiar starting point for equity allocation." },
   "Mid Cap": { riskBand: "high", minHorizonYears: 5, note: "Higher volatility than Large Cap in exchange for higher long-run growth potential — needs a longer horizon to ride out drawdowns." },
   "Small Cap": { riskBand: "very high", minHorizonYears: 7, note: "The most volatile equity category — historically the highest long-run return potential, but also the deepest drawdowns." },
