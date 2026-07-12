@@ -68,6 +68,23 @@ export default async function Dashboard() {
             )}
           </section>
 
+          {/* Portfolio bridge (Investor Journey mission, Phase 5) — the dashboard is framed as
+              "your workspace" but had no path to Portfolio Intelligence anywhere on the page,
+              even though it's the deepest, most personal analysis this platform offers. Always
+              shown (not session-gated here — the page itself isn't session-aware) so it reads as
+              an invitation either way: continue your review, or start one. */}
+          <section className="mt-7">
+            <a href="/portfolio" className="glass block p-5 transition-colors hover:bg-white/[0.04]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[13px] font-semibold text-ink">Review your portfolio →</div>
+                  <p className="mt-1 text-[12px] text-ink-muted max-w-xl">Import your actual holdings for deterministic diversification, concentration, overlap, theme exposure, and risk evidence — not a recommendation, a research aid.</p>
+                </div>
+                <Badge>Portfolio Intelligence</Badge>
+              </div>
+            </a>
+          </section>
+
           {/* Category & AMC rotation — real 1M-vs-3M rank movement, the same "momentum" signal
               the Decision Engine folds into each fund's Research Priority Score. */}
           <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-2">
