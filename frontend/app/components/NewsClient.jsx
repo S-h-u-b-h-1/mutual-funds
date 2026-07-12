@@ -160,7 +160,7 @@ function NewsCard({ article: a, onRelatedClick, highlighted }) {
     <GlassPanel className={`p-4 sm:p-5 transition-colors ${highlighted ? "border-accent bg-accent/[0.04]" : ""}`}>
       <div className="flex flex-wrap items-center gap-2 mb-2">
         <Badge tone={sourceCredibilityTone(a.source)}>{a.source?.name || "Unknown source"}</Badge>
-        <Badge tone="neutral">{CATEGORY_LABELS[a.category] || a.category}</Badge>
+        {a.category && <Badge tone="neutral">{CATEGORY_LABELS[a.category] || a.category}</Badge>}
         {a.impact?.tier && (
           <Badge
             tone={IMPACT_TONE[a.impact.tier] || "neutral"}

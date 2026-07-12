@@ -224,14 +224,22 @@ const INDEX_BENCHMARK_STRING = { "Nifty 50": "NIFTY 50 TRI", Sensex: "S&P BSE SE
 // already do the real work. "Historical similar events" is deliberately NOT included here (it
 // needs an async DB call via news.js's getSimilarPastArticles) — callers fetch that separately
 // and attach it, so this function stays synchronous and cheap to call per-article.
-const CONFIDENCE_FROM_CREDIBILITY = { official: "High", tier1_business: "Medium", tier2: "Limited" };
+// tier2_business is the real credibility enum value (sql/010_news_intelligence.sql) — "tier2" here
+// never matched, but the || "Limited" fallback below happened to produce the same string anyway,
+// so this was a dead/inert typo rather than a live bug. Corrected for clarity.
+const CONFIDENCE_FROM_CREDIBILITY = { official: "High", tier1_business: "Medium", tier2_business: "Limited" };
 
 export function newsInsight(article) {
   if (!article) return null;
   const chains = impactChainsFor(article.links);
   const themes = themesFor(article.links);
   const impact = impactScoreFor(article);
-  const primaryLink = article.links?.find((l) => RULE_META[l.ruleId]) || article.links?.[0] || null;
+  // Resolve to the SAME highest-regulatory-weight rule chains[0] already picked, not just the
+  // first link in article.links' array order — those can differ when an article matches more
+  // than one rule, silently making "why it matters" (from chains[0]) reference a different rule
+  // than "related funds"/"traced to rule" (from primaryLink) for the same article. Found via a
+  // news-engine data-integrity audit.
+  const primaryLink = (chains[0] && article.links?.find((l) => l.ruleId === chains[0].ruleId)) || article.links?.find((l) => RULE_META[l.ruleId]) || article.links?.[0] || null;
   const relatedFunds = primaryLink ? fundsWorthResearching(primaryLink, { limit: 3 }) : [];
   const sectors = [...new Set((article.links || []).filter((l) => l.entityType === "sector").map((l) => l.entityName))];
   const categories = [...new Set((article.links || []).filter((l) => l.entityType === "category").map((l) => l.entityName))];
