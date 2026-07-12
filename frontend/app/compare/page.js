@@ -34,6 +34,7 @@ export default async function Compare({ searchParams }) {
         name: f.name,
         amc: f.amc,
         category: f.category,
+        assetClass: f.assetClass,
         plan: f.plan,
         isDirect: f.isDirect,
         r1m: f.r1m,
@@ -42,6 +43,9 @@ export default async function Compare({ searchParams }) {
         vol90: f.vol90,
         maxdd90: f.maxdd90,
         consistency: f.consistency,
+        catRank: f.catRank,
+        catSize: f.catSize,
+        catPct: f.catPct,
         _h: h?.overall ?? null,
         _g: h?.grade ?? null
       };

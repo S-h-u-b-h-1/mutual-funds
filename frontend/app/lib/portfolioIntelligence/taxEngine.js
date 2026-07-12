@@ -79,6 +79,14 @@ function classifyCategory(categoryRaw) {
   return { treatment: null, isElss: false };
 }
 
+// Single-fund tax classification (e.g. for the Compare page's tax-efficiency column) — reuses the
+// exact same CATEGORY_TAX_MAP as the portfolio-level buildTaxProfile() below, never a second
+// classification list to keep in sync.
+export function classifyFundTaxTreatment(category) {
+  const { treatment, isElss } = classifyCategory(category);
+  return treatment ? { treatment, isElss, ...TAX_TREATMENTS[treatment] } : { treatment: null, isElss: false };
+}
+
 export function buildTaxProfile(report) {
   if (!report) return null;
   const categories = report.allocations?.category || [];
