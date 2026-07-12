@@ -6,6 +6,7 @@ import ScreenerTableClient from "../components/ScreenerTableClient";
 import FreshnessBadge from "../components/ui/FreshnessBadge";
 import { allFunds, coverage, asOf } from "../lib/funds";
 import { fundHealth } from "../lib/fundHealth";
+import { freshnessTone } from "../lib/marketStatus";
 
 export const metadata = { title: "Fund Research Screener" };
 
@@ -32,6 +33,13 @@ export default function FundsPage({ searchParams }) {
   const sortConfig = SORTS[sort];
   const categories = [...new Set(universe.map((fund) => fund.category).filter(Boolean))].sort();
   const amcs = [...new Set(universe.map((fund) => fund.amc).filter(Boolean))].sort();
+  // Real staleness, not a hardcoded "current" — found via a data-integrity audit that this badge
+  // never actually checked the date at all. Reuses freshnessTone()'s GREEN_MAX/AMBER_MAX
+  // thresholds (the ones that match ingestion/freshness.py) rather than adding yet another
+  // independent freshness-threshold implementation to the several already in this codebase.
+  const asOfStaleDays = Math.floor((Date.now() - new Date(`${asOf}T00:00:00Z`).getTime()) / 86400000);
+  const asOfTone = freshnessTone(asOfStaleDays);
+  const asOfStatus = asOfTone === "pos" ? "current" : asOfTone === "warn" ? "delayed" : "stale";
 
   let rows = universe.filter((fund) => {
     if (option === "growth" && !fund.isGrowth) return false;
@@ -43,7 +51,7 @@ export default function FundsPage({ searchParams }) {
     if (fresh && fund.staleDays !== 0) return false;
     if (needYear && fund.r1y == null) return false;
     if (q && !(fund.name.toLowerCase().includes(q) || fund.amc.toLowerCase().includes(q) || fund.category.toLowerCase().includes(q) || fund.code === q)) return false;
-    return fund.r1m != null;
+    return true;
   }).map((fund) => {
     const health = fundHealth(fund);
     return { ...fund, _h: health?.overall ?? null, _g: health?.grade ?? null };
@@ -65,7 +73,7 @@ export default function FundsPage({ searchParams }) {
       <main className="container-px py-10 sm:py-14">
         <header className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
           <div><div className="eyebrow text-accent">Fund research</div><h1 className="page-title mt-3">Find evidence, not a leaderboard winner.</h1><p className="measure mt-4 text-sm leading-6 text-ink-muted">Screen direct and regular plans separately, keep missing measures visible, and move selected funds into comparison or strategy research.</p></div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faint"><FreshnessBadge status="current">NAV {asOf}</FreshnessBadge><a href="/data-quality" className="font-medium text-accent">Review coverage →</a></div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faint"><FreshnessBadge status={asOfStatus}>NAV {asOf}</FreshnessBadge><a href="/data-quality" className="font-medium text-accent">Review coverage →</a></div>
         </header>
 
         <section className="mt-8 rounded-2xl border border-line bg-surface p-4 sm:p-5" aria-label="Fund filters">
