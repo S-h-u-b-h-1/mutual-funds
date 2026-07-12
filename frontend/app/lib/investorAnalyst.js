@@ -115,9 +115,16 @@ export function strengthsAndWeaknesses(f, cohort, { cohortRisk = null } = {}) {
   const strengths = [...positive];
   const risks = [...caution];
 
-  if (cohortRisk?.avgVol90 != null && f.vol90 != null) {
-    if (f.vol90 <= cohortRisk.avgVol90 - 2) strengths.push(`Lower volatility than its ${f.category} peer average (${f.vol90}% vs ${cohortRisk.avgVol90}%).`);
-    else if (f.vol90 >= cohortRisk.avgVol90 + 2) risks.push(`Higher volatility than its ${f.category} peer average (${f.vol90}% vs ${cohortRisk.avgVol90}%).`);
+  // Relative gap, not a fixed +/-2 percentage points: a 2pp gap is meaningful for equity-scale
+  // volatility (10-20%) but was silently unreachable for low-volatility categories like Arbitrage
+  // or Liquid, where peer averages sit under 3% — found via a real Arbitrage fund that was 20.8%
+  // less volatile than its peer average (a fund manager's real, meaningful edge) yet produced zero
+  // strength/risk lines because the absolute gap was only 0.3pp. 15% relative, mirrors the
+  // scale-relative style already used elsewhere in this file (catPct, momentum comparisons).
+  if (cohortRisk?.avgVol90 != null && f.vol90 != null && cohortRisk.avgVol90 > 0) {
+    const relGap = (f.vol90 - cohortRisk.avgVol90) / cohortRisk.avgVol90;
+    if (relGap <= -0.15) strengths.push(`Lower volatility than its ${f.category} peer average (${f.vol90}% vs ${cohortRisk.avgVol90}%).`);
+    else if (relGap >= 0.15) risks.push(`Higher volatility than its ${f.category} peer average (${f.vol90}% vs ${cohortRisk.avgVol90}%).`);
   }
 
   // fundSignals() flags a top-decile category rank as a strength but has no symmetric rule for
