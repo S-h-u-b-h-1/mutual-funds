@@ -1,22 +1,24 @@
 // News-feed freshness (Phase 1 extension): honest "is the news feed live" signal derived from
 // the real news_ingestion_runs audit log — never a fabricated "live" badge. Mirrors the
 // green/amber/red vocabulary in marketStatus.js so the two freshness indicators read consistently.
-const LIVE_MAX_HOURS = 6; // news_ingest.yml runs every 3h — 2 missed runs = flag as stale, not "live"
+// news_ingest.yml runs every 15 minutes ("*/15 * * * *"), not every 3 hours — this file
+// previously assumed the older 3-hourly schedule (LIVE_MAX_HOURS=6, "2 missed runs"), which on
+// the real 15-minute cadence is ~24 missed runs: a genuine multi-hour ingestion outage would have
+// shown as "News feed live" for most of its duration, with no disclosure. 1 hour = 4 missed runs
+// on the real schedule, enough buffer to absorb one slow/delayed run without false "stale" flaps.
+const LIVE_MAX_HOURS = 1;
 const IST_OFFSET_MIN = 330;
 
 function toIST(d) {
   return new Date(d.getTime() + IST_OFFSET_MIN * 60000);
 }
 
-// Next scheduled ingestion: cron "20 */3 * * *" UTC — every 3 hours, all days (RBI/SEBI/global
+// Next scheduled ingestion: cron "*/15 * * * *" UTC — every 15 minutes, all days (RBI/SEBI/global
 // cues aren't confined to NSE trading hours, so news ingestion isn't either).
 function nextScheduledRun(now) {
   const next = new Date(now);
-  next.setUTCMinutes(20, 0, 0);
-  while (next.getUTCHours() % 3 !== 0 || next <= now) {
-    next.setUTCHours(next.getUTCHours() + 1);
-    next.setUTCMinutes(20, 0, 0);
-  }
+  next.setUTCSeconds(0, 0);
+  next.setUTCMinutes(Math.ceil((next.getUTCMinutes() + 1) / 15) * 15);
   return next;
 }
 
