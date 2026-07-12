@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { generateRecommendations } from "../lib/portfolioIntelligence/recommendationEngine";
+import { generateRebalanceActions } from "../lib/portfolioIntelligence/rebalanceEngine";
 
 const emptyEntry = () => ({ schemeName: "", isin: "", units: "", avgCost: "", purchaseValue: "", folioNumber: "" });
 const money = (value) => value == null ? "Not available" : new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
@@ -132,6 +133,25 @@ export default function PortfolioWorkspace() {
       </div></section>
 
       {report.missingCategories?.length > 0 && <section className="research-surface p-5"><div className="eyebrow">Missing allocations</div><p className="mt-1 text-xs text-ink-faint">Category buckets with zero detected exposure in this portfolio.</p><div className="mt-3 flex flex-wrap gap-2">{report.missingCategories.map((c) => <span key={c} className="rounded-full border border-warn/30 bg-warn/10 px-3 py-1 text-xs font-medium text-warn">{c}</span>)}</div></section>}
+
+      {/* Rebalancing Engine (Phase 7) — reduce/increase/consolidate/maintain, every action a
+          direct threshold read from the already-computed report, never a new calculation. */}
+      {(() => {
+        const rb = generateRebalanceActions(report);
+        if (!rb) return null;
+        const Row = ({ a, tone }) => <div className="flex items-start justify-between gap-3 border-b border-line py-2.5 last:border-0 text-sm"><div className="min-w-0"><span className="font-medium text-ink">{a.target}</span><span className="ml-2 text-[10px] uppercase tracking-wide text-ink-faint">{a.targetType}</span>{a.why && <p className="mt-0.5 text-xs text-ink-muted">{a.why}</p>}</div><span className={`shrink-0 financial-number text-xs ${tone}`}>{a.currentWeightPct != null ? `${a.currentWeightPct.toFixed(1)}%` : ""}</span></div>;
+        return <section className="research-surface p-5">
+          <div className="eyebrow">Rebalancing suggestions</div>
+          <p className="mt-1 text-xs text-ink-faint">Reduce, increase, consolidate, or maintain — every suggestion traces to a real allocation or overlap figure above.</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div><div className="text-xs font-semibold text-neg mb-1">Consider reducing</div>{rb.reduce.length ? rb.reduce.map((a, i) => <Row key={i} a={a} tone="text-neg" />) : <p className="text-xs text-ink-muted">Nothing crosses the concentration threshold.</p>}</div>
+            <div><div className="text-xs font-semibold text-pos mb-1">Consider increasing</div>{rb.increase.length ? rb.increase.slice(0,6).map((a, i) => <Row key={i} a={a} tone="text-pos" />) : <p className="text-xs text-ink-muted">No category gaps detected.</p>}</div>
+          </div>
+          {rb.consolidate.length > 0 && <div className="mt-4"><div className="text-xs font-semibold text-warn mb-1">Consider consolidating</div>{rb.consolidate.map((a, i) => <Row key={i} a={a} tone="text-warn" />)}</div>}
+          {rb.maintain.length > 0 && <details className="mt-4"><summary className="cursor-pointer text-xs font-semibold text-ink-muted">Maintain as-is ({rb.maintain.length})</summary><div className="mt-2">{rb.maintain.map((a, i) => <Row key={i} a={a} tone="text-ink-faint" />)}</div></details>}
+          <p className="mt-3 text-[11px] text-ink-faint">{rb.methodology}</p>
+        </section>;
+      })()}
 
       {/* Recommendation Engine (Phase 6) — supersedes the old bare "Research opportunities" list
           with why/expected benefit/expected risk/confidence/data coverage per category, all
