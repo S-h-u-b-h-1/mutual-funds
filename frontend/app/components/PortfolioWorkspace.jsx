@@ -110,6 +110,8 @@ export default function PortfolioWorkspace() {
 
     {report && <section className="space-y-6" aria-label="Portfolio report">
 
+      {report.bottomLine && <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5"><div className="eyebrow text-accent">Bottom line</div><p className="mt-2 text-sm leading-6 text-ink">{report.bottomLine}</p></div>}
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[["Portfolio value",money(report.portfolioSummary.totalValue)],["Health score",report.portfolioSummary.healthScore == null ? "Incomplete" : `${report.portfolioSummary.healthScore}/100`],["Diversification",`${report.diversification.score}/100`],["Concentration",`${report.concentration.score}/100`]].map(([label,value]) => <div key={label} className="research-surface p-4"><div className="eyebrow">{label}</div><div className="financial-number mt-2 text-xl font-semibold text-ink">{value}</div></div>)}</div>
       <p className="text-xs text-ink-faint">{report.diversification.effectiveHoldings} effective holdings across {report.diversification.effectiveAmcs} effective AMCs and {report.diversification.effectiveCategories} effective categories · top holding {report.diversification.topHolding?.toFixed(1)}% · top 3 holdings {report.diversification.top3Holdings?.toFixed(1)}% of portfolio.</p>
 

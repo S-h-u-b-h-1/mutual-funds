@@ -81,6 +81,28 @@ function strengthsAndWeaknesses(analytics, overlap, exposure) {
   return { strengths, weaknesses };
 }
 
+// Investment Operating System mission, Phase 2 — one synthesized sentence ahead of the report's
+// stat tiles and detail sections, so "what does this portfolio need" doesn't require reading
+// every card first ("show conclusions before numbers" / understand-in-under-30-seconds). Priority
+// order is the most actionable risk first, not just the first thing computed — concentration and
+// diversification are things you'd change your NEXT action for; missing categories are lower
+// urgency; a clean bill of health is only said when nothing above it fired.
+function bottomLine(analytics, missing) {
+  if (analytics.concentrationScore >= 40) {
+    return `The biggest thing to address first: concentration risk is elevated (${analytics.concentrationScore}/100) — your largest holding is ${analytics._internal.diversificationDetail.topHolding.toFixed(1)}% of the portfolio. Reducing existing positions matters more right now than adding new ones.`;
+  }
+  if (analytics.diversificationScore < 50) {
+    return `The biggest thing to address first: diversification is low (${analytics.diversificationScore}/100) across ${analytics.effectiveHoldings} effective holdings. Spreading across more categories or AMCs would do more for this portfolio than any single new position.`;
+  }
+  if (missing.length >= 4) {
+    return `This portfolio has no exposure at all to ${missing.length} category buckets (${missing.slice(0, 3).join(", ")}${missing.length > 3 ? ", …" : ""}) — worth reviewing before adding more to what you already hold.`;
+  }
+  if (analytics.healthScore != null && analytics.healthScore >= 70) {
+    return `No high-severity flags — health score ${analytics.healthScore}/100 with diversification (${analytics.diversificationScore}/100) and concentration (${analytics.concentrationScore}/100) both in a reasonable range.`;
+  }
+  return `Health score ${analytics.healthScore ?? "not available"}/100 — no single dominant risk detected, but no strong margin either. See the sections below for specifics.`;
+}
+
 // Phase D — assembles Phase A/B/C into one deterministic JSON object. No AI anywhere in this
 // file or anything it calls; every field traces to a real computed number.
 export function buildHealthReport(rawHoldings) {
@@ -91,6 +113,7 @@ export function buildHealthReport(rawHoldings) {
   const { strengths, weaknesses } = strengthsAndWeaknesses(analytics, overlap, exposure);
 
   return {
+    bottomLine: bottomLine(analytics, missing),
     portfolioSummary: {
       totalValue: analytics.totalValue,
       holdingsCount: analytics.holdingsCount,
