@@ -216,3 +216,33 @@ export function investorFit(f) {
 
   return fits;
 }
+
+// Recent Price Context (Final Productization sprint, Phase 2) — answers "what changed recently"
+// with the fund's own recent price behaviour: distance from its own recent high/low, and whether
+// short-term momentum is accelerating or fading relative to its own 30-day pace. Deliberately NOT
+// framed as "when to buy/wait": this app never gives market-timing advice or predicts what a fund
+// does next — every sentence describes what already happened, using fields already computed by
+// scripts/build_performance.py (mom7/mom30/mom90, recentHigh/recentLow, ddFromHigh), and the
+// disclaimer is not decorative — it is the whole reason this function exists in this shape rather
+// than as a "buy/wait" verdict.
+export function recentPriceContext(f) {
+  const notes = [];
+
+  if (f.ddFromHigh != null && f.recentHigh != null) {
+    if (f.ddFromHigh <= -10) notes.push(`Currently ${Math.abs(f.ddFromHigh).toFixed(1)}% below its own recent high (${f.recentHigh}) — a meaningful pullback from its own recent peak, not a comparison to any external benchmark or target.`);
+    else if (f.ddFromHigh >= -2) notes.push(`Currently within ${Math.abs(f.ddFromHigh).toFixed(1)}% of its own recent high (${f.recentHigh}).`);
+  }
+
+  if (f.mom7 != null && f.mom30 != null) {
+    if (f.mom7 > f.mom30 && f.mom7 > 0) notes.push(`Short-term momentum (${f.mom7 >= 0 ? "+" : ""}${f.mom7.toFixed(1)}% over the last week) is running ahead of its 30-day pace (${f.mom30 >= 0 ? "+" : ""}${f.mom30.toFixed(1)}%).`);
+    else if (f.mom7 < f.mom30 && f.mom7 < 0) notes.push(`Short-term momentum (${f.mom7.toFixed(1)}% over the last week) has weakened relative to its 30-day pace (${f.mom30 >= 0 ? "+" : ""}${f.mom30.toFixed(1)}%).`);
+  }
+
+  if (!notes.length) return { available: false, notes: [], summary: "No notable near-term price-level or momentum signal detected from current data.", disclaimer: null };
+  return {
+    available: true,
+    notes,
+    summary: notes.join(" "),
+    disclaimer: "Describes this fund's own recent price behaviour only — never a signal to buy or wait, and never a prediction of what happens next. A short-term pullback or momentum shift is not evidence of anything about the fund's quality; timing decisions should weigh your own goals and horizon, not recent price movements.",
+  };
+}

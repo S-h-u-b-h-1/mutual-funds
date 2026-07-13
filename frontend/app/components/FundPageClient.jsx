@@ -64,7 +64,7 @@ export default function FundPageClient({
   sharpe, sortino, riskStats, calReturns, rollReturns, comparisons, relatedNews,
   priority, attentionReasons, completeness, readiness, aRank, asOf,
   categoryAvgVol, categoryAvgDvol, categoryAvgMaxdd, categoryAvgConsistency,
-  thesis, strengthsWeak, fit, dna, quality, decisionSupport, newsInsights, similarPastEvents, report
+  thesis, strengthsWeak, fit, priceContext, dna, quality, decisionSupport, newsInsights, similarPastEvents, report
 }) {
   const [viewMode, setViewMode] = useState("workspace"); // "workspace" (tabbed) or "report" (scroll)
   const [activeTab, setActiveTab] = useState("identity"); // tabs: identity, performance, risk, research, news, compare
@@ -515,6 +515,21 @@ export default function FundPageClient({
                       </div>
                     ))}
                   </div>
+                </WorkspaceCard>
+              )}
+
+              {/* Recent Price Context (Final Productization sprint, Phase 2) — describes the
+                  fund's own recent price behaviour only. Never a buy/wait signal: this app does
+                  not give market-timing advice, and the disclaimer here is load-bearing, not
+                  decorative. */}
+              {priceContext?.available && (
+                <WorkspaceCard title="Recent Price Context" subtitle="What changed recently — not a signal to act on">
+                  <ul className="space-y-1.5">
+                    {priceContext.notes.map((note) => (
+                      <li key={note} className="text-[12.5px] text-ink-muted leading-relaxed">— {note}</li>
+                    ))}
+                  </ul>
+                  <p className="text-[11px] text-ink-faint mt-3 leading-relaxed">{priceContext.disclaimer}</p>
                 </WorkspaceCard>
               )}
 
