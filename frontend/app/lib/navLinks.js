@@ -19,9 +19,9 @@ export const PRIMARY_LINKS = [
 export const ALL_LINKS = NAV_GROUPS.flatMap((group) => group.links);
 
 export const MOBILE_PRIMARY_LINKS = [
-  ["Home", "/", "⌂"],
-  ["Search", "#search", "⌕"],
-  ["Markets", "/performance", "◫"],
-  ["Portfolio", "/portfolio", "◇"],
-  ["Workspace", "/dashboard", "▦"],
+  ["Pulse", "/", "pulse"],
+  ["Search", "#search", "search"],
+  ["Funds", "/funds", "funds"],
+  ["Portfolio", "/portfolio", "portfolio"],
+  ["Menu", "#menu", "menu"],
 ];
