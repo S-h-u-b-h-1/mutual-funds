@@ -96,6 +96,11 @@ export default function PortfolioWorkspace() {
   if (authStatus === "loading") return <div className="skeleton h-48" aria-label="Loading portfolio workspace" />;
   if (!session) return <section className="rounded-2xl border border-line bg-surface p-6 sm:p-8"><div className="eyebrow">Private workspace</div><h2 className="section-title mt-3">Sign in to import and analyze holdings.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-ink-muted">Portfolio records are user-scoped. MF Pulse does not accept holdings into an anonymous session.</p><a href="/login?callbackUrl=/portfolio" className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-accent px-5 text-sm font-semibold text-white">Sign in securely</a></section>;
 
+  // Computed once and reused by both Priority Actions and Rebalancing Suggestions below, rather
+  // than calling generateRebalanceActions() twice on the same report (Final Productization
+  // sprint, Phase 11 — no duplicated calculation).
+  const rebalanceActions = report ? generateRebalanceActions(report) : null;
+
   return <div className="space-y-8">
     <section className="rounded-2xl border border-line bg-surface p-5 sm:p-6"><div className="flex items-start gap-3"><input id="portfolio-consent" type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-1 h-5 w-5 rounded border-line text-accent" /><label htmlFor="portfolio-consent" className="text-sm leading-6 text-ink-muted"><b className="text-ink">I consent to processing these holdings for portfolio research.</b><br />Imported values are used to calculate portfolio evidence. This is not a suitability assessment or guaranteed recommendation.</label></div></section>
 
@@ -117,9 +122,13 @@ export default function PortfolioWorkspace() {
           (built in the prior mission's Phase 10 but never wired into a page until now), which
           itself only composes generateRebalanceActions()'s severity-ranked reduce/consolidate
           output — no new calculation. A ranked "do this first" list, distinct from the Bottom
-          Line's one-sentence synthesis above and the full Rebalancing Suggestions detail below. */}
+          Line's one-sentence synthesis above and the full Rebalancing Suggestions detail below.
+          rebalanceActions is computed once, just above the Rebalancing Suggestions section
+          further down, and reused here rather than calling generateRebalanceActions() a second
+          time on the same report (Final Productization sprint, Phase 11 — no duplicated
+          calculation). */}
       {(() => {
-        const advisorSummary = buildAdvisorSummary({ report, rebalance: generateRebalanceActions(report) });
+        const advisorSummary = buildAdvisorSummary({ report, rebalance: rebalanceActions });
         if (!advisorSummary?.priorityActions?.length) return null;
         return <section className="research-surface p-5">
           <div className="eyebrow">Priority actions</div>
@@ -158,7 +167,7 @@ export default function PortfolioWorkspace() {
       {/* Rebalancing Engine (Phase 7) — reduce/increase/consolidate/maintain, every action a
           direct threshold read from the already-computed report, never a new calculation. */}
       {(() => {
-        const rb = generateRebalanceActions(report);
+        const rb = rebalanceActions;
         if (!rb) return null;
         const Row = ({ a, tone }) => <div className="flex items-start justify-between gap-3 border-b border-line py-2.5 last:border-0 text-sm"><div className="min-w-0"><span className="font-medium text-ink">{a.target}</span><span className="ml-2 text-[10px] uppercase tracking-wide text-ink-faint">{a.targetType}</span>{a.why && <p className="mt-0.5 text-xs text-ink-muted">{a.why}</p>}</div><span className={`shrink-0 financial-number text-xs ${tone}`}>{a.currentWeightPct != null ? `${a.currentWeightPct.toFixed(1)}%` : ""}</span></div>;
         return <section className="research-surface p-5">
