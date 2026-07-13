@@ -6,6 +6,7 @@ import { generateRecommendations } from "../lib/portfolioIntelligence/recommenda
 import { generateRebalanceActions } from "../lib/portfolioIntelligence/rebalanceEngine";
 import { GOALS, planGoal } from "../lib/portfolioIntelligence/goalPlanning";
 import { buildTaxProfile } from "../lib/portfolioIntelligence/taxEngine";
+import { buildAdvisorSummary } from "../lib/reports/advisorSummary";
 
 const emptyEntry = () => ({ schemeName: "", isin: "", units: "", avgCost: "", purchaseValue: "", folioNumber: "" });
 const money = (value) => value == null ? "Not available" : new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
@@ -111,6 +112,21 @@ export default function PortfolioWorkspace() {
     {report && <section className="space-y-6" aria-label="Portfolio report">
 
       {report.bottomLine && <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5"><div className="eyebrow text-accent">Bottom line</div><p className="mt-2 text-sm leading-6 text-ink">{report.bottomLine}</p></div>}
+
+      {/* Priority Actions (Final Productization sprint, Phase 5) — reuses buildAdvisorSummary()
+          (built in the prior mission's Phase 10 but never wired into a page until now), which
+          itself only composes generateRebalanceActions()'s severity-ranked reduce/consolidate
+          output — no new calculation. A ranked "do this first" list, distinct from the Bottom
+          Line's one-sentence synthesis above and the full Rebalancing Suggestions detail below. */}
+      {(() => {
+        const advisorSummary = buildAdvisorSummary({ report, rebalance: generateRebalanceActions(report) });
+        if (!advisorSummary?.priorityActions?.length) return null;
+        return <section className="research-surface p-5">
+          <div className="eyebrow">Priority actions</div>
+          <p className="mt-1 text-xs text-ink-faint">Ranked by severity, drawn directly from the allocation evidence below — not a separate judgment call.</p>
+          <ol className="mt-4 space-y-2.5">{advisorSummary.priorityActions.map((a, i) => <li key={i} className="flex items-start gap-3 text-sm"><span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${a.priority === "high" ? "bg-neg/10 text-neg" : a.priority === "medium" ? "bg-warn/10 text-warn" : "bg-ink-faint/10 text-ink-faint"}`}>{a.priority}</span><span className="text-ink-muted">{a.detail}</span></li>)}</ol>
+        </section>;
+      })()}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[["Portfolio value",money(report.portfolioSummary.totalValue)],["Health score",report.portfolioSummary.healthScore == null ? "Incomplete" : `${report.portfolioSummary.healthScore}/100`],["Diversification",`${report.diversification.score}/100`],["Concentration",`${report.concentration.score}/100`]].map(([label,value]) => <div key={label} className="research-surface p-4"><div className="eyebrow">{label}</div><div className="financial-number mt-2 text-xl font-semibold text-ink">{value}</div></div>)}</div>
       <p className="text-xs text-ink-faint">{report.diversification.effectiveHoldings} effective holdings across {report.diversification.effectiveAmcs} effective AMCs and {report.diversification.effectiveCategories} effective categories · top holding {report.diversification.topHolding?.toFixed(1)}% · top 3 holdings {report.diversification.top3Holdings?.toFixed(1)}% of portfolio.</p>
