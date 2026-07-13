@@ -40,7 +40,7 @@ export function buildResearchReport(f, {
       betaAlphaCaveat: riskStats ? `Measured against ${riskStats.indexUsed} (price index, not the fund's official TRI benchmark) over ${riskStats.overlapDays} trading days.` : null,
     },
 
-    consistency: { rating: f.consistency, observedDays: f.quality?.obs ?? null },
+    consistency: { score: f.consistency, observedDays: f.quality?.obs ?? null },
 
     drawdown: { maxDrawdown90d: f.maxdd90, currentDrawdownFromHigh: f.ddFromHigh, negativeDays: f.negDays, observedDays: f.quality?.obs ?? null },
 

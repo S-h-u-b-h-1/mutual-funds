@@ -125,7 +125,11 @@ export default function CompareFundsClient({ initialFunds, allFundsList }) {
     const topCodes = Object.keys(wins).filter((code) => wins[code] === maxWins);
     const tied = topCodes.length > 1;
     const shareOfWins = maxWins / totalDims;
-    const confidence = tied ? "low" : shareOfWins >= 0.75 ? "high" : shareOfWins >= 0.5 ? "moderate" : "low";
+    // "high"/"medium"/"limited" — the same 3-tier vocabulary already established by
+    // decisionEngine.js's CONFIDENCE_LABEL and recommendationEngine.js's confidence field, not a
+    // fourth ad-hoc scale. Found and fixed during a terminology-consistency audit: this section
+    // originally used "moderate"/"low", a different vocabulary for the same concept.
+    const confidence = tied ? "limited" : shareOfWins >= 0.75 ? "high" : shareOfWins >= 0.5 ? "medium" : "limited";
     const leadFunds = topCodes.map((code) => activeFunds.find((fund) => fund.code === code)).filter(Boolean);
     const tradeoffs = comparisonReport.metricLeaders
       .filter((m) => !topCodes.includes(m.leader.schemeCode))
@@ -154,7 +158,7 @@ export default function CompareFundsClient({ initialFunds, allFundsList }) {
           </h2>
           <div className="mt-3 flex items-center gap-2 text-xs">
             <span className="text-ink-faint">Confidence:</span>
-            <span className={`rounded-full px-2.5 py-1 font-semibold ${overallRecommendation.confidence === "high" ? "bg-pos/10 text-pos" : overallRecommendation.confidence === "moderate" ? "bg-warn/10 text-warn" : "bg-ink-faint/10 text-ink-faint"}`}>{overallRecommendation.confidence}</span>
+            <span className={`rounded-full px-2.5 py-1 font-semibold ${overallRecommendation.confidence === "high" ? "bg-pos/10 text-pos" : overallRecommendation.confidence === "medium" ? "bg-warn/10 text-warn" : "bg-ink-faint/10 text-ink-faint"}`}>{overallRecommendation.confidence}</span>
             <span className="text-ink-faint">— {overallRecommendation.tied ? "no fund leads on a majority of dimensions; the right pick depends on which measure matters most to you." : overallRecommendation.confidence === "high" ? "wins are concentrated in one fund across most dimensions." : "wins are split — this is a genuine trade-off, not a clear-cut pick."}</span>
           </div>
           {overallRecommendation.tradeoffs.length > 0 && <div className="mt-4"><div className="text-xs font-semibold text-ink">Trade-offs to weigh</div><ul className="mt-2 space-y-1.5 text-xs text-ink-muted">{overallRecommendation.tradeoffs.map((line) => <li key={line}>— {line}</li>)}</ul></div>}
