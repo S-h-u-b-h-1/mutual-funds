@@ -82,14 +82,6 @@ export default function MobileNav({ active }) {
 
   return (
     <div className="xl:hidden">
-      <button ref={triggerRef} type="button" onClick={openMenu} aria-label="Open navigation" aria-expanded={open} aria-controls="mobile-navigation-drawer" className="group grid h-10 w-10 place-items-center rounded-2xl border border-line/80 bg-ink text-bg shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent hover:text-white">
-        <span aria-hidden="true" className="relative h-4 w-5">
-          <span className="absolute left-0 top-0 h-0.5 w-5 rounded-full bg-current transition group-hover:w-3" />
-          <span className="absolute right-0 top-1/2 h-0.5 w-4 -translate-y-1/2 rounded-full bg-current transition group-hover:w-5" />
-          <span className="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full bg-pos" />
-        </span>
-      </button>
-
       {mounted && createPortal(
         <>
           <nav className="mobile-dock fixed inset-x-3 bottom-3 z-[60] grid h-[70px] grid-cols-5 overflow-hidden rounded-[1.6rem] border border-line/80 bg-surface/95 px-1.5 py-1.5 shadow-float backdrop-blur-2xl xl:hidden" aria-label="Mobile primary navigation">
@@ -105,7 +97,7 @@ export default function MobileNav({ active }) {
               }
               if (href === "#menu") {
                 return (
-                  <button key={label} type="button" onClick={openMenu} aria-expanded={open} aria-controls="mobile-navigation-drawer" className="group relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.15rem] text-[10px] font-semibold text-ink-muted transition hover:bg-accent/10 hover:text-accent">
+                  <button key={label} ref={triggerRef} type="button" onClick={openMenu} aria-label="Open all navigation" aria-expanded={open} aria-controls="mobile-navigation-drawer" className="group relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.15rem] text-[10px] font-semibold text-ink-muted transition hover:bg-accent/10 hover:text-accent">
                     <DockIcon name={icon} />
                     <span>{label}</span>
                   </button>
@@ -144,7 +136,24 @@ export default function MobileNav({ active }) {
                     </div>
                   ))}
                 </div>
-                {status !== "loading" && <div className="border-t border-line/70 p-5 text-sm">{session ? <div className="flex items-center justify-between gap-3"><span className="truncate text-ink-muted">{session.user?.name || session.user?.email}</span><button type="button" onClick={() => signOut({ callbackUrl: "/" })} className="rounded-full bg-ink px-4 py-2 font-semibold text-bg">Sign out</button></div> : <a href="/login" className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-accent px-4 font-semibold text-white">Sign in to sync research</a>}</div>}
+                {status !== "loading" && (
+                  <div className="border-t border-line/70 p-5 text-sm">
+                    {session ? (
+                      <div className="grid gap-3">
+                        <a href="/profile" onClick={close} className="flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-line bg-surface-2 px-3 text-ink-muted">
+                          <span className="min-w-0">
+                            <span className="block text-xs font-semibold text-ink">Account profile</span>
+                            <span className="block truncate text-[11px] text-ink-faint">{session.user?.email || session.user?.name}</span>
+                          </span>
+                          <span aria-hidden="true">→</span>
+                        </a>
+                        <button type="button" onClick={() => signOut({ callbackUrl: "/" })} className="min-h-11 rounded-full bg-ink px-4 font-semibold text-bg">Sign out</button>
+                      </div>
+                    ) : (
+                      <a href="/login" className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-accent px-4 font-semibold text-white">Sign in to sync research</a>
+                    )}
+                  </div>
+                )}
               </section>
             </div>
           )}

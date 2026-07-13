@@ -4,6 +4,7 @@ import "./globals.css";
 import SentryInit from "./components/SentryInit";
 import PageView from "./components/PageView";
 import SyncPrompt from "./components/SyncPrompt";
+import AuthGate from "./components/AuthGate";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-research-sans", display: "swap" });
 const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-research-mono", display: "swap" });
@@ -38,7 +39,9 @@ export default function RootLayout({ children }) {
         <SessionProvider>
           <SentryInit />
           <PageView />
-          <div id="main-content" tabIndex={-1}>{children}</div>
+          <div id="main-content" tabIndex={-1}>
+            <AuthGate>{children}</AuthGate>
+          </div>
           <SyncPrompt />
         </SessionProvider>
       </body>
