@@ -387,5 +387,36 @@ export async function savePreferences(partial) {
   }
 }
 
+// ---------------------------------------------------------------- Research profile
+// Delegates local read/write to userProfile.js (it already owns the per-user storage-key
+// logic); this just adds the cloud leg on top, same fetch-then-fall-back-to-local shape as
+// every other resource in this file. saveResearchProfile() is the only path that should be
+// called from components going forward — it mirrors to both places in one call, same as
+// saveWatchlist()/savePreferences() above.
+export async function getResearchProfile() {
+  const user = await currentUser();
+  if (!user) return null;
+  try {
+    return await cloudFetch("/api/v1/sync/research-profile");
+  } catch {
+    const { getStoredProfile } = await import("./userProfile");
+    return getStoredProfile(user);
+  }
+}
+
+export async function saveResearchProfile(sessionUser, profile) {
+  const { saveStoredProfile } = await import("./userProfile");
+  const saved = saveStoredProfile(sessionUser, profile);
+  const user = await currentUser();
+  if (user) {
+    try {
+      await cloudFetch("/api/v1/sync/research-profile", { method: "PUT", body: JSON.stringify(profile) });
+    } catch {
+      /* local write above already covers this */
+    }
+  }
+  return saved;
+}
+
 // ---------------------------------------------------------------- Migration
 export { migrateLocalDataToCloud as migrateLocalToCloud } from "./migrateLocalData";

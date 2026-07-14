@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { DEFAULT_PROFILE, PROFILE_OPTIONS, getStoredProfile, optionLabel, saveStoredProfile } from "../lib/userProfile";
+import { DEFAULT_PROFILE, PROFILE_OPTIONS, getStoredProfile, optionLabel } from "../lib/userProfile";
+import { saveResearchProfile } from "../lib/cloudSync";
 
 const inputClass =
   "w-full rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-ink-faint shadow-sm transition focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/10";
@@ -46,14 +47,14 @@ export default function ProfileForm({ mode = "setup", callbackUrl = "/dashboard"
     setProfile((current) => ({ ...current, [key]: value }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     setError("");
     if (!profile.role || !profile.primaryGoal || !profile.experience || !profile.riskComfort || !profile.horizon) {
       setError("Complete every required profile field before continuing.");
       return;
     }
-    saveStoredProfile(session.user, profile);
+    await saveResearchProfile(session.user, profile);
     setSaved(true);
     if (mode === "setup") {
       router.push(callbackUrl || "/dashboard");
@@ -76,7 +77,7 @@ export default function ProfileForm({ mode = "setup", callbackUrl = "/dashboard"
           <div className="eyebrow text-accent">{mode === "setup" ? "Required setup" : "Account profile"}</div>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-ink">{mode === "setup" ? "Complete your investor context" : "Research preferences"}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">
-            These fields personalize the frontend workspace. They are stored on this device and do not change backend account schema.
+            These fields personalize the research workspace and are saved to your account, so they follow you across devices.
           </p>
         </div>
         <div className="rounded-2xl bg-surface-2 px-4 py-3 text-xs text-ink-muted">

@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { DEFAULT_PROFILE, PROFILE_OPTIONS, saveStoredProfile } from "../lib/userProfile";
+import { DEFAULT_PROFILE, PROFILE_OPTIONS } from "../lib/userProfile";
+import { saveResearchProfile } from "../lib/cloudSync";
 
 const inputClass =
   "w-full rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-ink-faint shadow-sm transition focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/10";
@@ -74,14 +75,18 @@ export default function RegisterPage() {
       return;
     }
 
-    saveStoredProfile({ email }, profile);
-
     const result = await signIn("credentials", { email, password, redirect: false });
-    setBusy(false);
     if (result?.error) {
+      setBusy(false);
       router.push(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
       return;
     }
+
+    // Signed in now, so this reaches the cloud save (not just the local fallback) — session
+    // must exist first, which is why this runs after signIn() resolves, not before it.
+    await saveResearchProfile({ email }, profile);
+
+    setBusy(false);
     router.push(callbackUrl);
     router.refresh();
   }
