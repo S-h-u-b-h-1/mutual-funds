@@ -389,10 +389,11 @@ export async function savePreferences(partial) {
 
 // ---------------------------------------------------------------- Research profile
 // Delegates local read/write to userProfile.js (it already owns the per-user storage-key
-// logic); this just adds the cloud leg on top, same fetch-then-fall-back-to-local shape as
-// every other resource in this file. saveResearchProfile() is the only path that should be
-// called from components going forward — it mirrors to both places in one call, same as
-// saveWatchlist()/savePreferences() above.
+// logic); this just adds the cloud leg on top. Unlike every other resource in this file,
+// saveResearchProfile() does NOT silently swallow a cloud failure into the same return shape
+// as success — a trust-first platform can't say "synced" when the server 500'd. It returns
+// { profile, syncState } where syncState is exactly one of 'synced' | 'local-only' | 'failed',
+// so the caller can render a state that matches what actually happened, never a guess.
 export async function getResearchProfile() {
   const user = await currentUser();
   if (!user) return null;
@@ -406,16 +407,27 @@ export async function getResearchProfile() {
 
 export async function saveResearchProfile(sessionUser, profile) {
   const { saveStoredProfile } = await import("./userProfile");
-  const saved = saveStoredProfile(sessionUser, profile);
-  const user = await currentUser();
-  if (user) {
-    try {
-      await cloudFetch("/api/v1/sync/research-profile", { method: "PUT", body: JSON.stringify(profile) });
-    } catch {
-      /* local write above already covers this */
-    }
+
+  let saved = null;
+  try {
+    saved = saveStoredProfile(sessionUser, profile);
+  } catch {
+    /* localStorage write itself failed (full/disabled) — saved stays null */
   }
-  return saved;
+
+  const user = await currentUser();
+  if (!user) {
+    // Logged out: pure-local is the actual, honest contract here (unchanged from every other
+    // resource in this file) — there is no cloud leg to have failed.
+    return { profile: saved, syncState: saved ? "local-only" : "failed" };
+  }
+
+  try {
+    const cloudProfile = await cloudFetch("/api/v1/sync/research-profile", { method: "PUT", body: JSON.stringify(profile) });
+    return { profile: cloudProfile ?? saved, syncState: "synced" };
+  } catch {
+    return { profile: saved, syncState: saved ? "local-only" : "failed" };
+  }
 }
 
 // ---------------------------------------------------------------- Migration

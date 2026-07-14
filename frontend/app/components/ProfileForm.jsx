@@ -30,11 +30,15 @@ function ChoiceGroup({ label, value, options, onChange }) {
   );
 }
 
+// saveState is one of: 'idle' | 'saving' | 'retrying' | 'synced' | 'local-only' | 'failed'.
+// Rendered literally in the UI below — never collapsed into a single generic "saved" message,
+// since 'synced' and 'local-only' mean genuinely different things to a user trusting this
+// platform with their data (see Production Activation Phase 3).
 export default function ProfileForm({ mode = "setup", callbackUrl = "/dashboard" }) {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [profile, setProfile] = useState({ ...DEFAULT_PROFILE });
-  const [saved, setSaved] = useState(false);
+  const [saveState, setSaveState] = useState("idle");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -43,20 +47,32 @@ export default function ProfileForm({ mode = "setup", callbackUrl = "/dashboard"
   }, [session]);
 
   function updateProfile(key, value) {
-    setSaved(false);
+    setSaveState("idle");
     setProfile((current) => ({ ...current, [key]: value }));
+  }
+
+  async function doSave({ isRetry = false } = {}) {
+    setError("");
+    setSaveState(isRetry ? "retrying" : "saving");
+    const { syncState } = await saveResearchProfile(session.user, profile);
+    setSaveState(syncState);
+    if (syncState === "failed") {
+      setError("Nothing saved — neither your device nor the server could store this. Check your connection and try again.");
+    }
+    return syncState;
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError("");
     if (!profile.role || !profile.primaryGoal || !profile.experience || !profile.riskComfort || !profile.horizon) {
       setError("Complete every required profile field before continuing.");
       return;
     }
-    await saveResearchProfile(session.user, profile);
-    setSaved(true);
-    if (mode === "setup") {
+    const syncState = await doSave();
+    if (mode === "setup" && syncState !== "failed") {
+      // Local or cloud succeeded — isProfileComplete() will read the local copy and let
+      // AuthGate through. If BOTH failed, staying on this page (not redirecting) is the
+      // honest outcome: redirecting would just bounce straight back here anyway.
       router.push(callbackUrl || "/dashboard");
       router.refresh();
     }
@@ -122,11 +138,32 @@ export default function ProfileForm({ mode = "setup", callbackUrl = "/dashboard"
       </div>
 
       {error && <p role="alert" className="mt-5 rounded-2xl border border-neg/25 bg-neg/10 px-4 py-3 text-sm text-neg">{error}</p>}
-      {saved && mode !== "setup" && <p role="status" className="mt-5 rounded-2xl border border-pos/25 bg-pos/10 px-4 py-3 text-sm text-pos">Profile saved.</p>}
+
+      {saveState === "synced" && (
+        <p role="status" className="mt-5 flex items-center gap-2 rounded-2xl border border-pos/25 bg-pos/10 px-4 py-3 text-sm text-pos">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-pos" aria-hidden="true" />
+          Profile synced — saved to your account and available on any device.
+        </p>
+      )}
+      {saveState === "local-only" && (
+        <div role="status" className="mt-5 rounded-2xl border border-warn/25 bg-warn/10 px-4 py-3 text-sm text-warn">
+          <p className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn" aria-hidden="true" />
+            Saved on this device — cloud sync unavailable. This won&rsquo;t follow you to another device yet.
+          </p>
+          <button type="button" onClick={() => doSave({ isRetry: true })} className="mt-2 inline-flex min-h-9 items-center rounded-full border border-warn/40 px-3 text-xs font-semibold text-warn hover:bg-warn/10">
+            Retry cloud sync
+          </button>
+        </div>
+      )}
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <button type="submit" className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-accent px-5 text-sm font-semibold text-white shadow-glow transition hover:bg-accent-soft">
-          {mode === "setup" ? "Save profile and enter workspace" : "Save profile"}
+        <button
+          type="submit"
+          disabled={saveState === "saving" || saveState === "retrying"}
+          className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-accent px-5 text-sm font-semibold text-white shadow-glow transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {saveState === "saving" ? "Saving…" : saveState === "retrying" ? "Retrying…" : mode === "setup" ? "Save profile and enter workspace" : "Save profile"}
         </button>
         {mode === "setup" && <a href="/" className="inline-flex min-h-12 items-center rounded-2xl px-4 text-sm font-semibold text-ink-muted hover:text-ink">Return to landing page</a>}
       </div>

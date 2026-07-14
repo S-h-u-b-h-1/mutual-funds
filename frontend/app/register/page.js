@@ -84,10 +84,14 @@ export default function RegisterPage() {
 
     // Signed in now, so this reaches the cloud save (not just the local fallback) — session
     // must exist first, which is why this runs after signIn() resolves, not before it.
-    await saveResearchProfile({ email }, profile);
-
+    const { syncState } = await saveResearchProfile({ email }, profile);
     setBusy(false);
-    router.push(callbackUrl);
+
+    // They're signed in either way (that request already succeeded above) — route based on
+    // whether there's an actual profile to work with. On complete failure (nothing saved
+    // anywhere), /profile/setup is where the real retry UI lives, so send them there instead of
+    // into the app, where AuthGate would just bounce them back with no explanation anyway.
+    router.push(syncState === "failed" ? "/profile/setup" : callbackUrl);
     router.refresh();
   }
 
