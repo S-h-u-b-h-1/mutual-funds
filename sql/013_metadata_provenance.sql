@@ -83,7 +83,9 @@ create table if not exists source_extractions (
   is_current                     boolean not null default true,   -- exactly one current=true, validated row per (scheme_code, field_name)
   limitations                    text                  -- free text caveat, e.g. "solo fund-manager line ambiguous — see SBI adapter comment"
 );
-create index if not exists ix_source_extractions_current on source_extractions (scheme_code, field_name) where is_current;
+-- UNIQUE, not just an index — enforces "exactly one current row per (scheme_code, field_name)"
+-- at the database level, matching the same fix applied to the Neon mirror (sql/neon/004).
+create unique index if not exists ux_source_extractions_current on source_extractions (scheme_code, field_name) where is_current;
 create index if not exists ix_source_extractions_scheme_field on source_extractions (scheme_code, field_name, extracted_at desc);
 create index if not exists ix_source_extractions_doc_version on source_extractions (source_document_version_id);
 

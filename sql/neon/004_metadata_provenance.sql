@@ -75,7 +75,11 @@ create table if not exists source_extractions (
   is_current                     boolean not null default true,
   limitations                    text
 );
-create index if not exists ix_source_extractions_current on source_extractions (scheme_code, field_name) where is_current;
+-- UNIQUE, not just an index: docs/METADATA_PROVENANCE_SCHEMA.md states "exactly one current=true
+-- row per (scheme_code, field_name)" as a design invariant. A plain index doesn't enforce that —
+-- only a unique constraint does. Added before this migration is ever applied (table is empty, so
+-- there's no risk of a pre-existing violation blocking the constraint from being created).
+create unique index if not exists ux_source_extractions_current on source_extractions (scheme_code, field_name) where is_current;
 create index if not exists ix_source_extractions_scheme_field on source_extractions (scheme_code, field_name, extracted_at desc);
 create index if not exists ix_source_extractions_doc_version on source_extractions (source_document_version_id);
 
