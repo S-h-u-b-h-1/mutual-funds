@@ -24,7 +24,7 @@ export default function Nav({ active }) {
   const freshness = market.tone === "pos" ? "current" : market.tone === "neg" ? "stale" : "delayed";
 
   return (
-    <NavChrome>
+    <NavChrome className="hidden sm:block">
       <div className="container-px pointer-events-auto">
         <div className="nav-surface grid min-h-[72px] grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2.5 sm:gap-4 sm:px-4">
           <Link href="/" className="group flex shrink-0 items-center gap-3 rounded-2xl px-1.5 py-1 transition hover:bg-surface-2/65" aria-label="MF Pulse home">
@@ -50,11 +50,11 @@ export default function Nav({ active }) {
                   href={href}
                   aria-label={label}
                   aria-current={isActive ? "page" : undefined}
-                  className={`nav-link group relative flex min-h-11 items-center gap-2 overflow-hidden rounded-[0.95rem] px-3 py-2 text-[12px] font-semibold tracking-[-0.01em] transition-spring ${isActive ? "text-ink" : "text-ink-muted hover:text-ink"}`}
+                  className={`nav-link group relative flex min-h-11 min-w-0 items-center gap-2 overflow-hidden rounded-[0.95rem] px-3 py-2 text-[12px] font-semibold tracking-[-0.01em] transition-spring ${isActive ? "text-ink" : "text-ink-muted hover:text-ink"}`}
                 >
                   <span className={`absolute inset-0 rounded-[0.95rem] transition-spring ${isActive ? "bg-surface shadow-[inset_0_0_0_1px_rgb(var(--color-border)/0.8),0_12px_30px_rgb(15_23_28/0.08)]" : "bg-transparent group-hover:bg-surface/80"}`} aria-hidden="true" />
-                  <span aria-hidden="true" className={`relative hidden rounded-md border px-1.5 py-0.5 font-mono text-[9px] tracking-normal xl:inline-flex ${isActive ? "border-accent/30 bg-accent/10 text-accent" : "border-line/70 text-ink-faint group-hover:border-line-strong"}`}>{DESK[label] || label.slice(0, 3).toUpperCase()}</span>
-                  <span className="relative">{label}</span>
+                  <span aria-hidden="true" className={`relative hidden shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-[9px] tracking-normal 2xl:inline-flex ${isActive ? "border-accent/30 bg-accent/10 text-accent" : "border-line/70 text-ink-faint group-hover:border-line-strong"}`}>{DESK[label] || label.slice(0, 3).toUpperCase()}</span>
+                  <span className="relative min-w-0 truncate">{label}</span>
                   <span className={`absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-accent transition-spring ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-45"}`} aria-hidden="true" />
                 </Link>
               );

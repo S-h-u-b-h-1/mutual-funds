@@ -84,7 +84,7 @@ export default function AuthStatus() {
           {initials}
           <span className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface ${syncMode === "cloud" ? "bg-pos" : "bg-warn"}`} />
         </span>
-        <span className="hidden text-ink-muted lg:inline">{syncMode === "cloud" ? "Synced" : "Local"}</span>
+        <span className="hidden text-ink-muted 2xl:inline">{syncMode === "cloud" ? "Synced" : "Local"}</span>
         <svg className="h-3.5 w-3.5 text-ink-faint" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

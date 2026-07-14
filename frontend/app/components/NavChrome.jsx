@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export default function NavChrome({ children }) {
+export default function NavChrome({ children, className = "" }) {
   const [condensed, setCondensed] = useState(false);
 
   useEffect(() => {
@@ -15,7 +15,7 @@ export default function NavChrome({ children }) {
   return (
     <header
       data-condensed={condensed ? "true" : "false"}
-      className="nav-shell sticky top-0 z-50 pointer-events-none px-0 pt-3 transition-all duration-300 ease-out"
+      className={`nav-shell sticky top-0 z-50 pointer-events-none px-0 pt-3 transition-all duration-300 ease-out ${className}`}
     >
       {children}
     </header>
