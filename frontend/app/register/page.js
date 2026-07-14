@@ -101,10 +101,10 @@ export default function RegisterPage() {
         <div className="eyebrow text-accent-soft">MF Pulse access</div>
         <h1 className="mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.06em] sm:text-5xl">Create your research profile.</h1>
         <p className="mt-5 text-sm leading-6 text-bg/72">
-          Signup now captures the context MF Pulse needs: who you are, what you research, your experience, risk comfort, and horizon. The backend account remains unchanged.
+          Signup captures the context MF Pulse needs to personalize your workspace: who you are, what you research, your experience, risk comfort, and horizon. Fund research itself never required an account — this unlocks your personal dashboard, portfolio tools, and saved analysis.
         </p>
         <div className="mt-8 grid gap-3 text-sm">
-          {["Unlock all research pages after sign in", "Keep navbar identity compact and clean", "Personalize portfolio and fund-fit surfaces"].map((item) => (
+          {["Unlock your personal dashboard and portfolio tools", "Keep navbar identity compact and clean", "Personalize portfolio and fund-fit surfaces"].map((item) => (
             <div key={item} className="flex items-center gap-3 rounded-2xl bg-white/[0.06] px-4 py-3">
               <span className="h-2 w-2 rounded-full bg-pos" aria-hidden="true" />
               <span>{item}</span>

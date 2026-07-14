@@ -60,7 +60,7 @@ function LoginForm() {
         <div className="eyebrow text-accent-soft">Secure workspace</div>
         <h1 className="mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.06em] sm:text-5xl">Welcome back to MF Pulse.</h1>
         <p className="mt-5 text-sm leading-6 text-bg/72">
-          Sign in to unlock the research terminal, portfolio workspace, fund reports, news impact views, and saved analysis.
+          Sign in to unlock your personal dashboard, portfolio workspace, and saved analysis. Fund research, comparisons, and market news are already open — no account required.
         </p>
         <div className="mt-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
           {[

@@ -7,6 +7,28 @@ import { getStoredProfile, isProfileComplete } from "../lib/userProfile";
 
 const AUTH_PAGES = new Set(["/login", "/register", "/forgot-password", "/reset-password"]);
 
+// Production Activation Phase 6: public mutual-fund RESEARCH must never require an account to
+// read — that directly contradicted this platform's own trust/transparency mission (a retail
+// investor, journalist, or advisor has to be able to verify a number without signing up first).
+// Everything below is read-only research content with no personal state of its own. What stays
+// gated is exactly the personal surfaces: dashboard, portfolio, profile, and any save/sync
+// action within an otherwise-public page (those already degrade to a local-only save when
+// signed out — see cloudSync.js — never a hard failure).
+//
+// /advisor is a judgment call: today it's a "talk to an advisor" contact/lead form, not an
+// account-tied flow, so it's kept public rather than gated — revisit if it grows into something
+// that reads or writes personal account data.
+const PUBLIC_PATH_PREFIXES = [
+  "/funds", "/fund/", "/amc/", "/categories", "/benchmark/", "/manager/",
+  "/news", "/methodology", "/data-status", "/data-quality", "/status",
+  "/performance", "/brief", "/market-map", "/signals", "/discover",
+  "/research", "/compare", "/about", "/advisor",
+];
+
+function isPublicResearchPath(pathname) {
+  return PUBLIC_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
 function currentTarget(pathname) {
   if (typeof window === "undefined") return pathname || "/";
   return `${pathname || "/"}${window.location.search || ""}${window.location.hash || ""}`;
@@ -37,7 +59,7 @@ export default function AuthGate({ children }) {
   const isLanding = pathname === "/";
   const isAuthPage = AUTH_PAGES.has(pathname);
   const isSetupPage = pathname === "/profile/setup";
-  const isPublic = isLanding || isAuthPage;
+  const isPublic = isLanding || isAuthPage || isPublicResearchPath(pathname);
   const target = useMemo(() => currentTarget(pathname), [pathname]);
 
   useEffect(() => {
@@ -83,7 +105,7 @@ export default function AuthGate({ children }) {
     return (
       <GateShell
         title="Sign in required"
-        detail="The research terminal, fund pages, portfolio tools, news impact views, and dashboards are available after sign in."
+        detail="Your personal dashboard, portfolio tools, and saved research need an account. Fund research, comparisons, and market news are open to everyone — no sign-in needed."
         action={<a href={`/login?callbackUrl=${encodeURIComponent(target)}`} className="mt-6 inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-semibold text-white">Sign in to continue</a>}
       />
     );

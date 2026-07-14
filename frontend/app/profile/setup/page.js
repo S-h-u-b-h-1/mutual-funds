@@ -17,8 +17,8 @@ export default function ProfileSetupPage({ searchParams }) {
       <main className="container-px mx-auto max-w-5xl py-10">
         <section className="mb-7 rounded-[2rem] border border-line bg-ink p-7 text-bg shadow-float">
           <div className="eyebrow text-accent-soft">One-time setup</div>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">Complete your profile to unlock MF Pulse.</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-bg/70">The landing page remains public. The research terminal, fund pages, portfolio tools, compare, news, and status pages require sign in plus profile completion.</p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">Complete your profile to unlock your workspace.</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-bg/70">Fund research, comparisons, and market news are open to everyone. Your personal dashboard, portfolio tools, and saved research need this one-time profile first.</p>
         </section>
         <Suspense fallback={null}>
           <SetupContent searchParams={searchParams} />
