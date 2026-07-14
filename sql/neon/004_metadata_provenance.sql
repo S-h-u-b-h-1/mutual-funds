@@ -132,5 +132,25 @@ join source_documents sd on sd.id = sdv.source_document_id
 join parser_versions pv on pv.id = se.parser_version_id
 order by se.scheme_code, se.field_name, se.extracted_at desc;
 
+-- fact_factsheet_runs exists on Supabase (sql/005_factsheet_runs.sql) but was never mirrored to
+-- Neon -- caught by actually dry-running this migration on a Neon temp branch (the "alter table"
+-- below failed with "relation does not exist"), not by static review. Mirrored here exactly
+-- (same columns/types as the Supabase original) before extending it, so both databases carry the
+-- same shape going forward -- same reasoning as factsheet_archive/fund_history_events already
+-- being dual-written. No RLS, consistent with this file's own convention (see header comment).
+create table if not exists fact_factsheet_runs (
+  run_id            bigserial primary key,
+  amc               text not null,
+  as_of_date        date,
+  status            text not null,
+  schemes_found     int default 0,
+  schemes_populated int default 0,
+  problems          jsonb,
+  source_url        text,
+  started_at        timestamptz not null default now(),
+  finished_at       timestamptz
+);
+create index if not exists ix_factsheet_runs_amc on fact_factsheet_runs (amc, started_at desc);
+
 alter table fact_factsheet_runs add column if not exists document_type text;
 alter table fact_factsheet_runs add column if not exists parser_version_id bigint references parser_versions(id);
