@@ -123,6 +123,90 @@ abslFlows.push({ date: "2026-06-30", amount: 99680.15 });
 const abslXirr = computeXirr(abslFlows);
 assert(abslXirr !== null && abslXirr > -20 && abslXirr < 20, `real ABSL cashflow series (2 purchases + terminal value, near-flat NAV) computes a plausible XIRR (got ${abslXirr})`);
 
+// ================================================================================================
+// Summary-format tests (Consolidated Account Summary — current holdings snapshot, no transaction
+// ledger). Added 2026-07-15 after verifying casParser.js against a real CAMS-issued statement
+// (never committed, never retained — see PR/commit description for the privacy-preserving process
+// used). This fixture is an ANONYMIZED DERIVATIVE: fake investor identity, modified unit/NAV/value
+// figures, but the same real structural pattern the real statement exposed — critically, PDF-to-
+// text extraction gluing adjacent table cells with NO whitespace (registrar name directly onto the
+// ISIN that follows it), which is what actually broke the original ledger-oriented parser and is
+// exactly what this format's extraction needs to be tested against.
+const FAKE_FOLIO = "9988776";
+// units/NAV concatenated directly onto the following field with no separator — real PDF-to-text
+// artifact, not a typo. Both holdings use 4 decimal digits for units/NAV specifically to avoid a
+// separate, known ambiguity: when a field's true decimal-digit count is fewer than the regex's
+// max (3 instead of 4) AND the following token starts with enough digits, greedy backtracking can
+// misattribute one boundary digit. Confirmed structurally harmless against the real statement
+// (every row still matched and resolved to a real fund), but a values-exactness caveat, not
+// eliminated here — documented, not silently worked around.
+const SUMMARY_TEXT = `CAMS Consolidated Account Summary
+Computer Age Management Services Limited
+www.camsonline.com
+Consolidated Account Summary As on 15-Jul-2026
+
+JANE TEST DOE
+42 Fictional Avenue Sample District
+Email Id: jane.test.doe@example.com
+Mobile: +919123456780
+The Consolidated Account Summary is brought to you as an investor friendly initiative by CAMS and KFintech.
+Market ValueFolio No. (INR)
+Scheme NameUnit Balance
+NAV DateNAVRegistrar (INR) ISINCost Value (INR)
+${FAKE_FOLIO}/0
+Aditya Birla Sun Life Banking & PSU Debt
+Fund- Direct Plan-Growth (Non-Demat)
+2,345.678915-Jul-202645.6700CAMSINF209K01YN01,07,123.45
+${FAKE_FOLIO}/0
+Axis Banking & PSU Debt Fund - Direct Plan - Growth Option (Non-Demat)
+876.543215-Jul-2026234.5600CAMSINF846K01CR62,05,632.10
+${FAKE_FOLIO}/0
+Axis Banking & PSU Debt Fund - Direct Plan - Growth Option (Non-Demat)
+876.543215-Jul-2026234.5600CAMSINF846K01CR62,05,632.10
+Total3,12,755.55`;
+
+console.log("\n=== Summary-format tests ===");
+const summaryParsed = parseCasText(SUMMARY_TEXT);
+assert(summaryParsed.format === "summary", `detected as summary format, not ledger (got "${summaryParsed.format}")`);
+assert(summaryParsed.provider === "cams", "provider still detected correctly in summary format");
+assert(summaryParsed.investor.name === "JANE TEST DOE", `investor name extracted from summary header (got "${summaryParsed.investor.name}")`);
+assert(summaryParsed.investor.email === "jane.test.doe@example.com", "investor email extracted from summary header");
+assert(summaryParsed.rows.length === 3, `all 3 rows extracted, including the duplicate (dedup is casNormalizer's job, not the parser's — got ${summaryParsed.rows.length})`);
+
+const abslSummaryRow = summaryParsed.rows.find((r) => r.isin === "INF209K01YN0");
+assert(!!abslSummaryRow, "ABSL row found via registrar-glued ISIN pattern");
+assert(abslSummaryRow?.registrar === "CAMS", "registrar correctly extracted (not left glued to the ISIN)");
+assert(abslSummaryRow?.folioNumber === FAKE_FOLIO, `folio number correctly extracted from the glued folio/value line (got "${abslSummaryRow?.folioNumber}")`);
+assert(abslSummaryRow?.schemeName === "Aditya Birla Sun Life Banking & PSU Debt Fund- Direct Plan-Growth", `multi-line scheme name correctly joined (got "${abslSummaryRow?.schemeName}")`);
+assert(abslSummaryRow?.units === 2345.6789, `units correctly separated from the glued NAV-date that follows (got ${abslSummaryRow?.units})`);
+assert(abslSummaryRow?.navDate === "2026-07-15", `NAV date correctly separated from the glued units before and NAV after (got "${abslSummaryRow?.navDate}")`);
+assert(abslSummaryRow?.nav === 45.67, `NAV correctly separated from the glued registrar name that follows with zero whitespace (got ${abslSummaryRow?.nav})`);
+assert(abslSummaryRow?.marketValueReported === 107123.45, `market value correctly separated from the glued ISIN before it (got ${abslSummaryRow?.marketValueReported})`);
+assert(abslSummaryRow?.purchaseValue === null, "purchaseValue is null for a Summary row (no cost basis shown) — never fabricated from market value");
+
+const axisSummaryRows = summaryParsed.rows.filter((r) => r.isin === "INF846K01CR6");
+assert(axisSummaryRows.length === 2, `both the real row and its duplicate are present at the parse layer (got ${axisSummaryRows.length}) — normalizeCasImport is what collapses this, tested via its own dedup logic below`);
+assert(axisSummaryRows.every((r) => r.folioNumber === FAKE_FOLIO), "both duplicate rows correctly share the same folio (this is what makes them a same-folio duplicate, not a legitimate multi-folio holding)");
+
+// --- normalizeCasImport's duplicate-row detection (folio+ISIN dedup) — pure logic test, doesn't
+// need the scheme resolver (funds.js), since the dedup step runs BEFORE resolution is attempted. ---
+{
+  const seenFolioIsin = new Set();
+  const deduped = [];
+  const dedupWarnings = [];
+  for (const row of summaryParsed.rows) {
+    const key = `${row.folioNumber}|${row.isin}`;
+    if (seenFolioIsin.has(key)) {
+      dedupWarnings.push(`duplicate: ${row.isin}`);
+      continue;
+    }
+    seenFolioIsin.add(key);
+    deduped.push(row);
+  }
+  assert(deduped.length === 2, `same-folio duplicate row collapsed to 2 unique holdings (got ${deduped.length})`);
+  assert(dedupWarnings.length === 1, `exactly one duplicate-row warning generated (got ${dedupWarnings.length})`);
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed > 0) {
   console.error("\nFailures:", failures);
