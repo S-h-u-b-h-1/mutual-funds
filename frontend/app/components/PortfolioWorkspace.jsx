@@ -503,7 +503,7 @@ export default function PortfolioWorkspace() {
               <MetricCard label="Portfolio Rating" value={dashboard.rating} tone={scoreTone(report?.portfolioSummary?.healthScore)} detail={report?.portfolioSummary?.healthScore == null ? "Run analysis to rate" : `Health score ${report.portfolioSummary.healthScore}/100`} />
               <MetricCard label="Diversification Score" value={dashboard.diversification == null ? "Not available" : `${dashboard.diversification}/100`} tone={scoreTone(dashboard.diversification)} detail={report?.diversification ? `${number(report.diversification.effectiveHoldings)} effective holdings` : "Pending analysis"} />
               <MetricCard label="Risk Score" value={dashboard.riskScore == null ? "Not available" : `${dashboard.riskScore}/100`} tone={dashboard.riskScore >= 40 ? "text-neg" : dashboard.riskScore >= 20 ? "text-warn" : "text-pos"} detail="Existing concentration-risk score" />
-              <MetricCard label="Last Updated" value={latestHistory ? new Date(latestHistory.uploadedAt).toLocaleDateString("en-IN") : "Not recorded"} detail={latestHistory?.fileName || "No upload history yet"} />
+              <MetricCard label="Last Updated" value={latestHistory ? new Date(latestHistory.uploadedAt).toLocaleDateString("en-IN") : "Not recorded"} detail={latestHistory ? `${latestHistory.imported ?? holdings.length} holdings imported` : "No upload history yet"} />
             </div>
 
             {report?.bottomLine && (
