@@ -176,7 +176,6 @@ function UploadStages({ activeIndex, complete, error }) {
 
 export default function PortfolioWorkspace() {
   const { data: session, status: authStatus } = useSession();
-  const [consent, setConsent] = useState(false);
   const [statementType, setStatementType] = useState(STATEMENT_TYPES[0].key);
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState("");
@@ -297,7 +296,6 @@ export default function PortfolioWorkspace() {
     setError("");
     setMessage("");
     setComplete(false);
-    if (!consent) { setError("Confirm consent before processing a portfolio statement."); return; }
     if (!file) { setError("Upload a CAMS, KFIN, or MF Central PDF statement first."); return; }
 
     setBusy(true);
@@ -406,9 +404,12 @@ export default function PortfolioWorkspace() {
       {view === "import" && (
         <section className="grid gap-5 lg:grid-cols-[1fr_360px]">
           <div className="rounded-[2rem] border border-line bg-surface p-5 shadow-float sm:p-6">
-            <div className="flex items-start gap-3 rounded-2xl border border-line bg-surface-2 p-4">
-              <input id="portfolio-consent" type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-1 h-5 w-5 rounded border-line text-accent" />
-              <label htmlFor="portfolio-consent" className="text-sm leading-6 text-ink-muted"><b className="text-ink">I consent to processing this portfolio statement for research.</b><br />Imported values are used to calculate portfolio evidence. This is not a suitability assessment or guaranteed recommendation.</label>
+            <div className="rounded-2xl border border-accent/20 bg-accent/10 p-4">
+              <div className="eyebrow text-accent">Secure processing notice</div>
+              <p className="mt-2 text-sm leading-6 text-ink-muted">
+                Click <b className="text-ink">Process statement</b> after selecting a PDF to extract holdings for your private portfolio workspace.
+                Imported values are used only for portfolio evidence and are not a suitability assessment or guaranteed recommendation.
+              </p>
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -442,7 +443,7 @@ export default function PortfolioWorkspace() {
                   <div className="mt-2 truncate text-sm font-semibold text-ink">{file.name}</div>
                   <div className="mt-1 text-xs text-ink-faint">{(file.size / 1024 / 1024).toFixed(2)} MB · PDF preview ready</div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <button type="button" onClick={processStatement} disabled={busy || !consent} className="inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{busy ? "Processing…" : "Process statement"}</button>
+                    <button type="button" onClick={processStatement} disabled={busy} className="inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-glow disabled:cursor-not-allowed disabled:opacity-50">{busy ? "Processing…" : "Process statement"}</button>
                     <button type="button" onClick={() => selectFile(null)} disabled={busy} className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm font-semibold text-ink-muted hover:text-ink disabled:opacity-50">Remove</button>
                   </div>
                 </div>
