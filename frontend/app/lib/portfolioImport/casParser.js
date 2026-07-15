@@ -69,7 +69,7 @@ function extractInvestor(text) {
   const nameLine = [...headerText.split("\n")]
     .map((l) => l.trim())
     .reverse()
-    .find((l) => l.length > 3 && l.length < 80 && /^[A-Za-z][A-Za-z .]+$/.test(l) && !/email|pan|mobile|statement|account|consolidated|registrar|summary|computer age|management services|kfin technologies|karvy|mf\s*central/i.test(l));
+    .find((l) => l.length > 3 && l.length < 80 && /^[A-Za-z][A-Za-z .]+$/.test(l) && !isColumnHeaderLine(l) && !/email|pan|mobile|statement|account|consolidated|registrar|summary|computer age|management services|kfin technologies|karvy|mf\s*central/i.test(l));
   return { name: nameLine || null, email, mobile, pan };
 }
 
@@ -149,10 +149,136 @@ function extractClosingBalance(blockText) {
   };
 }
 
+// --------------------------------------------------------------------------------------------
+// Summary-format extraction — for a Consolidated Account SUMMARY (current holdings snapshot: no
+// transaction ledger, just units/NAV/value per scheme), as distinct from the fuller transaction-
+// history CAS the functions above target. Added after finding, against a real sample, that
+// PDF-to-text extraction glues visually-adjacent table cells together with NO separating
+// whitespace — including the registrar name directly onto the ISIN that follows it (e.g.
+// "CAMSINF209KA1WO4"), which is why a word-boundary-anchored ISIN search finds nothing in this
+// format. Field boundaries in the glued numeric run are recovered using each field's STANDARD
+// precision, not guessed: unit balances are conventionally shown to 3-4 decimals, NAV to 4, and
+// currency amounts to 2 — anchoring on the literal "-Mon-" in the NAV date and on these decimal
+// widths is what makes an otherwise-ambiguous run of digits parseable.
+const REGISTRAR_NAMES = "CAMS|KFINTECH";
+// NAV decimal precision found to vary between 3 and 4 digits within the same real statement
+// (found via digit-run-length-only diagnostics, no content inspected) — not always the
+// AMFI-standard 4, so this can't be hardcoded to exactly 4 without silently dropping real rows.
+const SUMMARY_ROW_RE = new RegExp(
+  `([\\d,]+\\.\\d{3,4})(\\d{1,2}-[A-Za-z]{3}-\\d{4})([\\d,]+\\.\\d{3,4})(${REGISTRAR_NAMES})([A-Z]{2}[A-Z0-9]{10})([\\d,]+\\.\\d{2})`,
+  "g"
+);
+// A folio-and-value line, per the observed header order "Market Value | Folio No.": mostly digits
+// and punctuation, with a "/" marking the folio's own sub-account suffix (e.g. "1234567/0") — the
+// one part of this glued line that's unambiguous, since it's the only "/"-delimited digit token.
+const FOLIO_TOKEN_RE = /(\d{5,10})\s*\/\s*\d+/;
+const MOSTLY_NUMERIC_LINE_RE = /^[\d,./\s-]+$/;
+// A table's own column-header row, glued the same way data rows are (e.g. "NAV DateNAVRegistrar
+// (INR) ISINCost Value (INR)") — checked as plain substrings on whitespace-stripped text, not a
+// \b-bounded regex, because the glued words themselves have no internal word boundary for \b to
+// anchor on (found via a test fixture where a compact header sat close enough to the first
+// holding to fall inside the scheme-name lookback window). Deliberately excludes a bare "nav" —
+// real AMCs exist whose name starts with those letters (e.g. Navi Mutual Fund) — the remaining,
+// more distinctive keywords are enough to reach the 2-match threshold on an actual header line
+// without risking a false positive on a real scheme name.
+const COLUMN_HEADER_KEYWORDS = ["navdate", "unitbalance", "marketvalue", "costvalue", "schemename", "foliono", "registrar", "isin"];
+function isColumnHeaderLine(line) {
+  const compact = line.toLowerCase().replace(/[\s()]/g, "");
+  return COLUMN_HEADER_KEYWORDS.filter((kw) => compact.includes(kw)).length >= 2;
+}
+
+// Hard privacy guard, not just a quality check: found live (2026-07-15) that a boundary bug
+// could pull the document's own investor-identity header into this field. Even with that bug
+// fixed, this stays as defense in depth — anything that resolves to a "scheme name" containing an
+// identity marker is rejected outright (never returned, never logged) rather than trusted, since
+// a scheme name is fund data, not personal data, and should never contain either.
+const IDENTITY_MARKER_RE = /@|\bmobile\b|\bemail\b|\bpan\s*:|\baddress\b|\bfolio\s*no\b/i;
+
+function cleanSchemeNameLines(lines) {
+  const joined = lines
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .filter((l) => !MOSTLY_NUMERIC_LINE_RE.test(l))
+    .filter((l) => !isColumnHeaderLine(l))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .replace(/\(\s*Non\s*-?\s*Demat\s*\)?\s*$/i, "(Non-Demat)") // rejoin a "(Non" / "Demat)" split across two lines
+    .replace(/\(Non-Demat\)\s*$/i, "")
+    .trim();
+  if (!joined || joined.length > 150 || IDENTITY_MARKER_RE.test(joined)) return null;
+  return joined;
+}
+
+function extractSummaryHoldings(text) {
+  const rows = [];
+  const lines = text.split("\n");
+  // Map each line's index to its starting character offset, so a regex match's character
+  // position can be resolved back to "which line is this on" and "what came before it".
+  const lineOffsets = [];
+  let offset = 0;
+  for (const l of lines) {
+    lineOffsets.push(offset);
+    offset += l.length + 1;
+  }
+  const lineIndexAt = (pos) => {
+    let lo = 0, hi = lineOffsets.length - 1;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      if (lineOffsets[mid] <= pos) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo;
+  };
+
+  const matches = [...text.matchAll(SUMMARY_ROW_RE)];
+  let searchFrom = 0;
+  for (const m of matches) {
+    const [, units, navDate, nav, registrar, isin, marketValue] = m;
+
+    // Precise CHARACTER-offset slice between the previous match's end and this match's start —
+    // not a line-index slice. Line-index slicing was the actual bug (found via numeric-only
+    // tracing, no content involved): rounding a character position down to "which line contains
+    // it" and slicing from there re-includes the WHOLE of that line, including the previous
+    // match's own text if the previous match doesn't end exactly at a line boundary — which is
+    // exactly what happened, and is how investor-header text (for the first match) and prior
+    // holdings' own glued data (for later matches) ended up misidentified as a "scheme name".
+    // Bounded to the last few non-empty lines of that gap, not the whole gap, so a large distance
+    // (e.g. the document header before the very first match) can never be swept in wholesale.
+    const gapText = text.slice(searchFrom, m.index);
+    const gapLines = gapText.split("\n").map((l) => l.trim()).filter(Boolean);
+    const candidateLines = gapLines.slice(-4); // scheme names wrap at most ~2 lines in practice; 4 is generous headroom, not "the whole gap"
+    const folioMatch = candidateLines.join(" ").match(FOLIO_TOKEN_RE);
+    const schemeName = cleanSchemeNameLines(candidateLines);
+
+    if (!schemeName) {
+      rows._warnings ||= [];
+      rows._warnings.push(`Could not extract a scheme name for ISIN ${isin} — this holding was skipped.`);
+    } else {
+      rows.push({
+        schemeName,
+        isin,
+        folioNumber: folioMatch ? folioMatch[1] : null,
+        units: parseFlexibleNumber(units),
+        navDate: parseFlexibleDate(navDate),
+        nav: parseFlexibleNumber(nav),
+        registrar: registrar.toUpperCase(),
+        purchaseValue: null, // a Summary shows current market value, never cost basis — never fabricated
+        marketValueReported: parseFlexibleNumber(marketValue),
+      });
+    }
+    searchFrom = m.index + m[0].length;
+  }
+  return rows;
+}
+
 /**
  * Parses raw CAS text (already extracted from an unlocked PDF — see casPdf.js) into holdings +
  * transaction history + investor identity. Never guesses a value it can't find: a block missing
- * a required field is skipped with a warning, not filled in with a placeholder.
+ * a required field is skipped with a warning, not filled in with a placeholder. Tries the
+ * transaction-ledger format first (full CAS with purchase/redemption history); if that finds
+ * nothing, falls back to the Consolidated Account Summary format (current-holdings snapshot) —
+ * see extractSummaryHoldings's own comment for why these need genuinely different extraction, not
+ * one shared regex.
  * @returns {{ investor: object, provider: string|null, rows: object[], transactions: object[], warnings: string[] }}
  */
 export function parseCasText(text) {
@@ -162,10 +288,6 @@ export function parseCasText(text) {
   const rows = [];
   const allTransactions = [];
   const warnings = [];
-
-  if (blocks.length === 0) {
-    warnings.push("No folio/scheme sections could be identified in this statement — it may not be a supported CAS format, or PDF text extraction lost the document's structure.");
-  }
 
   for (const block of blocks) {
     const schemeName = extractSchemeName(block.text);
@@ -197,5 +319,14 @@ export function parseCasText(text) {
     allTransactions.push(...transactions);
   }
 
-  return { investor, provider, rows, transactions: allTransactions, warnings };
+  if (rows.length === 0) {
+    const summaryRows = extractSummaryHoldings(text);
+    if (summaryRows._warnings) warnings.push(...summaryRows._warnings);
+    if (summaryRows.length > 0) {
+      return { investor, provider, rows: summaryRows, transactions: [], warnings, format: "summary" };
+    }
+    warnings.push("No folio/scheme sections could be identified in this statement in either the transaction-ledger or summary format — it may not be a supported CAS layout, or PDF text extraction lost the document's structure.");
+  }
+
+  return { investor, provider, rows, transactions: allTransactions, warnings, format: rows.length ? "ledger" : "none" };
 }

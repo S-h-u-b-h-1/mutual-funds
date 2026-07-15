@@ -21,9 +21,28 @@ const ACCEPTABLE_STATUSES = new Set(["confirmed", "high_confidence"]);
 export function normalizeCasImport(parsed) {
   const holdings = [];
   const errors = [];
+  const warnings = [...parsed.warnings];
   const resolvedByFolioIsin = new Map(); // "folio|isin" -> schemeCode, so transactions can reuse the same resolution as their holding row without re-running the resolver
 
+  // Same ISIN + same folio appearing twice within ONE statement is a genuine, real case (not a
+  // parser artifact — found live against a real CAS: a Consolidated Account Summary shows one
+  // CLOSING balance per scheme+folio, so two rows sharing both can only be a duplicate line the
+  // registrar's own export produced). Distinct from "same fund, different folios" (each folio's
+  // row is kept, per Phase 4's own instruction) — this narrower key is folio+ISIN together, so
+  // that legitimate multi-folio holdings are never touched by this check.
+  const seenFolioIsin = new Set();
+  const rows = [];
   for (const row of parsed.rows) {
+    const key = `${row.folioNumber}|${row.isin}`;
+    if (seenFolioIsin.has(key)) {
+      warnings.push(`"${row.schemeName}" appears more than once under the same folio in this statement — the repeat was excluded rather than double-counted. If this fund is genuinely held via more than one folio, each folio's row is kept separately; this specifically means the SAME folio listed the SAME scheme twice.`);
+      continue;
+    }
+    seenFolioIsin.add(key);
+    rows.push(row);
+  }
+
+  for (const row of rows) {
     const resolution = resolveSchemeIdentity({ schemeName: row.schemeName, isin: row.isin });
 
     if (!ACCEPTABLE_STATUSES.has(resolution.status)) {
@@ -68,7 +87,6 @@ export function normalizeCasImport(parsed) {
   }
 
   const transactions = [];
-  const txnWarnings = [...parsed.warnings];
   for (const t of parsed.transactions) {
     const schemeCode = resolvedByFolioIsin.get(`${t.folioNumber}|${t.isin}`);
     if (!schemeCode) continue; // belongs to a holding that failed resolution above — already reported as an error there, not duplicated here
@@ -83,7 +101,7 @@ export function normalizeCasImport(parsed) {
     });
   }
 
-  return { holdings: computeWeights(holdings), errors, transactions, warnings: txnWarnings };
+  return { holdings: computeWeights(holdings), errors, transactions, warnings };
 }
 
 // Purchases/switch-ins are outflows (money leaving the investor); redemptions/switch-outs/
