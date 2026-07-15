@@ -21,7 +21,7 @@ const WORKSPACE_SHORTCUTS = [
   { label: "Go to Performance Leaderboards", path: "/performance", key: "/performance" }
 ];
 
-export default function Search({ listenForOpenRequest = false, triggerClassName = "flex" }) {
+export default function Search({ listenForOpenRequest = false, triggerClassName = "inline-flex", compact = true }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
@@ -261,16 +261,16 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
         ref={triggerRef}
         type="button"
         onClick={openPalette}
-        className={`${triggerClassName} w-full items-center justify-between rounded-xl border border-line-strong bg-surface py-2.5 pl-3.5 pr-3 text-left text-[12.5px] text-ink-muted shadow-sm transition-all hover:border-accent/30 hover:bg-surface-2 focus:outline-none focus:ring-2 focus:ring-accent/40`}
+        className={`${triggerClassName} items-center justify-between rounded-full border border-line/80 bg-surface px-3 py-2 text-left text-[12.5px] font-semibold text-ink-muted shadow-sm transition-all hover:border-accent/30 hover:bg-surface-2 hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent/40`}
       >
-        <div className="flex items-center gap-3">
-          <svg className="h-5 w-5 shrink-0 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <div className="flex items-center gap-2">
+          <svg className="h-4 w-4 shrink-0 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
-          <span>Search workspaces or launch commands…</span>
+          <span className={compact ? "hidden xl:inline" : ""}>{compact ? "Search" : "Search workspaces or launch commands…"}</span>
         </div>
-        <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-0.5 rounded border border-line bg-white/[0.08] px-1.5 font-mono text-[10px] font-semibold text-ink-faint">
+        <kbd className={`${compact ? "hidden 2xl:inline-flex" : "hidden sm:inline-flex"} ml-2 h-5 select-none items-center gap-0.5 rounded border border-line bg-white/[0.08] px-1.5 font-mono text-[10px] font-semibold text-ink-faint`}>
           <span className="text-[11px]">⌘</span>K
         </kbd>
       </button>

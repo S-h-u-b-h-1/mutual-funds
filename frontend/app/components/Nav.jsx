@@ -7,17 +7,11 @@ import ThemeToggle from "./ui/ThemeToggle";
 import FreshnessBadge from "./ui/FreshnessBadge";
 import { asOf } from "../lib/funds";
 import { marketStatus } from "../lib/marketStatus";
-import { PRIMARY_LINKS as LINKS } from "../lib/navLinks";
-
-const DESK = {
-  Markets: "MKT",
-  Funds: "FND",
-  Research: "RSC",
-  Portfolio: "PTF",
-  Compare: "CMP",
-  News: "NWS",
-  Dashboard: "DB",
-};
+const NAV_MENUS = [
+  { label: "Research", links: [["Funds", "/funds"], ["AMCs", "/amc"], ["Categories", "/categories"], ["Benchmarks", "/performance"], ["Compare", "/compare"]] },
+  { label: "Intelligence", links: [["Brief", "/brief"], ["News", "/news"], ["Signals", "/signals"], ["Market Map", "/market-map"]] },
+  { label: "Personal", links: [["Dashboard", "/dashboard"], ["Portfolio", "/portfolio"], ["Watchlist", "/dashboard#watchlist"], ["Notebook", "/dashboard#notebook"]] },
+];
 
 export default function Nav({ active }) {
   const market = marketStatus(asOf);
@@ -26,7 +20,7 @@ export default function Nav({ active }) {
   return (
     <NavChrome className="hidden sm:block">
       <div className="container-px pointer-events-auto">
-        <div className="nav-surface grid min-h-[72px] grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2.5 sm:gap-4 sm:px-4">
+        <div className="nav-surface grid min-h-[68px] grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2 sm:gap-4 sm:px-4">
           <Link href="/" className="group flex shrink-0 items-center gap-3 rounded-2xl px-1.5 py-1 transition hover:bg-surface-2/65" aria-label="MF Pulse home">
             <span className="relative grid h-11 w-11 place-items-center overflow-hidden rounded-2xl bg-ink text-[13px] font-bold text-bg shadow-glow transition-transform group-hover:-translate-y-0.5" aria-hidden="true">
               <span className="absolute inset-0 bg-[linear-gradient(135deg,rgb(var(--color-brand)/0.95),transparent_58%),radial-gradient(circle_at_80%_10%,rgb(var(--color-information)/0.75),transparent_38%)]" />
@@ -36,34 +30,39 @@ export default function Nav({ active }) {
               <span className="block text-[13px] font-bold tracking-[-0.025em] text-ink">MF Pulse</span>
               <span className="mt-1.5 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
                 <span className="h-1.5 w-1.5 rounded-full bg-pos" aria-hidden="true" />
-                Institutional research
+                {market.sessionLabel}
               </span>
             </span>
           </Link>
 
-          <nav className="hidden min-w-0 items-center justify-center rounded-2xl border border-line/60 bg-bg/35 p-1 lg:flex" aria-label="Primary navigation">
-            {LINKS.map(([label, href]) => {
-              const isActive = active === href || (href !== "/" && active?.startsWith(href));
+          <nav className="hidden min-w-0 items-center justify-center gap-1 lg:flex" aria-label="Primary navigation">
+            {NAV_MENUS.map((menu) => {
+              const isActive = menu.links.some(([, href]) => active === href || (href !== "/" && active?.startsWith(href)));
               return (
-                <Link
-                  key={href}
-                  href={href}
-                  aria-label={label}
-                  aria-current={isActive ? "page" : undefined}
-                  className={`nav-link group relative flex min-h-11 min-w-0 items-center gap-2 overflow-hidden rounded-[0.95rem] px-3 py-2 text-[12px] font-semibold tracking-[-0.01em] transition-spring ${isActive ? "text-ink" : "text-ink-muted hover:text-ink"}`}
-                >
-                  <span className={`absolute inset-0 rounded-[0.95rem] transition-spring ${isActive ? "bg-surface shadow-[inset_0_0_0_1px_rgb(var(--color-border)/0.8),0_12px_30px_rgb(15_23_28/0.08)]" : "bg-transparent group-hover:bg-surface/80"}`} aria-hidden="true" />
-                  <span aria-hidden="true" className={`relative hidden shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-[9px] tracking-normal 2xl:inline-flex ${isActive ? "border-accent/30 bg-accent/10 text-accent" : "border-line/70 text-ink-faint group-hover:border-line-strong"}`}>{DESK[label] || label.slice(0, 3).toUpperCase()}</span>
-                  <span className="relative min-w-0 truncate">{label}</span>
-                  <span className={`absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-accent transition-spring ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-45"}`} aria-hidden="true" />
-                </Link>
+                <details key={menu.label} className="group relative">
+                  <summary className={`flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-full px-3.5 text-sm font-semibold transition hover:bg-surface hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent/35 [&::-webkit-details-marker]:hidden ${isActive ? "bg-surface text-ink shadow-sm" : "text-ink-muted"}`}>
+                    {menu.label}
+                    <svg className="h-3.5 w-3.5 text-ink-faint transition group-open:rotate-180" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </summary>
+                  <div className="absolute left-1/2 top-[calc(100%+0.7rem)] z-[75] hidden w-56 -translate-x-1/2 rounded-[1.25rem] border border-line bg-surface p-2 shadow-float group-open:block">
+                    {menu.links.map(([label, href]) => {
+                      const linkActive = active === href || (href !== "/" && active?.startsWith(href));
+                      return (
+                        <Link key={href} href={href} aria-current={linkActive ? "page" : undefined} className={`flex min-h-10 items-center justify-between rounded-xl px-3 text-sm font-semibold transition ${linkActive ? "bg-accent/10 text-accent" : "text-ink-muted hover:bg-surface-2 hover:text-ink"}`}>
+                          {label}
+                          <span aria-hidden="true" className="text-ink-faint">→</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </details>
               );
             })}
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <div id="search" className="hidden xl:block xl:w-[260px]">
-              <Search listenForOpenRequest triggerClassName="w-full border-line/70 bg-bg/35 shadow-none hover:border-accent/40" />
+            <div id="search" className="hidden sm:block">
+              <Search listenForOpenRequest triggerClassName="border-line/70 bg-bg/35 shadow-none hover:border-accent/40" compact />
             </div>
             <Link href="/data-status" aria-label={`Data status: ${market.navLine}`} className="hidden rounded-2xl border border-line/70 bg-bg/35 px-3 py-2 transition hover:border-accent/30 hover:bg-surface 2xl:inline-flex">
               <span className="flex flex-col">
