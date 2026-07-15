@@ -49,30 +49,36 @@ export async function handleCasUpload({ user, filename, buffer, selectedStatemen
 
   const { text, checksum } = extraction;
 
+  const parsed = parseCasText(text);
+  const { holdings, errors, transactions, warnings } = normalizeCasImport(parsed);
+  const status = holdings.length === 0 ? "failed" : errors.length > 0 ? "partial" : "success";
+  const identityNote = buildIdentityCheckNote(parsed.investor.email, user.email);
+
   // Duplicate-upload detection: has this exact file content already been successfully imported
   // by this user? Checked by checksum, not filename (a re-downloaded copy of the same statement
-  // may have a different filename but identical content).
+  // may have a different filename but identical content). This deliberately runs AFTER parsing:
+  // summary PDFs have no transaction ledger, so reprocessing the same statement is safe and useful
+  // when parser mapping improves (holdings are upserted). Ledger PDFs are still blocked because
+  // blindly replaying the same transaction rows would duplicate portfolio_transactions.
   const priorMatch = await query(
     `select id, uploaded_at, status from portfolio_uploads where user_id = $1 and content_sha256 = $2 and status in ('success', 'partial') order by uploaded_at desc limit 1`,
     [user.id, checksum]
   );
   if (priorMatch.rows[0]) {
     const prior = priorMatch.rows[0];
-    return Response.json(
-      {
-        error: `This exact statement was already imported on ${new Date(prior.uploaded_at).toISOString().slice(0, 10)}. Upload a newer statement, or re-download a fresh copy if you believe your holdings have changed.`,
-        code: "duplicate_upload",
-        priorUploadId: prior.id,
-        imported: 0, holdings: [], errors: [], warnings: [],
-      },
-      { status: 409 }
-    );
+    if (transactions.length > 0) {
+      return Response.json(
+        {
+          error: `This exact statement was already imported on ${new Date(prior.uploaded_at).toISOString().slice(0, 10)}. Upload a newer statement, or re-download a fresh copy if you believe your holdings have changed.`,
+          code: "duplicate_upload",
+          priorUploadId: prior.id,
+          imported: 0, holdings: [], errors: [], warnings: [],
+        },
+        { status: 409 }
+      );
+    }
+    warnings.push(`This exact portfolio summary was already imported on ${new Date(prior.uploaded_at).toISOString().slice(0, 10)}. It was reprocessed to refresh statement-derived values; existing holdings were updated, not duplicated.`);
   }
-
-  const parsed = parseCasText(text);
-  const { holdings, errors, transactions, warnings } = normalizeCasImport(parsed);
-  const status = holdings.length === 0 ? "failed" : errors.length > 0 ? "partial" : "success";
-  const identityNote = buildIdentityCheckNote(parsed.investor.email, user.email);
 
   const expectedProvider = EXPECTED_PROVIDER[selectedStatementType];
   if (parsed.provider && expectedProvider && parsed.provider !== expectedProvider) {

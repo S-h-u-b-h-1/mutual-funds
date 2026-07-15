@@ -157,9 +157,12 @@ function extractClosingBalance(blockText) {
 // whitespace — including the registrar name directly onto the ISIN that follows it (e.g.
 // "CAMSINF209KA1WO4"), which is why a word-boundary-anchored ISIN search finds nothing in this
 // format. Field boundaries in the glued numeric run are recovered using each field's STANDARD
-// precision, not guessed: unit balances are conventionally shown to 3-4 decimals, NAV to 4, and
+// precision, not guessed: unit balances are conventionally shown to 3-4 decimals, NAV to 3-4, and
 // currency amounts to 2 — anchoring on the literal "-Mon-" in the NAV date and on these decimal
-// widths is what makes an otherwise-ambiguous run of digits parseable.
+// widths is what makes an otherwise-ambiguous run of digits parseable. The final currency amount
+// after the ISIN is the statement's Cost Value column, not current market value; mapping it to
+// purchaseValue lets the shared normalizer derive avgCost and makes invested value/current gain
+// available on the dashboard.
 const REGISTRAR_NAMES = "CAMS|KFINTECH";
 // NAV decimal precision found to vary between 3 and 4 digits within the same real statement
 // (found via digit-run-length-only diagnostics, no content inspected) — not always the
@@ -233,7 +236,7 @@ function extractSummaryHoldings(text) {
   const matches = [...text.matchAll(SUMMARY_ROW_RE)];
   let searchFrom = 0;
   for (const m of matches) {
-    const [, units, navDate, nav, registrar, isin, marketValue] = m;
+    const [, units, navDate, nav, registrar, isin, costValue] = m;
 
     // Precise CHARACTER-offset slice between the previous match's end and this match's start —
     // not a line-index slice. Line-index slicing was the actual bug (found via numeric-only
@@ -262,8 +265,8 @@ function extractSummaryHoldings(text) {
         navDate: parseFlexibleDate(navDate),
         nav: parseFlexibleNumber(nav),
         registrar: registrar.toUpperCase(),
-        purchaseValue: null, // a Summary shows current market value, never cost basis — never fabricated
-        marketValueReported: parseFlexibleNumber(marketValue),
+        purchaseValue: parseFlexibleNumber(costValue),
+        marketValueReported: null,
       });
     }
     searchFrom = m.index + m[0].length;

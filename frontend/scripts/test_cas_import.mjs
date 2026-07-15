@@ -181,8 +181,8 @@ assert(abslSummaryRow?.schemeName === "Aditya Birla Sun Life Banking & PSU Debt 
 assert(abslSummaryRow?.units === 2345.6789, `units correctly separated from the glued NAV-date that follows (got ${abslSummaryRow?.units})`);
 assert(abslSummaryRow?.navDate === "2026-07-15", `NAV date correctly separated from the glued units before and NAV after (got "${abslSummaryRow?.navDate}")`);
 assert(abslSummaryRow?.nav === 45.67, `NAV correctly separated from the glued registrar name that follows with zero whitespace (got ${abslSummaryRow?.nav})`);
-assert(abslSummaryRow?.marketValueReported === 107123.45, `market value correctly separated from the glued ISIN before it (got ${abslSummaryRow?.marketValueReported})`);
-assert(abslSummaryRow?.purchaseValue === null, "purchaseValue is null for a Summary row (no cost basis shown) — never fabricated from market value");
+assert(abslSummaryRow?.purchaseValue === 107123.45, `cost value correctly separated from the glued ISIN before it (got ${abslSummaryRow?.purchaseValue})`);
+assert(abslSummaryRow?.marketValueReported === null, "marketValueReported is null for a Summary row when no separate market-value column is extracted");
 
 const axisSummaryRows = summaryParsed.rows.filter((r) => r.isin === "INF846K01CR6");
 assert(axisSummaryRows.length === 2, `both the real row and its duplicate are present at the parse layer (got ${axisSummaryRows.length}) — normalizeCasImport is what collapses this, tested via its own dedup logic below`);
