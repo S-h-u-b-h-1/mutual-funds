@@ -149,6 +149,8 @@ def main():
             "Manager": lambda f: has_meta(f, "fund_manager"),
             "Launch Date": lambda f: has_meta(f, "launch_date"),
             "Exit Load": lambda f: has_meta(f, "exit_load"),
+            "SIP Minimum": lambda f: has_meta(f, "minimum_sip"),
+            "Lumpsum Minimum": lambda f: has_meta(f, "minimum_lumpsum"),
         },
         "Portfolio": {
             "Holdings": lambda f: has_meta(f, "holdings"),

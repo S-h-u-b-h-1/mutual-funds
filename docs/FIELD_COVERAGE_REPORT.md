@@ -38,6 +38,8 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 | Manager | 0.08% | 0.12% |
 | Launch Date | 1.07% | 1.59% |
 | Exit Load | 0.0% | 0.0% |
+| SIP Minimum | 0.0% | 0.0% |
+| Lumpsum Minimum | 0.0% | 0.0% |
 
 ### Portfolio
 
