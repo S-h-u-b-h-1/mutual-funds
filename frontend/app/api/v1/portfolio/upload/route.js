@@ -4,6 +4,11 @@ import { parsePortfolio, PORTFOLIO_SOURCES } from "../../../../lib/portfolioImpo
 import { handleCasUpload } from "./casUpload";
 
 const CAS_SOURCES = new Set(["cams_cas_pdf", "kfin_cas_pdf", "mfcentral_summary"]);
+// Real CAS statements are text-heavy, not image-heavy — even a decade of history across many
+// folios is realistically a few MB. 15MB is generous headroom, not a tight fit, and exists to
+// bound worst-case memory/CPU on a single request (pdf-parse loads the whole buffer), not to
+// reject legitimate statements.
+const MAX_CAS_FILE_BYTES = 15 * 1024 * 1024;
 
 // Accepts a CSV file upload, manual entry, or a CAS PDF (multipart/form-data: fields "source",
 // "file"; or application/json: { source: "manual", entries: [...] }). Always records a
@@ -33,7 +38,13 @@ export async function POST(request) {
     // one handler — the pipeline itself is provider-agnostic; see casUpload.js for how the
     // user-selected tab and the auto-detected registrar are reconciled.
     if (CAS_SOURCES.has(source)) {
+      if (typeof file.size === "number" && file.size > MAX_CAS_FILE_BYTES) {
+        return Response.json({ error: `This file is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). CAS statements are not expected to exceed ${MAX_CAS_FILE_BYTES / (1024 * 1024)}MB — check that the correct file was selected.`, code: "file_too_large" }, { status: 413 });
+      }
       const buffer = Buffer.from(await file.arrayBuffer());
+      if (buffer.length > MAX_CAS_FILE_BYTES) {
+        return Response.json({ error: `This file is too large (${(buffer.length / (1024 * 1024)).toFixed(1)}MB). CAS statements are not expected to exceed ${MAX_CAS_FILE_BYTES / (1024 * 1024)}MB.`, code: "file_too_large" }, { status: 413 });
+      }
       return handleCasUpload({ user, filename, buffer, selectedStatementType: source, query });
     }
 
