@@ -13,6 +13,7 @@ export const revalidate = 3600;
 
 export default async function Compare({ searchParams }) {
   const fundsQuery = searchParams?.funds || "";
+  const allFundsList = allFunds();
   
   if (fundsQuery) {
     const codes = fundsQuery.split(",").map(c => c.trim()).filter(Boolean);
@@ -27,7 +28,7 @@ export default async function Compare({ searchParams }) {
       };
     }).filter(Boolean);
 
-    const allFundsList = allFunds().map(f => {
+    const allFundsCompareList = allFundsList.map(f => {
       const h = fundHealth(f);
       return {
         code: f.code,
@@ -37,6 +38,7 @@ export default async function Compare({ searchParams }) {
         assetClass: f.assetClass,
         plan: f.plan,
         isDirect: f.isDirect,
+        isIdcw: f.isIdcw,
         r1m: f.r1m,
         r3m: f.r3m,
         r1y: f.r1y,
@@ -59,7 +61,7 @@ export default async function Compare({ searchParams }) {
           <h1 className="page-title mt-3">Understand differences before choosing what to research next.</h1>
           <p className="measure mt-4 text-sm leading-6 text-ink-muted">Compare observed performance, risk, health, and data completeness. MF Pulse does not label one fund a universal winner.</p>
           <div className="mt-8">
-            <CompareFundsClient initialFunds={initialFunds} allFundsList={allFundsList} />
+            <CompareFundsClient initialFunds={initialFunds} allFundsList={allFundsCompareList} />
           </div>
           <p className="mt-6 text-right text-[11.5px] text-ink-faint">
             <a href="/compare" className="transition-colors hover:text-ink">Switch to AMC Comparison Center →</a>
@@ -87,6 +89,29 @@ export default async function Compare({ searchParams }) {
     m.classes = m._cls.size;
     delete m._cls;
   }
+  const amcFunds = allFundsList.map((f) => {
+    const h = fundHealth(f);
+    return {
+      code: f.code,
+      name: f.name,
+      amcName: `${f.amc} Mutual Fund`,
+      category: f.category,
+      assetClass: f.assetClass,
+      plan: f.plan,
+      isDirect: f.isDirect,
+      isGrowth: f.isGrowth,
+      isIdcw: f.isIdcw,
+      active: f.active,
+      r1m: f.r1m,
+      r1y: f.r1y,
+      vol90: f.vol90,
+      maxdd90: f.maxdd90,
+      consistency: f.consistency,
+      catPct: f.catPct,
+      _h: h?.overall ?? null,
+      _g: h?.grade ?? null,
+    };
+  });
 
   return (
     <>
@@ -99,7 +124,7 @@ export default async function Compare({ searchParams }) {
           AMFI NAV history.
         </p>
         <div className="mt-8">
-          <CompareClient amcs={trendData.amcs} meta={meta} />
+          <CompareClient amcs={trendData.amcs} meta={meta} funds={amcFunds} />
         </div>
         <p className="mt-4 text-right text-[11.5px] text-ink-faint">
           <a href="/research" className="transition-colors hover:text-ink">More reports &amp; analysis tools in the Research Hub →</a>
