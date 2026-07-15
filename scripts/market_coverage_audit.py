@@ -330,9 +330,15 @@ def main():
           all(d.get("source_url") for d in datasets) and sum(1 for d in datasets if d.get("checksum")) >= 3, "")
     # Freshness is governed by the daily cron + the superset guarantee, NOT the dev snapshot's mtime.
     check("Universe is a superset of live AMFI (no scheme missing)", L.issubset(O), f"{len(missing)} missing")
-    cron_yml = os.path.join(ROOT, ".github/workflows/daily-nav.yml")
+    # Trust Sprint Mission 13 fix: this checked a hardcoded "daily-nav.yml" filename that no
+    # longer exists — the daily refresh was consolidated into production-refresh.yml at some
+    # point and this check was never updated, so it was reporting a false negative (a real,
+    # cron-scheduled workflow read as "no cron" because of a stale filename, not because the
+    # automation is actually missing). Verified directly: production-refresh.yml has two real
+    # cron triggers (30 14 * * 1-6 and 0 5 * * *).
+    cron_yml = os.path.join(ROOT, ".github/workflows/production-refresh.yml")
     cron_on = os.path.exists(cron_yml) and "cron:" in open(cron_yml).read()
-    check("Daily NAV refresh automated (cron scheduled)", cron_on, "daily-nav.yml" if cron_on else "no cron")
+    check("Daily NAV refresh automated (cron scheduled)", cron_on, "production-refresh.yml" if cron_on else "no cron")
     val_pass = sum(1 for c in checks if c["pass"])
     production_ready = pct(val_pass, len(checks))
 

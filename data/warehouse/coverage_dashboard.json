@@ -1,109 +1,43 @@
 {
- "asOf": "2026-06-30",
+ "asOf": "2026-07-14",
  "live_amfi_fetched": true,
- "live_amfi_schemes": 14208,
- "mfpulse_schemes": 14208,
- "covered": 14204,
- "coverage_pct": 99.97,
- "missing_count": 4,
- "delisted_count": 4,
+ "live_amfi_schemes": 14224,
+ "mfpulse_schemes": 14224,
+ "covered": 14224,
+ "coverage_pct": 100.0,
+ "missing_count": 0,
+ "delisted_count": 0,
  "universe": {
   "asset_class": {
-   "Equity": 2882,
-   "Debt": 7982,
-   "Other": 2375,
-   "Hybrid": 824,
+   "Debt": 7989,
+   "Equity": 2927,
+   "Other": 2341,
+   "Hybrid": 822,
    "Solution": 145
   },
   "scheme_type": {
-   "Open Ended Schemes": 9408,
    "Close Ended Schemes": 4759,
+   "Open Ended Schemes": 9424,
    "Interval Fund Schemes": 41
   },
   "fund_type": {
-   "Active/Other": 11924,
-   "Index Fund": 1276,
-   "Fund of Fund": 671,
-   "ETF": 337
+   "Active/Other": 11932,
+   "Fund of Fund": 677,
+   "ETF": 337,
+   "Index Fund": 1278
   },
   "international": 177,
   "commodity": 209
  },
- "missing_schemes": [
-  {
-   "scheme_code": "154364",
-   "scheme_name": "Motilal Oswal BSE Clean Environment Index Fund - Direct",
-   "amc": "Motilal Oswal Mutual Fund",
-   "asset_class": "Other",
-   "expected_source": "AMFI:NAVAll",
-   "reason_missing": "NFO since snapshot \u2014 re-ingest",
-   "priority": "P0",
-   "acquisition_status": "pending"
-  },
-  {
-   "scheme_code": "154365",
-   "scheme_name": "Motilal Oswal BSE Clean Environment Index Fund - Growth",
-   "amc": "Motilal Oswal Mutual Fund",
-   "asset_class": "Other",
-   "expected_source": "AMFI:NAVAll",
-   "reason_missing": "NFO since snapshot \u2014 re-ingest",
-   "priority": "P0",
-   "acquisition_status": "pending"
-  },
-  {
-   "scheme_code": "154392",
-   "scheme_name": "WhiteOak Capital Aggressive Hybrid Fund Direct Plan Growth",
-   "amc": "WhiteOak Capital Mutual Fund",
-   "asset_class": "Hybrid",
-   "expected_source": "AMFI:NAVAll",
-   "reason_missing": "NFO since snapshot \u2014 re-ingest",
-   "priority": "P0",
-   "acquisition_status": "pending"
-  },
-  {
-   "scheme_code": "154393",
-   "scheme_name": "WhiteOak Capital Aggressive Hybrid Fund Regular Plan Growth",
-   "amc": "WhiteOak Capital Mutual Fund",
-   "asset_class": "Hybrid",
-   "expected_source": "AMFI:NAVAll",
-   "reason_missing": "NFO since snapshot \u2014 re-ingest",
-   "priority": "P0",
-   "acquisition_status": "pending"
-  }
- ],
- "delisted_schemes": [
-  {
-   "scheme_code": "136004",
-   "scheme_name": "SBI Long Term Advantage Fund - Series III - Regular Plan - Growth",
-   "amc": "SBI Mutual Fund",
-   "status": "retained-as-dormant (AMFI delisted since snapshot)"
-  },
-  {
-   "scheme_code": "136005",
-   "scheme_name": "SBI Long Term Advantage Fund - Series III - Regular Plan - Income Distribution cum Capital Withdrawal Option (IDCW)",
-   "amc": "SBI Mutual Fund",
-   "status": "retained-as-dormant (AMFI delisted since snapshot)"
-  },
-  {
-   "scheme_code": "136006",
-   "scheme_name": "SBI Long Term Advantage Fund - Series III - Direct Plan - Income Distribution cum Capital Withdrawal Option (IDCW)",
-   "amc": "SBI Mutual Fund",
-   "status": "retained-as-dormant (AMFI delisted since snapshot)"
-  },
-  {
-   "scheme_code": "136007",
-   "scheme_name": "SBI Long Term Advantage Fund - Series III - Direct Plan - Growth",
-   "amc": "SBI Mutual Fund",
-   "status": "retained-as-dormant (AMFI delisted since snapshot)"
-  }
- ],
+ "missing_schemes": [],
+ "delisted_schemes": [],
  "kpis": {
-  "scheme_coverage_pct": 99.97,
+  "scheme_coverage_pct": 100.0,
   "nav_coverage_pct": 98.29,
-  "historical_coverage_pct": 89.83,
-  "returns_coverage_pct": 99.57,
-  "risk_coverage_pct": 99.68,
-  "benchmark_coverage_pct": 86.32,
+  "historical_coverage_pct": 90.02,
+  "returns_coverage_pct": 99.54,
+  "risk_coverage_pct": 99.62,
+  "benchmark_coverage_pct": 86.11,
   "category_coverage_pct": 100.0,
   "metadata_coverage_pct": 1.07,
   "aum_coverage_pct": 1.07,
@@ -112,10 +46,10 @@
   "holdings_coverage_pct": 0.18,
   "portfolio_coverage_pct": 1.07,
   "document_coverage_pct": 1.07,
-  "isin_coverage_pct": 98.83,
+  "isin_coverage_pct": 98.79,
   "structure_coverage_pct": 100.0,
-  "performance_completeness_avg_investable": 93.0,
-  "fund_completeness_avg_investable": 56.2,
+  "performance_completeness_avg_investable": 92.9,
+  "fund_completeness_avg_investable": 56.1,
   "research_readiness_avg_investable": 52.9
  }
 }

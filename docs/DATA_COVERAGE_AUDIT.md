@@ -56,7 +56,19 @@ Computed from `funds.js`'s `allFunds()` over all 14,216 records:
 
 | Field | Coverage |
 |---|---|
-| code, name, amc, category, assetClass, plan, option, isDirect/isGrowth/isIdcw, active, nav, navDate, structure, benchmark, benchmarkStd, trend, quality | 14,216 / 14,216 (100%) |
+| code, name, amc, category, assetClass, plan, option, isDirect/isGrowth/isIdcw, active, nav, navDate, structure, trend, quality | 14,216 / 14,216 (100%) |
+
+**Correction (Trust Sprint Mission 1, 2026-07-15): benchmark is not 100%.** The claim above was
+wrong — it checked key *presence* (`'benchmark' in f`), not whether the value was actually
+populated. Checking `f.benchmark` truthy against the current 14,218-scheme universe: **12,243 /
+14,218 (86.1%)**. 1,975 schemes have `benchmark: null`, and 1,907 of those (96.6%) are **active**
+schemes — including well-known, currently-open funds (Aditya Birla Sun Life MNC Fund, ICICI
+Prudential Technology Fund, Tata Ethical Fund, Franklin India Technology Fund among the sample
+checked). By assetClass: Other 1,067, Equity 595, Solution Oriented 145, Hybrid 144, Debt 24. The
+Equity share (595 active, real, benchmark-eligible funds with no benchmark at all) is the more
+concerning slice — see `docs/DATA_COVERAGE_MATRIX.md` for the full corrected field-by-field
+numbers. Left here, struck through in spirit rather than silently edited away, because a mission
+about removing stale/wrong claims should not quietly fix its own without saying so.
 | isin | 14,080 / 14,216 (99.0%) — the 136 without an ISIN are a separate, already-documented finding (Class D2 in `docs/SCHEME_MATCHING_AUDIT.md`) |
 
 This is the platform's solid foundation: every scheme has a verified identity, an AMFI-standard or

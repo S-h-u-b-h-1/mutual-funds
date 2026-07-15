@@ -1,16 +1,16 @@
 {
- "asOf": "2026-06-30",
- "snapshot_age_days": 3,
+ "asOf": "2026-07-14",
+ "snapshot_age_days": 1,
  "datasets": [
   {
    "dataset": "AMFI NAV universe",
    "source": "AMFI",
    "source_url": "https://portal.amfiindia.com/spages/NAVAll.txt",
-   "last_updated": "2026-06-30",
-   "rows": 14208,
-   "checksum": "42e34a1db27253d8",
+   "last_updated": "2026-07-14",
+   "rows": 14224,
+   "checksum": "ec749611803a88e8",
    "parser_version": "amfi_parser@1",
-   "freshness": "3d behind live",
+   "freshness": "current",
    "confidence": "high",
    "validated": true
   },
@@ -18,11 +18,11 @@
    "dataset": "Scheme performance (funds.json)",
    "source": "AMFI NAV + 90d history",
    "source_url": "https://portal.amfiindia.com/spages/NAVAll.txt",
-   "last_updated": "2026-06-30",
-   "rows": 14208,
-   "checksum": "2584264e84553f24",
+   "last_updated": "2026-07-14",
+   "rows": 14218,
+   "checksum": "3366798a0d9dfa10",
    "parser_version": "build_performance@2",
-   "freshness": "3d",
+   "freshness": "current",
    "confidence": "high",
    "validated": true
   },
