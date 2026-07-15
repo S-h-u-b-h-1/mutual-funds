@@ -108,6 +108,8 @@ jobs:
           fi
 
       - name: 4. Data-quality gate (must pass before anything is committed/deployed)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m pytest tests/ -q
 
       - name: 4b. Live data guarantee — assert the NAV → analytics → JSON chain is actually caught up
