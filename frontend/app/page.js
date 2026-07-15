@@ -261,7 +261,7 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
-            <div className="premium-card min-h-[390px] p-4"><div className="relative"><KnowledgeGraphHero classes={graph.classes} amcs={graph.amcs} fundCount={funds.length} amcCount={amcCount} categoryCount={graph.classes.length} benchmarkCount={benchmarkCount} /></div></div>
+            <div className="premium-card min-h-[390px] p-4"><div className="relative"><KnowledgeGraphHero classes={graph.classes} categories={graph.categories} totals={graph.totals} amcs={graph.amcs} fundCount={funds.length} amcCount={amcCount} categoryCount={graph.classes.length} benchmarkCount={benchmarkCount} /></div></div>
           </div>
         </section>
 
