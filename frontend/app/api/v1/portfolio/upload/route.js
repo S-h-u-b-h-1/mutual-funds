@@ -1,9 +1,12 @@
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
 import { query } from "../../../../lib/db";
 import { parsePortfolio, PORTFOLIO_SOURCES } from "../../../../lib/portfolioImport";
+import { handleCasUpload } from "./casUpload";
 
-// Accepts either a CSV file upload (multipart/form-data: fields "source", "file") or manual
-// entry (application/json: { source: "manual", entries: [...] }). Always records a
+const CAS_SOURCES = new Set(["cams_cas_pdf", "kfin_cas_pdf", "mfcentral_summary"]);
+
+// Accepts a CSV file upload, manual entry, or a CAS PDF (multipart/form-data: fields "source",
+// "file"; or application/json: { source: "manual", entries: [...] }). Always records a
 // portfolio_uploads row — even a failed/empty attempt — so imports are auditable, then upserts
 // every successfully resolved holding into portfolio_holdings and refreshes the portfolio
 // header cache row.
@@ -18,10 +21,22 @@ export async function POST(request) {
     const formData = await request.formData();
     source = formData.get("source");
     const file = formData.get("file");
-    if (!file || typeof file.text !== "function") {
-      return Response.json({ error: "file is required for CSV sources" }, { status: 400 });
+    if (!file || typeof file.arrayBuffer !== "function") {
+      return Response.json({ error: "file is required" }, { status: 400 });
     }
     filename = file.name || null;
+
+    // CAS is a PDF, not text: branched here, before any `.text()` call, so a binary upload is
+    // never lossily decoded as a string the way the CSV path below requires. Fully separate code
+    // path (casUpload.js) — the CSV/manual logic below this block is untouched. Three distinct
+    // `source` values (matching components/PortfolioWorkspace.jsx's STATEMENT_TYPES tabs) share
+    // one handler — the pipeline itself is provider-agnostic; see casUpload.js for how the
+    // user-selected tab and the auto-detected registrar are reconciled.
+    if (CAS_SOURCES.has(source)) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      return handleCasUpload({ user, filename, buffer, selectedStatementType: source, query });
+    }
+
     input = await file.text();
   } else {
     let body;

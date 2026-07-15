@@ -40,7 +40,14 @@ export const PORTFOLIO_SOURCES = {
   kuvera: "Kuvera CSV import",
   etmoney: "ET Money CSV import",
   manual: "Manually entered",
-  // CAS (CAMS/KFintech PDF) import is a distinct future scope — PDF parsing, not CSV — and is
-  // deliberately not part of this mission. Not listed here so callers never advertise support
-  // that doesn't exist yet.
+  // Institutional Portfolio Import Engine mission: CAS (CAMS/KFin/MF Central) PDF upload. Three
+  // keys — not one generic "cas" — because that's what the already-built upload UI
+  // (components/PortfolioWorkspace.jsx's STATEMENT_TYPES) sends as `source`; the CAS pipeline
+  // itself is provider-agnostic (see portfolioImport/casParser.js) and normalizes all three to a
+  // single `source: 'cas'` when writing to portfolio_holdings/portfolio_transactions — the
+  // specific registrar is preserved separately via portfolio_uploads.provider (auto-detected from
+  // the PDF text, cross-checked against whichever of these three the user picked).
+  cams_cas_pdf: "CAMS CAS PDF import",
+  kfin_cas_pdf: "KFIN CAS PDF import",
+  mfcentral_summary: "MF Central Portfolio Summary PDF import",
 };
