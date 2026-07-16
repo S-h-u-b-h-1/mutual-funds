@@ -12,27 +12,37 @@ const INTERESTS = ["Portfolio review", "Fund selection help", "Understanding a s
 export default function AdvisorContactForm({ sourcePage = "advisor_page" }) {
   const [form, setForm] = useState({ name: "", email: "", phone: "", investorType: "", interest: "", message: "", consent: false });
   const [state, setState] = useState("idle"); // idle | ok | err
+  const [busy, setBusy] = useState(false);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     if (!form.name.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email) || !form.consent) {
       setState("err");
       return;
     }
-    fetch(`${SUPA.URL}/rest/v1/advisor_leads`, {
-      method: "POST",
-      headers: { apikey: SUPA.KEY, Authorization: `Bearer ${SUPA.KEY}`, "Content-Type": "application/json", Prefer: "return=minimal" },
-      body: JSON.stringify({
-        name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() || null,
-        investor_type: form.investorType || null, interest_area: form.interest || null,
-        message: form.message.trim() || null, source_page: sourcePage, consent: form.consent,
-      }),
-    }).catch(() => {});
-    track("advisor_contact_submit", { source_page: sourcePage, interest: form.interest || null });
-    setState("ok");
-    setForm({ name: "", email: "", phone: "", investorType: "", interest: "", message: "", consent: false });
+    setBusy(true);
+    setState("idle");
+    try {
+      const response = await fetch(`${SUPA.URL}/rest/v1/advisor_leads`, {
+        method: "POST",
+        headers: { apikey: SUPA.KEY, Authorization: `Bearer ${SUPA.KEY}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+        body: JSON.stringify({
+          name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() || null,
+          investor_type: form.investorType || null, interest_area: form.interest || null,
+          message: form.message.trim() || null, source_page: sourcePage, consent: form.consent,
+        }),
+      });
+      if (!response.ok) throw new Error("request_failed");
+      track("advisor_contact_submit", { source_page: sourcePage, interest: form.interest || null });
+      setState("ok");
+      setForm({ name: "", email: "", phone: "", investorType: "", interest: "", message: "", consent: false });
+    } catch {
+      setState("err");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (state === "ok") {
@@ -49,18 +59,18 @@ export default function AdvisorContactForm({ sourcePage = "advisor_page" }) {
   return (
     <form onSubmit={submit} className="glass p-5 sm:p-6">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <input className={inputCls} placeholder="Name *" value={form.name} onChange={set("name")} required />
-        <input className={inputCls} type="email" placeholder="Email *" value={form.email} onChange={set("email")} required />
-        <input className={inputCls} type="tel" placeholder="Phone (optional)" value={form.phone} onChange={set("phone")} />
-        <select className={inputCls} value={form.investorType} onChange={set("investorType")}>
+        <input className={inputCls} aria-label="Name" autoComplete="name" placeholder="Name *" value={form.name} onChange={set("name")} required />
+        <input className={inputCls} aria-label="Email" autoComplete="email" type="email" placeholder="Email *" value={form.email} onChange={set("email")} required />
+        <input className={inputCls} aria-label="Phone" autoComplete="tel" type="tel" placeholder="Phone (optional)" value={form.phone} onChange={set("phone")} />
+        <select className={inputCls} aria-label="Investor type" value={form.investorType} onChange={set("investorType")}>
           <option value="">Investor type (optional)</option>
           {INVESTOR_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
-        <select className={`${inputCls} sm:col-span-2`} value={form.interest} onChange={set("interest")}>
+        <select className={`${inputCls} sm:col-span-2`} aria-label="Help needed" value={form.interest} onChange={set("interest")}>
           <option value="">What do you need help with? (optional)</option>
           {INTERESTS.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
-        <textarea className={`${inputCls} sm:col-span-2`} rows={3} placeholder="Anything specific you'd like to mention? (optional)" value={form.message} onChange={set("message")} />
+        <textarea className={`${inputCls} sm:col-span-2`} aria-label="Additional details" rows={3} placeholder="Anything specific you'd like to mention? (optional)" value={form.message} onChange={set("message")} />
       </div>
 
       <label className="mt-4 flex items-start gap-2.5 text-[12px] text-ink-muted">
@@ -68,10 +78,10 @@ export default function AdvisorContactForm({ sourcePage = "advisor_page" }) {
         <span>I consent to MF Pulse sharing these details with Suasion Securities so they can contact me about this request. This is a single request, not a subscription.</span>
       </label>
 
-      {state === "err" && <p className="mt-2 text-[12px] text-neg">Please enter your name, a valid email, and check the consent box.</p>}
+      {state === "err" && <p role="alert" className="mt-2 text-[12px] text-neg">We could not save this request. Check the required fields and your connection, then try again.</p>}
 
-      <button type="submit" className="mt-4 rounded-xl bg-accent px-5 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-soft shadow-glow">
-        Send request
+      <button type="submit" disabled={busy} className="mt-4 rounded-xl bg-accent px-5 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-soft shadow-glow disabled:cursor-not-allowed disabled:opacity-55">
+        {busy ? "Sending…" : "Send request"}
       </button>
       <p className="mt-3 text-[11px] text-ink-faint">MF Pulse is a research platform and does not itself provide investment advice. Not investment advice.</p>
     </form>

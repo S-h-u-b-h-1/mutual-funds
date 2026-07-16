@@ -8,23 +8,33 @@ import { SUPA } from "../lib/supabase";
 export default function AlertSignup() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState("idle"); // idle | ok | err
+  const [busy, setBusy] = useState(false);
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setState("err");
-    fetch(`${SUPA.URL}/rest/v1/alerts`, {
-      method: "POST",
-      headers: {
-        apikey: SUPA.KEY,
-        Authorization: `Bearer ${SUPA.KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify({ email, alert_type: "daily_summary" }),
-    }).catch(() => {});
-    track("alert_signup", { email });
-    setState("ok");
-    setEmail("");
+    setBusy(true);
+    setState("idle");
+    try {
+      const response = await fetch(`${SUPA.URL}/rest/v1/alerts`, {
+        method: "POST",
+        headers: {
+          apikey: SUPA.KEY,
+          Authorization: `Bearer ${SUPA.KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({ email, alert_type: "daily_summary" }),
+      });
+      if (!response.ok) throw new Error("subscription_failed");
+      track("alert_signup", { email });
+      setState("ok");
+      setEmail("");
+    } catch {
+      setState("err");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -49,12 +59,13 @@ export default function AlertSignup() {
           />
           <button
             type="submit"
-            className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-soft whitespace-nowrap shadow-glow"
+            disabled={busy}
+            className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-soft whitespace-nowrap shadow-glow disabled:cursor-not-allowed disabled:opacity-55"
           >
-            {state === "ok" ? "Subscribed ✓" : "Subscribe"}
+            {busy ? "Subscribing…" : state === "ok" ? "Subscribed ✓" : "Subscribe"}
           </button>
         </div>
-        {state === "err" && <span className="relative basis-full text-[12px] text-neg">Please enter a valid email.</span>}
+        {state === "err" && <span role="alert" className="relative basis-full text-[12px] text-neg">We could not save this subscription. Check the email and your connection, then try again.</span>}
       </form>
     </section>
   );

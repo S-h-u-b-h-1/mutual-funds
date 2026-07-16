@@ -188,10 +188,10 @@ export default function CompareClient({ amcs, meta = {}, funds = [] }) {
   }, [activeOnly, assetClass, category, categoryMode, fundMap, option, plan, sel]);
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8">
       <section className="rounded-[2rem] border border-line bg-surface p-5 shadow-float">
-        <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-          <div>
+        <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="min-w-0">
             <div className="eyebrow text-accent">AMC comparison workspace</div>
             <h2 className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-ink">Compare 2–4 AMCs by breadth, fund quality, categories, risk and data completeness.</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-ink-muted">No frontend AMC score is calculated. Where verified ratings, flows or official update contracts are missing, the page states that explicitly.</p>
@@ -201,7 +201,7 @@ export default function CompareClient({ amcs, meta = {}, funds = [] }) {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div className="mt-5 grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <label className="block">
             <span className="eyebrow">Search and add AMC</span>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search SBI, HDFC, ICICI…" className="mt-2 min-h-11 w-full rounded-2xl border border-line bg-bg px-4 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent" />
@@ -225,7 +225,7 @@ export default function CompareClient({ amcs, meta = {}, funds = [] }) {
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line pt-4">
-          <input value={wsName} onChange={(e) => setWsName(e.target.value)} placeholder="Name this comparison…" className="min-h-10 rounded-xl border border-line bg-bg px-3 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent" />
+          <input value={wsName} onChange={(e) => setWsName(e.target.value)} aria-label="Comparison workspace name" placeholder="Name this comparison…" className="min-h-10 min-w-0 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent sm:w-auto" />
           <button type="button" onClick={saveWs} disabled={sel.length < 2} className="min-h-10 rounded-xl bg-ink px-4 text-xs font-semibold text-bg disabled:opacity-45">Save workspace</button>
           {workspaces.slice(0, 4).map((w) => <span key={w.id || w.name} className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-xs text-ink-muted"><button type="button" onClick={() => loadWs(w)} className="hover:text-ink">{w.name}</button><button type="button" onClick={() => delWs(w)} aria-label={`Delete ${w.name}`} className="hover:text-neg">×</button></span>)}
         </div>
@@ -273,11 +273,11 @@ export default function CompareClient({ amcs, meta = {}, funds = [] }) {
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="min-h-10 rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option>All</option>{categories.map((c) => <option key={c}>{c}</option>)}</select>
-              <select value={assetClass} onChange={(e) => setAssetClass(e.target.value)} className="min-h-10 rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option>All</option>{assetClasses.map((c) => <option key={c}>{c}</option>)}</select>
-              <select value={plan} onChange={(e) => setPlan(e.target.value)} className="min-h-10 rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option>All</option><option>Direct</option><option>Regular</option></select>
-              <select value={option} onChange={(e) => setOption(e.target.value)} className="min-h-10 rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option>Growth</option><option>IDCW</option><option>All</option></select>
-              <select value={categoryMode} onChange={(e) => setCategoryMode(e.target.value)} className="min-h-10 rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option value="all">All categories</option><option value="common">Common only</option><option value="unique">Unique only</option></select>
+              <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category" className="min-h-10 min-w-0 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option>All</option>{categories.map((c) => <option key={c}>{c}</option>)}</select>
+              <select value={assetClass} onChange={(e) => setAssetClass(e.target.value)} aria-label="Asset class" className="min-h-10 min-w-0 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option>All</option>{assetClasses.map((c) => <option key={c}>{c}</option>)}</select>
+              <select value={plan} onChange={(e) => setPlan(e.target.value)} aria-label="Plan" className="min-h-10 min-w-0 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option>All</option><option>Direct</option><option>Regular</option></select>
+              <select value={option} onChange={(e) => setOption(e.target.value)} aria-label="Option" className="min-h-10 min-w-0 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option>Growth</option><option>IDCW</option><option>All</option></select>
+              <select value={categoryMode} onChange={(e) => setCategoryMode(e.target.value)} aria-label="Category coverage" className="min-h-10 min-w-0 w-full rounded-xl border border-line bg-bg px-3 text-sm text-ink"><option value="all">All categories</option><option value="common">Common only</option><option value="unique">Unique only</option></select>
               <label className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-line px-3 text-sm text-ink-muted"><input type="checkbox" checked={activeOnly} onChange={(e) => setActiveOnly(e.target.checked)} /> Active only</label>
             </div>
 

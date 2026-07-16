@@ -766,7 +766,7 @@ export default function HomepageClient({
           <kbd className="rounded bg-white/[0.08] px-1 py-0.5 font-mono text-[9.5px]">S</kbd> Sound ({audioEnabled ? "On" : "Muted"})
         </span>
         <span className="h-1.5 w-1.5 rounded-full bg-white/10" />
-        <a href="/compare" className="text-accent-soft font-semibold hover:underline">
+        <a href="/compare?mode=funds" className="text-accent-soft font-semibold hover:underline">
           Compare Menu
         </a>
       </div>

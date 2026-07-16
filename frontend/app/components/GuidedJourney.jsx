@@ -18,7 +18,7 @@ const OPTIONS = [
   { key: "brief", icon: "☀️", title: "See today's market", desc: "Fund flows, signals & category commentary", href: "/brief" },
   { key: "news", icon: "📰", title: "Read market news", desc: "What happened, and which funds it may affect", href: "/news" },
   { key: "best", icon: "🏆", title: "Find the best funds", desc: "Real 30-day NAV performance leaders by category", href: "/performance" },
-  { key: "compare", icon: "⇄", title: "Compare funds", desc: "Side-by-side AMC performance & scheme mix", href: "/compare" },
+  { key: "compare", icon: "⇄", title: "Compare funds", desc: "Side-by-side fund performance, risk and data quality", href: "/compare?mode=funds" },
   { key: "advisor", icon: "💬", title: "Talk to an advisor", desc: "Get help interpreting a fund or portfolio", href: "/advisor" },
 ];
 

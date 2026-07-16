@@ -18,7 +18,7 @@ export default function Nav({ active }) {
   const freshness = market.tone === "pos" ? "current" : market.tone === "neg" ? "stale" : "delayed";
 
   return (
-    <NavChrome className="hidden sm:block">
+    <NavChrome className="hidden lg:block">
       <div className="container-px pointer-events-auto">
         <div className="nav-surface grid min-h-[68px] grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2 sm:gap-4 sm:px-4">
           <Link href="/" className="group flex shrink-0 items-center gap-3 rounded-2xl px-1.5 py-1 transition hover:bg-surface-2/65" aria-label="MF Pulse home">

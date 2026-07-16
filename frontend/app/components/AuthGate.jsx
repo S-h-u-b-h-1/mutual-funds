@@ -19,7 +19,7 @@ const AUTH_PAGES = new Set(["/login", "/register", "/forgot-password", "/reset-p
 // account-tied flow, so it's kept public rather than gated — revisit if it grows into something
 // that reads or writes personal account data.
 const PUBLIC_PATH_PREFIXES = [
-  "/funds", "/fund/", "/amc/", "/categories", "/benchmark/", "/manager/",
+  "/funds", "/fund", "/amc", "/categories", "/benchmark", "/manager",
   "/news", "/methodology", "/data-status", "/data-quality", "/status",
   "/performance", "/brief", "/market-map", "/signals", "/discover",
   "/research", "/compare", "/about", "/advisor",

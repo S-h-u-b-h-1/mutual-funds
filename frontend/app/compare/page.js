@@ -13,9 +13,10 @@ export const revalidate = 3600;
 
 export default async function Compare({ searchParams }) {
   const fundsQuery = searchParams?.funds || "";
+  const fundMode = searchParams?.mode === "funds" || Boolean(fundsQuery);
   const allFundsList = allFunds();
   
-  if (fundsQuery) {
+  if (fundMode) {
     const codes = fundsQuery.split(",").map(c => c.trim()).filter(Boolean);
     const initialFunds = codes.map(code => {
       const f = getFund(code);

@@ -81,10 +81,10 @@ export default function MobileNav({ active }) {
   }
 
   return (
-    <div className="xl:hidden">
+    <div className="lg:hidden">
       {mounted && createPortal(
         <>
-          <nav className="mobile-dock fixed inset-x-3 bottom-3 z-[60] grid h-[70px] grid-cols-5 overflow-hidden rounded-[1.6rem] border border-line/80 bg-surface/95 px-1.5 py-1.5 shadow-float backdrop-blur-2xl xl:hidden" aria-label="Mobile primary navigation">
+          <nav className="mobile-dock fixed inset-x-3 bottom-3 z-[60] grid h-[70px] grid-cols-5 overflow-hidden rounded-[1.6rem] border border-line/80 bg-surface/95 px-1.5 py-1.5 shadow-float backdrop-blur-2xl lg:hidden" aria-label="Mobile primary navigation">
             {MOBILE_PRIMARY_LINKS.map(([label, href, icon]) => {
               const isActive = href !== "#search" && href !== "#menu" && (active === href || (href !== "/" && active?.startsWith(href)));
               if (href === "#search") {
@@ -114,7 +114,7 @@ export default function MobileNav({ active }) {
           </nav>
 
           {open && (
-            <div className="fixed inset-0 z-[70] xl:hidden" role="dialog" aria-modal="true" aria-label="All navigation">
+            <div className="fixed inset-0 z-[70] lg:hidden" role="dialog" aria-modal="true" aria-label="All navigation">
               <button type="button" className="absolute inset-0 bg-bg/72 backdrop-blur-md" onClick={close} aria-label="Close navigation backdrop" />
               <section id="mobile-navigation-drawer" ref={panelRef} className="mobile-sheet absolute inset-x-2 bottom-2 flex max-h-[88dvh] flex-col overflow-hidden rounded-[1.9rem] border border-line/80 bg-surface/95 shadow-float backdrop-blur-2xl">
                 <div className="mx-auto mt-3 h-1.5 w-11 rounded-full bg-line-strong" aria-hidden="true" />

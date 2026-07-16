@@ -50,6 +50,7 @@ async function enrichArticle(article, { withHistory = false } = {}) {
 }
 
 export default async function News() {
+  const referenceNow = new Date().toISOString();
   let articles = [];
   let runs = [];
   try {
@@ -142,7 +143,7 @@ export default async function News() {
         </section>
 
         <div className="mt-10">
-          <NewsClient articles={articles} runs={runs} themeCounts={themeCounts} allThemes={THEMES} />
+          <NewsClient articles={articles} runs={runs} themeCounts={themeCounts} allThemes={THEMES} referenceNow={referenceNow} />
         </div>
       </main>
       <Footer

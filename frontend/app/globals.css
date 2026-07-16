@@ -11,7 +11,7 @@
   --color-surface-strong: 239 242 236;
   --color-text: 15 23 28;
   --color-text-muted: 69 83 89;
-  --color-text-faint: 108 120 124;
+  --color-text-faint: 94 107 112;
   --color-border: 210 216 211;
   --color-border-strong: 163 175 168;
   --color-brand: 14 113 103;
@@ -79,7 +79,7 @@
   ::selection { background: rgb(var(--color-brand) / 0.22); }
 }
 
-@media (min-width: 1280px) { body { padding-bottom: 0; } }
+@media (min-width: 1024px) { body { padding-bottom: 0; } }
 
 @layer components {
   .glass, .research-surface {

@@ -21,6 +21,26 @@ const WORKSPACE_SHORTCUTS = [
   { label: "Go to Performance Leaderboards", path: "/performance", key: "/performance" }
 ];
 
+export function SearchLauncher({ className = "inline-flex w-full", compact = false }) {
+  return (
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new Event("mfp-open-search"))}
+      aria-label="Open global search"
+      className={`${className} items-center justify-between rounded-full border border-line/80 bg-surface px-3 py-2 text-left text-[12.5px] font-semibold text-ink-muted shadow-sm transition-all hover:border-accent/30 hover:bg-surface-2 hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent/40`}
+    >
+      <span className="flex items-center gap-2">
+        <svg className="h-4 w-4 shrink-0 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
+        </svg>
+        <span>{compact ? "Search" : "Search workspaces or launch commands…"}</span>
+      </span>
+      <kbd className="ml-2 hidden h-5 select-none items-center gap-0.5 rounded border border-line bg-white/[0.08] px-1.5 font-mono text-[10px] font-semibold text-ink-faint sm:inline-flex"><span className="text-[11px]">⌘</span>K</kbd>
+    </button>
+  );
+}
+
 export default function Search({ listenForOpenRequest = false, triggerClassName = "inline-flex", compact = true }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
@@ -261,10 +281,11 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
         ref={triggerRef}
         type="button"
         onClick={openPalette}
+        aria-label="Open global search"
         className={`${triggerClassName} items-center justify-between rounded-full border border-line/80 bg-surface px-3 py-2 text-left text-[12.5px] font-semibold text-ink-muted shadow-sm transition-all hover:border-accent/30 hover:bg-surface-2 hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent/40`}
       >
         <div className="flex items-center gap-2">
-          <svg className="h-4 w-4 shrink-0 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg className="h-4 w-4 shrink-0 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
@@ -280,19 +301,22 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
         ref={dialogRef}
         closedby="any"
         onClose={closePalette}
+        aria-labelledby="global-search-title"
         className="cmd-dialog fixed inset-0 z-50 m-0 hidden h-full w-full max-h-none max-w-none overflow-hidden bg-transparent p-0 pt-[8vh] outline-none open:flex open:items-start open:justify-center"
       >
         <div className="w-full max-w-2.5xl overflow-hidden rounded-2xl border border-white/[0.08] bg-[#090b11]/97 shadow-2xl backdrop-blur-3xl transition-spring flex flex-col max-h-[82vh] mx-4" style={{ maxWidth: "720px" }}>
+          <h2 id="global-search-title" className="sr-only">Search MF Pulse</h2>
           
           {/* Header Search Field */}
           <div className="flex items-center gap-3.5 border-b border-white/[0.06] px-5 py-4">
-            <svg className="h-5 w-5 text-accent-soft shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 text-accent-soft shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
             </svg>
             <input
               ref={inputRef}
               type="text"
+              aria-label="Search funds, categories, AMCs, benchmarks, and workspace commands"
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);

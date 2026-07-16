@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Nav from "./components/Nav";
 import Footer from "./components/Footer";
-import Search from "./components/Search";
+import { SearchLauncher } from "./components/Search";
 import Tracker from "./components/Tracker";
 import AlertSignup from "./components/AlertSignup";
 import KnowledgeGraphHero from "./components/KnowledgeGraphHero";
@@ -30,7 +30,7 @@ const VALUE_PROPS = [
 
 const WORKFLOWS = [
   { label: "Research funds", detail: "Study return, risk, benchmark, AMC and data-quality evidence.", href: "/funds" },
-  { label: "Compare", detail: "Compare funds without forcing a false universal winner.", href: "/compare" },
+  { label: "Compare", detail: "Compare funds without forcing a false universal winner.", href: "/compare?mode=funds" },
   { label: "Portfolio review", detail: "Run deterministic portfolio intelligence on actual holdings.", href: "/portfolio" },
   { label: "Market brief", detail: "Read what changed in the current daily bundle.", href: "/brief" },
   { label: "Research queue", detail: "Inspect rule-based attention flags and their context.", href: "/dashboard" },
@@ -150,7 +150,8 @@ export default async function HomePage() {
   const benchmarkCount = new Set(funds.map((fund) => fund.benchmark).filter(Boolean)).size;
   const queue = (daily.explained || []).slice(0, 4);
   const opportunities = (daily.gainers || []).slice(0, 4);
-  const topCategories = graph.classes.slice(0, 6);
+  const detailCategories = new Set(funds.filter((fund) => fund.assetClass === "Equity" && fund.isGrowth && !fund.isIdcw && fund.r1m != null).map((fund) => fund.category).filter(Boolean));
+  const topCategories = graph.categories.filter((category) => detailCategories.has(category.name)).slice(0, 6);
   const primaryNews = headlines[0];
   const story = [
     { label: "Breadth", value: `${formatNumber(daily.advancers)} advancing · ${formatNumber(daily.decliners)} declining`, detail: `${formatPercent(daily.breadth1d)} of tracked schemes advanced in the latest daily calculation bundle.`, href: "/brief" },
@@ -176,7 +177,7 @@ export default async function HomePage() {
               <p className="measure mt-6 text-base leading-7 text-ink-muted sm:text-lg">MF Pulse turns daily NAV data, fund metadata, research queues and market news into a premium decision workspace — without hiding source dates or data gaps.</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/funds" className="btn-premium-primary">Research funds</Link>
-                <Link href="/compare" className="btn-premium-secondary">Compare funds</Link>
+                <Link href="/compare?mode=funds" className="btn-premium-secondary">Compare funds</Link>
                 <Link href="/portfolio" className="btn-premium-secondary">Review portfolio</Link>
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-ink-faint">
@@ -192,7 +193,7 @@ export default async function HomePage() {
                   <div><div className="eyebrow">Command search</div><h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-ink">Start anywhere in the research universe.</h2></div>
                   <span className="rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold text-accent">⌘K</span>
                 </div>
-                <div className="mt-5"><Search /></div>
+                <div className="mt-5"><SearchLauncher /></div>
                 <div className="mt-6 grid grid-cols-3 gap-2 border-t border-line/70 pt-5 text-center">
                   <div><div className="financial-number text-lg font-semibold text-ink">{formatNumber(funds.length)}</div><div className="mt-1 text-[10px] uppercase tracking-wider text-ink-faint">Schemes</div></div>
                   <div><div className="financial-number text-lg font-semibold text-ink">{formatNumber(amcCount)}</div><div className="mt-1 text-[10px] uppercase tracking-wider text-ink-faint">AMCs</div></div>

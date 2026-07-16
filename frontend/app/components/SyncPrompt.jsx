@@ -28,6 +28,7 @@ export default function SyncPrompt() {
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (localStorage.getItem(SEEN_KEY) === "true") return;
@@ -43,19 +44,24 @@ export default function SyncPrompt() {
 
   async function accept() {
     setBusy(true);
+    setError("");
     const result = await migrateLocalToCloud();
     setBusy(false);
+    if (!result) {
+      setError("Sync did not complete. Your local research is unchanged; please try again.");
+      return;
+    }
     setDone(true);
     localStorage.setItem(SEEN_KEY, "true");
     // migrate() itself already no-ops safely if called twice (audit_log marker) — this timeout
     // just clears the banner, it isn't what makes re-entry safe.
-    setTimeout(() => setVisible(false), result ? 2500 : 0);
+    setTimeout(() => setVisible(false), 2500);
   }
 
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-xl border border-accent/40 bg-[#0d0f17] px-4 py-3 shadow-xl sm:inset-x-auto sm:right-4">
+    <div className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-md flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-[#0d0f17] px-4 py-3 shadow-xl sm:inset-x-auto sm:right-4">
       {done ? (
         <p className="text-[12.5px] text-pos">✓ Synced to your account.</p>
       ) : (
@@ -73,6 +79,7 @@ export default function SyncPrompt() {
               {busy ? "Syncing…" : "Sync now"}
             </button>
           </div>
+          {error && <p className="basis-full text-[11.5px] text-neg" role="alert">{error}</p>}
         </>
       )}
     </div>

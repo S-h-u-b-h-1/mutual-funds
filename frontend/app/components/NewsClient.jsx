@@ -47,34 +47,34 @@ function sourceCredibilityTone(source) {
   return CREDIBILITY_TONE[source.credibility] || "neutral";
 }
 
-function isStale(publishedAt) {
+function isStale(publishedAt, nowMs) {
   if (!publishedAt) return false;
-  return Date.now() - new Date(publishedAt).getTime() > 48 * 60 * 60 * 1000;
+  return nowMs - new Date(publishedAt).getTime() > 48 * 60 * 60 * 1000;
 }
 
-function withinFreshness(publishedAt, key) {
+function withinFreshness(publishedAt, key, nowMs) {
   if (key === "all") return true;
   if (!publishedAt) return false;
-  const ageMs = Date.now() - new Date(publishedAt).getTime();
+  const ageMs = nowMs - new Date(publishedAt).getTime();
   if (key === "24h") return ageMs <= 24 * 60 * 60 * 1000;
   if (key === "7d") return ageMs <= 7 * 24 * 60 * 60 * 1000;
   return true;
 }
 
-// Today/Yesterday/This Week/Earlier (Phase 4) — computed against the real clock at render time
-// (this is a client component, so a fresh Date() here is fine, no server/client mismatch risk).
-function timelineBucket(publishedAt) {
+const INDIA_DATE = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" });
+
+function dayNumber(value) {
+  const parts = Object.fromEntries(INDIA_DATE.formatToParts(new Date(value)).map((part) => [part.type, part.value]));
+  return Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)) / 86400000;
+}
+
+// Stable across server render and hydration: both use the same reference time and IST day.
+function timelineBucket(publishedAt, nowMs) {
   if (!publishedAt) return "Earlier";
-  const d = new Date(publishedAt);
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const startOfYesterday = new Date(startOfToday);
-  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-  const startOfWeek = new Date(startOfToday);
-  startOfWeek.setDate(startOfWeek.getDate() - 7);
-  if (d >= startOfToday) return "Today";
-  if (d >= startOfYesterday) return "Yesterday";
-  if (d >= startOfWeek) return "This Week";
+  const ageInDays = dayNumber(nowMs) - dayNumber(publishedAt);
+  if (ageInDays <= 0) return "Today";
+  if (ageInDays === 1) return "Yesterday";
+  if (ageInDays <= 7) return "This Week";
   return "Earlier";
 }
 
@@ -137,10 +137,10 @@ function ExposureSection({ article: a }) {
   );
 }
 
-function NewsCard({ article: a, onRelatedClick, highlighted }) {
+function NewsCard({ article: a, onRelatedClick, highlighted, nowMs }) {
   const [expanded, setExpanded] = useState(false);
   const trackedExpand = useRef(false);
-  const stale = isStale(a.publishedAt);
+  const stale = isStale(a.publishedAt, nowMs);
   const hasLinks = a.links && a.links.length > 0;
   const hasScores = (a.importance || 0) > 0 || (a.relevance || 0) > 0;
   const sentimentTone = SENTIMENT_TONE[a.sentiment];
@@ -171,7 +171,7 @@ function NewsCard({ article: a, onRelatedClick, highlighted }) {
         )}
         {sentimentTone && <Badge tone={sentimentTone}>{a.sentiment}</Badge>}
         <span className="text-[11px] text-ink-faint">
-          {relativeTime(a.publishedAt)}
+          {relativeTime(a.publishedAt, nowMs)}
           {stale && <span className="text-ink-faint"> · older story</span>}
         </span>
       </div>
@@ -264,7 +264,7 @@ function NewsCard({ article: a, onRelatedClick, highlighted }) {
                         >
                           {s.title}
                         </a>
-                        <span className="ml-1.5 text-[10.5px] text-ink-faint">· {relativeTime(s.publishedAt)}</span>
+                        <span className="ml-1.5 text-[10.5px] text-ink-faint">· {relativeTime(s.publishedAt, nowMs)}</span>
                       </li>
                     ))}
                   </ul>
@@ -334,7 +334,8 @@ function ThemeGrid({ articles, allThemes, themeCounts, activeTheme, onSelect }) 
   );
 }
 
-export default function NewsClient({ articles = [], runs = [], themeCounts = {}, allThemes = [] }) {
+export default function NewsClient({ articles = [], runs = [], themeCounts = {}, allThemes = [], referenceNow }) {
+  const nowMs = new Date(referenceNow).getTime();
   const [filter, setFilter] = useState("latest");
   const [theme, setTheme] = useState(null);
   const [sort, setSort] = useState("latest");
@@ -394,7 +395,7 @@ export default function NewsClient({ articles = [], runs = [], themeCounts = {},
     .filter((a) => !theme || a.themes?.includes(theme))
     .filter((a) => source === "all" || a.source?.name === source)
     .filter((a) => !highImpactOnly || (a.importance || 0) >= 60)
-    .filter((a) => withinFreshness(a.publishedAt, freshness));
+    .filter((a) => withinFreshness(a.publishedAt, freshness, nowMs));
 
   pool = [...pool].sort((a, b) => {
     if (sort === "relevant") return (b.relevance || 0) - (a.relevance || 0);
@@ -409,7 +410,7 @@ export default function NewsClient({ articles = [], runs = [], themeCounts = {},
   // would look broken (e.g. a "Today" story below an "Earlier" one). Flat list for those.
   const useTimeline = sort === "latest";
   const buckets = useTimeline
-    ? TIMELINE_ORDER.map((label) => ({ label, items: pool.filter((a) => timelineBucket(a.publishedAt) === label) })).filter((b) => b.items.length > 0)
+    ? TIMELINE_ORDER.map((label) => ({ label, items: pool.filter((a) => timelineBucket(a.publishedAt, nowMs) === label) })).filter((b) => b.items.length > 0)
     : [{ label: null, items: pool }];
 
   let cardIndex = 0;
@@ -420,6 +421,7 @@ export default function NewsClient({ articles = [], runs = [], themeCounts = {},
       <div key={a.id}>
         <NewsCard
           article={a}
+          nowMs={nowMs}
           onRelatedClick={(l) => setHighlightEntity(l.entityName)}
           highlighted={!!highlightEntity && a.links?.some((l) => l.entityName === highlightEntity)}
         />
