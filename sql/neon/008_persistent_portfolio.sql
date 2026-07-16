@@ -84,8 +84,18 @@ create table if not exists portfolio_import (
   provider text,
   parse_version text not null default 'v1',
   status text not null default 'draft',    -- 'draft' | 'approved' | 'cancelled' | 'superseded'
-  reconciliation_status text,              -- 'matched' | 'discrepancy' | 'not_applicable'
-  reconciliation_difference numeric,
+  -- Two independent reconciliation dimensions (see reconciliation.js): cost and market value can
+  -- each pass/fail separately, since a Summary-format statement may declare only one of the two.
+  -- declared_*_total is the statement's OWN grand total, kept for audit even though it's also
+  -- re-derivable from casParser.js's parse output, so a later re-parse can't silently change what
+  -- was actually reconciled against at approval time.
+  reconciliation_status text,              -- 'matched' | 'rounding' | 'discrepancy' | 'not_applicable' | 'unresolved' — see overallReconciliationStatus()
+  reconciliation_cost_status text,
+  reconciliation_cost_delta numeric,
+  reconciliation_market_value_status text,
+  reconciliation_market_value_delta numeric,
+  declared_cost_value_total numeric,
+  declared_market_value_total numeric,
   warning_count int not null default 0,
   original_file_retention_status text not null default 'not_retained', -- Phase 13: never retained by default
   draft_holdings jsonb,
@@ -114,14 +124,20 @@ create table if not exists portfolio_holding (
   canonical_scheme_code text not null,
   isin text,
   source_scheme_name text,
-  plan text,
-  option text,
+  plan text,                               -- 'Direct' | 'Regular' — from derivePlanOption(), never merged with the other
+  option text,                             -- 'Growth' | 'IDCW' — likewise never merged
+  demat boolean,                           -- null = not stated in the source statement, not "false"
   unit_balance numeric not null,
   invested_value numeric,
   average_cost numeric,
   statement_nav numeric,
   statement_nav_date date,
   statement_market_value numeric,
+  -- Per-holding reconciliation (units x statement_nav vs statement_market_value) — only ever
+  -- populated for the ledger CAS sub-format, which reports a per-row market value; the Summary
+  -- sub-format has none, so this stays 'not_applicable' there rather than a fabricated comparison.
+  reconciliation_status text,
+  reconciliation_delta numeric,
   match_method text,                       -- e.g. 'isin_exact' | 'scheme_code' | 'normalized_name' — see schemeResolver.js
   match_confidence text,                   -- 'confirmed' | 'high_confidence' (only acceptable statuses reach here)
   active boolean not null default true,
