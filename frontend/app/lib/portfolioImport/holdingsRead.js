@@ -38,3 +38,20 @@ export async function getUserHoldings(userId) {
 
   return { holdings: computeWeights(holdings), unresolved };
 }
+
+// Read counterpart for portfolio_transactions — parallel to getUserHoldings above. Used by the
+// intelligence route to compute XIRR from real dated cash flows; returns the raw stored rows
+// (no fund enrichment needed, revaluation.js only needs schemeCode/type/date/amount).
+export async function getUserTransactions(userId) {
+  const r = await query(
+    `select scheme_code, transaction_type, transaction_date, amount
+     from portfolio_transactions where user_id = $1 order by transaction_date asc`,
+    [userId]
+  );
+  return r.rows.map((row) => ({
+    schemeCode: row.scheme_code,
+    transactionType: row.transaction_type,
+    transactionDate: row.transaction_date,
+    amount: row.amount != null ? Number(row.amount) : null,
+  }));
+}

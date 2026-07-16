@@ -1,7 +1,33 @@
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
 import { query } from "../../../../lib/db";
-import { getUserHoldings } from "../../../../lib/portfolioImport/holdingsRead";
+import { getUserHoldings, getUserTransactions } from "../../../../lib/portfolioImport/holdingsRead";
 import { buildHealthReport } from "../../../../lib/portfolioIntelligence/healthReport";
+import { getFund } from "../../../../lib/funds";
+import { revaluePortfolio } from "../../../../lib/portfolioImport/revaluation";
+import { computePerformanceLeaders } from "../../../../lib/portfolioImport/performanceLeaders";
+
+// Adapts a normalizer.js Holding (schemeCode/units/purchaseValue/currentValue/nav — the shape
+// getUserHoldings returns today) into the field names revaluation.js/performanceLeaders.js expect
+// (unitBalance/investedValue/marketValue). Those two modules were built and tested against the
+// NEW schema's naming (sql/neon/008_persistent_portfolio.sql, not yet applied) since that's this
+// mission's target shape — but their logic needs nothing from that schema specifically, so this
+// adapter lets them run against the live portfolio_holdings table today, without waiting for the
+// migration. staleDays/matchConfidence/reconciliationStatus are genuinely absent from the current
+// holding shape; left undefined rather than guessed, and performanceLeaders.js's own exclusion
+// checks already treat "field absent" as "don't exclude on this basis" (see its own comments).
+function toValuationHolding(h) {
+  return { id: h.schemeCode, schemeCode: h.schemeCode, unitBalance: h.units, investedValue: h.purchaseValue };
+}
+function toLeaderHolding(h) {
+  return {
+    schemeCode: h.schemeCode,
+    schemeName: h.schemeName,
+    folioNumber: h.folioNumber,
+    investedValue: h.purchaseValue,
+    marketValue: h.currentValue,
+    weight: h.weight,
+  };
+}
 
 // Computes the full Phase A-D deterministic report fresh from live holdings + live fund data,
 // then persists three things as a side effect: a portfolio_metrics row (numeric snapshot, feeds
@@ -18,6 +44,20 @@ export async function GET() {
   if (rawHoldings.length === 0) {
     return Response.json({ error: "No holdings to analyze. Import a portfolio first via POST /api/v1/portfolio/upload." }, { status: 400 });
   }
+
+  const transactions = await getUserTransactions(user.id);
+  const valuation = revaluePortfolio(rawHoldings.map(toValuationHolding), getFund, transactions);
+  const leaders = computePerformanceLeaders(rawHoldings.map(toLeaderHolding));
+  const latestOfficialNavDate = valuation.holdingValuations.reduce(
+    (latest, v) => (v.navDate && (!latest || v.navDate > latest) ? v.navDate : latest),
+    null
+  );
+  const valuationConfidence =
+    valuation.staleHoldingCount === 0 && valuation.latestNavCoveragePct === 100
+      ? "High"
+      : valuation.latestNavCoveragePct >= 80
+        ? "Partial"
+        : "Low";
 
   const report = buildHealthReport(rawHoldings);
   const a = report._analytics;
@@ -50,6 +90,19 @@ export async function GET() {
   }
 
   const { _analytics, ...reportForStorage } = report;
+  reportForStorage.portfolioSummary = {
+    ...reportForStorage.portfolioSummary,
+    investedValue: valuation.totalInvestedValue,
+    gainLoss: valuation.absoluteGain,
+    gainLossPct: valuation.absoluteReturnPct,
+    xirr: valuation.xirr,
+    latestOfficialNavDate,
+    valuationConfidence,
+    staleHoldingCount: valuation.staleHoldingCount,
+    latestNavCoveragePct: valuation.latestNavCoveragePct,
+  };
+  reportForStorage.performanceLeaders = leaders;
+
   const reportRow = await query(
     `insert into portfolio_reports (user_id, report_type, summary) values ($1, 'portfolio_health', $2) returning id, generated_at`,
     [user.id, JSON.stringify(reportForStorage)]
