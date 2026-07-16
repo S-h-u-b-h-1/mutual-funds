@@ -747,8 +747,8 @@
 {
 "category": "Value",
 "count": 44,
-"avg": 1.98,
-"median": 1.75,
+"avg": 2.0,
+"median": 1.92,
 "best": {
 "name": "LIC MF Value Fund-Direct Plan-Growth",
 "amc": "LIC",
@@ -911,14 +911,6 @@
 "score": 75.6
 },
 {
-"amc": "Sundaram",
-"funds": 44,
-"avg": 3.21,
-"pct_outperform": 61,
-"breadth": 95,
-"score": 72.8
-},
-{
 "amc": "Quantum",
 "funds": 10,
 "avg": 2.92,
@@ -937,10 +929,10 @@
 {
 "amc": "Kotak Mahindra",
 "funds": 54,
-"avg": 2.9,
+"avg": 2.93,
 "pct_outperform": 59,
 "breadth": 96,
-"score": 71.3
+"score": 71.4
 },
 {
 "amc": "HDFC",
@@ -957,6 +949,14 @@
 "pct_outperform": 56,
 "breadth": 100,
 "score": 71.0
+},
+{
+"amc": "Sundaram",
+"funds": 44,
+"avg": 3.21,
+"pct_outperform": 57,
+"breadth": 95,
+"score": 70.3
 },
 {
 "amc": "ITI",
@@ -1047,6 +1047,14 @@
 "score": 62.8
 },
 {
+"amc": "DSP",
+"funds": 32,
+"avg": 2.55,
+"pct_outperform": 44,
+"breadth": 94,
+"score": 61.6
+},
+{
 "amc": "Canara Robeco",
 "funds": 26,
 "avg": 2.5,
@@ -1069,14 +1077,6 @@
 "pct_outperform": 43,
 "breadth": 86,
 "score": 58.8
-},
-{
-"amc": "DSP",
-"funds": 32,
-"avg": 2.52,
-"pct_outperform": 38,
-"breadth": 94,
-"score": 58.1
 },
 {
 "amc": "Shriram",
