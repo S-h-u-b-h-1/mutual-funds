@@ -99,3 +99,34 @@ The required checks at every width are document horizontal overflow, header/acti
 ## Production gate
 
 No completion claim is allowed until `mf-pulse.vercel.app` passes import → review → approve → refresh → logout/login → isolated browser persistence → official NAV refresh → unchanged units → updated value → every visible control → mobile → light/dark, with screenshots and DOM evidence. The present backend cannot perform the review/approve segment, so the production gate remains blocked by contract rather than treated as a UI pass.
+
+## Local implementation evidence
+
+The redesigned route was exercised with two isolated local states:
+
+1. A real disposable authenticated account with no holdings. The browser selected an intentionally invalid, clearly labelled QA-only PDF to certify file handling, long-name containment and the failure/retry/remove flow. The server returned HTTP 400; the UI focused an actionable error and kept the portfolio unsaved.
+2. An intercepted Playwright API contract fixture, used only inside the browser context, to exercise the saved-dashboard layout without writing invented financial holdings to the database. It covered explicit summary fields, API-ranked leaders, three holdings, allocations and intelligence output.
+
+Horizontal-overflow result for both the import state with a 117-character filename and the full saved-dashboard fixture:
+
+| Width | Import overflow | Dashboard overflow | Navigation state |
+|---:|---:|---:|---|
+| 320 | 0 px | 0 px | Mobile dock |
+| 375 | 0 px | 0 px | Mobile dock |
+| 390 | 0 px | 0 px | Mobile dock |
+| 430 | 0 px | 0 px | Mobile dock |
+| 768 | 0 px | 0 px | Mobile dock |
+| 1024 | 0 px | 0 px | Desktop navigation |
+| 1280 | 0 px | 0 px | Desktop navigation |
+| 1440 | 0 px | 0 px | Desktop navigation |
+| 1920 | 0 px | 0 px | Desktop navigation |
+
+Locally verified controls: dashboard/import switch, header upload action, all three statement providers, choose PDF, long filename, upload failure, retry state, remove, mobile navigation dialog, search, three sort modes, category filter, AMC/category grouping, folio evidence expand/collapse, Open fund, Compare, Watchlist response, all allocation tabs, section links, and disabled history ranges. Unsupported settings/report/delete/review controls remain absent.
+
+Build evidence after redesign: `/portfolio` route code 13.3 kB, first-load JS 126 kB, shared JS 87.4 kB, 58/58 pages generated, and no build or hydration error. Field LCP, CLS and INP are not available from a local synthetic run and remain a production observability requirement.
+
+Screenshots:
+
+- `output/playwright/portfolio-dashboard-desktop.png`
+- `output/playwright/portfolio-dashboard-mobile.png`
+- `output/playwright/portfolio-import-error-mobile.png`

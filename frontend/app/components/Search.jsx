@@ -74,7 +74,13 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
     // Recent visits — same underlying history as RecentActivity.jsx/mfp_recent_views, not a
     // separate tracking system (it used to be: a parallel mfp_recent_visits key with no cloud
     // sync of its own, unified here so this list and "Continue where you left off" always agree).
-    getHistory({ type: "fund", limit: 5 }).then((views) => setVisits(views.map((v) => ({ code: v.id, name: v.name }))));
+    getHistory({ type: "fund", limit: 12 }).then((views) => {
+      const unique = new Map();
+      for (const view of views) {
+        if (view.id && !unique.has(view.id)) unique.set(view.id, { code: view.id, name: view.name });
+      }
+      setVisits(Array.from(unique.values()).slice(0, 5));
+    });
   };
 
   useEffect(() => {
