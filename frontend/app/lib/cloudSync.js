@@ -45,14 +45,27 @@ function notify() {
 // here. Cached briefly so a burst of adapter calls in one interaction (e.g. loading a fund page
 // that both records a view and checks the watchlist) doesn't fire N redundant /api/auth/session
 // requests.
-let cached = null;
+let cached;
 let cachedAt = 0;
+let sessionRequest = null;
 async function currentUser() {
-  if (cached !== null && Date.now() - cachedAt < 5000) return cached;
-  const session = await getSession().catch(() => null);
-  cached = session?.user ?? null;
-  cachedAt = Date.now();
-  return cached;
+  if (cached !== undefined && Date.now() - cachedAt < 5000) return cached;
+  if (sessionRequest) return sessionRequest;
+
+  // This adapter only needs a snapshot; broadcasting each lookup makes SessionProvider perform
+  // a second fetch and fans one storage read into multiple /api/auth/session requests.
+  sessionRequest = getSession({ broadcast: false })
+    .catch(() => null)
+    .then((session) => {
+      cached = session?.user ?? null;
+      cachedAt = Date.now();
+      return cached;
+    })
+    .finally(() => {
+      sessionRequest = null;
+    });
+
+  return sessionRequest;
 }
 
 async function cloudFetch(path, options) {
