@@ -26,6 +26,47 @@ export function detectProvider(text) {
   return null;
 }
 
+// Derives plan/option/demat from the scheme name text the row already carries — these are never
+// merged (Direct vs Regular, Growth vs IDCW are different holdings even under the same AMC), so
+// this is read-only classification of already-extracted text, not a second extraction pass.
+// "Dividend" is AMFI's pre-2021 name for what's now called IDCW; both map to the same option so a
+// statement generated before the rename doesn't silently fall through as unrecognized.
+function derivePlanOption(schemeName) {
+  const s = String(schemeName || "");
+  const plan = /\bdirect\b/i.test(s) ? "Direct" : /\bregular\b/i.test(s) ? "Regular" : null;
+  const option = /\bidcw\b/i.test(s) ? "IDCW" : /\bdividend\b/i.test(s) ? "IDCW" : /\bgrowth\b/i.test(s) ? "Growth" : null;
+  const demat = /\(\s*non\s*-?\s*demat\s*\)/i.test(s) ? false : /\(\s*demat\s*\)/i.test(s) ? true : null;
+  return { plan, option, demat };
+}
+
+// The document's own declared grand totals, when present — a Consolidated Account Summary's
+// footer row, glued the same way data rows are: "Total<marketValueTotal><costValueTotal>" with
+// no separating whitespace, matching the header's own column order ("Market Value...Cost Value").
+// Found and verified against the one real sample checked: the second glued number matched the
+// independently-computed sum of extracted per-row cost values exactly, confirming this order (not
+// assumed from the header text alone, which is itself glued/ambiguous). This is the one real
+// reconciliation ground-truth this document type offers for cost; the market-value total lets a
+// units x statement-NAV check be validated against the statement's own numbers too, rather than
+// only against today's live NAV (which is expected to differ, being a different date).
+// Grouping-style-agnostic ([\d,]+ tolerates either Indian lakh-grouping or Western
+// thousands-grouping) since this footer used Western grouping despite Indian grouping in the
+// per-row data above it.
+const DECLARED_TOTAL_RE = /\btotal\s*([\d,]+\.\d{2})([\d,]+\.\d{2})?/i;
+function extractStatementDeclaredTotal(text) {
+  const m = text.match(DECLARED_TOTAL_RE);
+  if (!m) return { marketValueTotal: null, costValueTotal: null };
+  return {
+    marketValueTotal: parseFlexibleNumber(m[1]),
+    costValueTotal: m[2] ? parseFlexibleNumber(m[2]) : null,
+  };
+}
+
+const STATEMENT_DATE_RE = /\bas\s*on\s*(\d{1,2}-[A-Za-z]{3}-\d{4})/i;
+function extractStatementDate(text) {
+  const m = text.match(STATEMENT_DATE_RE);
+  return m ? parseFlexibleDate(m[1]) : null;
+}
+
 const ISIN_RE = /\bIN[A-Z0-9]{10}\b/;
 const ISIN_RE_G = new RegExp(ISIN_RE.source, "g");
 const FOLIO_RE = /Folio\s*No\s*[:.]?\s*([A-Za-z0-9/\-]+)/i;
@@ -197,8 +238,12 @@ function isColumnHeaderLine(line) {
 // a scheme name is fund data, not personal data, and should never contain either.
 const IDENTITY_MARKER_RE = /@|\bmobile\b|\bemail\b|\bpan\s*:|\baddress\b|\bfolio\s*no\b/i;
 
+// Returns { name, demat } rather than a bare string: the demat flag has to be read off the
+// pre-strip text, since the returned display name has "(Non-Demat)"/"(Demat)" removed for
+// readability. Deriving it from `name` after that strip would always see "(Non-Demat)" as
+// already-gone and misreport it as unknown (found live: this was exactly wrong until fixed).
 function cleanSchemeNameLines(lines) {
-  const joined = lines
+  const withNormalizedSuffix = lines
     .map((l) => l.trim())
     .filter(Boolean)
     .filter((l) => !MOSTLY_NUMERIC_LINE_RE.test(l))
@@ -206,10 +251,15 @@ function cleanSchemeNameLines(lines) {
     .join(" ")
     .replace(/\s+/g, " ")
     .replace(/\(\s*Non\s*-?\s*Demat\s*\)?\s*$/i, "(Non-Demat)") // rejoin a "(Non" / "Demat)" split across two lines
-    .replace(/\(Non-Demat\)\s*$/i, "")
     .trim();
-  if (!joined || joined.length > 150 || IDENTITY_MARKER_RE.test(joined)) return null;
-  return joined;
+  const demat = /\(\s*non\s*-?\s*demat\s*\)/i.test(withNormalizedSuffix)
+    ? false
+    : /\(\s*demat\s*\)/i.test(withNormalizedSuffix)
+      ? true
+      : null;
+  const name = withNormalizedSuffix.replace(/\(Non-Demat\)\s*$/i, "").trim();
+  if (!name || name.length > 150 || IDENTITY_MARKER_RE.test(name)) return null;
+  return { name, demat };
 }
 
 function extractSummaryHoldings(text) {
@@ -251,14 +301,15 @@ function extractSummaryHoldings(text) {
     const gapLines = gapText.split("\n").map((l) => l.trim()).filter(Boolean);
     const candidateLines = gapLines.slice(-4); // scheme names wrap at most ~2 lines in practice; 4 is generous headroom, not "the whole gap"
     const folioMatch = candidateLines.join(" ").match(FOLIO_TOKEN_RE);
-    const schemeName = cleanSchemeNameLines(candidateLines);
+    const cleaned = cleanSchemeNameLines(candidateLines);
 
-    if (!schemeName) {
+    if (!cleaned) {
       rows._warnings ||= [];
       rows._warnings.push(`Could not extract a scheme name for ISIN ${isin} — this holding was skipped.`);
     } else {
+      const { plan, option } = derivePlanOption(cleaned.name);
       rows.push({
-        schemeName,
+        schemeName: cleaned.name,
         isin,
         folioNumber: folioMatch ? folioMatch[1] : null,
         units: parseFlexibleNumber(units),
@@ -267,6 +318,9 @@ function extractSummaryHoldings(text) {
         registrar: registrar.toUpperCase(),
         purchaseValue: parseFlexibleNumber(costValue),
         marketValueReported: null,
+        plan,
+        option,
+        demat: cleaned.demat,
       });
     }
     searchFrom = m.index + m[0].length;
@@ -287,6 +341,7 @@ function extractSummaryHoldings(text) {
 export function parseCasText(text) {
   const provider = detectProvider(text);
   const investor = extractInvestor(text);
+  const statementDate = extractStatementDate(text);
   const blocks = splitBlocks(text);
   const rows = [];
   const allTransactions = [];
@@ -318,6 +373,7 @@ export function parseCasText(text) {
       // computes its own currentValue from live NAV (see normalizer.js's buildHolding), never
       // trusting a source-reported valuation as of some other date.
       marketValueReported: closing.marketValueReported,
+      ...derivePlanOption(schemeName),
     });
     allTransactions.push(...transactions);
   }
@@ -326,10 +382,20 @@ export function parseCasText(text) {
     const summaryRows = extractSummaryHoldings(text);
     if (summaryRows._warnings) warnings.push(...summaryRows._warnings);
     if (summaryRows.length > 0) {
-      return { investor, provider, rows: summaryRows, transactions: [], warnings, format: "summary" };
+      return {
+        investor, provider, statementDate, rows: summaryRows, transactions: [], warnings, format: "summary",
+        statementDeclaredTotal: extractStatementDeclaredTotal(text),
+      };
     }
     warnings.push("No folio/scheme sections could be identified in this statement in either the transaction-ledger or summary format — it may not be a supported CAS layout, or PDF text extraction lost the document's structure.");
   }
 
-  return { investor, provider, rows, transactions: allTransactions, warnings, format: rows.length ? "ledger" : "none" };
+  return {
+    investor, provider, statementDate, rows, transactions: allTransactions, warnings, format: rows.length ? "ledger" : "none",
+    // The ledger format has no single document-level declared total the way the Summary
+    // footer does — each block's own Market Value/Cost Value line (closing.marketValueReported/
+    // closing.costValue, already on each row above) is that format's reconciliation ground truth
+    // instead, so this stays null there rather than searching for a different kind of total.
+    statementDeclaredTotal: { marketValueTotal: null, costValueTotal: null },
+  };
 }
