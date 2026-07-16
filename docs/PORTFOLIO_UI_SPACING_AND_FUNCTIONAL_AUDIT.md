@@ -123,10 +123,18 @@ Horizontal-overflow result for both the import state with a 117-character filena
 
 Locally verified controls: dashboard/import switch, header upload action, all three statement providers, choose PDF, long filename, upload failure, retry state, remove, mobile navigation dialog, search, three sort modes, category filter, AMC/category grouping, folio evidence expand/collapse, Open fund, Compare, Watchlist response, all allocation tabs, section links, and disabled history ranges. Unsupported settings/report/delete/review controls remain absent.
 
-Build evidence after redesign: `/portfolio` route code 13.3 kB, first-load JS 126 kB, shared JS 87.4 kB, 58/58 pages generated, and no build or hydration error. Field LCP, CLS and INP are not available from a local synthetic run and remain a production observability requirement.
+Build evidence after redesign: `/portfolio` route code 13.3 kB, first-load JS 126 kB, shared JS 87.4 kB, 58/58 pages generated, and no build or hydration error.
+
+## Production verification
+
+Vercel deployment `dpl_HfxJM6CPFzn4sgecdaMfHoBkA6ut` reached `Ready` on 16 July 2026 and the canonical `https://mf-pulse.vercel.app/portfolio` domain served the redesigned route. A fresh signed-out browser was redirected to login with the portfolio callback intact. A disposable production QA account with no financial holdings then reached the authenticated import and truthful empty-dashboard states.
+
+The authenticated production page had 0 px horizontal overflow at 320, 375, 390, 430, 768, 1024, 1280, 1440 and 1920 px. Browser console inspection reported 0 errors and 0 warnings. A single warm, desktop Chromium lab sample measured TTFB 41 ms, FCP 124 ms, LCP 664 ms, CLS 0.0549, load 70 ms and 22 kB resource transfer. These are synthetic observations, not field Core Web Vitals; production RUM and INP remain an observability requirement.
 
 Screenshots:
 
 - `output/playwright/portfolio-dashboard-desktop.png`
 - `output/playwright/portfolio-dashboard-mobile.png`
 - `output/playwright/portfolio-import-error-mobile.png`
+- `output/playwright/portfolio-production-empty-desktop.png`
+- `output/playwright/portfolio-production-empty-mobile.png`
