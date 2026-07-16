@@ -133,6 +133,16 @@
   .skip-link:focus { @apply translate-y-0; }
   .hairline { background: linear-gradient(90deg, transparent, rgb(var(--color-border-strong) / 0.75), transparent); }
 
+  /* Portfolio rhythm: one spacing contract shared by import, review and dashboard surfaces. */
+  .portfolio-shell { @apply min-w-0 space-y-8 sm:space-y-10; }
+  .portfolio-section { @apply min-w-0 scroll-mt-28 space-y-4 sm:space-y-5; }
+  .portfolio-section-header { @apply flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4; }
+  .portfolio-card { @apply min-w-0 rounded-[1.35rem] bg-surface p-4 shadow-sm sm:p-5; }
+  .portfolio-card-outlined { @apply min-w-0 rounded-[1.35rem] border border-line bg-surface p-4 shadow-sm sm:p-5; }
+  .portfolio-grid-gap { @apply gap-3 sm:gap-4; }
+  .portfolio-control { @apply min-h-11 rounded-xl border border-line bg-bg px-3 text-sm text-ink outline-none focus:border-accent; }
+  .portfolio-table-cell { @apply px-3 py-3 align-top xl:px-4; }
+
   dialog.cmd-dialog { opacity: 0; transform: scale(0.98) translateY(6px); transition: opacity var(--duration-base) var(--ease-research), transform var(--duration-base) var(--ease-research), overlay var(--duration-base) allow-discrete, display var(--duration-base) allow-discrete; }
   dialog.cmd-dialog[open] { opacity: 1; transform: scale(1) translateY(0); }
   dialog.cmd-dialog::backdrop { background: rgb(7 16 16 / 0.62); backdrop-filter: blur(6px); }
