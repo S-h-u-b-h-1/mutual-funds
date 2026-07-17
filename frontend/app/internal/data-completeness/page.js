@@ -4,32 +4,61 @@
 // from the same bundles/views the rest of the app trusts — nothing here is a separate, possibly-
 // stale "status page" number; if it says 7% manager coverage, that's the real, current figure.
 import { sb } from "../../lib/supabase";
-import { allFunds, coverage } from "../../lib/funds";
+import { coverage } from "../../lib/funds";
 import { allMetadata, metadataStatus, allManagers } from "../../lib/metadata";
 import { getIngestionRuns } from "../../lib/news";
 import GlassPanel from "../../components/ui/GlassPanel";
 import SectionHeader from "../../components/ui/SectionHeader";
+import fieldCoverage from "../../data/fieldCoverage.json";
+import { FIELD_REGISTRY, computeConfidence } from "../../lib/fieldRegistry";
 
 export const metadata = { title: "Data Completeness (Internal)", robots: { index: false, follow: false } };
 export const revalidate = 60;
 
-const pct = (n, d) => (d ? Math.round((100 * n) / d) : 0);
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(n || 0);
 
-function Bar({ label, have, total, note }) {
-  const p = pct(have, total);
-  const tone = p >= 80 ? "#34d399" : p >= 40 ? "#fbbf24" : "#f87171";
+const CONFIDENCE_TONE = { High: "#34d399", Medium: "#fbbf24", Low: "#f87171", "N/A": "#6b7280" };
+
+function FieldRow({ entry }) {
+  const cov = entry.key
+    ? (() => {
+        const [group, name] = entry.key.split(".");
+        return fieldCoverage.fields?.[group]?.[name] ?? null;
+      })()
+    : null;
+  const coveragePct = cov ? cov.universe_pct : 0;
+  const missingCount = cov ? fieldCoverage.denominators.universe - cov.universe_n : fieldCoverage.denominators.universe;
+  const confidence = computeConfidence(entry, cov ? coveragePct : null);
+  const lastUpdated =
+    entry.status === "no_schema" || entry.status === "not_yet_assessed" || entry.status === "blocked_by_license"
+      ? "—"
+      : entry.key?.startsWith("Identity") || entry.key?.startsWith("Performance")
+        ? fieldCoverage.amfiLastUpdated
+        : fieldCoverage.factsheetLastUpdated || "—";
+  const statusLabel =
+    entry.status === "no_schema" ? "No schema slot" : entry.status === "blocked_by_license" ? "Blocked — licensing" : entry.status === "not_yet_assessed" ? "Not yet assessed" : null;
+
   return (
-    <div className="py-2">
-      <div className="flex items-center justify-between text-[12.5px]">
-        <span className="text-ink-muted">{label}</span>
-        <span className="tnum text-ink">{fmt(have)} / {fmt(total)} · {p}%</span>
-      </div>
-      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-        <div className="h-full rounded-full" style={{ width: `${p}%`, background: tone }} />
-      </div>
-      {note && <div className="mt-0.5 text-[10.5px] text-ink-faint">{note}</div>}
-    </div>
+    <tr className="border-b border-line/60 last:border-0 align-top">
+      <td className="px-3 py-2.5">
+        <div className="text-[12.5px] font-medium text-ink">{entry.label}</div>
+        {entry.notes && <div className="mt-0.5 max-w-md text-[11px] leading-snug text-ink-faint">{entry.notes}</div>}
+      </td>
+      <td className="px-3 py-2.5 text-right tnum text-[12.5px] text-ink">
+        {statusLabel ? <span className="text-ink-faint">{statusLabel}</span> : `${coveragePct}%`}
+      </td>
+      <td className="px-3 py-2.5 text-right tnum text-[12.5px] text-ink-muted">{statusLabel ? "—" : fmt(missingCount)}</td>
+      <td className="px-3 py-2.5 text-[11.5px] text-ink-muted">{entry.officialSource || "—"}</td>
+      <td className="px-3 py-2.5 text-[11.5px] text-ink-muted whitespace-nowrap">{lastUpdated}</td>
+      <td className="px-3 py-2.5 text-right">
+        <span
+          className="rounded px-1.5 py-0.5 text-[11px] font-semibold"
+          style={{ color: CONFIDENCE_TONE[confidence], backgroundColor: `${CONFIDENCE_TONE[confidence]}1a` }}
+        >
+          {confidence}
+        </span>
+      </td>
+    </tr>
   );
 }
 
@@ -43,7 +72,6 @@ function Row({ label, value, tone }) {
 }
 
 export default async function DataCompleteness() {
-  const funds = allFunds();
   const meta = allMetadata();
   const managers = allManagers();
 
@@ -70,8 +98,6 @@ export default async function DataCompleteness() {
     return v != null && v !== "" && !(Array.isArray(v) && v.length === 0);
   }).length;
 
-  const withBenchmark = funds.filter((f) => f.benchmark).length;
-
   const navRecency = navRuns[0]?.finished_at ? Math.round((Date.now() - new Date(navRuns[0].finished_at).getTime()) / 3600000) : null;
   const lastNewsSuccess = newsRuns.find((r) => r.status === "success");
   const newsRecency = lastNewsSuccess ? Math.round((Date.now() - new Date(lastNewsSuccess.finished_at).getTime()) / 3600000) : null;
@@ -88,44 +114,48 @@ export default async function DataCompleteness() {
       </p>
 
       <section className="mt-8">
-        <SectionHeader title="Scheme & NAV coverage" eyebrow="frontend/app/data/funds.json" />
-        <GlassPanel className="p-5">
-          <Bar label="Priced (has a NAV)" have={coverage.priced} total={coverage.total} />
-          <Bar label="Active" have={coverage.active} total={coverage.total} />
-          <Bar label="30d return computable" have={coverage.with30d} total={coverage.total} />
-          <Bar label="90d return computable" have={coverage.with90d} total={coverage.total} />
-          <Bar label="1Y return computable" have={coverage.with1y} total={coverage.total} />
-          <Bar label="3Y return computable" have={coverage.with3y} total={coverage.total} />
-          <Bar label="5Y return computable" have={coverage.with5y} total={coverage.total} />
-          <Bar label="Risk metrics (vol/drawdown)" have={coverage.withRisk} total={coverage.total} />
-          <Bar label="Category mapped" have={coverage.total - coverage.noCategory} total={coverage.total} />
-          <Bar label="Benchmark mapped" have={withBenchmark} total={coverage.total} note="SEBI category-standard or named index — not factsheet-dependent" />
-          <div className="mt-2 border-t border-line pt-2">
-            <Row label="Missing latest NAV" value={fmt(coverage.missingLatest)} tone={coverage.missingLatest > 0 ? "warn" : "pos"} />
-            <Row label="Stale ≥7d" value={fmt(coverage.stale7d)} tone="warn" />
-            <Row label="Unpriced" value={fmt(coverage.unpriced)} />
+        <SectionHeader
+          title="Field-level coverage matrix"
+          eyebrow={`21 required fields · computed live from data/warehouse/field_coverage.json · asOf ${fieldCoverage.asOf}`}
+        />
+        <GlassPanel className="p-0 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12.5px]">
+              <thead>
+                <tr className="border-b border-line text-[10.5px] uppercase tracking-[0.08em] text-ink-faint">
+                  <th className="px-3 py-2.5 text-left">Field</th>
+                  <th className="px-3 py-2.5 text-right">Coverage</th>
+                  <th className="px-3 py-2.5 text-right">Missing</th>
+                  <th className="px-3 py-2.5 text-left">Official Source</th>
+                  <th className="px-3 py-2.5 text-left">Last Updated</th>
+                  <th className="px-3 py-2.5 text-right">Confidence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {FIELD_REGISTRY.map((entry) => (
+                  <FieldRow key={entry.id} entry={entry} />
+                ))}
+              </tbody>
+            </table>
           </div>
+          <p className="border-t border-line px-3 py-2.5 text-[11px] text-ink-faint">
+            Confidence: High = coverage ≥90% AND validated AND primary official source. Medium = coverage ≥40% AND
+            (validated OR primary source). Low = below both thresholds but non-zero. N/A = 0% populated, no schema
+            slot, or licensing-blocked. Methodology and full per-field reasoning: <code>docs/DATA_COVERAGE_MATRIX.md</code>,
+            source strategy: <code>docs/DATA_SOURCE_REGISTER.md</code>.
+          </p>
         </GlassPanel>
       </section>
 
       <section className="mt-8">
-        <SectionHeader title="Factsheet metadata coverage" eyebrow={`${metaN} of ${fmt(coverage.total)} schemes — AMC PDF parsers acquired so far`} />
+        <SectionHeader title="Pipeline metadata (auxiliary)" eyebrow={`${metaN} of ${fmt(coverage.total)} schemes have any factsheet at all`} />
         <GlassPanel className="p-5">
-          <Bar label="Fund manager" have={fieldHave("fund_manager")} total={metaN} />
-          <Bar label="Expense ratio" have={fieldHave("expense_ratio")} total={metaN} />
-          <Bar label="Benchmark (factsheet-named)" have={fieldHave("benchmark")} total={metaN} />
-          <Bar label="Holdings" have={fieldHave("holdings")} total={metaN} />
-          <Bar label="Sector allocation" have={fieldHave("sector_allocation")} total={metaN} />
-          <Bar label="AUM" have={fieldHave("aum_crores")} total={metaN} />
-          <Bar label="Riskometer" have={fieldHave("riskometer")} total={metaN} />
-          <Bar label="Exit load" have={fieldHave("exit_load")} total={metaN} />
-          <Bar label="Minimum SIP" have={fieldHave("minimum_sip")} total={metaN} />
-          <Bar label="Launch date" have={fieldHave("launch_date")} total={metaN} />
-          <div className="mt-2 border-t border-line pt-2">
-            <Row label="Parsers implemented & tested" value={fmt(metadataStatus.parserReady)} />
-            <Row label="Schemes populated" value={fmt(metadataStatus.populated)} />
-            <Row label="Distinct managers resolved" value={fmt(managers.length)} />
-          </div>
+          <Row label="Parsers implemented & tested" value={fmt(metadataStatus.parserReady)} />
+          <Row label="Schemes with any factsheet metadata" value={fmt(metadataStatus.populated)} />
+          <Row label="Distinct managers resolved" value={fmt(managers.length)} />
+          <Row label="Missing latest NAV" value={fmt(coverage.missingLatest)} tone={coverage.missingLatest > 0 ? "warn" : "pos"} />
+          <Row label="Stale ≥7d" value={fmt(coverage.stale7d)} tone="warn" />
+          <Row label="Unpriced" value={fmt(coverage.unpriced)} />
         </GlassPanel>
       </section>
 

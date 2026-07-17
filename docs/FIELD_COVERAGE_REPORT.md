@@ -1,6 +1,6 @@
-# Field Coverage Report — 2026-07-14
+# Field Coverage Report — 2026-07-16
 
-Denominators: **universe** = all 14,218 routable schemes; **investable** = active Growth non-IDCW = 3,456.
+Denominators: **universe** = all 14,224 routable schemes; **investable** = active Growth non-IDCW = 3,458.
 Every % auto-computed from funds.json + metadata.json. Missing values are classified, never blank-faked.
 
 ### Identity
@@ -11,22 +11,22 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 | AMC | 100.0% | 100.0% |
 | Category | 100.0% | 100.0% |
 | Asset Class | 100.0% | 100.0% |
-| Benchmark | 86.11% | 72.28% |
+| Benchmark | 85.92% | 72.12% |
 
 ### Performance
 
 | Field | Universe % | Investable % |
 |---|---:|---:|
 | Latest NAV | 98.29% | 100.0% |
-| NAV History (90d) | 28.03% | 99.62% |
-| 1M | 28.35% | 99.54% |
-| 3M | 28.09% | 98.73% |
-| 6M | 26.56% | 95.63% |
-| 1Y | 24.88% | 90.02% |
-| 3Y | 18.93% | 68.95% |
-| 5Y | 13.35% | 48.96% |
-| Volatility | 28.03% | 99.62% |
-| Drawdown | 28.03% | 99.62% |
+| NAV History (90d) | 28.03% | 99.57% |
+| 1M | 28.33% | 99.48% |
+| 3M | 28.07% | 98.7% |
+| 6M | 26.56% | 95.58% |
+| 1Y | 24.89% | 90.02% |
+| 3Y | 18.93% | 68.91% |
+| 5Y | 13.36% | 48.99% |
+| Volatility | 28.03% | 99.57% |
+| Drawdown | 28.03% | 99.57% |
 
 ### Metadata
 
@@ -55,15 +55,15 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 | Factsheet | 1.07% | 1.59% |
 
 ## Performance completeness (0–100 per scheme)
-- Investable average: **92.9/100** (96.06% score ≥80)
-- Universe average: 46.8/100 (26.99% ≥80)
+- Investable average: **92.9/100** (96.01% score ≥80)
+- Universe average: 46.7/100 (26.98% ≥80)
 
 ## Fund Completeness & Research Readiness (Phases 5–6)
 | Score | Investable | Universe |
 |---|---:|---:|
 | Fund Completeness (9 dimensions) | 56.1/100 | 38.9/100 |
 | Research Readiness (9 questions) | 52.9/100 | 30.3/100 |
-| ISIN coverage | 98.79% | 98.79% |
+| ISIN coverage | 98.82% | 98.82% |
 | Scheme-structure coverage | 100.0% | 100.0% |
 
 ## Honest read

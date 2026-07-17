@@ -11,8 +11,10 @@ import SignalCard from "../../components/ui/SignalCard";
 import PremiumButton from "../../components/ui/PremiumButton";
 import NextActions from "../../components/NextActions";
 import { slugify } from "../../lib/signalSlug";
-import { getFund, asOf } from "../../lib/funds";
+import { getFund, asOf, allFunds } from "../../lib/funds";
 import { getArticlesForEntity, relativeTime } from "../../lib/news";
+import { amcIntel, amcSlugify, gradeTone } from "../../lib/amcIntel";
+import Badge from "../../components/ui/Badge";
 import trendData from "../../data/amc_trend.json";
 
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(n);
@@ -38,6 +40,15 @@ export default async function AmcPage({ params }) {
   const equityCount = summary.find((s) => s.asset_class === "Equity")?.schemes || 0;
   const trend = trendData.amcs[amc];
   const idxChange = trend ? trend[trend.length - 1][1] - trend[0][1] : null;
+
+  // AMC Intelligence (Institutional Mission 5) — amcIntel.js already computes this (score, peer
+  // rank, category strength, best/weakest funds), it just wasn't wired into this page before;
+  // it lived only on the deeper /signals/[amc]/[cat] route. Keyed to the AMC's dominant asset
+  // class by scheme count (summary is already sorted schemes.desc), matching the same (amc,
+  // class) pair the NextActions link below already points to. Computed from funds.json — real
+  // AMFI NAV/returns, independent of the Supabase queries above.
+  const dominantClass = summary[0]?.asset_class;
+  const intel = dominantClass ? amcIntel(allFunds(), amcSlugify(shortName), dominantClass.toLowerCase()) : null;
 
   if (!summary.length) {
     return (
@@ -96,6 +107,57 @@ export default async function AmcPage({ params }) {
             ))}
           </div>
         </section>
+
+        {intel && (
+          <section className="mt-9">
+            <SectionHeader eyebrow={`${intel.assetClass} · vs ${intel.totalAmcs} peer AMCs`} title="AMC Intelligence" action={<a className="hover:text-ink" href={`/signals/${amcSlugify(shortName)}/${dominantClass.toLowerCase()}`}>Full breakdown →</a>} />
+            <GlassPanel className="p-5 sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.1em] text-ink-faint">AMC score</div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-[28px] font-bold tnum text-ink">{intel.score}</span>
+                    <Badge tone={gradeTone(intel.grade)} dot>{intel.grade}</Badge>
+                  </div>
+                </div>
+                <p className="max-w-md text-[13px] leading-relaxed text-ink-muted">
+                  {intel.rank != null ? (
+                    <>Ranks <b className="text-ink">#{intel.rank} of {intel.totalAmcs}</b> {intel.assetClass} AMCs by average 1-year
+                    return ({intel.percentile}th percentile). {intel.fundCount} canonical funds, {intel.totalVariants} scheme variants.</>
+                  ) : (
+                    <>Not enough 1-year history to rank against peers yet. {intel.fundCount} canonical funds, {intel.totalVariants} scheme variants.</>
+                  )}
+                </p>
+              </div>
+              {(intel.best?.length > 0 || intel.weakest?.length > 0) && (
+                <div className="mt-5 grid grid-cols-1 gap-4 border-t border-line pt-4 sm:grid-cols-2">
+                  {intel.best?.length > 0 && (
+                    <div>
+                      <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-pos">Best (by health)</div>
+                      {intel.best.slice(0, 3).map((f) => (
+                        <a key={f.code} href={`/fund/${f.code}`} className="flex items-center justify-between gap-2 py-1 text-[12.5px] text-ink-muted hover:text-ink">
+                          <span className="truncate">{f.name}</span>
+                          <span className="shrink-0 tnum text-ink-faint">{f.health ?? "—"}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  {intel.weakest?.length > 0 && (
+                    <div>
+                      <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-neg">Weakest (by health)</div>
+                      {intel.weakest.slice(0, 3).map((f) => (
+                        <a key={f.code} href={`/fund/${f.code}`} className="flex items-center justify-between gap-2 py-1 text-[12.5px] text-ink-muted hover:text-ink">
+                          <span className="truncate">{f.name}</span>
+                          <span className="shrink-0 tnum text-ink-faint">{f.health ?? "—"}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </GlassPanel>
+          </section>
+        )}
 
         {signals.length > 0 && (
           <section className="mt-9">

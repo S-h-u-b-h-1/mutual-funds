@@ -1,5 +1,7 @@
 {
  "asOf": "2026-07-16",
+ "amfiLastUpdated": "2026-07-16",
+ "factsheetLastUpdated": "2026-06-23",
  "denominators": {
   "universe": 14224,
   "active": 8474,
@@ -172,19 +174,5 @@
     "investable_n": 55
    }
   }
- },
- "performance_completeness": {
-  "universe_avg": 46.7,
-  "investable_avg": 92.9,
-  "investable_ge80": 96.01,
-  "universe_ge80": 26.98
- },
- "fund_completeness": {
-  "fund_completeness_avg_universe": 38.9,
-  "fund_completeness_avg_investable": 56.1,
-  "research_readiness_avg_universe": 30.3,
-  "research_readiness_avg_investable": 52.9,
-  "isin_coverage_pct": 98.82,
-  "structure_coverage_pct": 100.0
  }
 }

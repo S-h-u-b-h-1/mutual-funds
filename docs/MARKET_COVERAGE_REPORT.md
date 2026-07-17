@@ -1,4 +1,4 @@
-# Market Coverage Report — 2026-07-14
+# Market Coverage Report — 2026-07-16
 
 **Reproducible:** `.venv/bin/python -m scripts.market_coverage_audit` (diffs MF Pulse vs the LIVE AMFI feed).
 

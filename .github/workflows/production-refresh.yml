@@ -100,6 +100,13 @@ jobs:
           # data/NAVAll.txt was downloaded once in step 0 — the same snapshot step 1 ingested.
           python -m scripts.build_performance
           python -m scripts.build_daily
+          # Institutional Mission 1: refreshes frontend/app/data/fieldCoverage.json (the live
+          # /internal/data-completeness dashboard's data source) from the funds.json/metadata.json
+          # just rebuilt above. Folded into this step (not its own) so the "changed" diff below
+          # correctly covers it too. Non-critical: it does its own redundant live-AMFI fetch for
+          # the scheme-level diff, so a network blip here must never fail the NAV pipeline that
+          # already succeeded above.
+          python -m scripts.market_coverage_audit || echo "::warning::market_coverage_audit failed — fieldCoverage.json not refreshed this run, last-known copy stays committed"
           if git diff --quiet -- frontend/app/data/; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No change in rebuilt bundles vs the committed copy — nothing to commit."
@@ -124,7 +131,7 @@ jobs:
         run: |
           git config user.name "mfpulse-bot"
           git config user.email "bot@mfpulse.local"
-          git add frontend/app/data/funds.json frontend/app/data/performance.json frontend/app/data/daily.json
+          git add frontend/app/data/funds.json frontend/app/data/performance.json frontend/app/data/daily.json frontend/app/data/fieldCoverage.json
           git commit -m "chore(refresh): production data refresh $(date -u +%Y-%m-%d)"
           git push
           echo "pushed=true" >> "$GITHUB_OUTPUT"

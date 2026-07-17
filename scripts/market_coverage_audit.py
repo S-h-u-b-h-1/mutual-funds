@@ -27,6 +27,7 @@ from ingestion.amfi_parser import parse_file
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = os.path.join(ROOT, "docs")
 WH = os.path.join(ROOT, "data", "warehouse")
+FRONTEND_DATA = os.path.join(ROOT, "frontend", "app", "data")
 LIVE_URL = "https://portal.amfiindia.com/spages/NAVAll.txt"
 LIVE_CACHE = "/tmp/live_navall.txt"
 PARSER_VERSION = "amfi_parser@1"
@@ -388,6 +389,24 @@ def main():
     }
     for fn, obj in out.items():
         json.dump(obj, open(os.path.join(WH, fn), "w"), indent=1)
+
+    # Institutional Mission 1: the live coverage dashboard (frontend/app/internal/data-completeness)
+    # reads this directly, matching how funds.json/performance.json/daily.json already work — one
+    # committed bundle, refreshed by the same pipeline, zero runtime DB calls. Reuses field_cov
+    # verbatim (not recomputed in JS) so the two systems can't drift; adds per-dataset lastUpdated
+    # since AMFI-sourced and factsheet-sourced fields are on genuinely different refresh cadences.
+    os.makedirs(FRONTEND_DATA, exist_ok=True)
+    json.dump(
+        {
+            "asOf": asof.isoformat(),
+            "amfiLastUpdated": asof.isoformat(),
+            "factsheetLastUpdated": meta_bundle.get("asOf"),
+            "denominators": {"universe": N, "active": len(active), "investable": len(investable)},
+            "fields": field_cov,
+        },
+        open(os.path.join(FRONTEND_DATA, "fieldCoverage.json"), "w"),
+        indent=1,
+    )
 
     # expose a few things for the markdown writer
     return dict(asof=asof, market=market, live_bd=live_bd, field_cov=field_cov, kpis=kpis,

@@ -5,6 +5,14 @@ Completeness) against its exact required-field list and 7-column format. Compute
 `scripts/market_coverage_audit.py` — reused and extended in place (added SIP/Lumpsum Minimum
 checks), not duplicated. Reproducible: `.venv/bin/python -m scripts.market_coverage_audit`.
 
+**Update 2026-07-17 (Institutional Mission 1):** this same engine now also writes
+`frontend/app/data/fieldCoverage.json` (the live `/internal/data-completeness` dashboard's data
+source, covering the full 21-field list against `frontend/app/lib/fieldRegistry.js`'s source/
+confidence registry) and is wired into `production-refresh.yml`'s step 3, so it refreshes
+automatically on the same schedule as NAV data — no longer a manual-only command. This document
+remains the authoritative per-field *reasoning* (why 0%, structural-vs-coverage gap, etc.); the
+dashboard is the live *numbers*.
+
 **asOf: 2026-07-14** (funds.json) / **live AMFI + this audit run: 2026-07-15**. Universe: 14,218
 schemes (14,224 on live AMFI at check time — see Headline scores below for the gap explanation).
 
@@ -20,10 +28,14 @@ be confident about yet.
 **Lineage**, added this pass: the traceable chain from raw source to displayed value. For
 AMFI-sourced fields this is `AMFI NAVAll.txt → scripts/cloud_pipeline.py → Supabase/Neon →
 scripts/build_performance.py / build_daily.py → frontend/app/data/*.json`. For factsheet-sourced
-fields it is `AMC PDF → scripts/factsheet_pipeline.py → frontend/app/data/metadata.json` today,
-moving to the full provenance chain (`source_documents → source_document_versions →
-source_extractions → fund_metadata_values`, live on Neon production as of 2026-07-15) once
-Provenance Mission Phase 4 re-points the factsheet pipeline at it — see `docs/DATA_SOURCE_REGISTER.md`.
+fields it is `AMC PDF → scripts/factsheet_pipeline.py → frontend/app/data/metadata.json` today.
+**Correction, 2026-07-17**: the sentence previously here said the full provenance chain
+(`source_documents → source_document_versions → source_extractions → fund_metadata_values`) was
+"live on Neon production as of 2026-07-15" — verified directly: the schema **is** deployed on Neon
+(not Supabase), but every table has **0 rows** and no code reads or writes it yet. Read that as
+"schema exists," not "chain works" — see `docs/METADATA_PROVENANCE_SCHEMA.md`'s corrected header.
+Still pending Provenance Mission Phase 4 re-pointing the factsheet pipeline at it — see
+`docs/DATA_SOURCE_REGISTER.md`.
 
 ---
 
