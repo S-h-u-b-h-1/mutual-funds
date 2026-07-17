@@ -57,7 +57,12 @@ export default async function DataStatus() {
   const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
   const stale = daysSince(latestNav);
   const navStatus = !ok ? "red" : stale == null ? "red" : stale <= 2 ? "green" : stale <= 7 ? "amber" : "red";
-  const flowStatus = "amber"; // monthly sample until SEBI export wired in
+  // Real since 2026-07-17 (AMFI Monthly Report / MCR, industry-wide per fund category — see
+  // docs/DATA_COVERAGE_MATRIX.md's Flow Signals pivot). Same 45-day monthly-cadence staleness
+  // threshold used everywhere else in this codebase for factsheet/portfolio-disclosure fields
+  // (docs/DATA_SOURCE_REGISTER.md's "Stale-data threshold" policy), not an arbitrary number.
+  const flowMonthAge = flow[0]?.month ? Math.floor((Date.now() - new Date(`${flow[0].month}T00:00:00Z`).getTime()) / 86400000) : null;
+  const flowStatus = flowMonthAge == null ? "red" : flowMonthAge <= 45 ? "green" : flowMonthAge <= 75 ? "amber" : "red";
   const lastSuccess = runs.find((r) => r.status === "success");
   const overall = !ok ? "red" : [navStatus, flowStatus].includes("red") ? "red" : [navStatus, flowStatus].includes("amber") ? "amber" : "green";
 
@@ -107,11 +112,11 @@ export default async function DataStatus() {
           <GlassPanel className="p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="text-[13px] font-semibold text-ink">Monthly flow freshness</div>
-              <span className="inline-flex items-center gap-1.5 text-[12px]" style={{ color: COLOR[flowStatus] }}><Dot status={flowStatus} />sample</span>
+              <span className="inline-flex items-center gap-1.5 text-[12px]" style={{ color: COLOR[flowStatus] }}><Dot status={flowStatus} />{LABEL[flowStatus]}</span>
             </div>
             <div className="mt-3 text-[26px] font-bold tnum">{flow[0]?.month || "—"}</div>
-            <div className="text-[12px] text-ink-muted">latest reporting month</div>
-            <div className="mt-2 text-[11px] text-ink-faint">Source: <b className="text-warn">sample</b> — SEBI/AMFI monthly report is PDF-only; loaders ready, awaiting a connected export.</div>
+            <div className="text-[12px] text-ink-muted">latest reporting month{flowMonthAge != null && ` · ${flowMonthAge}d ago`}</div>
+            <div className="mt-2 text-[11px] text-ink-faint">Source: AMFI Monthly Report (MCR) — real, industry-wide net flow per fund category, refreshed weekly. Not broken out by individual AMC (AMFI's public export has no AMC-level breakdown).</div>
           </GlassPanel>
         </section>
 
