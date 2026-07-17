@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { sb } from "../../../lib/supabase";
 import Nav from "../../../components/Nav";
 import Footer from "../../../components/Footer";
 import Tracker from "../../../components/Tracker";
@@ -10,17 +9,15 @@ import DataTable from "../../../components/ui/DataTable";
 import Badge from "../../../components/ui/Badge";
 import HealthCell from "../../../components/ui/HealthCell";
 import { allFunds, asOf } from "../../../lib/funds";
-import { amcIntel, amcSlugify, gradeTone as amcGradeTone } from "../../../lib/amcIntel";
+import { amcIntel, gradeTone as amcGradeTone } from "../../../lib/amcIntel";
 // fundCols renders a per-FUND grade (fundHealth.js 5-band A/B/C/D/E) — must use the fund-scale
 // tone, not amcIntel's AMC-scale (6-band, incl. B+). Only the AMC score badge uses amcGradeTone.
 import { gradeTone } from "../../../lib/fundHealth";
-import { signalSlug } from "../../../lib/signalSlug";
 import NextActions from "../../../components/NextActions";
 
 export const revalidate = 600;
 
 const pct = (v, dp = 1) => (v == null ? <span className="text-ink-faint">—</span> : <span className={v >= 0 ? "text-pos tnum" : "text-neg tnum"}>{v >= 0 ? "+" : ""}{v.toFixed(dp)}%</span>);
-const inr = (n) => `₹${new Intl.NumberFormat("en-IN").format(Math.round(n))} Cr`;
 
 export async function generateMetadata({ params }) {
   const it = amcIntel(allFunds(), params.amc, params.cat);
@@ -40,13 +37,6 @@ const fundCols = [
 export default async function AmcIntel({ params }) {
   const it = amcIntel(allFunds(), params.amc, params.cat);
   if (!it) notFound();
-
-  // flow signal context (sample) — optional
-  let sig = null;
-  try {
-    const signals = await sb("v_signals?select=*", { revalidate: 600 });
-    sig = signals.find((s) => amcSlugify(s.amc_name.replace(" Mutual Fund", "")) === params.amc && (s.asset_class || "").toLowerCase() === params.cat) || null;
-  } catch {}
 
   const rows = it.canon.map((c) => ({ ...c, _key: c.code }));
 
@@ -92,15 +82,12 @@ export default async function AmcIntel({ params }) {
 
         {/* flow signal context */}
         <GlassPanel className="mt-5 p-5">
-          <SectionHeader title="Flow signal context" action={<Badge tone="warn">sample</Badge>} />
-          {sig ? (
-            <p className="text-[13px] leading-relaxed text-ink-muted">
-              This AMC/category was flagged as a <b className="text-ink">{sig.signal === "inflow_surge" ? "net inflow surge" : "net outflow surge"}</b>
-              {" "}({inr(sig.net_flow_cr)}, z {Number(sig.z_score).toFixed(1)}). <span className="text-ink-faint">Monthly flow figures are illustrative sample — SEBI flows are PDF-only — so this page is built on verified AMFI-NAV fund performance below, not the flow value.</span>
-            </p>
-          ) : (
-            <p className="text-[13px] text-ink-faint">No active flow signal for this AMC/category. The intelligence below is computed from verified AMFI NAV performance.</p>
-          )}
+          <SectionHeader title="Flow signal context" />
+          <p className="text-[13px] text-ink-faint">
+            Flow signals are tracked industry-wide by fund category (AMFI Monthly Report), not per AMC —
+            see <a className="text-ink-muted hover:text-ink" href="/signals">all flow signals</a>. The
+            intelligence below is computed from verified AMFI NAV performance.
+          </p>
         </GlassPanel>
 
         {/* category strength */}
@@ -156,7 +143,7 @@ export default async function AmcIntel({ params }) {
         </section>
 
         <p className="mt-4 text-[11px] text-ink-faint">
-          Source: AMFI daily NAV (returns/risk) + MF Pulse computed Health Score · latest NAV {asOf} · flow data is illustrative sample.
+          Source: AMFI daily NAV (returns/risk) + MF Pulse computed Health Score · latest NAV {asOf}.
           Verify on the <a className="hover:text-ink" href="/data-quality">data-quality report</a>.
         </p>
 
@@ -167,7 +154,7 @@ export default async function AmcIntel({ params }) {
           { label: "All flow signals", href: "/signals" },
         ]} />
       </main>
-      <Footer note={<span>AMC scoring from verified AMFI-NAV fund performance · flow figures sample · not investment advice.</span>} />
+      <Footer note={<span>AMC scoring from verified AMFI-NAV fund performance · not investment advice.</span>} />
     </>
   );
 }

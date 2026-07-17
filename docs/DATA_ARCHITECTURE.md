@@ -9,7 +9,7 @@
 | # | Area | Finding |
 |---|---|---|
 | 1 | DB architecture | Star schema: `dim_scheme`, `fact_nav_daily`, `fact_flow_monthly`, `flow_signals`, `user_events`, `alerts`. Served read-only via PostgREST + publishable key (RLS). |
-| 2 | Data sources | **NAV/schemes**: AMFI `NAVAll.txt` (real, daily). **30-day index**: AMFI history (real). **Monthly flows**: SEBI/AMFI monthly report — **sample data** (source is PDF-only). |
+| 2 | Data sources | **NAV/schemes**: AMFI `NAVAll.txt` (real, daily). **30-day index**: AMFI history (real). **Monthly flows**: AMFI Monthly Report (MCR) — **real**, industry-wide net flow per fund category (2026-07-17: pivoted off sample AMC-level data; see Phase 4 below — AMFI's public export has no AMC breakdown, only category totals). |
 | 3 | Freshness model | Previously **none** — no staleness signal. NAV was a one-off seed (3 days stale). |
 | 4 | Historical retention | `fact_nav_daily` keyed (scheme, date) → accumulates over days. But no daily cron meant history wasn't growing. |
 | 5 | Event tracking | `user_events` (immediate PostgREST insert, RLS public-insert, rate-limited in API). Worked, but unstructured (payload JSONB only). |
@@ -36,12 +36,13 @@
 ## Trust model — every number is traceable
 - NAV/scheme counts → `dim_scheme` / `fact_nav_daily` (source `AMFI:NAVAll`, `ingested_at`).
 - 30-day index → real AMFI NAV history (bundled snapshot, regenerable).
-- Monthly flows + signals → **labelled sample** everywhere (badges + `/data-status` + brief disclosure) until the SEBI export is connected.
+- Monthly flows + signals → real, from AMFI's Monthly Report (`source = 'AMFI Monthly Report (MCR)'` on `fact_flow_monthly`), industry-wide per fund category — not broken out by AMC (disclosed on `/signals` and `/brief`, since that's a real scope limit of the source document, not a data-quality gap).
 - Events → `user_events`, exposed only as PII-free aggregates.
 
-## Phase 4 — Monthly flows: blocker (honest)
-- **Where**: `fact_flow_monthly`. **Why sample**: SEBI/AMFI publish monthly net flows only as **PDF** (and an Excel with no stable URL) — no clean machine endpoint (verified: AMFI AAUM module is POST-only/Excel; SEBI returns PDFs).
-- **Ready**: `ingestion/sebi_flows.py` ingests a normalised CSV **and** the AMFI monthly Excel (`load_excel`, header auto-detect, tested). Drop in one monthly export → real history, no code change.
+## Phase 4 — Monthly flows: resolved 2026-07-17 (real, category-level)
+- **Where**: `fact_flow_monthly` / `flow_signals`. AMC-level net flow (this doc's original target — SEBI's monthly bulletin, AMFI's AAUM module) is still PDF/POST-only with no clean endpoint (verified 2026-06-21) — `ingestion/sebi_flows.py`'s `load_csv()`/`load_excel()` remain ready for that shape if a normalised export ever becomes available.
+- **What's actually live**: AMFI's separate Monthly Report (MCR) is a real, predictably-URLed `.xls` export (verified 2026-07-17: `https://portal.amfiindia.com/spages/am<mon><year>repo.xls`) — industry-wide net flow per fund **category**, not broken out by AMC (no AMC dimension exists anywhere in the document). `ingestion/sebi_flows.py`'s `load_amfi_mcr_excel()` parses it; `scripts/ingest_flows.py` upserts it and recomputes `flow_signals` from the real trailing series, scheduled weekly by `.github/workflows/flow_monthly.yml` (self-healing: rechecks the last 3 months every run, since AMFI's publish date lags a few days into the following month).
+- Old AMC-level sample data (`source = 'sample'`) was deleted from both tables during the pivot; see `sql/014_flow_signals_category_pivot.sql` for the accompanying view fixes (`v_flow_headline`, `v_amc_flows`).
 
 ## Production readiness: **74 / 100**
 Strong: schema, lineage, audit log, observability, truthful copy, idempotent loader, CI, deploy. Gaps to 90+: activate the daily cron (add the service-role secret), connect real monthly flows, add alerting on pipeline failure (Sentry DSN), and materialized views at scale.

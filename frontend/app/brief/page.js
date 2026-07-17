@@ -16,8 +16,9 @@ export const revalidate = 600;
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(n);
 const inr = (n) => `${n >= 0 ? "+" : "−"}₹${fmt(Math.abs(Math.round(n)))} Cr`;
 const lakhCr = (n) => `₹${(n / 100000).toFixed(2)}L Cr`;
-const strip = (s) => s.replace(" Mutual Fund", "");
 
+// No per-AMC drill-down exists for category-level flow data (see brief.js's header comment), so
+// each entry is plain text, not a link.
 function FlowList({ items, tone }) {
   if (!items.length) return <div className="text-[13px] text-ink-faint">None this month.</div>;
   return (
@@ -26,7 +27,7 @@ function FlowList({ items, tone }) {
         <li key={r.name} className="flex items-center justify-between gap-3 py-2.5 text-[13px]">
           <span className="flex items-center gap-2.5 min-w-0">
             <span className="w-4 text-right text-[11px] text-ink-faint tnum">{i + 1}</span>
-            <a className="truncate text-ink hover:text-accent-soft" href={`/amc/${encodeURIComponent(r.name + " Mutual Fund")}`}>{r.name}</a>
+            <span className="truncate text-ink">{r.name}</span>
           </span>
           <span className={`tnum font-semibold ${tone === "pos" ? "text-pos" : "text-neg"}`}>{r.v >= 0 ? "+" : "−"}₹{fmt(Math.abs(Math.round(r.v)))} Cr</span>
         </li>
@@ -36,18 +37,18 @@ function FlowList({ items, tone }) {
 }
 
 export default async function Brief() {
-  let headline = [], amcFlows = [], signals = [], byClass = [], lastRun = [];
+  let headline = [], categoryFlows = [], signals = [], byClass = [], lastRun = [];
   try {
-    [headline, amcFlows, signals, byClass, lastRun] = await Promise.all([
+    [headline, categoryFlows, signals, byClass, lastRun] = await Promise.all([
       sb("v_flow_headline?select=*", { revalidate: 600 }),
-      sb("v_amc_flows?select=amc_name,asset_class,net_flow_cr", { revalidate: 600 }),
+      sb("v_amc_flows?select=amc_name,asset_class,net_flow_cr,category", { revalidate: 600 }),
       sb("v_signals?select=*", { revalidate: 600 }),
       sb("mv_asset_class_summary?select=*", { revalidate: 600 }),
       sb("fact_pipeline_runs?pipeline=eq.nav_daily&select=finished_at,status&order=finished_at.desc&limit=1", { revalidate: 600 }),
     ]);
   } catch {}
   const flow = headline[0] || {};
-  const brief = buildBrief({ headline: flow, amcFlows, signals });
+  const brief = buildBrief({ headline: flow, categoryFlows, signals });
   const latest = byClass.map((r) => r.latest_nav_date).sort().at(-1);
   const generated = new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC";
 
@@ -84,9 +85,9 @@ export default async function Brief() {
           </div>
         )}
 
-        {/* Sample-data disclosure */}
+        {/* Data-scope disclosure */}
         <div className="mt-5 max-w-3xl rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-[12.5px] text-warn">
-          <b>Disclosure:</b> <span className="text-ink-muted">Monthly net-flow figures in this note are <b className="text-warn">sample data</b>. The SEBI/AMFI monthly report is PDF-only and not yet wired in; scheme &amp; NAV data is daily from AMFI. Figures are illustrative until the export is connected.</span>
+          <b>Disclosure:</b> <span className="text-ink-muted">Monthly net-flow figures are real, from AMFI&rsquo;s Monthly Report — but industry-wide per fund category, not broken out by individual AMC. &ldquo;Top inflow/outflow&rdquo; below ranks categories, not AMCs. Scheme &amp; NAV data is daily from AMFI.</span>
         </div>
 
         <div className="mt-6 max-w-3xl"><StatStrip items={stats} /></div>
@@ -134,7 +135,7 @@ export default async function Brief() {
             <SectionHeader eyebrow="05" title="Flagged signals" action={<a className="hover:text-ink" href="/signals">All →</a>} />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {signals.slice(0, 6).map((s, i) => (
-                <SignalCard key={i} amc={strip(s.amc_name)} assetClass={s.asset_class} signal={s.signal} z={Number(s.z_score).toFixed(1)} value={inr(s.net_flow_cr)} />
+                <SignalCard key={i} assetClass={s.asset_class} signal={s.signal} z={Number(s.z_score).toFixed(1)} value={inr(s.net_flow_cr)} />
               ))}
             </div>
           </section>
@@ -160,7 +161,6 @@ export default async function Brief() {
         <div className="max-w-3xl">
           <NextActions items={[
             { label: "Today's market news & impact", href: "/news" },
-            brief.topInflows[0] && { label: `View ${brief.topInflows[0].name}`, href: `/amc/${encodeURIComponent(brief.topInflows[0].name + " Mutual Fund")}` },
             { label: "All flow signals", href: "/signals" },
             { label: "Compare AMCs", href: "/compare" },
             { label: "Category leaders", href: "/categories" },

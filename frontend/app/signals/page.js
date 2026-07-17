@@ -22,14 +22,14 @@ export default async function Signals() {
         <div className="eyebrow text-accent">Signal research</div>
         <h1 className="page-title mt-3">Investigate movements outside their recent baseline.</h1>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
-          Months where an AMC&rsquo;s net flow into a category deviated sharply from its trailing average
-          (z-score ≥ 1.8). A fast read on where money is unusually rotating.
+          Months where industry-wide net flow into a fund category deviated sharply from its trailing average
+          (z-score ≥ 1.8). Computed from AMFI&rsquo;s Monthly Report — real, refreshed every month.
         </p>
         <section className="mt-8">
           {signals.length ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {signals.map((s, i) => (
-                <SignalCard key={i} amc={s.amc_name.replace(" Mutual Fund", "")} assetClass={s.asset_class} signal={s.signal} z={Number(s.z_score).toFixed(1)} value={`₹${fmt(s.net_flow_cr)} Cr`} />
+                <SignalCard key={i} assetClass={s.asset_class} signal={s.signal} z={Number(s.z_score).toFixed(1)} value={`₹${fmt(s.net_flow_cr)} Cr`} />
               ))}
             </div>
           ) : (
@@ -37,7 +37,7 @@ export default async function Signals() {
           )}
         </section>
       </main>
-      <Footer note={<span>Signals use sample monthly flows until the SEBI export is wired in — see <a className="text-ink-muted hover:text-ink" href="/methodology">methodology</a>.</span>} />
+      <Footer note={<span>Signals are industry-wide per fund category (AMFI Monthly Report), not broken out by AMC — see <a className="text-ink-muted hover:text-ink" href="/methodology">methodology</a>.</span>} />
     </>
   );
 }

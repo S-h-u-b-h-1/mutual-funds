@@ -1,16 +1,18 @@
 """
 SEBI / AMFI monthly net-flow ingestion -> fact_flow_monthly.
 
-Real monthly net inflow/outflow is published by SEBI (monthly bulletin) and AMFI
-(monthly newsletter) only as PDF/Excel — there is NO clean public .txt/CSV/JSON
-endpoint (verified 2026-06-21: AMFI's AAUM module is POST-only and returns Excel,
-SEBI returns PDFs). So this loader ingests a normalised CSV that you export once
-per month from that report:
+AMC-level net inflow/outflow (this module's original target — SEBI's monthly bulletin,
+AMFI's AAUM module) is still PDF/POST-only with no clean endpoint (verified 2026-06-21:
+AMFI's AAUM module is POST-only and returns Excel, SEBI returns PDFs) — load_csv()/
+load_excel() below ingest that shape if you ever get a normalised export of it by hand:
 
     amc_name,asset_class,category,month,inflow_cr,outflow_cr,aum_cr
 
-`data/flows_seed.csv` ships a clearly-labelled SAMPLE month so the dashboard
-headline renders end-to-end before the real export is wired in.
+But AMFI's separate Monthly Report (MCR) *is* a real, clean, predictably-URLed Excel
+export, verified 2026-07-17 — it just reports industry-wide totals per fund CATEGORY,
+not per AMC (see load_amfi_mcr_excel() below, the one actually wired into scheduled
+ingestion via scripts/ingest_flows.py). `data/flows_seed.csv` / seed_flows_history.py's
+old sample AMC-level data is retired now that real category-level data is live.
 
     python -m ingestion.sebi_flows data/flows_seed.csv
 """
@@ -18,6 +20,7 @@ headline renders end-to-end before the real export is wired in.
 from __future__ import annotations
 
 import csv
+import re
 import sys
 
 from .db import connect
@@ -97,6 +100,95 @@ def load_excel(path: str, month: str, sheet: str | None = None) -> list[tuple]:
         out.append((amc, derive_class(category), category, month,
                     inflow or 0, outflow or 0, round(net, 2), aum))
     return out
+
+
+# AMFI's monthly MCR (Mutual Fund Categorywise Report) — a real, live, monthly-updated Excel
+# export at a predictable URL: https://portal.amfiindia.com/spages/am<mon><year>repo.xls
+# (verified 2026-07-17: https://www.amfiindia.com/research-information/amfi-monthly lists every
+# month back to 1999 with this exact link pattern). Old-format binary .xls (needs xlrd, not
+# openpyxl). Its single sheet ("MCR Monthly Report") is a hierarchical, industry-wide breakdown
+# by fund category — NOT broken out per-AMC (checked every row of a real June 2026 download; no
+# AMC dimension exists anywhere in the file). So this ingests real per-CATEGORY flow, not
+# per-AMC flow — a coarser grain than fact_flow_monthly's schema was designed around, but
+# genuinely real and automatable, unlike the AMC-level data load_excel() above expects (which
+# has never had a working source — see the module docstring).
+#
+# Row shape (0-indexed columns), confirmed against the real file: col0=Sr (roman numeral or
+# letter), col1=Scheme Name, col4=Funds Mobilized (inflow, INR crore), col5=Repurchase/
+# Redemption (outflow, INR crore), col6=Net Inflow/Outflow (INR crore), col7=Net AUM (INR crore).
+# Only "A — Open ended Schemes" is ingested: Close-ended and Interval schemes don't have ongoing
+# subscriptions/redemptions the way open-ended funds do (no meaningful "monthly flow" concept),
+# and are economically negligible next to open-ended (~0.02% of total AUM combined in the real
+# file checked). Within Group A, a leaf category row has a lowercase-roman col0 (i, ii, iii, ...);
+# uppercase-roman rows (I-V) are group headers (blank value cells) whose Scheme Name doubles as
+# the broad asset-class bucket for every leaf beneath it, and "Sub Total"/blank/"Total A..." rows
+# are rollups, not data.
+_GROUP_TO_ASSET_CLASS = {
+    "I": "Debt",
+    "II": "Equity",
+    "III": "Hybrid",
+    "IV": "Solution",
+    "V": "Other",
+}
+
+AMFI_MCR_SOURCE = "AMFI Monthly Report (MCR)"
+
+
+def load_amfi_mcr_excel(path: str, month: str) -> list[dict]:
+    """Parse the real AMFI MCR .xls into fact_flow_monthly-shaped rows (dicts, ready for a
+    Supabase REST upsert). `month` is the reporting month as YYYY-MM-01 (the workbook only
+    states it in a title cell, e.g. "Monthly Report for the month of June 2026 ", not a
+    structured date column, so it's supplied by the caller from the source URL/filename)."""
+    import xlrd
+
+    wb = xlrd.open_workbook(path)
+    sh = wb.sheet_by_index(0)
+
+    rows: list[dict] = []
+    group = None  # current broad bucket (Debt/Equity/Hybrid/Solution/Other), None once out of Group A
+    in_open_ended = False
+    for r in range(sh.nrows):
+        c0 = str(sh.cell_value(r, 0)).strip()
+        c1 = str(sh.cell_value(r, 1)).strip()
+
+        if c0 == "A":
+            in_open_ended = True
+            continue
+        if c0 in ("B", "C"):  # Close Ended / Interval Schemes — out of scope, see module note
+            break
+        if not in_open_ended:
+            continue
+        if c1.startswith("Total A"):
+            break
+        if c0 in _GROUP_TO_ASSET_CLASS:
+            group = _GROUP_TO_ASSET_CLASS[c0]
+            continue
+        if not c0 or not c1 or c1.startswith("Sub Total") or group is None:
+            continue
+        if not re.fullmatch(r"[ivxlcdm]+", c0, re.IGNORECASE):
+            continue  # not a lowercase-roman leaf row (defensive; every real leaf matched this)
+
+        def num(col):
+            v = sh.cell_value(r, col)
+            return float(v) if isinstance(v, (int, float)) else None
+
+        inflow, outflow, net, aum = num(4), num(5), num(6), num(7)
+        if net is None:
+            continue
+        rows.append(
+            {
+                "amc_name": "Industry (All AMCs)",
+                "asset_class": c1,
+                "category": group,
+                "month": month,
+                "inflow_cr": round(inflow, 2) if inflow is not None else 0,
+                "outflow_cr": round(outflow, 2) if outflow is not None else 0,
+                "net_flow_cr": round(net, 2),
+                "aum_cr": round(aum, 2) if aum is not None else None,
+                "source": AMFI_MCR_SOURCE,
+            }
+        )
+    return rows
 
 
 def load_csv(path: str) -> list[tuple]:

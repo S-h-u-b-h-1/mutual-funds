@@ -1,0 +1,46 @@
+name: Monthly Flow Signals Refresh
+
+# Real, industry-wide net flow per fund category, from AMFI's Monthly Report (MCR) — see
+# scripts/ingest_flows.py for the source investigation and ingestion design. Separate from
+# production-refresh.yml (which runs daily/on every trading evening for NAV data) because this
+# source only updates once a month; a weekly check is enough to catch AMFI's publish lag
+# (typically within the first ~2 weeks of the following month) without wasted daily runs.
+#
+# Self-healing by construction: scripts.ingest_flows re-checks the last 3 months on every run
+# (not just "this month"), so a missed/failed run, or a month that wasn't published yet last
+# time, is picked up automatically on the next one. Idempotent (upsert on fact_flow_monthly's
+# natural key) — re-running against an already-loaded month is a harmless no-op.
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # 06:00 UTC every Monday
+  workflow_dispatch: {}
+
+jobs:
+  refresh-flows:
+    name: Fetch AMFI Monthly Report, upsert flows, recompute signals
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+
+      - name: Ingest AMFI Monthly Report -> fact_flow_monthly + flow_signals
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Cause: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set. Location: repo secrets. Fix: Settings -> Secrets and variables -> Actions -> add both (same secrets production-refresh.yml already uses)."
+            exit 1
+          fi
+          for attempt in 1 2; do
+            if python -m scripts.ingest_flows; then
+              exit 0
+            fi
+            echo "::warning::Flow ingestion attempt $attempt failed."
+            [ "$attempt" = "1" ] && { echo "Retrying in 15s..."; sleep 15; }
+          done
+          echo "::error::Cause: scripts.ingest_flows failed twice in a row (see output above). Location: scripts/ingest_flows.py. Fix: check portal.amfiindia.com reachability and Supabase credential validity — a 404 for an unpublished month is expected and non-fatal, this only fires on a real error."
+          exit 1

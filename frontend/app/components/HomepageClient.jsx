@@ -203,9 +203,9 @@ export default function HomepageClient({
         const flowAmount = `${netFlow >= 0 ? "+" : "-"}₹${new Intl.NumberFormat("en-IN").format(Math.abs(Math.round(netFlow)))} Cr`;
         list.push({
           type: "signal",
-          label: `${s.amc_name.replace(" Mutual Fund", "")} flow anomaly`,
+          label: `${s.asset_class} flow anomaly`,
           time: `${idx * 2 + 1}h ago`,
-          desc: `Z-score of ${Number(s.z_score).toFixed(1)} triggered for asset class ${s.asset_class} with ${flowLabel} of ${flowAmount}.`,
+          desc: `Z-score of ${Number(s.z_score).toFixed(1)} triggered — ${flowLabel} of ${flowAmount} industry-wide this month.`,
           badge: "Signal alert",
           href: "/signals"
         });

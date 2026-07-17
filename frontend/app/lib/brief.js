@@ -1,16 +1,21 @@
 // Auto-composes a market brief from the actual flow + signal numbers (deterministic,
 // rule-based — not a hallucinated LLM summary). Honest "generated from the data".
+//
+// Ranked by fund CATEGORY, not AMC: the only real, automatable monthly flow source (AMFI's
+// Monthly Report — see ingestion/sebi_flows.py's load_amfi_mcr_excel) reports industry-wide
+// totals per category, with no AMC breakdown anywhere in the document. `categoryFlows` rows
+// therefore all share the same amc_name sentinel ("Industry (All AMCs)") — asset_class carries
+// the real category (e.g. "Small Cap Fund"), category carries the broad bucket (Equity/Debt/...).
 const inr = (n) => `₹${new Intl.NumberFormat("en-IN").format(Math.round(Math.abs(n)))} Cr`;
-const strip = (s) => (s || "").replace(" Mutual Fund", "");
 
-export function buildBrief({ headline = {}, amcFlows = [], signals = [] }) {
+export function buildBrief({ headline = {}, categoryFlows = [], signals = [] }) {
   const month = headline.month;
   const equity = Number(headline.equity_net_cr || 0);
   const debt = Number(headline.debt_net_cr || 0);
 
-  const eq = amcFlows
-    .filter((r) => r.asset_class === "Equity")
-    .map((r) => ({ name: strip(r.amc_name), v: Number(r.net_flow_cr) }))
+  const eq = categoryFlows
+    .filter((r) => r.category === "Equity")
+    .map((r) => ({ name: r.asset_class, v: Number(r.net_flow_cr) }))
     .sort((a, b) => b.v - a.v);
 
   const topIn = eq[0];
@@ -23,21 +28,21 @@ export function buildBrief({ headline = {}, amcFlows = [], signals = [] }) {
     `while debt saw net ${debt >= 0 ? "inflows" : "outflows"} of ${inr(debt)}.`;
 
   const bullets = [];
-  if (topIn) bullets.push({ k: "Leading inflow", v: `${topIn.name} · +${inr(topIn.v)}`, tone: "pos" });
-  if (topOut && topOut.v < 0) bullets.push({ k: "Largest outflow", v: `${topOut.name} · −${inr(topOut.v)}`, tone: "neg" });
-  bullets.push({ k: "Breadth", v: `${inflowCount} of ${eq.length} AMCs saw equity inflows`, tone: "neutral" });
+  if (topIn) bullets.push({ k: "Leading inflow category", v: `${topIn.name} · +${inr(topIn.v)}`, tone: "pos" });
+  if (topOut && topOut.v < 0) bullets.push({ k: "Largest outflow category", v: `${topOut.name} · −${inr(topOut.v)}`, tone: "neg" });
+  bullets.push({ k: "Breadth", v: `${inflowCount} of ${eq.length} equity categories saw inflows`, tone: "neutral" });
   if (sig)
     bullets.push({
       k: "Standout signal",
-      v: `${strip(sig.amc_name)} ${sig.signal === "inflow_surge" ? "inflow surge" : "outflow surge"} · z ${Number(sig.z_score).toFixed(1)}`,
+      v: `${sig.asset_class} ${sig.signal === "inflow_surge" ? "inflow surge" : "outflow surge"} · z ${Number(sig.z_score).toFixed(1)}`,
       tone: sig.signal === "inflow_surge" ? "pos" : "neg",
     });
 
   const paragraphs = [
     lead,
     topIn
-      ? `${topIn.name} led category inflows at +${inr(topIn.v)}${
-          sig && strip(sig.amc_name) === topIn.name
+      ? `${topIn.name} led equity category inflows at +${inr(topIn.v)}${
+          sig && sig.asset_class === topIn.name
             ? `, a statistically notable surge (z ${Number(sig.z_score).toFixed(1)} versus trailing months)`
             : ""
         }.${topOut && topOut.v < 0 ? ` ${topOut.name} bucked the trend with a net redemption of ${inr(topOut.v)}.` : ""}`
@@ -53,7 +58,7 @@ export function buildBrief({ headline = {}, amcFlows = [], signals = [] }) {
   const commentary = {
     equity:
       `Equity recorded net ${equity >= 0 ? "inflows" : "outflows"} of ${inr(equity)} for the month, with ` +
-      `${inflowCount} of ${eq.length} reporting AMCs in positive territory. ` +
+      `${inflowCount} of ${eq.length} equity categories in positive territory. ` +
       (topIn ? `${topIn.name} drove the bulk of additions.` : ""),
     debt:
       debt < 0
@@ -63,7 +68,7 @@ export function buildBrief({ headline = {}, amcFlows = [], signals = [] }) {
 
   const risks = [
     "Flow figures are monthly and lagging — they describe positioning after the fact, not forward returns.",
-    "A single large AMC can dominate the category total; breadth matters as much as the headline number.",
+    "Figures are industry-wide per fund category (AMFI Monthly Report), not broken out by AMC — a single large scheme can dominate a category total.",
     "Signal z-scores use a short trailing window; treat extreme readings as directional, not precise.",
   ];
 
