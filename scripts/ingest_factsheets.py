@@ -23,7 +23,8 @@ import pypdf
 
 from ingestion.amfi_parser import parse_file
 from ingestion.factsheet.adapters.sbi import SBIAdapter
-from ingestion.factsheet.normalize import validate, completeness
+from ingestion.factsheet.normalize import validate, completeness, collapse
+from ingestion.factsheet.provenance import record_provenance
 from scripts.archive_factsheets import archive_snapshot
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36"
@@ -77,15 +78,6 @@ SBI_FUNDS = {
 }
 CURATED = [("SBI", SBIAdapter, name, BASE + f"sbi-{slug}-factsheet-.pdf") for slug, name in SBI_FUNDS.items()]
 CURATED.append(("SBI", SBIAdapter, "SBI Contra Fund", BASE + "sbi-contra-fund-factsheet-17fae076-7a0e-4e87-b82c-ab217d24ee3a.pdf?sfvrsn=d591624_2"))
-
-
-def norm(s: str) -> str:
-    return s.lower().replace("&", "and").replace("  ", " ").strip()
-
-
-def collapse(s: str) -> str:
-    """Space/hyphen-insensitive key so 'Blue Chip' matches AMFI 'Bluechip', '&'→'and'."""
-    return norm(s).replace(" ", "").replace("-", "")
 
 
 def fetch(url: str) -> bytes:
@@ -171,6 +163,19 @@ def main():
             print(f"  ! factsheet archive snapshot failed (non-fatal): {e}", file=sys.stderr)
     else:
         print("  (SUPABASE_SERVICE_ROLE_KEY not set — skipping factsheet archive snapshot)", file=sys.stderr)
+
+    # Data Platform Mission 4: field-level provenance (sql/neon/004_metadata_provenance.sql).
+    # Same graceful-skip pattern as archive_snapshot() above — never blocks or fails this
+    # script's real job (the metadata.json write already happened by this point).
+    if os.environ.get("DATABASE_URL"):
+        try:
+            stats = record_provenance(src_files, rows)
+            print(f"  provenance: {stats['documents']} documents, {stats['versions']} versions, "
+                  f"{stats['extractions']} extractions, {stats['validations']} validations", file=sys.stderr)
+        except Exception as e:
+            print(f"  ! provenance recording failed (non-fatal): {e}", file=sys.stderr)
+    else:
+        print("  (DATABASE_URL not set — skipping provenance recording)", file=sys.stderr)
 
 
 if __name__ == "__main__":

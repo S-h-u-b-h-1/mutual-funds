@@ -2,11 +2,58 @@
 
 Provenance Mission Phase 3. Schema: `sql/013_metadata_provenance.sql` (Supabase) and
 `sql/neon/004_metadata_provenance.sql` (Neon mirror, dual-written same as `factsheet_archive`).
-**Not yet applied to either live database** — this session has no authenticated Neon/Supabase
-MCP access (non-interactive session). Applying requires either an interactive session with those
-tools authorized, or `psql "$DATABASE_URL" -f sql/neon/004_metadata_provenance.sql` /
-the Supabase SQL editor run by someone with the credentials, the same way migrations 005–012 were
-applied previously.
+**Update 2026-07-17, verified directly against both live databases:** applied to **Neon production**
+(all 6 tables + 2 views exist on `br-raspy-glitter-atut1ur7`) but **every table has 0 rows** — the
+schema is deployed, nothing has ever written to it. **Not applied to Supabase at all** (none of
+these tables exist there). No ingestion, API, or frontend code reads or writes any of these tables
+today — `docs/DATA_COVERAGE_MATRIX.md`'s "live on Neon production" phrasing (same date) was easy to
+misread as "the provenance chain works"; it means "the schema exists," nothing more, until
+Provenance Mission Phase 4 actually re-points the factsheet pipeline at it.
+
+**Update 2026-07-17 (Data Platform Mission 4), later same day:** the schema is no longer empty.
+`ingestion/factsheet/provenance.py` now wires `scripts/ingest_factsheets.py` (the one real,
+working factsheet pipeline — SBI, 152 schemes) into this schema, and a one-time backfill ran the
+real `record_provenance()` function against production using the last successful pipeline run's
+already-parsed output (`data/warehouse/source_files.jsonl` + `frontend/app/data/metadata.json` —
+no re-fetch, no new fabrication risk). Verified directly against `br-raspy-glitter-atut1ur7`:
+
+| Table | Rows |
+|---|---:|
+| `parser_versions` | 1 |
+| `source_documents` | 41 |
+| `source_document_versions` | 41 |
+| `source_extractions` | 780 |
+| `field_validation_results` | 780 |
+| `metadata_quarantine` | 0 (no extraction has failed a check yet — not "unused," just clean so far) |
+| `fund_metadata_values` (view) | 780 |
+| `fund_metadata_history` (view) | 780 |
+
+Confidence distribution matches `docs/DATA_SOURCE_REGISTER.md`'s per-field policy exactly, not a
+new judgment call: `launch_date`/`riskometer`/`aum_crores` 152/152 high; `benchmark` 134/152 high
+(18 schemes' factsheets didn't carry it); `holdings` 26/152 high (most schemes' top-10 holdings
+table wasn't present in the parsed text); `sector_allocation` 152/152 medium (the known
+contamination defect from the Trust Mission audit, not yet fixed); `fund_manager` only 12/152, all
+low (SBI's solo-manager line is genuinely ambiguous for most schemes — `normalize.py`'s adapter
+correctly left it blank rather than guessing, so a low match count here is the pipeline working
+as intended, not a bug).
+
+A real bug was caught and fixed in the same pass: the first version of `record_provenance()`
+matched `metadata.json` rows against `source_documents.scheme_hint` using an asymmetric,
+partially-normalized comparison (only the AMFI scheme-name side was lowercased/space-stripped;
+the hint side — a raw fund name like `"SBI Large & Midcap Fund"` — was left as-is). It matched
+0/152 rows every time, wrote 0 extractions, and raised no exception — `ingest_factsheets.py`'s own
+graceful-skip-on-error handling would have swallowed it silently in CI forever. Fixed by extracting
+the one correct normalizer (`collapse()`, already proven correct in
+`scripts/ingest_factsheets.py`'s AMFI-matching path) into `ingestion/factsheet/normalize.py` and
+having both call sites share it, so the two can no longer drift apart again.
+
+**What this does *not* yet mean:** this is one AMC's pipeline (SBI), 152 of ~14,224 schemes
+(≈1.07% of the universe) — not "every important record" in the sense Data Platform Mission 4's
+brief describes. `scripts/ingest_factsheets.py` is still not wired into any scheduled GitHub
+Actions workflow (confirmed via grep, unchanged from Phase 1's finding) — the pipeline this schema
+now serves still only runs when someone runs it manually with `DATABASE_URL` set. The fix above
+guarantees that **when** it next runs, provenance will populate correctly; it does not by itself
+make that happen on a schedule.
 
 ## Mapping the mission's 9 required concepts to what was actually built
 
