@@ -6,12 +6,23 @@ real metadata (with lineage: source_url + source_date) to frontend/app/data/meta
 Only confidently-extracted values are stored; missing fields stay null; stale factsheets are
 flagged by source_date. Nothing is fabricated.
 
+Data Platform Mission 5: generalized beyond SBI. Two acquisition shapes coexist in SOURCES
+below, matched to how each AMC's site actually works (found by testing, not assumed uniform):
+  - "per_scheme" (SBI): one small PDF per fund. parse_scheme_block() returns ONE partial row
+    per URL, which then gets matched against every AMFI plan/option variant whose name starts
+    with the curated human label.
+  - "combined" (HDFC): one PDF covers every active scheme. The adapter's own parse() already
+    returns one partial row PER real scheme with scheme_name read straight from the PDF text —
+    each of those rows goes through the exact same AMFI-matching step individually.
+Adding a third AMC means adding one SOURCES entry, not a new script.
+
     .venv/bin/python -m scripts.ingest_factsheets
 """
 
 from __future__ import annotations
 
 import dataclasses
+import datetime
 import hashlib
 import io
 import json
@@ -23,12 +34,13 @@ import pypdf
 
 from ingestion.amfi_parser import parse_file
 from ingestion.factsheet.adapters.sbi import SBIAdapter
+from ingestion.factsheet.adapters.hdfc import HDFCAdapter
 from ingestion.factsheet.normalize import validate, completeness, collapse
 from ingestion.factsheet.provenance import record_provenance
 from scripts.archive_factsheets import archive_snapshot
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36"
-BASE = "https://www.sbimf.com/docs/default-source/scheme-factsheets/"
+SBI_BASE = "https://www.sbimf.com/docs/default-source/scheme-factsheets/"
 
 # Curated, legitimate, directly-fetchable SBI per-scheme factsheets (AMC official source).
 # Simple pattern sbi-<slug>-factsheet-.pdf resolves for the SBI equity range.
@@ -76,8 +88,17 @@ SBI_FUNDS = {
     "long-duration-fund": "SBI Long Duration Fund",
     "floating-rate-debt-fund": "SBI Floating Rate Debt Fund",
 }
-CURATED = [("SBI", SBIAdapter, name, BASE + f"sbi-{slug}-factsheet-.pdf") for slug, name in SBI_FUNDS.items()]
-CURATED.append(("SBI", SBIAdapter, "SBI Contra Fund", BASE + "sbi-contra-fund-factsheet-17fae076-7a0e-4e87-b82c-ab217d24ee3a.pdf?sfvrsn=d591624_2"))
+SBI_ITEMS = [(name, SBI_BASE + f"sbi-{slug}-factsheet-.pdf") for slug, name in SBI_FUNDS.items()]
+SBI_ITEMS.append(("SBI Contra Fund", SBI_BASE + "sbi-contra-fund-factsheet-17fae076-7a0e-4e87-b82c-ab217d24ee3a.pdf?sfvrsn=d591624_2"))
+
+SOURCES = [
+    {"amc": "SBI", "shape": "per_scheme", "adapter": SBIAdapter, "items": SBI_ITEMS},
+    # fund_base is None here on purpose: HDFCAdapter.parse() returns one row per real scheme
+    # already named from the PDF text, so there's no curated per-fund label to pass — see
+    # ingestion/factsheet/adapters/hdfc.py's module docstring for why this AMC needs its own
+    # acquisition shape instead of SBI's per-scheme URL list.
+    {"amc": "HDFC", "shape": "combined", "adapter": HDFCAdapter, "items": [(None, HDFCAdapter().factsheet_url())]},
+]
 
 
 def fetch(url: str) -> bytes:
@@ -94,42 +115,64 @@ def pdf_text(b: bytes) -> str:
     return "\n".join((p.extract_text() or "") for p in reader.pages)
 
 
+def _match_and_collect(m, fund_base, dim, seen, rows):
+    """Match one AMC-level partial SchemeMetadata (benchmark/manager/AUM/etc. already filled
+    in, scheme_code/scheme_name not yet) against every AMFI plan/option variant whose collapsed
+    name starts with the collapsed fund_base, and append one fully-resolved row per match.
+    Returns how many new codes this call added, for the per-source audit count."""
+    base = collapse(fund_base)
+    added = 0
+    for r in dim:
+        if r.scheme_code in seen or not collapse(r.scheme_name).startswith(base):
+            continue
+        seen.add(r.scheme_code)
+        mm = dataclasses.replace(m, scheme_code=r.scheme_code, scheme_name=r.scheme_name)
+        if validate(mm):
+            continue
+        row = dataclasses.asdict(mm)
+        row["completeness"] = completeness(mm)
+        rows.append(row)
+        added += 1
+    return added
+
+
 def main():
     dim = list(parse_file("data/NAVAll.txt"))   # materialize — it's a generator, reused per fund
     rows, audit, src_files = [], [], []
     seen = set()
 
-    for amc, AdapterCls, fund_base, url in CURATED:
-        rec = {"amc": amc, "fund": fund_base, "url": url, "status": "ok", "codes": 0}
-        try:
-            pdf = fetch(url)
-            m = AdapterCls().parse_scheme_block(pdf_text(pdf))
-        except Exception as e:  # noqa: BLE001
-            rec.update(status="failed", error=str(e)[:80])
-            audit.append(rec)
-            continue
-        src_files.append({"source": f"{amc} factsheet PDF", "source_url": url, "amc": amc,
-                          "scheme_hint": fund_base, "sha256": hashlib.sha256(pdf).hexdigest(),
-                          "byte_size": len(pdf), "source_date": m.source_date})
-        m.source = f"{amc} factsheet PDF"
-        m.source_url = url
+    for src in SOURCES:
+        amc, shape, AdapterCls = src["amc"], src["shape"], src["adapter"]
+        for fund_base, url in src["items"]:
+            rec = {"amc": amc, "fund": fund_base or f"{amc} (combined factsheet)", "url": url, "status": "ok", "codes": 0}
+            try:
+                pdf = fetch(url)
+            except Exception as e:  # noqa: BLE001
+                rec.update(status="failed", error=str(e)[:80])
+                audit.append(rec)
+                continue
 
-        base = collapse(fund_base)
-        matches = [r for r in dim if collapse(r.scheme_name).startswith(base)]
-        for r in matches:
-            if r.scheme_code in seen:
+            try:
+                if shape == "per_scheme":
+                    partials = [(fund_base, AdapterCls().parse_scheme_block(pdf_text(pdf)))]
+                else:  # combined — the adapter names each row itself from the PDF text
+                    partials = [(m.scheme_name, m) for m in AdapterCls().parse(pdf) if m.scheme_name]
+            except Exception as e:  # noqa: BLE001
+                rec.update(status="failed", error=str(e)[:80])
+                audit.append(rec)
                 continue
-            seen.add(r.scheme_code)
-            mm = dataclasses.replace(m, scheme_code=r.scheme_code, scheme_name=r.scheme_name)
-            problems = validate(mm)
-            if problems:
-                continue
-            row = dataclasses.asdict(mm)
-            row["completeness"] = completeness(mm)
-            rows.append(row)
-        rec["codes"] = sum(1 for x in rows if collapse(x["scheme_name"]).startswith(base))
-        rec["source_date"] = m.source_date
-        audit.append(rec)
+
+            codes = 0
+            for hint, m in partials:
+                src_files.append({"source": f"{amc} factsheet PDF", "source_url": url, "amc": amc,
+                                  "scheme_hint": hint, "sha256": hashlib.sha256(pdf).hexdigest(),
+                                  "byte_size": len(pdf), "source_date": m.source_date})
+                m.source = f"{amc} factsheet PDF"
+                m.source_url = url
+                codes += _match_and_collect(m, hint, dim, seen, rows)
+            rec["codes"] = codes
+            rec["source_date"] = partials[0][1].source_date if partials else None
+            audit.append(rec)
 
     by_amc = {}
     for r in rows:
@@ -137,8 +180,8 @@ def main():
         by_amc[r["amc"]] += 1
 
     out = {
-        "asOf": "2026-06-23", "source": "AMC factsheet PDFs (official)",
-        "adapters": 4, "parser_ready": 4,
+        "asOf": datetime.date.today().isoformat(), "source": "AMC factsheet PDFs (official)",
+        "adapters": len(SOURCES), "parser_ready": len(SOURCES),
         "schemes_populated": len(rows), "by_amc": by_amc, "audit": audit, "metadata": rows,
     }
     with open("frontend/app/data/metadata.json", "w") as fh:

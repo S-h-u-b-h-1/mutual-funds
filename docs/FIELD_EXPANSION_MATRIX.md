@@ -7,6 +7,12 @@ re-derived by hand, so it can never silently drift from what the live dashboard 
 Source policy detail (verification levels, why AMC-website beats AMFI for cost fields, etc.) stays
 in `docs/DATA_SOURCE_REGISTER.md` — this doc doesn't repeat it, only cites it.
 
+**Update 2026-07-19 (Data Platform Mission 5):** Expense Ratio and Exit Load moved off 0% for the
+first time — a real second AMC (HDFC) is now live, see `docs/FACTSHEET_PIPELINE.md`. Current
+universe-wide numbers: Expense Ratio 1.69% (241), Exit Load 1.69% (241), AUM 2.76% (393), Fund
+Manager 1.75% (249, up from 0.08%), Launch Date 2.71% (385). The P2 priority calls below predate
+this — re-read them as "P2, partially started" for those five fields, not "not yet begun."
+
 **Current Status** definitions, mapped from `fieldRegistry.js`'s `status` + live coverage %:
 - **Exists** — schema column present, coverage ≥90% of the 14,227-scheme universe.
 - **Partially Populated** — schema column present, coverage >0% and <90%.

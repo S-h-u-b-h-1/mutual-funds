@@ -10,14 +10,18 @@ from typing import Optional
 
 
 def collapse(s: str) -> str:
-    """Space/hyphen/case-insensitive key, '&'->'and' — so 'SBI Large & Midcap Fund' matches
-    'SBI Large and Midcap Fund - Regular Plan - Growth'. Shared by scripts/ingest_factsheets.py
-    (fund-name -> AMFI scheme_name matching) and ingestion/factsheet/provenance.py
-    (metadata row -> source_documents.scheme_hint matching) — must stay one implementation;
-    a second copy is what silently broke provenance matching (0/152 rows) the first time."""
+    """Space/hyphen/apostrophe/case-insensitive key, '&'->'and' — so 'SBI Large & Midcap Fund'
+    matches 'SBI Large and Midcap Fund - Regular Plan - Growth', and factsheet text's
+    "HDFC Children's Fund" matches AMFI's registered "HDFC Childrens Fund" (real divergence
+    found matching Data Platform Mission 5's HDFC integration — AMFI's short registered name
+    just drops the apostrophe, it isn't a typo to guess around). Shared by
+    scripts/ingest_factsheets.py (fund-name -> AMFI scheme_name matching) and
+    ingestion/factsheet/provenance.py (metadata row -> source_documents.scheme_hint matching)
+    — must stay one implementation; a second copy is what silently broke provenance matching
+    (0/152 rows) the first time."""
     return (
         s.lower().replace("&", "and").replace("  ", " ").strip()
-        .replace(" ", "").replace("-", "")
+        .replace(" ", "").replace("-", "").replace("'", "").replace("’", "")
     )
 
 

@@ -1,7 +1,7 @@
 {
- "asOf": "2026-07-19",
- "amfiLastUpdated": "2026-07-19",
- "factsheetLastUpdated": "2026-06-23",
+ "asOf": "2026-07-16",
+ "amfiLastUpdated": "2026-07-16",
+ "factsheetLastUpdated": "2026-07-18",
  "denominators": {
   "universe": 14227,
   "active": 8470,
@@ -104,16 +104,16 @@
   },
   "Metadata": {
    "Expense Ratio": {
-    "universe_pct": 0.0,
-    "universe_n": 0,
-    "investable_pct": 0.0,
-    "investable_n": 0
+    "universe_pct": 1.69,
+    "universe_n": 241,
+    "investable_pct": 2.9,
+    "investable_n": 100
    },
    "AUM": {
-    "universe_pct": 1.07,
-    "universe_n": 152,
-    "investable_pct": 1.59,
-    "investable_n": 55
+    "universe_pct": 2.76,
+    "universe_n": 393,
+    "investable_pct": 4.49,
+    "investable_n": 155
    },
    "Riskometer": {
     "universe_pct": 1.07,
@@ -122,22 +122,22 @@
     "investable_n": 55
    },
    "Manager": {
-    "universe_pct": 0.08,
-    "universe_n": 12,
-    "investable_pct": 0.12,
-    "investable_n": 4
+    "universe_pct": 1.75,
+    "universe_n": 249,
+    "investable_pct": 2.95,
+    "investable_n": 102
    },
    "Launch Date": {
-    "universe_pct": 1.07,
-    "universe_n": 152,
-    "investable_pct": 1.59,
-    "investable_n": 55
+    "universe_pct": 2.71,
+    "universe_n": 385,
+    "investable_pct": 4.37,
+    "investable_n": 151
    },
    "Exit Load": {
-    "universe_pct": 0.0,
-    "universe_n": 0,
-    "investable_pct": 0.0,
-    "investable_n": 0
+    "universe_pct": 1.69,
+    "universe_n": 241,
+    "investable_pct": 2.9,
+    "investable_n": 100
    },
    "SIP Minimum": {
     "universe_pct": 0.0,
@@ -168,10 +168,10 @@
   },
   "Documents": {
    "Factsheet": {
-    "universe_pct": 1.07,
-    "universe_n": 152,
-    "investable_pct": 1.59,
-    "investable_n": 55
+    "universe_pct": 2.76,
+    "universe_n": 393,
+    "investable_pct": 4.49,
+    "investable_n": 155
    }
   }
  }

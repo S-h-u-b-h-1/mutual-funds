@@ -80,24 +80,31 @@ with the user; not dropped here (destructive, out of scope for an inventory pass
 | `portfolio_sips` | 0 | SIP schedule tracking — schema exists, never populated (no SIP data source, confirmed this session) |
 | `portfolio_corporate_actions` | 0 | Dividend/split/merger tracking — schema exists, never populated |
 
-### Provenance & factsheet pipeline (Data Platform Mission 4 — wired 2026-07-17)
+### Provenance & factsheet pipeline (Mission 4 wired 2026-07-17, Mission 5 extended 2026-07-19)
 | Table | Rows | Purpose |
 |---|---:|---|
-| `source_documents` | 41 | Logical document identity (AMC + type + URL) — one per SBI fund factsheet |
-| `source_document_versions` | 41 | One row per actual fetch, checksum-deduped |
-| `source_extractions` | 780 | Per-field extracted value + provenance, 152 SBI schemes × up to 7 populated fields each |
-| `field_validation_results` | 780 | Per-extraction validation checks — all passed (rows that fail `validate()` never reach this table) |
+| `source_documents` | 94 | Logical document identity (AMC + type + URL) — 41 SBI + 53 HDFC funds |
+| `source_document_versions` | 94 | One row per actual fetch, checksum-deduped |
+| `source_extractions` | 2,455 | Per-field extracted value + provenance — 780 from SBI (152 schemes), 1,675 from HDFC (241 schemes) |
+| `field_validation_results` | 3,235 | Per-extraction validation checks — see note below on a real idempotency gap found and fixed here |
 | `metadata_quarantine` | 0 | Failed-validation holding area — clean so far, not unused |
-| `parser_versions` | 1 | `sbi_factsheet_adapter` v1 |
-| `fund_metadata_values` / `fund_metadata_history` | 780 / 780 (views) | Derived from `source_extractions`, confirmed returning real rows |
-| `fact_factsheet_runs` | 0 | Factsheet pipeline audit log — schema exists, still never written to (real, still-open gap — `record_provenance()` doesn't log here either; not part of what Mission 4 fixed) |
+| `parser_versions` | 1 | Row is generic (`parser_name`/`version_label`), not per-AMC — SBI and HDFC each register under their own `parser_name` value in practice |
+| `fund_metadata_values` / `fund_metadata_history` | 2,455 / 2,455 (views) | Derived from `source_extractions`, confirmed returning real rows for both AMCs |
+| `fact_factsheet_runs` | 0 | Factsheet pipeline audit log — schema exists, still never written to (unchanged, real, still-open gap) |
 
-Backfilled from the last real pipeline run's already-parsed output (no re-fetch): confirms
-`ingestion/factsheet/provenance.py` works end-to-end against production, not just in theory. Full
-detail incl. a real matching bug caught and fixed in the same pass: `docs/METADATA_PROVENANCE_SCHEMA.md`.
-Coverage is still SBI-only — 152 of ~14,224 schemes (≈1.07%). `scripts/ingest_factsheets.py`
-remains unscheduled (confirmed via grep, no GH Actions workflow calls it); this fix guarantees
-correctness the next time it runs, not a recurring schedule.
+Mission 5 (2026-07-19) added a real second AMC (HDFC, 241 schemes) to the same pipeline — see
+`docs/FACTSHEET_PIPELINE.md` for the full story, including a duplicate half-built factsheet
+framework found and consolidated into rather than built around. `field_validation_results` grew
+to 3,235 (not 2,455) because re-running the pipeline twice in the same session against unchanged
+SBI data exposed a real gap: that table had no idempotency guard, so identical validation checks
+kept re-inserting on every run. Fixed with a `NOT EXISTS` guard in `provenance.py`; the 780 extra
+rows already in production from before the fix were not retroactively cleaned up (harmless
+audit-log duplication, not data corruption — `fund_metadata_values`/`history` are unaffected since
+they read from `source_extractions`, which was never the affected table).
+
+Coverage: 393 of ~14,224 schemes (≈2.76%), two of the many AMCs on the platform.
+`scripts/ingest_factsheets.py` remains unscheduled (confirmed via grep, no GH Actions workflow
+calls it) — unchanged from Mission 4's disclosure.
 
 ### Other
 | Table | Rows | Purpose |

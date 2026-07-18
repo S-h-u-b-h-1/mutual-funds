@@ -1,6 +1,6 @@
 {
  "asOf": "2026-07-16",
- "snapshot_age_days": 1,
+ "snapshot_age_days": 2,
  "datasets": [
   {
    "dataset": "AMFI NAV universe",
@@ -10,7 +10,7 @@
    "rows": 14224,
    "checksum": "53534e9336646d94",
    "parser_version": "amfi_parser@1",
-   "freshness": "current",
+   "freshness": "2d behind live",
    "confidence": "high",
    "validated": true
   },
@@ -19,10 +19,10 @@
    "source": "AMFI NAV + 90d history",
    "source_url": "https://portal.amfiindia.com/spages/NAVAll.txt",
    "last_updated": "2026-07-16",
-   "rows": 14224,
-   "checksum": "9e6d6421a7a4e4f9",
+   "rows": 14227,
+   "checksum": "ddbeef8eab92113f",
    "parser_version": "build_performance@2",
-   "freshness": "current",
+   "freshness": "2d",
    "confidence": "high",
    "validated": true
   },
@@ -30,9 +30,9 @@
    "dataset": "Factsheet metadata",
    "source": "AMC factsheet PDFs (SBI live)",
    "source_url": "per source_files.jsonl",
-   "last_updated": "2026-06-23",
-   "rows": 152,
-   "checksum": "85aa34d3e2855972",
+   "last_updated": "2026-07-18",
+   "rows": 393,
+   "checksum": "3d70d8c107fa37f2",
    "parser_version": "factsheet_adapters@1",
    "freshness": "partial \u2014 SBI only",
    "confidence": "medium",

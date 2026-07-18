@@ -142,12 +142,27 @@ def record_provenance(src_files: list[dict], rows: list[dict]) -> dict:
                         ver_id, parser_id, confidence,
                     )
                     extractions_written += 1
+                    # No unique constraint exists on (source_extraction_id, check_name) — found
+                    # by actually re-running this function twice in the same session (Data
+                    # Platform Mission 5): source_extractions upserts correctly via its own
+                    # partial unique index, but re-processing an unchanged row returns the SAME
+                    # extraction_id and this insert has no guard, so validations_written grows
+                    # every re-run even when nothing changed. NOT EXISTS below makes this call
+                    # idempotent without a schema migration; a real unique index would be the
+                    # more robust fix (tracked for Mission 9, the Data Quality Engine).
                     cur.execute(
                         """insert into field_validation_results (source_extraction_id, check_name, passed, detail)
-                           values (%s, %s, true, %s)""",
-                        (extraction_id, "normalize.validate() range/sanity check", "passed at parse time (rows that fail validate() never reach this point)"),
+                           select %s, %s, true, %s
+                           where not exists (
+                             select 1 from field_validation_results
+                             where source_extraction_id = %s and check_name = %s
+                           )""",
+                        (extraction_id, "normalize.validate() range/sanity check",
+                         "passed at parse time (rows that fail validate() never reach this point)",
+                         extraction_id, "normalize.validate() range/sanity check"),
                     )
-                    validations_written += 1
+                    if cur.rowcount:
+                        validations_written += 1
 
     return {
         "documents": documents_written, "versions": versions_written,

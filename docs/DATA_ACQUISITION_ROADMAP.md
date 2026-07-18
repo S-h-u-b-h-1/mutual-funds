@@ -10,6 +10,12 @@ Every source cited here is either a regulatory-mandated public disclosure (SID, 
 monthly portfolio disclosure — all AMCs must publish these under SEBI Mutual Fund Regulations) or
 AMFI/SEBI's own public data. Nothing below scrapes a paywalled or ToS-restricted third party.
 
+**Update 2026-07-19 (Data Platform Mission 5):** "Phase 1" below is no longer purely planned —
+HDFC is live (Expense Ratio, Exit Load, Fund Manager, AUM, Launch Date, Benchmark all real now for
+241 schemes). See `docs/FACTSHEET_PIPELINE.md` for what shipped, what's still 0% for HDFC
+(Sector Allocation, Holdings, Riskometer — verified not reliably extractable from this AMC's
+combined factsheet, not skipped for convenience), and the two real bugs the second-AMC run caught.
+
 ---
 
 ## Phase 0 (do first — hours, not weeks): fix what's already built
