@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 
 from ..base import FactsheetAdapter
+from ..extract import parse_date_string, parse_numeric_string
 from ..normalize import SchemeMetadata, Holding, SectorAllocation
 
 BENCHMARK = re.compile(r"((?:S&P BSE|BSE|NIFTY|Nifty|CRISIL)[\w &.:\-]*?(?:Index TRI|TRI|Index))")
@@ -66,22 +67,14 @@ class SBIAdapter(FactsheetAdapter):
                     sec_sum += a
                     sectors.append(SectorAllocation(sector=name, allocation_pct=a))
 
-        aum = float(crores[-1].replace(",", "")) if crores else None
+        aum = parse_numeric_string(crores[-1]) if crores else None
         return SchemeMetadata(
             scheme_code=None, scheme_name="", amc=self.amc_name,
             benchmark=bm.group(1).strip() if bm else None,
             fund_manager=manager,
             aum_crores=aum if (aum is None or aum >= 0) else None,
             riskometer=risk.group(1).title() if risk else None,
-            launch_date=_to_iso(dates[0]) if dates else None,
-            source_date=_to_iso(dates[1]) if len(dates) > 1 else None,
+            launch_date=parse_date_string(dates[0]) if dates else None,
+            source_date=parse_date_string(dates[1]) if len(dates) > 1 else None,
             holdings=holdings[:10], sector_allocation=sectors[:15],
         )
-
-
-def _to_iso(d: str):
-    from datetime import datetime
-    try:
-        return datetime.strptime(d, "%d/%m/%Y").date().isoformat()
-    except ValueError:
-        return None

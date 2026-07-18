@@ -11,8 +11,8 @@
   "asset_class": {
    "Debt": 7991,
    "Equity": 2928,
-   "Hybrid": 822,
    "Other": 2341,
+   "Hybrid": 822,
    "Solution": 145
   },
   "scheme_type": {

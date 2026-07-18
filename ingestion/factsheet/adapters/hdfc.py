@@ -32,6 +32,7 @@ from __future__ import annotations
 import re
 
 from ..base import FactsheetAdapter
+from ..extract import parse_date_string, parse_numeric_string
 from ..normalize import SchemeMetadata
 
 _MONTHS = r"January|February|March|April|May|June|July|August|September|October|November|December"
@@ -48,17 +49,6 @@ MANAGER_ENTRY = re.compile(
     rf"([A-Z][A-Za-z.]+(?:\s+[A-Z][A-Za-z.]+)*)\s*(?:\n?\s*\([^)]*\))?\s*\n?\s*"
     rf"(?:{_MONTHS})\s+\d{{1,2}},?\s*\n?\s*\d{{4}}"
 )
-
-
-def _to_iso(raw: str):
-    from datetime import datetime
-    cleaned = re.sub(r"\s+", " ", raw).strip().rstrip(",")
-    for fmt in ("%B %d, %Y", "%B %d,%Y", "%B %d %Y"):
-        try:
-            return datetime.strptime(cleaned, fmt).date().isoformat()
-        except ValueError:
-            continue
-    return None
 
 
 def _managers(text: str) -> str | None:
@@ -123,10 +113,10 @@ class HDFCAdapter(FactsheetAdapter):
             benchmark=bm.group(1).strip() if bm else None,
             fund_manager=_managers(block),
             expense_ratio=None,  # HDFC never states one blended figure — always Regular/Direct split
-            regular_expense_ratio=float(exp.group(1)) if exp else None,
-            direct_expense_ratio=float(exp.group(2)) if exp else None,
-            aum_crores=float(aum.group(1).replace(",", "")) if aum else None,
-            launch_date=_to_iso(inc.group(1)) if inc else None,
+            regular_expense_ratio=parse_numeric_string(exp.group(1)) if exp else None,
+            direct_expense_ratio=parse_numeric_string(exp.group(2)) if exp else None,
+            aum_crores=parse_numeric_string(aum.group(1)) if aum else None,
+            launch_date=parse_date_string(inc.group(1)) if inc else None,
             exit_load=re.sub(r"\s+", " ", exit_.group(1)).strip()[:300] if exit_ else None,
-            source_date=_to_iso(f"{as_on.group(1)} {as_on.group(2)}, {as_on.group(3)}") if as_on else None,
+            source_date=parse_date_string(f"{as_on.group(1)} {as_on.group(2)}, {as_on.group(3)}") if as_on else None,
         )

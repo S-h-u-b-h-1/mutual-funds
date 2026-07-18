@@ -76,18 +76,49 @@ def parse_amount(s: Optional[str]) -> Optional[float]:
     return v if v > 0 else None
 
 
-def parse_date(text: str, labels: list[str]) -> Optional[str]:
-    raw = labeled(text, labels)
+DATE_FORMATS = (
+    "%d-%b-%Y", "%d %b %Y", "%d/%m/%Y", "%B %d, %Y", "%d-%m-%Y", "%b %d, %Y",
+    # AMC-specific formats consolidated here (Universal Factsheet Platform Mission 2) from
+    # sbi.py's and hdfc.py's own previously-separate _to_iso() functions — every format either
+    # adapter's real, verified data has actually produced, union'd rather than narrowed, so this
+    # consolidation cannot silently drop a date either adapter already extracts correctly.
+    "%B %d,%Y", "%B %d %Y",
+)
+
+
+def parse_date_string(raw: Optional[str]) -> Optional[str]:
+    """Convert an already-isolated date substring (e.g. a regex capture group) to ISO, trying
+    every format either real adapter needs. Safe to call on a string that's already clean —
+    the substring search below matches the whole thing as-is when there's nothing to trim."""
     if not raw:
         return None
-    for fmt in ("%d-%b-%Y", "%d %b %Y", "%d/%m/%Y", "%B %d, %Y", "%d-%m-%Y", "%b %d, %Y"):
-        m = re.search(r"[A-Za-z0-9/,\- ]{8,18}", raw)
-        if m:
-            try:
-                return datetime.strptime(m.group(0).strip(), fmt).date().isoformat()
-            except ValueError:
-                continue
+    m = re.search(r"[A-Za-z0-9/,\- ]{8,18}", raw)
+    if not m:
+        return None
+    candidate = m.group(0).strip()
+    for fmt in DATE_FORMATS:
+        try:
+            return datetime.strptime(candidate, fmt).date().isoformat()
+        except ValueError:
+            continue
     return None
+
+
+def parse_date(text: str, labels: list[str]) -> Optional[str]:
+    return parse_date_string(labeled(text, labels))
+
+
+def parse_numeric_string(raw: Optional[str]) -> Optional[float]:
+    """Comma-stripped float from an already-matched numeric capture group (e.g. AUM crores,
+    an expense-ratio percentage's digits). Not a search — the caller's own anchor regex already
+    found and isolated the number; this only does the strip-commas-and-parse-float conversion
+    both adapters previously duplicated inline."""
+    if not raw:
+        return None
+    try:
+        return float(raw.replace(",", "").strip())
+    except ValueError:
+        return None
 
 
 def parse_holdings(text: str, limit: int = 10) -> list:

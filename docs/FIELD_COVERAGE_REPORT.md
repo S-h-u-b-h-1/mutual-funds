@@ -36,7 +36,7 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 | AUM | 2.76% | 4.49% |
 | Riskometer | 1.07% | 1.59% |
 | Manager | 1.75% | 2.95% |
-| Launch Date | 2.71% | 4.37% |
+| Launch Date | 2.76% | 4.49% |
 | Exit Load | 1.69% | 2.9% |
 | SIP Minimum | 0.0% | 0.0% |
 | Lumpsum Minimum | 0.0% | 0.0% |
