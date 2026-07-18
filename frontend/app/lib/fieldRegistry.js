@@ -146,6 +146,56 @@ export const FIELD_REGISTRY = [
     backupSource: null, refreshFrequency: "static", isPrimaryOfficial: true, extractionComplexity: "medium",
     notes: "Not checked by any prior coverage audit pass — genuinely unassessed, not just unpopulated. No SID-text ingestion exists anywhere in this codebase, so real coverage is very likely 0%, but that has not been directly measured.",
   },
+  // Data Platform Mission 2 (2026-07-19): the audit engine (scripts/market_coverage_audit.py's
+  // FIELDS dict) already computes Launch Date / SIP Minimum / Lumpsum Minimum coverage and has
+  // for a while — they were simply never added here, so their real numbers sat unused in
+  // fieldCoverage.json and never reached the dashboard. Adding them required no new ingestion,
+  // only wiring already-live data through.
+  {
+    id: "launch_date", label: "Launch Date", key: "Metadata.Launch Date", status: "modeled",
+    officialSource: "AMC factsheet", secondarySource: "SID", backupSource: null,
+    refreshFrequency: "static", isPrimaryOfficial: true, extractionComplexity: "low",
+    notes: "SBI-only pilot (152/14,227 = 1.07%), same denominator as every other factsheet-sourced field. Was already extracted and provenance-tracked (ingestion/factsheet/provenance.py's TRACKED_FIELDS) before this registry entry existed.",
+  },
+  {
+    id: "minimum_sip", label: "Minimum SIP", key: "Metadata.SIP Minimum", status: "modeled",
+    officialSource: "AMC factsheet", secondarySource: "AMC scheme page", backupSource: null,
+    refreshFrequency: "static (event-driven on rare change)", isPrimaryOfficial: true, extractionComplexity: "low",
+    notes: "Has a schema slot (SchemeMetadata.minimum_sip) and provenance tracking already wired, but the SBI adapter's regex never matches it in practice — confirmed 0.0% (0/152) even within the pilot AMC, unlike every other tracked field. The extraction pattern itself needs fixing before this can move, not a new source.",
+  },
+  {
+    id: "minimum_investment", label: "Minimum Investment (lumpsum)", key: "Metadata.Lumpsum Minimum", status: "modeled",
+    officialSource: "AMC factsheet", secondarySource: "AMC scheme page", backupSource: null,
+    refreshFrequency: "static (event-driven on rare change)", isPrimaryOfficial: true, extractionComplexity: "low",
+    notes: "Same schema slot / provenance wiring as Minimum SIP (SchemeMetadata.minimum_lumpsum); same 0.0% (0/152) result, same fix required (adapter regex, not sourcing).",
+  },
+  {
+    id: "entry_load", label: "Entry Load", key: null, status: "not_applicable",
+    officialSource: "N/A — banned by SEBI for all schemes since 2009", secondarySource: null, backupSource: null,
+    refreshFrequency: "n/a", isPrimaryOfficial: true, extractionComplexity: "n/a",
+    notes: "Not a data gap: SEBI circular SEBI/IMD/CIR No.4/168230/09 (30 Jun 2009) abolished entry loads industry-wide. Every scheme in the current AMFI universe post-dates or continues past that ban, so the true value is uniformly zero — citable as a regulatory fact, not something to extract per scheme. Do not build an ingestion path for this; a static citation is the entire correct answer, same treatment as ELSS lock-in.",
+  },
+  {
+    id: "manager_history", label: "Manager History (tenure over time)", key: null, status: "no_schema",
+    officialSource: "SAI (Statement of Additional Information) — full tenure history per manager",
+    secondarySource: null, backupSource: null, refreshFrequency: "static, append-only as changes occur",
+    isPrimaryOfficial: true, extractionComplexity: "high",
+    notes: "Distinct field from Fund Manager above (which is current-manager-only, 0.08% covered). This needs a one-to-many table (scheme -> manager -> tenure start/end), not a new column on the existing metadata row — no SAI ingestion exists anywhere in this codebase. Natural fit for the Change Detection engine (manager-change events) once that exists, rather than a one-time backfill.",
+  },
+  {
+    id: "scheme_status", label: "Scheme Status (active / closed / merged)", key: null, status: "no_schema",
+    officialSource: "Derived — AMFI's daily NAV feed only ever lists currently-active schemes; it has no explicit status field",
+    secondarySource: "AMC scheme-closure / merger circulars (irregular, not a structured feed)",
+    backupSource: null, refreshFrequency: "daily (as a diff, not a fetched field)", isPrimaryOfficial: true, extractionComplexity: "medium",
+    notes: "Not extractable from any single day's snapshot — a scheme's status can only be inferred from presence/absence across consecutive days (present yesterday, absent today = closed or merged). Requires day-over-day diffing against dim_scheme, which is exactly what Mission 6 (Change Detection) needs to exist anyway — do not build a separate one-off mechanism for this field.",
+  },
+  {
+    id: "fund_age", label: "Fund Age", key: null, status: "no_schema",
+    officialSource: "Computed — today's date minus Launch Date, no external source needed",
+    secondarySource: null, backupSource: null, refreshFrequency: "daily (trivially, alongside any page render)",
+    isPrimaryOfficial: true, extractionComplexity: "low",
+    notes: "Not an acquisition gap at all — it's arithmetic on a field that already exists (Launch Date, 1.07% covered today). Coverage will track Launch Date's exactly, for free, the moment a UI surface computes it. Listed separately here only because the brief names it as its own field; do not scope this as an ingestion task in the roadmap.",
+  },
 ];
 
 export function fieldById(id) {
@@ -161,7 +211,7 @@ export function fieldById(id) {
 const UNVALIDATED_IDS = new Set(["sector_allocation"]);
 
 export function computeConfidence(entry, coveragePct) {
-  if (entry.status === "no_schema" || entry.status === "not_yet_assessed" || entry.status === "blocked_by_license") return "N/A";
+  if (entry.status === "no_schema" || entry.status === "not_yet_assessed" || entry.status === "blocked_by_license" || entry.status === "not_applicable") return "N/A";
   if (coveragePct == null || coveragePct === 0) return "N/A";
   const validated = !UNVALIDATED_IDS.has(entry.id);
   const primary = !!entry.isPrimaryOfficial;

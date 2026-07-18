@@ -116,7 +116,7 @@ export default async function DataCompleteness() {
       <section className="mt-8">
         <SectionHeader
           title="Field-level coverage matrix"
-          eyebrow={`21 required fields · computed live from data/warehouse/field_coverage.json · asOf ${fieldCoverage.asOf}`}
+          eyebrow={`${FIELD_REGISTRY.length} required fields · computed live from data/warehouse/field_coverage.json · asOf ${fieldCoverage.asOf}`}
         />
         <GlassPanel className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
