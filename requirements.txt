@@ -17,3 +17,10 @@ redis==5.2.1
 openpyxl==3.1.5
 xlrd==2.0.2
 sentry-sdk==2.20.0
+
+# factsheet ingestion (scripts/ingest_factsheets.py, ingestion/factsheet/) — real dependency,
+# never previously listed here because nothing that imports it ran inside CI until Data Platform
+# Mission 5's new test (test_hdfc_parse_merges_continuation_pages) became the first test in this
+# suite to actually call HDFCAdapter.parse(pdf_bytes) instead of parse_scheme_block(text) — that
+# exercises the `import pypdf` path base.py/hdfc.py/ingest_factsheets.py already depended on.
+pypdf==6.14.2
