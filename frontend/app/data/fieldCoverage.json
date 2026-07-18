@@ -48,10 +48,10 @@
     "investable_n": 3454
    },
    "NAV History (90d)": {
-    "universe_pct": 28.02,
-    "universe_n": 3987,
-    "investable_pct": 99.57,
-    "investable_n": 3439
+    "universe_pct": 28.04,
+    "universe_n": 3989,
+    "investable_pct": 99.62,
+    "investable_n": 3441
    },
    "1M": {
     "universe_pct": 28.33,
@@ -90,16 +90,16 @@
     "investable_n": 1692
    },
    "Volatility": {
-    "universe_pct": 28.02,
-    "universe_n": 3987,
-    "investable_pct": 99.57,
-    "investable_n": 3439
+    "universe_pct": 28.04,
+    "universe_n": 3989,
+    "investable_pct": 99.62,
+    "investable_n": 3441
    },
    "Drawdown": {
-    "universe_pct": 28.02,
-    "universe_n": 3987,
-    "investable_pct": 99.57,
-    "investable_n": 3439
+    "universe_pct": 28.04,
+    "universe_n": 3989,
+    "investable_pct": 99.62,
+    "investable_n": 3441
    }
   },
   "Metadata": {
