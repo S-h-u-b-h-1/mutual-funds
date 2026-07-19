@@ -3,6 +3,7 @@ import Footer from "../components/Footer";
 import Tracker from "../components/Tracker";
 import SectionHeader from "../components/ui/SectionHeader";
 import DataTable from "../components/ui/DataTable";
+import ProvenanceDisclosure from "../components/ui/ProvenanceDisclosure";
 import { allFunds, asOf } from "../lib/funds";
 
 export const metadata = { title: "AMCs — MF Pulse" };
@@ -42,6 +43,7 @@ export default function AmcIndex() {
           peer rank, and category strength — or use{" "}
           <a className="text-ink underline underline-offset-2 hover:text-accent-soft" href="/performance">AMC quality rankings</a> for a 1-month leaderboard.
         </p>
+        <ProvenanceDisclosure className="mt-5" source="AMFI NAV universe" sourceUrl="https://www.amfiindia.com" updatedAt={asOf} confidence="High" coverage={`${rows.length} AMCs · ${funds.length.toLocaleString("en-IN")} schemes`} freshness="Daily on trading days" methodology="Scheme counts and asset-class distribution come from the generated AMFI universe. AMC scores on detail pages are deterministic and disclose their components." limitations="Public AMFI data does not provide AMC-level assets under management or organization-quality ratings; MF Pulse does not infer them." />
         <section className="mt-7">
           <SectionHeader eyebrow="sorted by total schemes" title="AMCs" />
           <DataTable columns={cols} rows={rows} footnote={`Scheme counts from AMFI NAV universe, as of ${asOf}. Click an AMC for full intelligence.`} />

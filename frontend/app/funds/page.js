@@ -4,6 +4,7 @@ import Tracker from "../components/Tracker";
 import ScreenerPresets from "../components/ScreenerPresets";
 import ScreenerTableClient from "../components/ScreenerTableClient";
 import FreshnessBadge from "../components/ui/FreshnessBadge";
+import ProvenanceDisclosure from "../components/ui/ProvenanceDisclosure";
 import { allFunds, coverage, asOf } from "../lib/funds";
 import { fundHealth } from "../lib/fundHealth";
 import { freshnessTone } from "../lib/marketStatus";
@@ -97,6 +98,7 @@ export default function FundsPage({ searchParams }) {
           <div><div className="eyebrow text-accent">Fund research</div><h1 className="page-title mt-3">Find evidence, not a leaderboard winner.</h1><p className="measure mt-4 text-sm leading-6 text-ink-muted">Screen direct and regular plans separately, keep missing measures visible, and move selected funds into comparison or strategy research.</p></div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faint"><FreshnessBadge status={asOfStatus}>NAV {asOf}</FreshnessBadge><a href="/data-quality" className="font-medium text-accent">Review coverage →</a></div>
         </header>
+        <ProvenanceDisclosure className="mt-5" source="AMFI NAVAll and NAV history" sourceUrl="https://www.amfiindia.com" updatedAt={asOf} confidence="High" coverage={`${coverage.priced.toLocaleString("en-IN")} of ${coverage.total.toLocaleString("en-IN")} schemes priced`} freshness="Daily on trading days" methodology="Fund identity and NAV come from AMFI. Returns and risk measures are deterministic calculations over observed NAV history." limitations="Factsheet fields such as AUM and expense ratio cover only acquired AMC documents and remain visibly unavailable elsewhere." />
 
         <section className="mt-8 rounded-2xl border border-line bg-surface p-4 sm:p-5" aria-label="Fund filters">
           <form action="/funds" method="get" className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">

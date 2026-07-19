@@ -3,7 +3,7 @@ import Footer from "../components/Footer";
 import Tracker from "../components/Tracker";
 import SectionHeader from "../components/ui/SectionHeader";
 import DataTable from "../components/ui/DataTable";
-import TrustBar from "../components/ui/TrustBar";
+import ProvenanceDisclosure from "../components/ui/ProvenanceDisclosure";
 import Badge from "../components/ui/Badge";
 import ExportCsv from "../components/ExportCsv";
 import { toCsv } from "../lib/csv";
@@ -43,7 +43,7 @@ export default function Categories() {
           One-month NAV performance by equity category across {performance.universe.toLocaleString("en-IN")} Direct/Growth
           funds. {lead && <><b className="text-pos">{lead.category}</b> leads at +{lead.avg.toFixed(1)}%.</>} Real AMFI NAV.
         </p>
-        <TrustBar asOf={performance.asOf} label="AMFI NAV" className="mt-3" sources={[{ label: "Categories", value: `${performance.categories.length}` }, { label: "Window", value: "1 month" }]} />
+        <ProvenanceDisclosure className="mt-5" source="AMFI NAV history and scheme classification" sourceUrl="https://www.amfiindia.com" updatedAt={performance.asOf} confidence="High" coverage={`${performance.categories.length} categories · ${performance.universe.toLocaleString("en-IN")} funds`} freshness="Daily on trading days" methodology="Category movement is the mean observed one-month NAV return of eligible equity Growth funds; breadth is the share with a positive return." limitations="Category averages do not describe every fund and are not recommendations. Missing return history is excluded, not filled." />
 
         <section className="mt-8">
           <SectionHeader eyebrow="ranked by 1-month avg NAV return" title="Category movement" action={<div className="flex items-center gap-2"><Badge tone="pos" dot>daily NAV</Badge><ExportCsv csv={toCsv(performance.categories, csvCols)} filename="mfpulse-categories.csv" report="categories" /></div>} />

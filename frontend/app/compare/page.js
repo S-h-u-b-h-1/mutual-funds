@@ -4,7 +4,8 @@ import Footer from "../components/Footer";
 import CompareClient from "../components/CompareClient";
 import CompareFundsClient from "../components/CompareFundsClient";
 import AdvisorSoftCTA from "../components/AdvisorSoftCTA";
-import { getFund, allFunds } from "../lib/funds";
+import ProvenanceDisclosure from "../components/ui/ProvenanceDisclosure";
+import { getFund, allFunds, asOf } from "../lib/funds";
 import { fundHealth } from "../lib/fundHealth";
 import trendData from "../data/amc_trend.json";
 
@@ -61,6 +62,7 @@ export default async function Compare({ searchParams }) {
           <div className="eyebrow text-accent">Comparison research</div>
           <h1 className="page-title mt-3">Understand differences before choosing what to research next.</h1>
           <p className="measure mt-4 text-sm leading-6 text-ink-muted">Compare observed performance, risk, health, and data completeness. MF Pulse does not label one fund a universal winner.</p>
+          <ProvenanceDisclosure className="mt-5" source="AMFI NAV history" sourceUrl="https://www.amfiindia.com" updatedAt={asOf} confidence="High" coverage={`${allFundsList.length.toLocaleString("en-IN")} scheme records available for selection`} freshness="Daily on trading days" methodology="Comparison metrics use the same deterministic return, risk, category-percentile and health-score functions as each fund page." limitations="A missing metric stays unavailable. Comparison describes evidence differences and is not a suitability decision." />
           <div className="mt-8">
             <CompareFundsClient initialFunds={initialFunds} allFundsList={allFundsCompareList} />
           </div>
@@ -124,6 +126,7 @@ export default async function Compare({ searchParams }) {
           Compare AMCs side-by-side on 30-day equity performance, scheme mix, and breadth — from real
           AMFI NAV history.
         </p>
+        <ProvenanceDisclosure className="mt-5" source="AMFI NAV history and latest scheme universe" sourceUrl="https://www.amfiindia.com" updatedAt={asOf} confidence="High" coverage={`${Object.keys(trendData.amcs).length} AMCs with 30-day trend series`} freshness="Daily on trading days" methodology="AMC comparison normalizes observed equity-fund NAV history and combines it with current scheme distribution." limitations="The public source does not include AMC-level AUM or qualitative corporate-governance ratings; those fields are not inferred." />
         <div className="mt-8">
           <CompareClient amcs={trendData.amcs} meta={meta} funds={amcFunds} />
         </div>

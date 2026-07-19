@@ -3,7 +3,7 @@ import Footer from "../components/Footer";
 import Tracker from "../components/Tracker";
 import SectionHeader from "../components/ui/SectionHeader";
 import DataTable from "../components/ui/DataTable";
-import TrustBar from "../components/ui/TrustBar";
+import ProvenanceDisclosure from "../components/ui/ProvenanceDisclosure";
 import Badge from "../components/ui/Badge";
 import ExportCsv from "../components/ExportCsv";
 import { toCsv } from "../lib/csv";
@@ -50,7 +50,7 @@ export default function Performance() {
           Real point-to-point NAV returns over 1W–1Y for {performance.universe.toLocaleString("en-IN")} equity
           <b className="text-ink"> Direct/Growth</b> plans. Every figure is a direct AMFI NAV calculation — no sample data.
         </p>
-        <TrustBar asOf={performance.asOf} label="AMFI NAV" className="mt-3" sources={[{ label: "Universe", value: `${performance.universe} funds` }, { label: "Windows", value: "1W–1Y" }]} />
+        <ProvenanceDisclosure className="mt-5" source="AMFI NAV history" sourceUrl="https://www.amfiindia.com" updatedAt={performance.asOf} confidence="High" coverage={`${performance.universe.toLocaleString("en-IN")} equity Direct/Growth funds`} freshness="Daily on trading days" methodology="Point-to-point returns are calculated from observed NAV values for each stated window. AMC quality uses the disclosed breadth and return factors." limitations="Past performance is not predictive. Funds without sufficient history remain outside the relevant window rather than being estimated." />
 
         {/* Auto research insights */}
         <section className="mt-7">
