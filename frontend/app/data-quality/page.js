@@ -1,99 +1,139 @@
-import { sb } from "../lib/supabase";
+import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
-import SectionHeader from "../components/ui/SectionHeader";
-import GlassPanel from "../components/ui/GlassPanel";
+import DataCompletenessMatrix from "../components/DataCompletenessMatrix";
 import StatStrip from "../components/ui/StatStrip";
-import Badge from "../components/ui/Badge";
-import performance from "../data/performance.json";
+import fieldCoverage from "../data/fieldCoverage.json";
+import { FIELD_REGISTRY, computeConfidence } from "../lib/fieldRegistry";
 
-export const metadata = { title: "Data Quality" };
-export const revalidate = 300;
+export const metadata = { title: "Data Quality & Coverage" };
 
-const fmt = (n) => new Intl.NumberFormat("en-IN").format(n);
+function fieldCoverageEntry(entry) {
+  if (!entry.key) return null;
+  const [group, name] = entry.key.split(".");
+  return fieldCoverage.fields?.[group]?.[name] || null;
+}
 
-export default async function DataQuality() {
-  let byClass = [];
-  try {
-    byClass = await sb("mv_asset_class_summary?select=*", { revalidate: 300 });
-  } catch {}
-  const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
-  const latestNav = byClass.map((r) => r.latest_nav_date).sort().at(-1) || "—";
+function domainFor(entry) {
+  if (entry.id === "nav") return "NAV";
+  if (entry.id === "fund_house") return "AMC";
+  if (["fund_manager", "manager_history"].includes(entry.id)) return "Manager";
+  if (["holdings", "sector_allocation"].includes(entry.id)) return "Holdings";
+  if (["asset_allocation", "portfolio_turnover"].includes(entry.id)) return "Portfolio";
+  if (["riskometer", "duration", "yield", "average_maturity", "modified_duration", "credit_quality"].includes(entry.id)) return "Risk";
+  if (entry.key?.startsWith("Performance.")) return "Performance";
+  return "Metadata";
+}
 
-  const datasets = [
-    { name: "Scheme NAVs", source: "AMFI NAVAll (daily)", type: "real", freshness: `latest ${latestNav}`, coverage: `${fmt(totalSchemes)} schemes`, ok: true },
-    { name: "30-day equity index", source: "AMFI NAV history", type: "real", freshness: "30-day window", coverage: "47 AMCs", ok: true },
-    { name: "Fund performance (returns)", source: "AMFI NAV history", type: "real", freshness: `as of ${performance.asOf}`, coverage: `${fmt(performance.universe)} equity Growth funds`, ok: true },
-    { name: "User events", source: "first-party (live)", type: "real", freshness: "real-time", coverage: "aggregate-only, PII-free", ok: true },
-    { name: "Monthly net flows", source: "— (SEBI report is PDF-only)", type: "sample", freshness: "static", coverage: "7 AMCs, synthetic", ok: false },
-    { name: "Flow signals", source: "derived from monthly flows", type: "sample", freshness: "static", coverage: "depends on sample flows", ok: false },
-    { name: "Market brief / heatmap / network", source: "derived from monthly flows", type: "sample", freshness: "static", coverage: "illustrative", ok: false },
-  ];
-  const real = datasets.filter((d) => d.type === "real").length;
-  const score = Math.round((real / datasets.length) * 100);
+function validationFor(entry) {
+  if (entry.status === "blocked_by_license") return "Blocked";
+  if (entry.status === "not_applicable") return "Not applicable";
+  if (entry.status === "not_yet_assessed") return "Not assessed";
+  if (entry.status === "no_schema") return "Not measurable";
+  if (entry.id === "sector_allocation") return "Known limitation";
+  return "Validated";
+}
+
+function freshnessFor(entry, lastUpdated) {
+  if (!lastUpdated) return "Unavailable";
+  if (entry.refreshFrequency === "n/a") return "Not applicable";
+  if (entry.refreshFrequency.startsWith("static")) return "Reference field";
+  return lastUpdated === fieldCoverage.asOf ? "Current audit" : "Dated evidence";
+}
+
+function buildRows() {
+  const registered = FIELD_REGISTRY.map((entry) => {
+    const measured = fieldCoverageEntry(entry);
+    const coveragePct = measured?.universe_pct ?? null;
+    const measuredCount = measured?.universe_n ?? null;
+    const lastUpdated = entry.key?.startsWith("Identity.") || entry.key?.startsWith("Performance.")
+      ? fieldCoverage.amfiLastUpdated
+      : entry.key
+        ? fieldCoverage.factsheetLastUpdated
+        : null;
+    return {
+      id: entry.id,
+      field: entry.label,
+      domain: domainFor(entry),
+      coveragePct,
+      missingPct: coveragePct == null ? null : Math.max(0, 100 - coveragePct),
+      measuredCount,
+      denominator: fieldCoverage.denominators.universe,
+      officialSource: entry.officialSource || "Official source not yet registered",
+      secondarySource: entry.secondarySource,
+      backupSource: entry.backupSource,
+      confidence: computeConfidence(entry, coveragePct),
+      lastUpdated: lastUpdated || "No measured update",
+      freshness: freshnessFor(entry, lastUpdated),
+      validationStatus: validationFor(entry),
+      refreshFrequency: entry.refreshFrequency,
+      notes: entry.notes,
+    };
+  });
+  const registeredKeys = new Set(FIELD_REGISTRY.map((entry) => entry.key).filter(Boolean));
+  const measuredWithoutRegistry = Object.entries(fieldCoverage.fields).flatMap(([group, fields]) =>
+    Object.entries(fields).filter(([name]) => !registeredKeys.has(`${group}.${name}`)).map(([name, measured]) => {
+      const coveragePct = measured.universe_pct;
+      const lastUpdated = group === "Performance" || group === "Identity" ? fieldCoverage.amfiLastUpdated : fieldCoverage.factsheetLastUpdated;
+      return {
+        id: `unregistered_${group}_${name}`.toLowerCase().replace(/[^a-z0-9]+/g, "_"),
+        field: name,
+        domain: group === "Performance" ? "Performance" : "Metadata",
+        coveragePct,
+        missingPct: Math.max(0, 100 - coveragePct),
+        measuredCount: measured.universe_n,
+        denominator: fieldCoverage.denominators.universe,
+        officialSource: "Source registry entry not yet connected",
+        secondarySource: null,
+        backupSource: null,
+        confidence: "N/A",
+        lastUpdated,
+        freshness: lastUpdated === fieldCoverage.asOf ? "Current audit" : "Dated evidence",
+        validationStatus: "Not assessed",
+        refreshFrequency: "Source registry pending",
+        notes: "The warehouse audit measures this field, but the frontend source registry does not yet expose an authoritative source, validation policy and refresh contract. Coverage is shown; provenance confidence remains unavailable.",
+      };
+    })
+  );
+  return [...registered, ...measuredWithoutRegistry];
+}
+
+export default function DataQuality() {
+  const rows = buildRows();
+  const measured = rows.filter((row) => row.coveragePct != null);
+  const highConfidence = rows.filter((row) => row.confidence === "High").length;
+  const knownGaps = rows.filter((row) => row.coveragePct === 0 || row.coveragePct == null).length;
 
   return (
     <>
       <Nav active="/research" />
-      <main className="container-px py-10 sm:py-14">
-        <div className="eyebrow text-accent">Trust · Data quality report</div>
-        <h1 className="page-title mt-3">Data quality</h1>
-        <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
-          Full transparency on every dataset. <b className="text-pos">Real</b> data is sourced live from AMFI and
-          recalculated daily. <b className="text-warn">Sample</b> data (monthly flows and everything derived from it)
-          is clearly quarantined and labelled everywhere it appears — never presented as authoritative.
-        </p>
+      <main id="main-content" className="container-px py-10 sm:py-14">
+        <header className="max-w-4xl">
+          <div className="eyebrow text-accent">Trust center · verified coverage</div>
+          <h1 className="page-title mt-3">Know exactly which data you can trust.</h1>
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-ink-muted">MF Pulse publishes its missing data alongside its available data. Each field below shows measured coverage, registered official sources, validation state, refresh expectation and confidence—without filling gaps with estimates.</p>
+          <div className="mt-5 flex flex-wrap gap-3 text-xs text-ink-muted"><span>Warehouse audit: <strong className="text-ink">{fieldCoverage.asOf}</strong></span><span>·</span><span>Universe: <strong className="text-ink">{fieldCoverage.denominators.universe.toLocaleString("en-IN")} schemes</strong></span><span>·</span><Link href="/methodology" className="font-semibold text-accent hover:text-accent-soft">Read methodology →</Link></div>
+        </header>
 
-        <div className="mt-6 max-w-3xl">
-          <StatStrip
-            items={[
-              { label: "Real datasets", value: `${real} / ${datasets.length}`, tone: "pos" },
-              { label: "Real-data coverage", value: `${score}%`, tone: score >= 50 ? "pos" : "neg" },
-              { label: "NAV freshness", value: latestNav, sub: "AMFI · daily" },
-              { label: "Sample (quarantined)", value: datasets.length - real, tone: "neg", sub: "labelled" },
-            ]}
-          />
-        </div>
-
-        <section className="mt-8">
-          <SectionHeader eyebrow="source · freshness · lineage" title="Dataset classification" />
-          <div className="overflow-x-auto rounded-xl border border-line bg-surface">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="border-b border-line text-[10.5px] uppercase tracking-[0.08em] text-ink-faint">
-                  <th className="px-3.5 py-2.5 text-left">Dataset</th>
-                  <th className="px-3.5 py-2.5 text-left">Source</th>
-                  <th className="px-3.5 py-2.5 text-left">Type</th>
-                  <th className="px-3.5 py-2.5 text-left">Freshness</th>
-                  <th className="px-3.5 py-2.5 text-left">Coverage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {datasets.map((d) => (
-                  <tr key={d.name} className="border-b border-line/60 last:border-0">
-                    <td className="px-3.5 py-2.5 font-medium text-ink">{d.name}</td>
-                    <td className="px-3.5 py-2.5 text-ink-muted">{d.source}</td>
-                    <td className="px-3.5 py-2.5"><Badge tone={d.ok ? "pos" : "warn"} dot>{d.ok ? "real" : "sample"}</Badge></td>
-                    <td className="px-3.5 py-2.5 text-ink-muted">{d.freshness}</td>
-                    <td className="px-3.5 py-2.5 text-ink-muted">{d.coverage}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <section className="mt-8" aria-label="Coverage summary">
+          <StatStrip items={[
+            { label: "Registered fields", value: rows.length },
+            { label: "Measured fields", value: measured.length },
+            { label: "High confidence", value: highConfidence, tone: "pos" },
+            { label: "Unmeasured or zero", value: knownGaps, tone: "warn" },
+          ]} />
         </section>
 
-        <GlassPanel className="mt-8 max-w-3xl p-5 sm:p-6">
-          <h2 className="text-[15px] font-semibold text-ink">Why flows are still sample</h2>
-          <p className="mt-2 text-[13.5px] leading-relaxed text-ink-muted">
-            SEBI/AMFI publish monthly net inflows/outflows only as PDF (no machine-readable endpoint — verified).
-            The CSV and Excel ingestion loaders are built and tested; the moment one monthly export is connected,
-            real flows replace the sample and every flow surface becomes authoritative. Until then we&rsquo;d rather
-            label it honestly than overstate it.
-          </p>
-        </GlassPanel>
+        <div className="mt-10"><DataCompletenessMatrix rows={rows} asOf={fieldCoverage.asOf} denominator={fieldCoverage.denominators.universe} /></div>
+
+        <section className="mt-10 grid gap-4 md:grid-cols-3" aria-labelledby="interpret-title">
+          <div className="md:col-span-3"><div className="eyebrow text-ink-faint">How to read this</div><h2 id="interpret-title" className="section-title mt-2">Coverage and confidence answer different questions.</h2></div>
+          <article className="rounded-2xl border border-line bg-surface p-5"><h3 className="font-semibold text-ink">Coverage</h3><p className="mt-2 text-sm leading-6 text-ink-muted">The share of the full AMFI universe with a populated field in the generated warehouse audit.</p></article>
+          <article className="rounded-2xl border border-line bg-surface p-5"><h3 className="font-semibold text-ink">Confidence</h3><p className="mt-2 text-sm leading-6 text-ink-muted">Combines measured coverage, validation and whether the registered source is primary and official.</p></article>
+          <article className="rounded-2xl border border-line bg-surface p-5"><h3 className="font-semibold text-ink">Freshness</h3><p className="mt-2 text-sm leading-6 text-ink-muted">Compares the evidence date with its expected daily, monthly, static or event-driven refresh policy.</p></article>
+        </section>
       </main>
-      <Footer note={<span>Every displayed number traces to its source. <a className="text-ink-muted hover:text-ink" href="/methodology">Methodology →</a></span>} />
+      <Footer note={<span>Coverage generated from the warehouse audit · sources registered from official AMFI, AMC, SID and regulatory records · <Link href="/data-status" className="text-accent">Pipeline status →</Link></span>} />
     </>
   );
 }
