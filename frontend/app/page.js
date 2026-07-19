@@ -13,6 +13,7 @@ import { marketStatus } from "./lib/marketStatus";
 import { sb } from "./lib/supabase";
 import { requireUser } from "./lib/apiAuth";
 import { query } from "./lib/db";
+import { allMetadata } from "./lib/metadata";
 import fieldCoverage from "./data/fieldCoverage.json";
 import daily from "./data/daily.json";
 
@@ -99,6 +100,7 @@ export default async function HomePage() {
   const improvingCategories = (daily.categoryRotation || []).filter((c) => c.severity === "positive").slice(0, 2);
   const improvingAmcs = (daily.amcMomentum || []).filter((a) => a.severity === "positive").slice(0, 2);
   const metaN = fieldCoverage.fields?.Documents?.Factsheet?.universe_n ?? 0;
+  const factsheetAmcCount = new Set(allMetadata().map((m) => m.amc).filter(Boolean)).size;
 
   return (
     <>
@@ -286,12 +288,12 @@ export default async function HomePage() {
                 </div>
                 <div>
                   <div className="text-[11px] uppercase tracking-[0.08em] text-ink-faint">Fund-level detail (manager, expense, holdings)</div>
-                  <div className="mt-1 text-[14px] font-semibold text-ink">{fmt(metaN)} schemes — pilot AMC only</div>
+                  <div className="mt-1 text-[14px] font-semibold text-ink">{fmt(metaN)} verified schemes · {factsheetAmcCount} AMC factsheet engines</div>
                   <Provenance source="AMC factsheet PDF" timestamp={fieldCoverage.factsheetLastUpdated} confidence="Low" />
                 </div>
               </div>
               <p className="mt-4 border-t border-line pt-3 text-[11px] leading-relaxed text-ink-faint">
-                MF Pulse shows coverage gaps as they are — a low number here means real, disclosed thinness, not a hidden problem. Full per-field breakdown on the data status page.
+                MF Pulse shows coverage gaps as they are — {fmt(metaN)} of {fmt(funds.length)} schemes have factsheet-verified detail so far, growing with each AMC we add. A low number here means real, disclosed thinness, not a hidden problem. Full per-field breakdown on the data status page.
               </p>
             </GlassPanel>
           </WorkspaceSection>
