@@ -732,24 +732,32 @@ export default function FundPageClient({
                     {/* Breakdown bars — Quality Engine's 9-dimension recomposition of this same
                         score (see lib/qualityEngine.js), each with its own real explanation.
                         Falls back to the original 7-part breakdown if quality wasn't computed. */}
-                    <div className="grid flex-1 grid-cols-1 gap-x-5 gap-y-2.5 sm:grid-cols-2 border-t sm:border-t-0 sm:border-l border-line pt-4 sm:pt-0 sm:pl-5">
-                      {(quality?.breakdown || health.breakdown).map((b) => (
-                        <div key={b.key}>
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-ink-faint truncate flex items-center gap-1">
-                              {QUALITY_LABELS[b.key] || (b.key === "categoryRank" ? "Category Rank" : b.key === "dataQuality" ? "Data Quality" : b.key.charAt(0).toUpperCase() + b.key.slice(1))}
-                              {b.key === "momentum" && <TrendArrow value={b.score - 50} />}
-                              {b.weight != null && <span className="text-[9.5px] text-ink-faint/70">({b.weight}% weight)</span>}
-                            </span>
-                            <span className="font-mono text-ink-muted">{b.score}</span>
+                    <details className="group flex-1 border-t border-line pt-4 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+                      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-xl border border-line px-4 text-xs font-semibold text-ink-muted outline-none hover:border-line-strong hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
+                        Explain this score
+                        <span aria-hidden="true" className="transition-transform group-open:rotate-180">⌄</span>
+                      </summary>
+                      <div className="mt-4 grid grid-cols-1 gap-x-5 gap-y-3 sm:grid-cols-2">
+                        {(quality?.breakdown || health.breakdown).map((b) => (
+                          <div key={b.key}>
+                            <div className="flex items-center justify-between gap-3 text-[11px]">
+                              <span className="flex min-w-0 items-center gap-1 text-ink-faint">
+                                <span className="truncate">{QUALITY_LABELS[b.key] || (b.key === "categoryRank" ? "Category Rank" : b.key === "dataQuality" ? "Data Quality" : b.key.charAt(0).toUpperCase() + b.key.slice(1))}</span>
+                                {b.key === "momentum" && <TrendArrow value={b.score - 50} />}
+                                {b.weight != null && <span className="shrink-0 text-[9.5px] text-ink-faint/70">({b.weight}% weight)</span>}
+                              </span>
+                              <span className="shrink-0 font-mono text-ink-muted">{b.score}/100</span>
+                            </div>
+                            <div className="mt-1"><PercentileBar value={b.score} tone={b.score >= 65 ? "pos" : b.score <= 35 ? "neg" : "accent"} /></div>
+                            {b.explanation && <p className="mt-1 text-[10.5px] leading-relaxed text-ink-faint">{b.explanation}</p>}
                           </div>
-                          <div className="mt-1">
-                            <PercentileBar value={b.score} tone={b.score >= 65 ? "pos" : b.score <= 35 ? "neg" : "accent"} />
-                          </div>
-                          {b.explanation && <p className="text-[10.5px] text-ink-faint leading-relaxed mt-1">{b.explanation}</p>}
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                      <div className="mt-4 grid gap-3 rounded-xl bg-surface-2 p-4 text-[11px] leading-5 text-ink-muted sm:grid-cols-2">
+                        <p><span className="font-semibold text-ink">Evidence:</span> AMFI NAV history supplies performance, risk, consistency and momentum. Acquired AMC factsheets supply diversification and transparency only when available.</p>
+                        <p><span className="font-semibold text-ink">Missing data:</span> {quality ? `${quality.totalPossible - quality.coverage} of ${quality.totalPossible} quality dimensions are unavailable and excluded through drop-and-renormalise.` : "The fallback health model discloses unavailable components rather than assigning them a neutral value."}</p>
+                      </div>
+                    </details>
 
                   </div>
 
