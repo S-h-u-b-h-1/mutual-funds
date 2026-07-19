@@ -80,16 +80,16 @@ with the user; not dropped here (destructive, out of scope for an inventory pass
 | `portfolio_sips` | 0 | SIP schedule tracking — schema exists, never populated (no SIP data source, confirmed this session) |
 | `portfolio_corporate_actions` | 0 | Dividend/split/merger tracking — schema exists, never populated |
 
-### Provenance & factsheet pipeline (Mission 4 wired 2026-07-17, Mission 5 extended 2026-07-19)
+### Provenance & factsheet pipeline (Mission 4 wired 2026-07-17, extended 2026-07-19 x2)
 | Table | Rows | Purpose |
 |---|---:|---|
-| `source_documents` | 94 | Logical document identity (AMC + type + URL) — 41 SBI + 53 HDFC funds |
-| `source_document_versions` | 94 | One row per actual fetch, checksum-deduped |
-| `source_extractions` | 2,455 | Per-field extracted value + provenance — 780 from SBI (152 schemes), 1,675 from HDFC (241 schemes) |
-| `field_validation_results` | 3,235 | Per-extraction validation checks — see note below on a real idempotency gap found and fixed here |
+| `source_documents` | 169 | Logical document identity (AMC + type + URL) — 41 SBI + 53 HDFC + 75 ICICI funds |
+| `source_document_versions` | 169 | One row per actual fetch, checksum-deduped |
+| `source_extractions` | 6,196 | Per-field extracted value + provenance — SBI (152 schemes) + HDFC (241) + ICICI (580) |
+| `field_validation_results` | grows each backfill (idempotency guard fixed 2026-07-19, see below) | Per-extraction validation checks |
 | `metadata_quarantine` | 0 | Failed-validation holding area — clean so far, not unused |
-| `parser_versions` | 1 | Row is generic (`parser_name`/`version_label`), not per-AMC — SBI and HDFC each register under their own `parser_name` value in practice |
-| `fund_metadata_values` / `fund_metadata_history` | 2,455 / 2,455 (views) | Derived from `source_extractions`, confirmed returning real rows for both AMCs |
+| `parser_versions` | 1 | Row is generic (`parser_name`/`version_label`), not per-AMC — each AMC registers under its own `parser_name` value in practice |
+| `fund_metadata_values` / `fund_metadata_history` | 6,196 / 6,196 (views) | Derived from `source_extractions`, confirmed returning real rows for all three AMCs |
 | `fact_factsheet_runs` | 0 | Factsheet pipeline audit log — schema exists, still never written to (unchanged, real, still-open gap) |
 
 Mission 5 (2026-07-19) added a real second AMC (HDFC, 241 schemes) to the same pipeline — see

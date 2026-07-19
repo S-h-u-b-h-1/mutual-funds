@@ -97,6 +97,70 @@ Information Technology 9.40%
 Total 100%
 """
 
+# Structurally-faithful to the REAL combined "Complete.pdf" (verified 2026-07-19 against the
+# actual June 2026 document, not assumed) — ICICIAdapter overrides parse()/parse_scheme_block()
+# entirely because the real layout looks nothing like ICICI_BLOCK above: the scheme name is
+# recovered from a "Returns of {name} - Growth Option as on {date}" sentence (no header line),
+# each manager's name is immediately followed by "(Managing this fund since ...)" rather than a
+# labeled block, and multi-manager schemes exist (found by testing against all 75 real scheme
+# pages, not one sample — a single-manager-only extraction silently missed roughly half the
+# real document until fixed). This fixture mirrors that real shape at reduced scale.
+ICICI_REAL_SHAPE_BLOCK = """15
+Portfolio as on June 30, 2026
+ICICI Prudential Flexicap Fund
+(An open ended dynamic equity scheme investing across large cap, mid cap & small cap stocks) Flexi Cap
+Category
+Style Box
+Quantitative Indicators
+Benchmark
+BSE 500 TRI
+Returns of ICICI Prudential Flexicap Fund - Growth Option as on June 30, 2026
+Scheme Details
+Monthly AAUM as on 30-Jun-26 :  Rs. 21,881.02 crores
+Closing AUM as on 30-Jun-26 : Rs. 22,506.87 crores
+Fund Managers** :
+Rajat Chandak
+(Managing this fund since July, 2021
+& Overall 18 years of experience)
+Indicative Investment Horizon: 5 years & above
+Inception/Allotment date: 17-Jul-21
+Application Amount for fresh Subscription :
+Rs. 500/- (plus in multiple of Re. 1)  (w.e.f. June 15, 2026)
+Top 5 Stock Holdings
+TVS Motor Company Ltd. 9.29%
+Maruti Suzuki India Ltd. 6.82%
+Top 5 Sector Holdings
+Automobile And Auto Components 24.95%
+Financial Services 21.88%
+Exit load for Redemption / Switch out :- Lumpsum & SIP / STP / SWP Option
+1% of the applicable NAV - If the amount sought to be
+redeemed or switched out is invested for a period of up to
+one month from the date of allotment.
+The risk of the scheme is very high The risk of the Benchmark is very high
+"""
+
+# Real multi-manager shape (Industry Coverage Expansion Mission 2): each manager's name and
+# "(Managing since...)" appear on the SAME line, unlike the single-manager block above where
+# they're on separate lines — the anchor that makes both work is "(Managing", not a line break,
+# which is what an earlier version of this adapter got wrong (see _managers()'s docstring).
+ICICI_MULTI_MANAGER_BLOCK = """14
+Notes:
+Returns of ICICI Prudential Large Cap Fund - Growth Option as on June 30, 2026
+Fund Managers** :
+Sankaran Naren (Managing this fund since Feb, 2026
+& Overall 36 years of experience) (w.e.f. 05 Feb, 2026)
+Mr. Vaibhav Dusad (Managing this fund since Jan, 2021
+& Overall 14 years of experience)
+Sharmila D'silva** (Managing this fund since Mar 2026 &
+overall 10 years of experience) (w.e.f March 02, 2026)
+Indicative Investment Horizon: 5 years & above
+Inception/Allotment date: 23-May-08 Exit load for Redemption / Switch out :- Lumpsum & SIP / STP / SWP Option
+1% of the applicable NAV - If the amount sought to be redeemed
+or switched out is invested for a period of up to one month
+from the date of allotment.
+Nifty 100 TRI (Benchmark)
+"""
+
 
 def test_hdfc_block_extracts_core_metadata():
     # Real layout (see HDFC_REAL_SHAPE_BLOCK's comment) — HDFCAdapter's own parse_scheme_block
@@ -155,13 +219,38 @@ def test_hdfc_parse_merges_continuation_pages(monkeypatch):
     assert metas[0].scheme_name == "HDFC Mid Cap Opportunities Fund"
 
 
-def test_icici_block_partial_is_not_fabricated():
-    m = ICICIAdapter().parse_scheme_block(ICICI_BLOCK)
-    assert m.benchmark == "NIFTY 100 TRI"
-    assert m.aum_crores == 63210.0
-    assert m.regular_expense_ratio is None        # not present -> stays None, not guessed
-    assert m.direct_expense_ratio == 0.92
+def test_icici_real_shape_extracts_core_metadata():
+    m = ICICIAdapter().parse_scheme_block(ICICI_REAL_SHAPE_BLOCK)
+    assert m.scheme_name == "ICICI Prudential Flexicap Fund"
+    assert m.benchmark == "BSE 500 TRI"
+    assert m.fund_manager == "Rajat Chandak"
+    assert m.aum_crores == 22506.87  # closing AUM, not the monthly average — see adapter docstring
+    assert m.launch_date == "2021-07-17"
+    assert m.minimum_lumpsum == 500.0
+    assert m.exit_load and "1%" in m.exit_load
+    assert m.riskometer == "Very High"
+    assert m.source_date == "2026-06-30"
+    assert [h.name for h in m.holdings] == ["TVS Motor Company Ltd", "Maruti Suzuki India Ltd"]
+    assert [s.sector for s in m.sector_allocation] == ["Automobile And Auto Components", "Financial Services"]
+    assert m.expense_ratio is None  # genuinely not extractable as text on this AMC's layout — not guessed
+    assert validate(m) == []
     assert 0 < completeness(m) <= 1.0
+
+
+def test_icici_multi_manager_and_two_digit_year(monkeypatch):
+    # Found by testing against all 75 real scheme pages, not one sample: multi-manager schemes
+    # put each name on the SAME line as its own "(Managing since...)", unlike the single-manager
+    # case above where they're on separate lines. An anchor on the line break alone silently
+    # missed every multi-manager scheme (roughly half the real document) until fixed.
+    m = ICICIAdapter().parse_scheme_block(ICICI_MULTI_MANAGER_BLOCK)
+    assert m.scheme_name == "ICICI Prudential Large Cap Fund"
+    assert m.fund_manager == "Sankaran Naren & Vaibhav Dusad & Sharmila D'silva"
+    # "23-May-08" is a genuinely new 2-digit-year format (2008) this AMC's real data produced —
+    # extract.DATE_FORMATS was extended for it rather than guessed to be already covered.
+    assert m.launch_date == "2008-05-23"
+    # No labeled "Benchmark\n{name}" line on this page style — falls back to the returns-table
+    # row-label anchor ("{name} (Benchmark)"), the other real, verified pattern this AMC uses.
+    assert m.benchmark == "Nifty 100 TRI"
 
 
 def test_expense_validation_rejects_impossible():

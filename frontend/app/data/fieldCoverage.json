@@ -1,7 +1,7 @@
 {
- "asOf": "2026-07-19",
- "amfiLastUpdated": "2026-07-19",
- "factsheetLastUpdated": "2026-07-18",
+ "asOf": "2026-07-16",
+ "amfiLastUpdated": "2026-07-16",
+ "factsheetLastUpdated": "2026-07-19",
  "denominators": {
   "universe": 14227,
   "active": 8470,
@@ -110,34 +110,34 @@
     "investable_n": 100
    },
    "AUM": {
-    "universe_pct": 2.76,
-    "universe_n": 393,
-    "investable_pct": 4.49,
-    "investable_n": 155
+    "universe_pct": 6.84,
+    "universe_n": 973,
+    "investable_pct": 8.02,
+    "investable_n": 277
    },
    "Riskometer": {
-    "universe_pct": 1.07,
-    "universe_n": 152,
-    "investable_pct": 1.59,
-    "investable_n": 55
+    "universe_pct": 4.81,
+    "universe_n": 684,
+    "investable_pct": 4.83,
+    "investable_n": 167
    },
    "Manager": {
-    "universe_pct": 1.75,
-    "universe_n": 249,
-    "investable_pct": 2.95,
-    "investable_n": 102
+    "universe_pct": 5.78,
+    "universe_n": 823,
+    "investable_pct": 6.43,
+    "investable_n": 222
    },
    "Launch Date": {
-    "universe_pct": 2.76,
-    "universe_n": 393,
-    "investable_pct": 4.49,
-    "investable_n": 155
+    "universe_pct": 5.9,
+    "universe_n": 840,
+    "investable_pct": 7.56,
+    "investable_n": 261
    },
    "Exit Load": {
-    "universe_pct": 1.69,
-    "universe_n": 241,
-    "investable_pct": 2.9,
-    "investable_n": 100
+    "universe_pct": 5.1,
+    "universe_n": 726,
+    "investable_pct": 5.67,
+    "investable_n": 196
    },
    "SIP Minimum": {
     "universe_pct": 0.0,
@@ -146,32 +146,32 @@
     "investable_n": 0
    },
    "Lumpsum Minimum": {
-    "universe_pct": 0.0,
-    "universe_n": 0,
-    "investable_pct": 0.0,
-    "investable_n": 0
+    "universe_pct": 3.47,
+    "universe_n": 494,
+    "investable_pct": 3.18,
+    "investable_n": 110
    }
   },
   "Portfolio": {
    "Holdings": {
-    "universe_pct": 0.18,
-    "universe_n": 26,
-    "investable_pct": 0.29,
-    "investable_n": 10
+    "universe_pct": 1.72,
+    "universe_n": 244,
+    "investable_pct": 1.74,
+    "investable_n": 60
    },
    "Sector Allocation": {
-    "universe_pct": 1.07,
-    "universe_n": 152,
-    "investable_pct": 1.59,
-    "investable_n": 55
+    "universe_pct": 1.27,
+    "universe_n": 180,
+    "investable_pct": 1.71,
+    "investable_n": 59
    }
   },
   "Documents": {
    "Factsheet": {
-    "universe_pct": 2.76,
-    "universe_n": 393,
-    "investable_pct": 4.49,
-    "investable_n": 155
+    "universe_pct": 6.84,
+    "universe_n": 973,
+    "investable_pct": 8.02,
+    "investable_n": 277
    }
   }
  }

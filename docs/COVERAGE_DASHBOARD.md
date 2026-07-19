@@ -9,7 +9,7 @@
 | MF Pulse schemes | 14,224 |
 | Coverage % | 99.98% |
 | Missing schemes | 3 |
-| **Overall Trust Score** | **78.6/100** |
+| **Overall Trust Score** | **78.2/100** |
 | **Production ready** | **55.56%** |
 
 ## KPIs
@@ -22,30 +22,30 @@
 | risk coverage pct | 99.62% |
 | benchmark coverage pct | 85.91% |
 | category coverage pct | 100.0% |
-| metadata coverage pct | 2.76% |
-| aum coverage pct | 2.76% |
+| metadata coverage pct | 6.84% |
+| aum coverage pct | 6.84% |
 | expense ratio coverage pct | 1.69% |
-| manager coverage pct | 1.75% |
-| holdings coverage pct | 0.18% |
-| portfolio coverage pct | 1.07% |
-| document coverage pct | 2.76% |
+| manager coverage pct | 5.78% |
+| holdings coverage pct | 1.72% |
+| portfolio coverage pct | 1.27% |
+| document coverage pct | 6.84% |
 | isin coverage pct | 98.82% |
 | structure coverage pct | 100.0% |
 | performance completeness avg investable | 92.9 |
-| fund completeness avg investable | 56.9 |
-| research readiness avg investable | 53.8 |
+| fund completeness avg investable | 57.9 |
+| research readiness avg investable | 54.8 |
 
 ## Trust components
 | Component | Score |
 |---|---:|
 | coverage score | 99.98 |
 | routable score | 100.02 |
-| freshness score | 90 |
-| metadata score | 1.6 |
+| freshness score | 85 |
+| metadata score | 4.0 |
 | historical score | 90.07 |
 | lineage score | 75.0 |
 | validation score | 55.56 |
-| parser health | 50.0 |
+| parser health | 75.0 |
 | acquisition health | 52 |
 | data completeness | 95.9 |
 

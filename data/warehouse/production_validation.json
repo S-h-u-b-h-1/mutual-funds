@@ -51,7 +51,7 @@
  "total": 9,
  "production_ready_pct": 55.56,
  "observations": {
-  "local_snapshot_age_days": 2,
+  "local_snapshot_age_days": 3,
   "note": "prod NAV refreshed daily by cron; local bundle may lag a few days"
  }
 }

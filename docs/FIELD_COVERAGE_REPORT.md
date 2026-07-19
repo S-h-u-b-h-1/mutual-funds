@@ -33,26 +33,26 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 | Field | Universe % | Investable % |
 |---|---:|---:|
 | Expense Ratio | 1.69% | 2.9% |
-| AUM | 2.76% | 4.49% |
-| Riskometer | 1.07% | 1.59% |
-| Manager | 1.75% | 2.95% |
-| Launch Date | 2.76% | 4.49% |
-| Exit Load | 1.69% | 2.9% |
+| AUM | 6.84% | 8.02% |
+| Riskometer | 4.81% | 4.83% |
+| Manager | 5.78% | 6.43% |
+| Launch Date | 5.9% | 7.56% |
+| Exit Load | 5.1% | 5.67% |
 | SIP Minimum | 0.0% | 0.0% |
-| Lumpsum Minimum | 0.0% | 0.0% |
+| Lumpsum Minimum | 3.47% | 3.18% |
 
 ### Portfolio
 
 | Field | Universe % | Investable % |
 |---|---:|---:|
-| Holdings | 0.18% | 0.29% |
-| Sector Allocation | 1.07% | 1.59% |
+| Holdings | 1.72% | 1.74% |
+| Sector Allocation | 1.27% | 1.71% |
 
 ### Documents
 
 | Field | Universe % | Investable % |
 |---|---:|---:|
-| Factsheet | 2.76% | 4.49% |
+| Factsheet | 6.84% | 8.02% |
 
 ## Performance completeness (0–100 per scheme)
 - Investable average: **92.9/100** (96.06% score ≥80)
@@ -61,13 +61,13 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 ## Fund Completeness & Research Readiness (Phases 5–6)
 | Score | Investable | Universe |
 |---|---:|---:|
-| Fund Completeness (9 dimensions) | 56.9/100 | 39.4/100 |
-| Research Readiness (9 questions) | 53.8/100 | 30.8/100 |
+| Fund Completeness (9 dimensions) | 57.9/100 | 40.5/100 |
+| Research Readiness (9 questions) | 54.8/100 | 32.2/100 |
 | ISIN coverage | 98.82% | 98.82% |
 | Scheme-structure coverage | 100.0% | 100.0% |
 
 ## Honest read
 - **Identity / category / NAV / performance**: near-complete on the investable set.
-- **Metadata / portfolio / documents**: factsheet-sourced, currently **SBI only (2.76% of universe)**.
-  Expense ratio 1.69%, manager 1.75%, holdings 0.18%.
+- **Metadata / portfolio / documents**: factsheet-sourced, currently **SBI only (6.84% of universe)**.
+  Expense ratio 1.69%, manager 5.78%, holdings 1.72%.
   This is the acquisition frontier — blocked on non-SBI factsheet PDF parsing (pdfplumber/Py3.13), never fabricated.

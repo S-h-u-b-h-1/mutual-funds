@@ -83,6 +83,11 @@ DATE_FORMATS = (
     # adapter's real, verified data has actually produced, union'd rather than narrowed, so this
     # consolidation cannot silently drop a date either adapter already extracts correctly.
     "%B %d,%Y", "%B %d %Y",
+    # ICICI (Industry Coverage Expansion Mission 2) uses a 2-digit year for inception dates
+    # ("23-May-08" = 2008) — a genuinely new format a third real AMC's data produced, not seen
+    # in SBI/HDFC. %y's default century inference (00-68 -> 2000s, 69-99 -> 1900s) matches real
+    # mutual fund inception dates correctly across the industry's actual founding years.
+    "%d-%b-%y",
 )
 
 

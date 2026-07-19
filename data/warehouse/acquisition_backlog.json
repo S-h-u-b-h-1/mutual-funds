@@ -10,14 +10,6 @@
    "priority": "P0"
   },
   {
-   "item": "Holdings",
-   "missing_count": 14201,
-   "impact": "high",
-   "expected_source": "AMC factsheet PDF / monthly portfolio",
-   "reason": "monthly portfolio disclosures not yet ingested",
-   "priority": "P1"
-  },
-  {
    "item": "Expense ratio",
    "missing_count": 13987.0,
    "impact": "high",
@@ -26,8 +18,16 @@
    "priority": "P1"
   },
   {
+   "item": "Holdings",
+   "missing_count": 13983,
+   "impact": "high",
+   "expected_source": "AMC factsheet PDF / monthly portfolio",
+   "reason": "monthly portfolio disclosures not yet ingested",
+   "priority": "P1"
+  },
+  {
    "item": "Fund manager",
-   "missing_count": 13978,
+   "missing_count": 13404,
    "impact": "high",
    "expected_source": "AMC factsheet PDF",
    "reason": "non-SBI factsheets unparsed; SBI manager field sparse",
@@ -35,7 +35,7 @@
   },
   {
    "item": "AUM",
-   "missing_count": 13834,
+   "missing_count": 13254,
    "impact": "medium",
    "expected_source": "AMC factsheet PDF / AMFI",
    "reason": "only SBI factsheets parsed",

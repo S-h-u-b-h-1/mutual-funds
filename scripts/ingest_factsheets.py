@@ -35,6 +35,7 @@ import pypdf
 from ingestion.amfi_parser import parse_file
 from ingestion.factsheet.adapters.sbi import SBIAdapter
 from ingestion.factsheet.adapters.hdfc import HDFCAdapter
+from ingestion.factsheet.adapters.icici import ICICIAdapter
 from ingestion.factsheet.normalize import validate, completeness, collapse
 from ingestion.factsheet.provenance import record_provenance
 from scripts.archive_factsheets import archive_snapshot
@@ -98,6 +99,10 @@ SOURCES = [
     # ingestion/factsheet/adapters/hdfc.py's module docstring for why this AMC needs its own
     # acquisition shape instead of SBI's per-scheme URL list.
     {"amc": "HDFC", "shape": "combined", "adapter": HDFCAdapter, "items": [(None, HDFCAdapter().factsheet_url())]},
+    # Third real AMC (Industry Coverage Expansion Mission 2) — same "combined" shape as HDFC
+    # (one PDF, every scheme named from its own text) required zero new orchestration code,
+    # confirming the shape genuinely generalizes across AMCs that publish this way, not just HDFC.
+    {"amc": "ICICI", "shape": "combined", "adapter": ICICIAdapter, "items": [(None, ICICIAdapter().factsheet_url())]},
 ]
 
 

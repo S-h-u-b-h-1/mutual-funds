@@ -9,15 +9,15 @@
  "delisted_count": 0,
  "universe": {
   "asset_class": {
-   "Debt": 7991,
    "Equity": 2928,
+   "Debt": 7991,
    "Other": 2341,
    "Hybrid": 822,
    "Solution": 145
   },
   "scheme_type": {
-   "Close Ended Schemes": 4759,
    "Open Ended Schemes": 9427,
+   "Close Ended Schemes": 4759,
    "Interval Fund Schemes": 41
   },
   "fund_type": {
@@ -70,17 +70,17 @@
   "risk_coverage_pct": 99.62,
   "benchmark_coverage_pct": 85.91,
   "category_coverage_pct": 100.0,
-  "metadata_coverage_pct": 2.76,
-  "aum_coverage_pct": 2.76,
+  "metadata_coverage_pct": 6.84,
+  "aum_coverage_pct": 6.84,
   "expense_ratio_coverage_pct": 1.69,
-  "manager_coverage_pct": 1.75,
-  "holdings_coverage_pct": 0.18,
-  "portfolio_coverage_pct": 1.07,
-  "document_coverage_pct": 2.76,
+  "manager_coverage_pct": 5.78,
+  "holdings_coverage_pct": 1.72,
+  "portfolio_coverage_pct": 1.27,
+  "document_coverage_pct": 6.84,
   "isin_coverage_pct": 98.82,
   "structure_coverage_pct": 100.0,
   "performance_completeness_avg_investable": 92.9,
-  "fund_completeness_avg_investable": 56.9,
-  "research_readiness_avg_investable": 53.8
+  "fund_completeness_avg_investable": 57.9,
+  "research_readiness_avg_investable": 54.8
  }
 }
