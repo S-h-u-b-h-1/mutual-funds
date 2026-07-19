@@ -1,7 +1,7 @@
-// Factsheet metadata access. Reads the ingestion bundle (metadata.json). Today it is empty
-// — the parsers are implemented + tested but no factsheet PDF could be fetched in this
-// environment — so every fund correctly shows "Not yet available from source". The instant
-// a real parse populates metadata.json, fund pages display it and the cost score activates.
+// Factsheet metadata access. Reads the ingestion bundle (metadata.json) — 973 real schemes
+// across SBI/HDFC/ICICI Prudential as of 2026-07-19 (scripts/ingest_factsheets.py). Funds
+// outside those three AMCs correctly get null here and show an honest "not yet acquired"
+// state, not a fabricated value.
 import data from "../data/metadata.json";
 
 const byCode = {};

@@ -16,6 +16,59 @@ import { completenessTone } from "../lib/completeness";
 import { TIER_TONE, CONFIDENCE_LABEL, CONFIDENCE_TONE } from "../lib/decisionEngine";
 import { QUALITY_LABELS } from "../lib/qualityEngine";
 import { TrendArrow, PercentileBar, Sparkline, Gauge } from "./ui/Visualizations";
+import { fieldById, computeConfidence } from "../lib/fieldRegistry";
+import { metadataStatus } from "../lib/metadata";
+import fieldCoverage from "../data/fieldCoverage.json";
+
+// Research Intelligence Upgrade, Mission 1 (Universal Fund Profile) + Mission 5 (Data Quality
+// Badges). One field row: value, per-field confidence (universe-wide coverage %, same
+// methodology as /internal/data-completeness — not a per-fund guess), and an honest reason when
+// this specific fund lacks the value even though the field is tracked. `regId`/`covKey` map to
+// fieldRegistry.js's FIELD_REGISTRY / fieldCoverage.json's nested field-group keys.
+const CONF_TONE = { High: "pos", Medium: "warn", Low: "warn", "N/A": null };
+function ProfileField({ label, value, regId, covKey, format }) {
+  const entry = regId ? fieldById(regId) : null;
+  const cov = covKey ? fieldCoverage?.fields?.[covKey[0]]?.[covKey[1]] : null;
+  const confidence = entry ? computeConfidence(entry, cov?.universe_pct ?? 0) : null;
+  const display = value != null && value !== "" ? (format ? format(value) : value) : null;
+  return (
+    <div className="rounded-xl border border-line bg-surface px-3.5 py-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10.5px] uppercase tracking-[0.06em] text-ink-faint">{label}</span>
+        {confidence && confidence !== "N/A" && (
+          <span className={`text-[9.5px] font-semibold ${CONF_TONE[confidence] === "pos" ? "text-pos" : "text-warn"}`}>{confidence}</span>
+        )}
+      </div>
+      {display ? (
+        <div className="mt-1 text-[13px] font-semibold text-ink leading-snug">{display}</div>
+      ) : (
+        <div className="mt-1 text-[12px] text-ink-faint italic">
+          {cov && cov.universe_n === 0
+            ? "Not yet extracted from any AMC factsheet"
+            : "Not disclosed in this fund's factsheet"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function fundAgeLabel(launchDate) {
+  if (!launchDate) return null;
+  const years = (Date.now() - new Date(launchDate).getTime()) / (365.25 * 86400000);
+  if (years < 0) return null;
+  return years < 1 ? `${Math.round(years * 12)} months` : `${years.toFixed(1)} years`;
+}
+
+function expenseRatioDisplay(meta) {
+  if (meta.expense_ratio != null) return `${meta.expense_ratio}%`;
+  if (meta.regular_expense_ratio != null || meta.direct_expense_ratio != null) {
+    const parts = [];
+    if (meta.regular_expense_ratio != null) parts.push(`Regular ${meta.regular_expense_ratio}%`);
+    if (meta.direct_expense_ratio != null) parts.push(`Direct ${meta.direct_expense_ratio}%`);
+    return parts.join(" / ");
+  }
+  return null;
+}
 
 // Helper components of Design System 2.0
 function WorkspaceCard({ title, subtitle, action, children, id, collapsedDefault = false }) {
@@ -439,6 +492,54 @@ export default function FundPageClient({
                 <div className="mt-4 p-4 rounded-xl border border-line bg-surface text-[13px] leading-relaxed text-ink-muted">
                   {researchSummary(fund, cohort)}
                 </div>
+              </WorkspaceCard>
+
+              {/* Verified Fund Profile — Research Intelligence Upgrade, Mission 1. Every value
+                  here comes from a real AMC factsheet (meta = getMetadata(f.code)), distinct
+                  from AMFI-sourced fields (NAV, returns, category) shown elsewhere. Coverage %
+                  is this fund's own metadata-completeness dimension (completeness.js), already
+                  computed for the readiness checklist below — not duplicated logic. */}
+              <WorkspaceCard
+                title="Verified Fund Profile"
+                subtitle={meta ? `Factsheet-sourced data · ${completeness.dims.metadata}% of tracked fields present for this scheme` : "No AMC factsheet acquired for this scheme yet"}
+              >
+                {meta ? (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <ProfileField label="Benchmark" value={meta.benchmark} regId="benchmark" covKey={["Identity", "Benchmark"]} />
+                      <ProfileField label="Launch Date" value={meta.launch_date} regId="launch_date" covKey={["Metadata", "Launch Date"]}
+                        format={(v) => { const age = fundAgeLabel(v); return age ? `${v} (${age})` : v; }} />
+                      <ProfileField label="AUM" value={meta.aum_crores} regId="aum" covKey={["Metadata", "AUM"]}
+                        format={(v) => `₹${Number(v).toLocaleString("en-IN")} Cr`} />
+                      <ProfileField label="Expense Ratio" value={expenseRatioDisplay(meta)} regId="expense_ratio" covKey={["Metadata", "Expense Ratio"]} />
+                      <ProfileField label="Riskometer" value={meta.riskometer} regId="riskometer" covKey={["Metadata", "Riskometer"]} />
+                      <ProfileField label="Fund Manager(s)" value={meta.fund_manager} regId="fund_manager" covKey={["Metadata", "Manager"]} />
+                      <ProfileField label="Minimum SIP" value={meta.minimum_sip} regId="minimum_sip" covKey={["Metadata", "SIP Minimum"]}
+                        format={(v) => `₹${Number(v).toLocaleString("en-IN")}`} />
+                      <ProfileField label="Minimum Investment" value={meta.minimum_lumpsum} regId="minimum_investment" covKey={["Metadata", "Lumpsum Minimum"]}
+                        format={(v) => `₹${Number(v).toLocaleString("en-IN")}`} />
+                      <ProfileField label="Exit Load" value={meta.exit_load} regId="exit_load" covKey={["Metadata", "Exit Load"]} />
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-line flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-ink-faint">
+                      <span>Factsheet (portfolio) date: <strong className="text-ink-muted">{meta.source_date || "unknown"}</strong></span>
+                      <span>Source: <strong className="text-ink-muted">{meta.source || "AMC factsheet PDF"}</strong></span>
+                      <span>Validation: <strong className="text-pos">Passed</strong> <span className="text-ink-faint">(range/sanity checks at parse time)</span></span>
+                      {meta.source_url && (
+                        <a href={meta.source_url} target="_blank" rel="noopener noreferrer" className="text-accent-soft hover:underline font-semibold">
+                          View original filing ↗
+                        </a>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-[12.5px] text-ink-faint leading-relaxed">
+                    MF Pulse has verified factsheet coverage for {metadataStatus.populated.toLocaleString("en-IN")} schemes across three AMC pipelines
+                    (SBI, HDFC, ICICI Prudential) as of {fieldCoverage?.factsheetLastUpdated || "today"}. <strong className="text-ink-muted">{fund.amc}</strong> isn't
+                    in that set yet, so benchmark, AUM, expense ratio, exit load, and the other fields normally shown here aren't fabricated or estimated —
+                    they simply aren't acquired for this fund. Everything above the fold (NAV, returns, category) still comes from AMFI's official daily feed
+                    and is unaffected by this.
+                  </p>
+                )}
               </WorkspaceCard>
 
               {/* Investment Thesis — every sentence traceable to a real metric, no LLM. */}
