@@ -116,7 +116,7 @@ export default async function DataStatus() {
             </div>
             <div className="mt-3 text-[26px] font-bold tnum">{flow[0]?.month || "—"}</div>
             <div className="text-[12px] text-ink-muted">latest reporting month{flowMonthAge != null && ` · ${flowMonthAge}d ago`}</div>
-            <div className="mt-2 text-[11px] text-ink-faint">Source: AMFI Monthly Report (MCR) — real, industry-wide net flow per fund category, refreshed weekly. Not broken out by individual AMC (AMFI's public export has no AMC-level breakdown).</div>
+            <div className="mt-2 text-[11px] text-ink-faint">Source: AMFI Monthly Report (MCR) — real, industry-wide net flow per fund category, refreshed weekly. Not broken out by individual AMC (AMFI’s public export has no AMC-level breakdown).</div>
           </GlassPanel>
         </section>
 

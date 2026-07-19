@@ -316,7 +316,7 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
           ))}
           {strategies.length === 0 && (
             <p className="text-[12.5px] text-ink-faint py-6 text-center">
-              No saved strategies yet. Click 'New Strategy' to get started.
+              No saved strategies yet. Select “New Strategy” to get started.
             </p>
           )}
         </div>
@@ -406,7 +406,7 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
                             <span className="text-[10px] text-ink-faint mt-0.5 block">{f.category} · {f.plan}</span>
                             {fundNotes[f.code] && (
                               <p className="text-[11px] italic text-ink-muted mt-1.5 leading-relaxed border-l-2 border-accent/30 pl-2 max-w-[240px] whitespace-normal break-words" title={fundNotes[f.code]}>
-                                Note: "{fundNotes[f.code]}"
+                                Note: “{fundNotes[f.code]}”
                               </p>
                             )}
                           </td>

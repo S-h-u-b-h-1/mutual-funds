@@ -64,12 +64,12 @@ export default function KnowledgeGraphHero({ classes, amcs, fundCount, amcCount,
             <span>Top AMCs by registered scheme-code options</span>
             <span>node size = fund count</span>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4" role="list" aria-label="AMC universe nodes">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4" aria-label="AMC universe nodes">
             {filteredAmcs.map((amc) => {
               const active = selected?.amc === amc.amc;
               const scale = 0.74 + (amc.total / maxAmc) * 0.52;
               return (
-                <button key={amc.amc} type="button" role="listitem" onClick={() => setSelectedAmc(amc.amc)} className={`min-h-24 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:border-accent/40 ${active ? "border-accent bg-accent/10 shadow-glow" : "border-line bg-surface-2"}`} aria-pressed={active}>
+                <button key={amc.amc} type="button" onClick={() => setSelectedAmc(amc.amc)} className={`min-h-24 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:border-accent/40 ${active ? "border-accent bg-accent/10 shadow-glow" : "border-line bg-surface-2"}`} aria-pressed={active}>
                   <span className={`block h-2.5 w-2.5 rounded-full ${PALETTE[amc.dominantClass] || PALETTE.Other}`} style={{ transform: `scale(${scale})` }} aria-hidden="true" />
                   <span className="mt-3 block text-[12px] font-semibold leading-snug text-ink">{amc.amc.replace(" Mutual Fund", "")}</span>
                   <span className="financial-number mt-1 block text-[11px] text-ink-faint">{amc.total} schemes · {amc.dominantClass}</span>

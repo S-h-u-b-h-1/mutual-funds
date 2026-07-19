@@ -524,7 +524,7 @@ export default function NewsClient({ articles = [], runs = [], themeCounts = {},
 
       {highlightEntity && (
         <div className="mb-3 flex items-center gap-2 text-[11.5px] text-accent-soft">
-          <span>Highlighting articles connected to "{highlightEntity}"</span>
+          <span>Highlighting articles connected to “{highlightEntity}”</span>
           <button
             type="button"
             onClick={() => setHighlightEntity(null)}

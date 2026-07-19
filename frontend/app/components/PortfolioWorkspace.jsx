@@ -374,7 +374,7 @@ function HoldingsSection({ holdings }) {
 
         <div className="mt-5 hidden overflow-x-auto lg:block">
           <table className="w-full min-w-[1180px] text-sm">
-            <caption className="sr-only">Portfolio holdings. Use each row's evidence button for source, folio and data status.</caption>
+            <caption className="sr-only">Portfolio holdings. Use each row’s evidence button for source, folio and data status.</caption>
             <thead className="border-y border-line bg-surface-2 text-left text-[11px] uppercase tracking-[0.08em] text-ink-faint"><tr><th scope="col" className="portfolio-table-cell w-[280px]">Fund</th><th scope="col" className="portfolio-table-cell">Units</th><th scope="col" className="portfolio-table-cell text-right">Purchase value</th><th scope="col" className="portfolio-table-cell text-right">Latest NAV</th><th scope="col" className="portfolio-table-cell text-right">Current value</th><th scope="col" className="portfolio-table-cell text-right">Gain / loss</th><th scope="col" className="portfolio-table-cell text-right">Allocation</th><th scope="col" className="portfolio-table-cell">Actions</th></tr></thead>
             <tbody>
               {rows.map((holding, index) => {

@@ -144,7 +144,7 @@ export default async function DiscoverPage() {
                 ))}
               </div>
             ) : <Empty>No launch dates available yet — factsheet coverage is still limited.</Empty>}
-            <p className="mt-2 text-[10.5px] text-ink-faint">Launch dates come from acquired AMC factsheets (SBI, HDFC &amp; ICICI Prudential today) — not every fund's launch date has been acquired yet, so this list is a subset, not the newest funds industry-wide.</p>
+            <p className="mt-2 text-[10.5px] text-ink-faint">Launch dates come from acquired AMC factsheets (SBI, HDFC &amp; ICICI Prudential today) — not every fund’s launch date has been acquired yet, so this list is a subset, not the newest funds industry-wide.</p>
           </section>
 
           <section>

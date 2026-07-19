@@ -71,7 +71,7 @@ export default function BenchmarkPage({ params }) {
         <div className="eyebrow text-accent">Benchmark</div>
         <h1 className="page-title mt-3">{b.name}</h1>
         <p className="mt-2 max-w-2xl text-[14px] text-ink-muted">
-          {rows.length} fund{rows.length === 1 ? "" : "s"} track this benchmark (SEBI category-standard mapping, or the fund's own named index). Index-level return comparison needs an index NAV series we don&rsquo;t ingest yet — figures below are the funds' own real NAV performance.
+          {rows.length} fund{rows.length === 1 ? "" : "s"} track this benchmark (SEBI category-standard mapping, or the fund’s own named index). Index-level return comparison needs an index NAV series we don&rsquo;t ingest yet — figures below are the funds’ own real NAV performance.
         </p>
 
         <div className="mt-5 max-w-2xl">

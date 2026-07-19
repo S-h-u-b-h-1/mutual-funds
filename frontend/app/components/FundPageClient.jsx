@@ -318,7 +318,7 @@ export default function FundPageClient({
                   onClick={completeOnboarding}
                   className="rounded-lg bg-pos px-4 py-1.5 text-[12.5px] font-semibold text-[#090b11] hover:opacity-90 transition-opacity"
                 >
-                  Let's Go!
+                  Let’s Go!
                 </button>
               )}
             </div>
@@ -556,9 +556,9 @@ export default function FundPageClient({
                 ) : (
                   <p className="text-[12.5px] text-ink-faint leading-relaxed">
                     MF Pulse has verified factsheet coverage for {metadataStatus.populated.toLocaleString("en-IN")} schemes across three AMC pipelines
-                    (SBI, HDFC, ICICI Prudential) as of {fieldCoverage?.factsheetLastUpdated || "today"}. <strong className="text-ink-muted">{fund.amc}</strong> isn't
-                    in that set yet, so benchmark, AUM, expense ratio, exit load, and the other fields normally shown here aren't fabricated or estimated —
-                    they simply aren't acquired for this fund. Everything above the fold (NAV, returns, category) still comes from AMFI's official daily feed
+                    (SBI, HDFC, ICICI Prudential) as of {fieldCoverage?.factsheetLastUpdated || "today"}. <strong className="text-ink-muted">{fund.amc}</strong> isn’t
+                    in that set yet, so benchmark, AUM, expense ratio, exit load, and the other fields normally shown here aren’t fabricated or estimated —
+                    they simply aren’t acquired for this fund. Everything above the fold (NAV, returns, category) still comes from AMFI’s official daily feed
                     and is unaffected by this.
                   </p>
                 )}
@@ -1038,7 +1038,7 @@ export default function FundPageClient({
                       <div className="flex justify-between text-[12.5px]">
                         <span className="text-ink-faint flex items-center gap-1.5">
                           Consistency Rating
-                          <MetricTooltip>Share of trading days in the observed window where the NAV didn't fall. Higher means fewer down-days, not necessarily higher returns — a fund can be highly consistent (few down-days) while still returning less than a more volatile fund. Best read alongside returns, not instead of them.</MetricTooltip>
+                          <MetricTooltip>Share of trading days in the observed window where the NAV didn’t fall. Higher means fewer down-days, not necessarily higher returns — a fund can be highly consistent (few down-days) while still returning less than a more volatile fund. Best read alongside returns, not instead of them.</MetricTooltip>
                         </span>
                         <span className="text-ink font-semibold font-mono">
                           {fund.consistency}% {categoryAvgConsistency != null && <span className="text-[11.5px] text-ink-faint font-normal"> (Category Avg: {categoryAvgConsistency}%)</span>}
@@ -1066,7 +1066,7 @@ export default function FundPageClient({
                         <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                           <span className="text-ink-faint flex items-center gap-1.5">
                             Sortino Ratio (1Y, rf 6.5%)
-                            <MetricTooltip>Like Sharpe, but only penalises downside volatility — a fund that swings up sharply isn't treated as "risky" here. Above 1.5 is generally considered good. Useful alongside Sharpe: a much higher Sortino than Sharpe suggests the fund's volatility skews more upside than downside.</MetricTooltip>
+                            <MetricTooltip>Like Sharpe, but only penalises downside volatility — a fund that swings up sharply isn’t treated as “risky” here. Above 1.5 is generally considered good. Useful alongside Sharpe: a much higher Sortino than Sharpe suggests the fund’s volatility skews more upside than downside.</MetricTooltip>
                           </span>
                           <span className={`font-bold font-mono ${sortino >= 1.5 ? "text-pos" : "text-ink"}`}>{sortino}</span>
                         </div>
@@ -1077,7 +1077,7 @@ export default function FundPageClient({
                             <div className="flex justify-between text-[12.5px]">
                               <span className="text-ink-faint flex items-center gap-1.5">
                                 Beta vs Benchmark Proxy
-                                <MetricTooltip>How much the fund tends to move for every 1% move in its benchmark index. Beta of 1.0 means it moves in step with the index; above 1.0 means it amplifies moves (both up and down); below 1.0 means it's more muted. Neither direction is inherently "better" — it depends on whether you want amplified or dampened market exposure.</MetricTooltip>
+                                <MetricTooltip>How much the fund tends to move for every 1% move in its benchmark index. Beta of 1.0 means it moves in step with the index; above 1.0 means it amplifies moves (both up and down); below 1.0 means it’s more muted. Neither direction is inherently “better” — it depends on whether you want amplified or dampened market exposure.</MetricTooltip>
                               </span>
                               <span className="text-ink font-semibold font-mono">{riskStats.beta}</span>
                             </div>
@@ -1088,7 +1088,7 @@ export default function FundPageClient({
                           <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                             <span className="text-ink-faint flex items-center gap-1.5">
                               Alpha (Annualised)
-                              <MetricTooltip>Return the fund generated beyond what its Beta alone would predict, given the benchmark's actual performance — the part of the return not explained by simply tracking the market. Positive alpha suggests genuine outperformance after adjusting for risk; negative means it underperformed even accounting for its market exposure.</MetricTooltip>
+                              <MetricTooltip>Return the fund generated beyond what its Beta alone would predict, given the benchmark’s actual performance — the part of the return not explained by simply tracking the market. Positive alpha suggests genuine outperformance after adjusting for risk; negative means it underperformed even accounting for its market exposure.</MetricTooltip>
                             </span>
                             <span className={`font-bold font-mono ${riskStats.alpha >= 0 ? "text-pos" : "text-neg"}`}>
                               {riskStats.alpha >= 0 ? "+" : ""}{riskStats.alpha}%

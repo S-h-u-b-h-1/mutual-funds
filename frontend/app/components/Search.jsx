@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { track } from "../lib/track";
 import { saveSearch, getSearchHistory, getHistory, saveHistory } from "../lib/cloudSync";
 import { SUPA } from "../lib/supabase";
@@ -60,7 +60,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
   const listRef = useRef(null);
 
   // Sync recent, popular, pinned and recent visits from storage
-  const syncStorage = () => {
+  const syncStorage = useCallback(() => {
     getSearchHistory(6).then(setRecent);
 
     // Load pinned pages (local-only — no backend concept for this yet)
@@ -81,7 +81,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
       }
       setVisits(Array.from(unique.values()).slice(0, 5));
     });
-  };
+  }, []);
 
   useEffect(() => {
     syncStorage();
@@ -91,7 +91,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
       .then((r) => r.json())
       .then((d) => setPopular(Array.isArray(d) ? d : []))
       .catch(() => {});
-  }, [open]);
+  }, [open, syncStorage]);
 
   useEffect(() => {
     if (!listenForOpenRequest) return undefined;
@@ -120,22 +120,22 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
   };
 
   // Open and close dialog helpers
-  const openPalette = () => {
+  const openPalette = useCallback(() => {
     setOpen(true);
     syncStorage();
     if (dialogRef.current && !dialogRef.current.open) dialogRef.current.showModal();
     requestAnimationFrame(() => {
       inputRef.current?.focus();
     });
-  };
+  }, [syncStorage]);
 
-  const closePalette = () => {
+  const closePalette = useCallback(() => {
     if (dialogRef.current?.open) dialogRef.current.close();
     setOpen(false);
     setQ("");
     setResults([]);
     setActiveIndex(0);
-  };
+  }, []);
 
   // Keyboard shortcut listener (Cmd+K, Ctrl+K, and /)
   useEffect(() => {
@@ -155,7 +155,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  }, [closePalette, open, openPalette]);
 
   // Safari/Fallback click-outside light dismiss handler
   useEffect(() => {
@@ -178,7 +178,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
 
     dialog.addEventListener("click", handleOutsideClick);
     return () => dialog.removeEventListener("click", handleOutsideClick);
-  }, []);
+  }, [closePalette]);
 
   function runSearch(term) {
     setQ(term);

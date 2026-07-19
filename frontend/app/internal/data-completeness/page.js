@@ -172,7 +172,7 @@ export default async function DataCompleteness() {
           {!newsRunningAtAll && (
             <p className="mt-2 border-t border-line pt-2 text-[11.5px] text-neg">
               Zero runs recorded at all. Most likely cause: SUPABASE_SERVICE_ROLE_KEY is not set as a GitHub
-              Actions repo secret, so news_ingest.yml's own graceful-skip guard is firing every scheduled run
+              Actions repo secret, so news_ingest.yml’s own graceful-skip guard is firing every scheduled run
               without ever reaching Supabase. Confirm via `gh run view &lt;id&gt; --log` on the workflow.
             </p>
           )}

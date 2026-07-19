@@ -215,7 +215,7 @@ export default async function HomePage() {
                 })}
               </div>
             ) : (
-              <GlassPanel className="p-6 text-[13px] text-ink-muted">No active signals this month — surges appear when a category's monthly flow deviates sharply from trend.</GlassPanel>
+              <GlassPanel className="p-6 text-[13px] text-ink-muted">No active signals this month — surges appear when a category’s monthly flow deviates sharply from trend.</GlassPanel>
             )}
           </WorkspaceSection>
 

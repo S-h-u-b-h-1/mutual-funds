@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import StatStrip from "./ui/StatStrip";
 import DataTable from "./ui/DataTable";
 import SignalCard from "./ui/SignalCard";
@@ -49,6 +49,25 @@ export default function HomepageClient({
   // Watchlist custom state tracker (mocking adding a fund if watchlist is empty)
   const [localWatchlistCount, setLocalWatchlistCount] = useState(0);
 
+  // Synthesize crisp mechanical terminal click sound.
+  const playClickSound = useCallback(() => {
+    if (!audioEnabled) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(900, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.035);
+      gain.gain.setValueAtTime(0.03, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.035);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.04);
+    } catch {}
+  }, [audioEnabled]);
+
   // Was reading a second, bare "watchlist" key (plain scheme-code strings) disconnected from
   // the real mfp_watchlist WatchButton/Watchlist/WatchlistIntelligence all use — this count and
   // the sample-add button below never actually matched what showed up as watchlisted elsewhere.
@@ -94,7 +113,7 @@ export default function HomepageClient({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [audioEnabled]);
+  }, [playClickSound]);
 
   // Sync state preferences (cloud-synced when signed in, same mfp_left_collapsed/
   // mfp_right_collapsed/mfp_audio_enabled keys locally either way)
@@ -140,28 +159,6 @@ export default function HomepageClient({
         osc.stop(ctx.currentTime + 0.2);
       } catch {}
     }
-  };
-
-  // Synthesize crisp mechanical terminal click sound
-  const playClickSound = () => {
-    if (!audioEnabled) return;
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(900, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.035);
-      
-      gain.gain.setValueAtTime(0.03, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.035);
-      
-      osc.start();
-      osc.stop(ctx.currentTime + 0.04);
-    } catch {}
   };
 
   // Meeting Brief Generator logic
@@ -546,10 +543,10 @@ export default function HomepageClient({
               <div className="rounded-xl border border-line bg-white/[0.01] p-5 space-y-3">
                 <span className="text-[9.5px] uppercase font-bold tracking-wider text-accent-soft block">Overnight Market Story</span>
                 <p className="text-[13.5px] leading-relaxed text-ink-muted">
-                  Indian markets are currently <strong className="text-white">{isMarketOpen ? "Open" : "Closed"}</strong>. Based on yesterday's breath index of <strong className="text-white tnum">{daily.breadth1d}%</strong>, the market regime is classified as <strong className="text-accent-soft">{(daily.industry?.riskRegime || "Steady").toLowerCase()}</strong>.
+                  Indian markets are currently <strong className="text-white">{isMarketOpen ? "Open" : "Closed"}</strong>. Based on yesterday’s breadth index of <strong className="text-white tnum">{daily.breadth1d}%</strong>, the market regime is classified as <strong className="text-accent-soft">{(daily.industry?.riskRegime || "Steady").toLowerCase()}</strong>.
                 </p>
                 <div className="p-3.5 rounded-lg border border-line bg-white/[0.02] text-[12.5px] text-ink-muted">
-                  <strong>Today's Focus:</strong> {daily.insights[0]?.summary || "Ingesting daily risk statistics. Growth plans outpaced debt indices in the 30-day window."}
+                  <strong>Today’s Focus:</strong> {daily.insights[0]?.summary || "Ingesting daily risk statistics. Growth plans outpaced debt indices in the 30-day window."}
                 </div>
               </div>
 
