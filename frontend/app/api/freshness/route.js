@@ -10,6 +10,9 @@
 // auth, no PII — the same date is printed in the site header on every page.
 import { asOf } from "../../lib/funds";
 import { getFreshnessSummary } from "../../lib/freshnessService";
+import { allMetadata } from "../../lib/metadata";
+
+export const dynamic = "force-dynamic"; // deployment identity must reflect the running instance on every request, never a build-time-frozen response
 
 export async function GET() {
   const summary = await getFreshnessSummary();
@@ -18,5 +21,15 @@ export async function GET() {
   // not just "the date looks right" but "this exact commit is what's actually being served",
   // e.g. scripts/verify_public_domain_freshness.py's --expected-sha check.
   const deployedCommitSha = process.env.VERCEL_GIT_COMMIT_SHA || null;
-  return Response.json({ asOf, deployedCommitSha, ...summary });
+  // Real Vercel-injected system env vars only (docs: vercel.com/docs/environment-variables/system-environment-variables)
+  // — never fabricated. No build timestamp: Vercel does not expose one as an env var, so it's
+  // deliberately omitted rather than approximated with request time (which would misrepresent
+  // itself as "when this was built").
+  const branch = process.env.VERCEL_GIT_COMMIT_REF || null;
+  const environment = process.env.VERCEL_ENV || null;
+  const factsheetCoverage = {
+    schemes: allMetadata().length,
+    amcs: new Set(allMetadata().map((m) => m.amc).filter(Boolean)).size,
+  };
+  return Response.json({ asOf, deployedCommitSha, branch, environment, factsheetCoverage, ...summary });
 }

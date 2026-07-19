@@ -14,6 +14,12 @@ name: Production Refresh
 # the commit+push step would have failed even if triggered), steps that reported "success" while
 # silently skipping real work (now hard-fail on missing required secrets), and no automatic retry
 # on transient network failures.
+#
+# 2026-07-19: fixed a real stale-production incident — steps 6/7 used to gate on whether THIS
+# run's data ingest changed the bundles, which is the wrong signal for "does production need
+# re-pointing." Two workflow_dispatch runs reported overall "success" while silently skipping
+# re-aliasing, leaving mf-pulse.vercel.app 4 commits behind HEAD (code pushed directly, no bundle
+# diff in either run). See step 5b and docs/PRODUCTION_RELEASE_RUNBOOK.md.
 on:
   schedule:
     - cron: "30 14 * * 1-6"   # 14:30 UTC = 8:00pm IST, Mon-Sat (after AMFI publishes)
@@ -136,9 +142,38 @@ jobs:
           git push
           echo "pushed=true" >> "$GITHUB_OUTPUT"
 
+      - name: 5b. Determine whether production needs re-pointing
+        id: staleness
+        run: |
+          # Real incident, 2026-07-19: steps 6/7 used to gate on `bundles.changed` alone. That's
+          # the wrong signal — it's only true when THIS run's ingest produced a new data commit,
+          # so it silently skipped re-aliasing whenever HEAD moved for any other reason (e.g. a
+          # direct `git push` of code + workflow_dispatch to deploy it). Two full runs reported
+          # "success" while steps 5-7 all showed "skipped" — a passing state, not a failure — and
+          # mf-pulse.vercel.app kept serving a commit 4 pushes behind HEAD. Caught only by
+          # manually cross-checking /api/freshness's deployedCommitSha against `git log`.
+          # Fix: compare production's ACTUAL currently-served commit (not an assumption derived
+          # from this run's own diff) against this run's HEAD. Re-point if they differ, or if
+          # step 5 is about to move HEAD forward by committing new bundles. Fails OPEN (assumes
+          # re-pointing is needed) if production is unreachable, since an unnecessary re-alias is
+          # harmless but a silently-skipped necessary one is exactly this incident.
+          HEAD_SHA=$(git rev-parse HEAD)
+          LIVE_SHA=$(curl -sL --max-time 15 https://mf-pulse.vercel.app/api/freshness | python3 -c 'import json,sys; print(json.load(sys.stdin).get("deployedCommitSha") or "")' 2>/dev/null || echo "")
+          echo "HEAD=$HEAD_SHA  production currently serves=${LIVE_SHA:-<unreachable>}"
+          if [ "${{ steps.bundles.outputs.changed }}" = "true" ] || [ -z "$LIVE_SHA" ] || [ "$LIVE_SHA" != "$HEAD_SHA" ]; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+            if [ "${{ steps.bundles.outputs.changed }}" = "true" ]; then REASON="bundles changed this run"
+            elif [ -z "$LIVE_SHA" ]; then REASON="could not reach production to compare (failing open)"
+            else REASON="production is on a different commit than HEAD"; fi
+            echo "Re-pointing needed: $REASON"
+          else
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            echo "Production already serves HEAD ($HEAD_SHA) — nothing to re-point."
+          fi
+
       - name: 6. Point mf-pulse.vercel.app at this refresh's deployment
         id: deploy
-        if: steps.bundles.outputs.changed == 'true'
+        if: steps.staleness.outputs.needed == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -275,14 +310,18 @@ jobs:
           PY
 
       - name: 7. Verify production actually reflects the refresh
-        if: steps.bundles.outputs.changed == 'true'
         run: |
-          # Step 6 now hard-fails (and this step is skipped entirely, per its default success()
-          # condition) if any Vercel secret is missing or invalid — reaching this line means
-          # aliasing was actually attempted, so a genuine poll for propagation is warranted.
+          # Unconditional by design (not gated on step 6 running) — this is the standing
+          # assertion that production actually matches HEAD, regardless of why. If step 6 ran,
+          # give propagation time; if it was skipped because production was already correct,
+          # skip the wait and confirm immediately. Either way this step is the real backstop: if
+          # step 5b's staleness check itself ever has a bug, this still catches a stale domain
+          # and fails the job loudly instead of a workflow silently reporting "success".
+          WAIT=0
+          [ "${{ steps.staleness.outputs.needed }}" = "true" ] && WAIT=75
           python -m scripts.verify_public_domain_freshness \
             --expected-sha "$(git rev-parse HEAD)" \
-            --initial-wait 75 --retries 5 --wait 45
+            --initial-wait "$WAIT" --retries 5 --wait 45
 
       - name: Summary
         if: always()
@@ -295,4 +334,5 @@ jobs:
           echo "- News → Supabase: ${{ steps.news.outputs.ran || 'failed (non-fatal)' }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Bundles changed: ${{ steps.bundles.outputs.changed }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Committed + pushed: ${{ steps.commit.outputs.pushed || 'no changes to commit' }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Production verified fresh: see 'Verify production actually reflects the refresh' step above" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production re-pointing needed: ${{ steps.staleness.outputs.needed }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production verified fresh: see 'Verify production actually reflects the refresh' step above (runs every time, hard-fails the job on mismatch)" >> "$GITHUB_STEP_SUMMARY"
