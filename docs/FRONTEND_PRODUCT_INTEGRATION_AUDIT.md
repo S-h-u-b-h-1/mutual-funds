@@ -42,18 +42,18 @@ The immediate frontend integration priority is therefore:
 | `/categories` | Connected | AMFI-derived category movement and export | Coverage/confidence is page-level; distribution and category limitations are understated |
 | `/categories/[category]` | Partially Connected | Category peer funds and news | Ranking evidence, missing-data summary and mobile comparison path are incomplete |
 | `/amc` | Partially Connected | AMC scheme counts and research links | Does not preview AMC quality, coverage or confidence despite existing engine |
-| `/amc/[amc]` | Partially Connected / Needs UI Only | Live scheme summary, NAV history, AMC intelligence, signals, news | Existing intelligence is one dense block; score evidence, category presence, coverage, limitations and provenance are not a coherent executive view |
+| `/amc/[amc]` | Connected | Executive summary, explainable AMC/fund-health evidence, category presence, distribution, coverage, limitations, official NAV records and news | Authoritative AMC-level AUM, governance, flow and independent confidence contracts remain unavailable and are explicitly labelled |
 | `/benchmark/[slug]` | Partially Connected | Funds mapped to the benchmark | Thin entity page; lacks source definition, coverage, freshness, limitations and comparison framing |
 | `/manager/[slug]` | Partially Connected | Factsheet-derived current manager/fund links | Current-manager coverage is low and tenure history is unavailable; limitations need stronger prominence |
 | `/discover` | Partially Connected | Evidence-led fund/category discovery | Distinct recommendation, activity, quality and popularity signals are not consistently separated |
 | `/signals` | Connected | Rule-based movement signals | Severity, coverage and methodology need more progressive disclosure |
 | `/signals/[amc]/[cat]` | Connected | Full deterministic AMC/category intelligence | Functionally deep but visually technical; needs alignment with redesigned AMC summary |
-| `/compare` | Partially Connected | Fund and AMC comparisons, saved comparison persistence | Large matrices dominate conclusions; uncertainty and provenance should be summarized before detail |
-| `/research` | Partially Connected | Strategy builder, reports and research workspace | Dense client surface; relationship to compare, notes and portfolio is unclear |
+| `/compare` | Connected | Fund and AMC comparisons, saved comparison persistence, server-side fund selection and explicit missing evidence | Large matrices remain dense after the conclusion layer; selected AMC evidence is now fetched on demand |
+| `/research` | Connected | Strategy builder, imported/saved strategies, notes and server-side fund selection | Relationship to portfolio remains intentionally research-only until an approved order-draft contract exists |
 | `/portfolio` | Partially Connected | Authenticated holdings, upload, valuation, invested value, gains, XIRR, leaders and deterministic intelligence | Draft/review/approval, history, snapshot diff, daily change and full production persistence certification still require backend contracts |
 | `/news` | Connected | Live/recent articles, source health and rule-based entity relevance | Terminal density and impact confidence compete with source hierarchy on mobile |
 | `/methodology` | Static / Partially Connected | Calculation explanations | Not searchable and not consistently deep-linked from individual metrics |
-| `/data-quality` | Partially Connected / Needs UI Only | Dataset status and provenance labels | Does not expose the live field matrix, missing percentages, validation, filters, search or detail explanations |
+| `/data-quality` | Connected | Public 40-field completeness matrix, coverage/missing values, source registry state, freshness, confidence, validation, filters, search, sort, expandable detail and mobile cards | Additional fields should enter only through the backend source registry and generated coverage artifact |
 | `/data-status` | Connected | Live pipeline/freshness/system data | Technical reliability and customer-facing data trust are mixed together |
 | `/status` | Duplicate / Partially Connected | Service and refresh state | Overlaps `/data-status`; internal engineering path is exposed in customer copy |
 | `/about` | Static | Product mission and source summary | Suasion Securities identity, governance and trust proof are not yet articulated |
@@ -119,6 +119,30 @@ The immediate frontend integration priority is therefore:
 5. Portfolio contract reconciliation and removal/disablement of any control unsupported by the live API.
 6. Spacing, button, accessibility and performance certification across nine widths.
 7. Add the Research/Invest information architecture only when the first authoritative Invest API contract is ready.
+
+## Implementation and certification evidence
+
+Completed in this integration sprint:
+
+- Public data-quality matrix exposes 40 registered or measured fields without inventing source or confidence metadata.
+- Important funds, performance, category, AMC and comparison pages share one provenance disclosure grammar.
+- Fund quality and AMC quality scores expose components, methodology and missing-data behavior through keyboard-accessible native disclosures.
+- AMC intelligence now separates executive evidence, confidence/coverage, best and weakest observed fund health, category presence, distribution, notes and limitations. Unsupported AMC-level flows were removed.
+- Portfolio UI was reconciled against the current authenticated API fields for invested value, gain/loss, XIRR, latest NAV date, valuation confidence and performance leaders. History and daily change remain unavailable when the API omits them.
+- Frontend lint completes with zero warnings and errors; the production build completes across 62 routes.
+- `/research` no longer serializes the full fund universe. Its former generated HTML was approximately 2.37 MB; the certified development navigation transferred 16.3 KB compressed and decoded to 81.0 KB.
+- Fund comparison fell from 356.3 KB compressed / 6.45 MB decoded to 18.2 KB / 87.0 KB by using server-side search.
+- AMC comparison fell from 347.5 KB compressed / 6.39 MB decoded to a 25.7 KB / 136.0 KB page plus a 122.1 KB selected-AMC evidence request for the default three AMCs.
+- Data quality and AMC intelligence were exercised at 320, 375, 390, 430, 768, 1024, 1280, 1440 and 1920 CSS pixels with zero page-level horizontal overflow. Mobile cards replace the AMC scheme table below the desktop breakpoint.
+
+Open production gates and next plan:
+
+1. Apply and certify the server-side Invest identity/compliance migration and API contract before exposing an Invest navigation promise.
+2. Add portfolio import drafts, reconciliation, ambiguity resolution, approval, retry, cancellation, stored history and snapshot-diff contracts.
+3. Add regulated order draft, compliance gate, payment handoff and transaction-event contracts before rendering an investment button.
+4. Split the 60.5 KB fund-page client chunk into lazy sections; its total first-load JavaScript is currently 173 KB, within the 200 KB budget but the largest customer route.
+5. Verify signed-in portfolio upload, refresh, logout/login and cross-device persistence with a dedicated non-production account.
+6. Restrict operational routes (`/analytics`, `/internal/*`) behind server-authorized roles and consolidate public status information.
 
 ## Definition of done
 
