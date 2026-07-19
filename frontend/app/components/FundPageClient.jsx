@@ -70,6 +70,28 @@ function expenseRatioDisplay(meta) {
   return null;
 }
 
+// fund.benchmark (SEBI category-standard mapping, ingestion/benchmarks.py) and meta.benchmark
+// (this AMC's own factsheet-disclosed benchmark) are two independently-sourced, both-real values
+// that frequently name different indices (e.g. a fund's factsheet may cite an S&P BSE index
+// where its category standard is NIFTY-based) — never fabricated, never a data-quality bug in
+// either source. fund.benchmark stays labeled as the category standard (matching researchSummary()
+// in fundAnalysis.js) rather than stated as plain fact, since it's also what cohort/category
+// comparisons elsewhere on this page are keyed to.
+function benchmarkStandardClause(fund) {
+  return fund.benchmark ? `the ${fund.category} category-standard benchmark (${fund.benchmark})` : "category standards";
+}
+
+function benchmarkDivergenceNote(fund, meta) {
+  const std = fund.benchmark, fs = meta?.benchmark;
+  if (!std || !fs || std.trim().toLowerCase() === fs.trim().toLowerCase()) return null;
+  return ` Its own factsheet discloses a different benchmark, ${fs} — see Verified Fund Profile below.`;
+}
+
+function benchmarkSummarySentence(fund, cohort, meta) {
+  if (!cohort) return "";
+  return `It is benchmarked against ${benchmarkStandardClause(fund)} and ranked against a cohort of ${cohort.count} peer funds.${benchmarkDivergenceNote(fund, meta) || ""}`;
+}
+
 // Helper components of Design System 2.0
 function WorkspaceCard({ title, subtitle, action, children, id, collapsedDefault = false }) {
   const [collapsed, setCollapsed] = useState(collapsedDefault);
@@ -487,7 +509,7 @@ export default function FundPageClient({
               {/* Executive Summary */}
               <WorkspaceCard title="Executive Summary" subtitle="Plain text analysis computed directly from NAV trends">
                 <p className="text-[13.5px] leading-relaxed text-ink-muted">
-                  {fund.name.replace(/ - (Direct|Regular).*/i, "")} is a <strong>{fund.category}</strong> plan managed by <strong>{fund.amc}</strong>. {cohort ? `It is benchmarked against ${fund.benchmark || "category standards"} and ranked against a cohort of ${cohort.count} peer funds.` : ""}
+                  {fund.name.replace(/ - (Direct|Regular).*/i, "")} is a <strong>{fund.category}</strong> plan managed by <strong>{fund.amc}</strong>. {benchmarkSummarySentence(fund, cohort, meta)}
                 </p>
                 <div className="mt-4 p-4 rounded-xl border border-line bg-surface text-[13px] leading-relaxed text-ink-muted">
                   {researchSummary(fund, cohort)}
