@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { track } from "../lib/track";
 import { saveWatchlist } from "../lib/cloudSync";
 import { buildComparisonReport } from "../lib/reports/comparisonReport";
@@ -28,17 +28,34 @@ function observedBest(funds, key, direction = "max") {
   return [...available].sort((a, b) => direction === "min" ? a[key] - b[key] : b[key] - a[key])[0];
 }
 
-export default function CompareFundsClient({ initialFunds, allFundsList }) {
+export default function CompareFundsClient({ initialFunds }) {
   const [selectedCodes, setSelectedCodes] = useState(initialFunds.map((fund) => fund.code));
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [fundCatalog, setFundCatalog] = useState(() => Object.fromEntries(initialFunds.map((fund) => [fund.code, fund])));
 
-  const activeFunds = useMemo(() => selectedCodes.map((code) => allFundsList.find((fund) => fund.code === code)).filter(Boolean), [selectedCodes, allFundsList]);
-  const searchResults = useMemo(() => {
-    const clean = query.trim().toLowerCase();
-    if (clean.length < 2) return [];
-    return allFundsList.filter((fund) => fund.name.toLowerCase().includes(clean) || fund.amc.toLowerCase().includes(clean) || fund.code.includes(clean)).slice(0, 6);
-  }, [query, allFundsList]);
+  const activeFunds = useMemo(() => selectedCodes.map((code) => fundCatalog[code]).filter(Boolean), [fundCatalog, selectedCodes]);
+  const registerFunds = useCallback((funds) => {
+    setFundCatalog((current) => {
+      const next = { ...current };
+      for (const fund of funds || []) if (fund?.code) next[fund.code] = fund;
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const clean = query.trim();
+    if (clean.length < 2) { setSearchResults([]); return undefined; }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      fetch(`/api/search?q=${encodeURIComponent(clean)}`, { signal: controller.signal })
+        .then((response) => response.ok ? response.json() : { results: [] })
+        .then((data) => { registerFunds(data.results); setSearchResults((data.results || []).slice(0, 6)); })
+        .catch((error) => { if (error.name !== "AbortError") setSearchResults([]); });
+    }, 180);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [query, registerFunds]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

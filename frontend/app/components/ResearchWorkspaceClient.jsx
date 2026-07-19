@@ -1,13 +1,14 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { track } from "../lib/track";
 import { getAllNotes } from "../lib/cloudSync";
 
-export default function ResearchWorkspaceClient({ allFundsList }) {
+export default function ResearchWorkspaceClient({ initialFunds = [] }) {
   const [strategies, setStrategies] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [fundCatalog, setFundCatalog] = useState(() => Object.fromEntries(initialFunds.map((fund) => [fund.code, fund])));
 
   const [fundNotes, setFundNotes] = useState({});
 
@@ -27,9 +28,7 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
     let activeId = list.length > 0 ? list[0].id : null;
 
     if (importFundsStr) {
-      const codes = importFundsStr.split(",").filter((code) => {
-        return allFundsList.some((f) => f.code === code);
-      });
+      const codes = importFundsStr.split(",").map((code) => code.trim()).filter(Boolean).slice(0, 20);
 
       if (codes.length > 0) {
         const defaultPct = Math.floor(100 / codes.length);
@@ -63,7 +62,30 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
     if (activeId) {
       setSelectedId(activeId);
     }
-  }, [allFundsList]);
+  }, []);
+
+  const registerFunds = useCallback((funds) => {
+    setFundCatalog((current) => {
+      const next = { ...current };
+      for (const fund of funds || []) if (fund?.code) next[fund.code] = fund;
+      return next;
+    });
+  }, []);
+
+  // Saved strategies live in the browser, so hydrate only their exact fund records from the
+  // server instead of serialising the complete scheme universe into every /research response.
+  useEffect(() => {
+    const codes = Array.from(new Set(strategies.flatMap((strategy) => strategy.allocations.map((allocation) => allocation.code))))
+      .filter((code) => !fundCatalog[code])
+      .slice(0, 20);
+    if (!codes.length) return undefined;
+    const controller = new AbortController();
+    fetch(`/api/search?codes=${encodeURIComponent(codes.join(","))}`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : { results: [] })
+      .then((data) => registerFunds(data.results))
+      .catch((error) => { if (error.name !== "AbortError") setSearchResults([]); });
+    return () => controller.abort();
+  }, [fundCatalog, registerFunds, strategies]);
 
   // Separate effect (was a synchronous localStorage read inline above) — cloudSync's getAllNotes()
   // is async whether it resolves from the cloud or from the same mfp_research_notes fallback, so
@@ -139,24 +161,22 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
     persistStrategies(list);
   };
 
-  // Autocomplete search
+  // Server-side autocomplete keeps the full fund universe out of the route payload.
   useEffect(() => {
-    const clean = searchQuery.trim().toLowerCase();
+    const clean = searchQuery.trim();
     if (clean.length < 2) {
       setSearchResults([]);
-      return;
+      return undefined;
     }
-    const matches = allFundsList
-      .filter((f) => {
-        return (
-          f.name.toLowerCase().includes(clean) ||
-          f.amc.toLowerCase().includes(clean) ||
-          f.code.includes(clean)
-        );
-      })
-      .slice(0, 5);
-    setSearchResults(matches);
-  }, [searchQuery, allFundsList]);
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      fetch(`/api/search?q=${encodeURIComponent(clean)}`, { signal: controller.signal })
+        .then((response) => response.ok ? response.json() : { results: [] })
+        .then((data) => { registerFunds(data.results); setSearchResults((data.results || []).slice(0, 5)); })
+        .catch((error) => { if (error.name !== "AbortError") setSearchResults([]); });
+    }, 180);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [registerFunds, searchQuery]);
 
   const addFundToStrategy = (code) => {
     if (!activeStrategy) return;
@@ -196,14 +216,14 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
   const compiledFunds = useMemo(() => {
     if (!activeStrategy) return [];
     return activeStrategy.allocations.map((alloc) => {
-      const fund = allFundsList.find((f) => f.code === alloc.code);
+      const fund = fundCatalog[alloc.code];
       if (!fund) return null;
       return {
         ...fund,
         pct: alloc.pct
       };
     }).filter(Boolean);
-  }, [activeStrategy, allFundsList]);
+  }, [activeStrategy, fundCatalog]);
 
   const totalAllocationPct = useMemo(() => {
     return compiledFunds.reduce((sum, f) => sum + f.pct, 0);
@@ -212,27 +232,18 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
   // Aggregate weighted calculations
   const aggregates = useMemo(() => {
     if (compiledFunds.length === 0 || totalAllocationPct === 0) return null;
-    let weightedHealth = 0;
-    let weightedR1m = 0;
-    let weightedR1y = 0;
-    let weightedVol = 0;
-    let weightedMaxdd = 0;
-
-    compiledFunds.forEach((f) => {
-      const weightMultiplier = f.pct / totalAllocationPct;
-      weightedHealth += (f._h || 0) * weightMultiplier;
-      weightedR1m += (f.r1m || 0) * weightMultiplier;
-      weightedR1y += (f.r1y || 0) * weightMultiplier;
-      weightedVol += (f.vol90 || 0) * weightMultiplier;
-      weightedMaxdd += (f.maxdd90 || 0) * weightMultiplier;
-    });
+    const weighted = (key) => {
+      if (compiledFunds.some((fund) => fund[key] == null)) return null;
+      return compiledFunds.reduce((sum, fund) => sum + Number(fund[key]) * (fund.pct / totalAllocationPct), 0);
+    };
+    const weightedHealth = weighted("_h");
 
     return {
-      health: Math.round(weightedHealth),
-      r1m: weightedR1m,
-      r1y: weightedR1y,
-      vol: weightedVol,
-      maxdd: weightedMaxdd
+      health: weightedHealth == null ? null : Math.round(weightedHealth),
+      r1m: weighted("r1m"),
+      r1y: weighted("r1y"),
+      vol: weighted("vol90"),
+      maxdd: weighted("maxdd90")
     };
   }, [compiledFunds, totalAllocationPct]);
 
@@ -252,18 +263,18 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
 
     compiledFunds.forEach((f) => {
       textLines.push(
-        `| ${f.code} | ${f.name.replace(/ - (Direct|Regular).*/i, "")} | ${f.pct}% | ${f._h}/100 | ${f.r1y?.toFixed(2)}% | ${f.vol90 || "—"} | ${f.maxdd90 || "—"} |`
+        `| ${f.code} | ${f.name.replace(/ - (Direct|Regular).*/i, "")} | ${f.pct}% | ${f._h == null ? "Not available" : `${f._h}/100`} | ${f.r1y == null ? "Not available" : `${f.r1y.toFixed(2)}%`} | ${f.vol90 ?? "Not available"} | ${f.maxdd90 ?? "Not available"} |`
       );
     });
 
     if (aggregates) {
       textLines.push("");
       textLines.push("## Combined Weighted Analytics");
-      textLines.push(`- **Weighted Health Score**: ${aggregates.health}/100`);
-      textLines.push(`- **Weighted 1-Month Return**: ${aggregates.r1m.toFixed(2)}%`);
-      textLines.push(`- **Weighted 1-Year Return**: ${aggregates.r1y.toFixed(2)}%`);
-      textLines.push(`- **Weighted 90d Volatility**: ${aggregates.vol.toFixed(2)}%`);
-      textLines.push(`- **Weighted Peak Drawdown**: ${aggregates.maxdd.toFixed(2)}%`);
+      textLines.push(`- **Weighted Health Score**: ${aggregates.health == null ? "Not available" : `${aggregates.health}/100`}`);
+      textLines.push(`- **Weighted 1-Month Return**: ${aggregates.r1m == null ? "Not available" : `${aggregates.r1m.toFixed(2)}%`}`);
+      textLines.push(`- **Weighted 1-Year Return**: ${aggregates.r1y == null ? "Not available" : `${aggregates.r1y.toFixed(2)}%`}`);
+      textLines.push(`- **Weighted 90d Volatility**: ${aggregates.vol == null ? "Not available" : `${aggregates.vol.toFixed(2)}%`}`);
+      textLines.push(`- **Weighted Peak Drawdown**: ${aggregates.maxdd == null ? "Not available" : `${aggregates.maxdd.toFixed(2)}%`}`);
     }
 
     navigator.clipboard.writeText(textLines.join("\n"));
@@ -424,18 +435,18 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-right align-middle font-mono font-bold">
-                            <span className={f._h >= 70 ? "text-pos" : f._h >= 55 ? "text-warn" : "text-neg"}>
-                              {f._h}/100
+                            <span className={f._h == null ? "text-ink-faint" : f._h >= 70 ? "text-pos" : f._h >= 55 ? "text-warn" : "text-neg"}>
+                              {f._h == null ? "Not available" : `${f._h}/100`}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right align-middle font-mono">
                             {f.r1y == null ? "—" : `${f.r1y >= 0 ? "+" : ""}${f.r1y.toFixed(1)}%`}
                           </td>
                           <td className="px-4 py-3 text-right align-middle font-mono text-ink-muted">
-                            {f.vol90 || "—"}
+                            {f.vol90 ?? "—"}
                           </td>
                           <td className="px-4 py-3 text-right align-middle font-mono text-neg">
-                            {f.maxdd90 || "—"}
+                            {f.maxdd90 ?? "—"}
                           </td>
                           <td className="px-4 py-3 text-center align-middle">
                             <button
@@ -484,37 +495,37 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
                       <div className="space-y-0.5">
                         <span className="text-[10px] text-ink-faint block uppercase">Health Score</span>
                         <strong className={`text-[16px] font-mono block ${
-                          aggregates.health >= 70 ? "text-pos" : aggregates.health >= 55 ? "text-warn" : "text-neg"
+                          aggregates.health == null ? "text-ink-faint" : aggregates.health >= 70 ? "text-pos" : aggregates.health >= 55 ? "text-warn" : "text-neg"
                         }`}>
-                          {aggregates.health}/100
+                          {aggregates.health == null ? "Not available" : `${aggregates.health}/100`}
                         </strong>
                       </div>
 
                       <div className="space-y-0.5">
                         <span className="text-[10px] text-ink-faint block uppercase">1M Return</span>
-                        <strong className={`text-[16px] font-mono block ${aggregates.r1m >= 0 ? "text-pos" : "text-neg"}`}>
-                          {aggregates.r1m >= 0 ? "+" : ""}{aggregates.r1m.toFixed(2)}%
+                        <strong className={`text-[16px] font-mono block ${aggregates.r1m == null ? "text-ink-faint" : aggregates.r1m >= 0 ? "text-pos" : "text-neg"}`}>
+                          {aggregates.r1m == null ? "Not available" : `${aggregates.r1m >= 0 ? "+" : ""}${aggregates.r1m.toFixed(2)}%`}
                         </strong>
                       </div>
 
                       <div className="space-y-0.5">
                         <span className="text-[10px] text-ink-faint block uppercase">1Y Return</span>
-                        <strong className={`text-[16px] font-mono block ${aggregates.r1y >= 0 ? "text-pos" : "text-neg"}`}>
-                          {aggregates.r1y >= 0 ? "+" : ""}{aggregates.r1y.toFixed(2)}%
+                        <strong className={`text-[16px] font-mono block ${aggregates.r1y == null ? "text-ink-faint" : aggregates.r1y >= 0 ? "text-pos" : "text-neg"}`}>
+                          {aggregates.r1y == null ? "Not available" : `${aggregates.r1y >= 0 ? "+" : ""}${aggregates.r1y.toFixed(2)}%`}
                         </strong>
                       </div>
 
                       <div className="space-y-0.5">
                         <span className="text-[10px] text-ink-faint block uppercase">Volatility</span>
                         <strong className="text-[16px] text-ink font-mono block">
-                          {aggregates.vol.toFixed(2)}%
+                          {aggregates.vol == null ? "Not available" : `${aggregates.vol.toFixed(2)}%`}
                         </strong>
                       </div>
 
                       <div className="space-y-0.5">
                         <span className="text-[10px] text-ink-faint block uppercase">Drawdown</span>
                         <strong className="text-[16px] text-neg font-mono block">
-                          {aggregates.maxdd.toFixed(2)}%
+                          {aggregates.maxdd == null ? "Not available" : `${aggregates.maxdd.toFixed(2)}%`}
                         </strong>
                       </div>
 
@@ -522,6 +533,12 @@ export default function ResearchWorkspaceClient({ allFundsList }) {
                   </div>
                 )}
 
+              </div>
+            ) : activeStrategy.allocations.length > 0 ? (
+              <div className="rounded-xl border border-line bg-surface-2 p-8 text-center" role="status" aria-live="polite">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-line border-t-accent" aria-hidden="true" />
+                <h4 className="mt-4 text-sm font-semibold text-ink">Loading verified fund evidence…</h4>
+                <p className="mt-2 text-xs text-ink-faint">Fetching only the saved scheme records needed for this strategy.</p>
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-line p-8 text-center bg-surface">

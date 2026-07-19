@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { allFunds } from "../../lib/funds";
+import { allFunds, getFund } from "../../lib/funds";
 import { allManagers } from "../../lib/metadata";
 import { canonicalName, canonicalKey } from "../../lib/canonical";
+import { fundHealth } from "../../lib/fundHealth";
 
 export const revalidate = 600;
 
@@ -19,7 +20,48 @@ function matches(f, q, qLower) {
   return null;
 }
 
+function researchResult(f, matchType = "Exact code") {
+  const health = fundHealth(f);
+  return {
+    code: f.code,
+    name: f.name,
+    amc: f.amc,
+    category: f.category,
+    assetClass: f.assetClass,
+    plan: f.plan,
+    isDirect: f.isDirect,
+    isIdcw: f.isIdcw,
+    matchType,
+    r1m: f.r1m ?? null,
+    r3m: f.r3m ?? null,
+    r1y: f.r1y ?? null,
+    vol90: f.vol90 ?? null,
+    maxdd90: f.maxdd90 ?? null,
+    consistency: f.consistency ?? null,
+    catRank: f.catRank ?? null,
+    catSize: f.catSize ?? null,
+    catPct: f.catPct ?? null,
+    _h: health?.overall ?? null,
+    _g: health?.grade ?? null,
+  };
+}
+
 export async function GET(req) {
+  const amcs = (req.nextUrl.searchParams.get("amcs") || "").split(",").map((name) => name.trim()).filter(Boolean).slice(0, 4);
+  if (amcs.length) {
+    const selected = new Set(amcs);
+    const results = allFunds()
+      .filter((fund) => selected.has(`${fund.amc} Mutual Fund`))
+      .map((fund) => ({ ...researchResult(fund), amcName: `${fund.amc} Mutual Fund`, isGrowth: fund.isGrowth, active: fund.active }));
+    return NextResponse.json({ results });
+  }
+
+  const codes = (req.nextUrl.searchParams.get("codes") || "").split(",").map((code) => code.trim()).filter(Boolean).slice(0, 20);
+  if (codes.length) {
+    const results = codes.map((code) => getFund(code)).filter((fund) => fund?.active !== false && fund?.nav != null).map((fund) => researchResult(fund));
+    return NextResponse.json({ results });
+  }
+
   const q = (req.nextUrl.searchParams.get("q") || "").trim();
   if (q.length < 2) return NextResponse.json({ results: [] });
   const qLower = q.toLowerCase();
@@ -48,11 +90,8 @@ export async function GET(req) {
   const results = [...groups.values()]
     .map((g) => {
       const pick = g.variants.find(isDG) || g.variants.find((v) => v.isGrowth) || g.variants[0];
-      return {
-        code: pick.code, name: g.name, amc: g.amc, category: g.category, assetClass: g.assetClass,
-        matchType: g.matchType, variantCount: g.variants.length,
-        r1m: pick.r1m, staleDays: pick.staleDays,
-      };
+      const health = fundHealth(pick);
+      return { ...researchResult(pick, g.matchType), name: g.name, variantCount: g.variants.length, staleDays: pick.staleDays, _h: health?.overall ?? null, _g: health?.grade ?? null };
     })
     .sort((a, b) => (a.staleDays ?? 999) - (b.staleDays ?? 999)) // freshest/most-active first
     .slice(0, 12);

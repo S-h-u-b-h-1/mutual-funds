@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Sparkline from "./Sparkline";
 import { track } from "../lib/track";
-import { getComparisons, saveComparison, deleteComparison } from "../lib/cloudSync";
+import { getComparisons, saveComparison, deleteComparison, saveWatchlist } from "../lib/cloudSync";
 
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(n || 0);
 const pct = (n) => n == null || Number.isNaN(Number(n)) ? "Unavailable" : `${Number(n).toFixed(1)}%`;
@@ -76,7 +76,7 @@ function Bar({ value, tone = "bg-accent" }) {
   return <div className="mt-1.5 h-1.5 rounded-full bg-surface-strong"><div className={`h-full rounded-full ${tone}`} style={{ width: `${Math.max(0, Math.min(100, value || 0))}%` }} /></div>;
 }
 
-export default function CompareClient({ amcs, meta = {}, funds = [] }) {
+export default function CompareClient({ amcs, meta = {} }) {
   const names = Object.keys(amcs);
   const sorted = [...names].sort((a, b) => (change(amcs[b]) ?? -Infinity) - (change(amcs[a]) ?? -Infinity));
   const searchParams = useSearchParams();
@@ -93,6 +93,22 @@ export default function CompareClient({ amcs, meta = {}, funds = [] }) {
   const [categoryMode, setCategoryMode] = useState("all");
   const [selectedFunds, setSelectedFunds] = useState([]);
   const [copied, setCopied] = useState(false);
+  const [funds, setFunds] = useState([]);
+  const [loadingAmcEvidence, setLoadingAmcEvidence] = useState(false);
+
+  const selectionKey = sel.join("|");
+  useEffect(() => {
+    const selectedAmcs = selectionKey.split("|").filter(Boolean);
+    if (!selectedAmcs.length) { setFunds([]); setLoadingAmcEvidence(false); return undefined; }
+    const controller = new AbortController();
+    setLoadingAmcEvidence(true);
+    fetch(`/api/search?amcs=${encodeURIComponent(selectedAmcs.join(","))}`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : { results: [] })
+      .then((data) => setFunds(data.results || []))
+      .catch((error) => { if (error.name !== "AbortError") setFunds([]); })
+      .finally(() => { if (!controller.signal.aborted) setLoadingAmcEvidence(false); });
+    return () => controller.abort();
+  }, [selectionKey]);
 
   function refreshWorkspaces() {
     getComparisons().then((list) => setWorkspaces(list.map((c) => ({ id: c.id, name: c.name, sel: c.amcs }))));
@@ -145,14 +161,10 @@ export default function CompareClient({ amcs, meta = {}, funds = [] }) {
     setSelectedFunds((current) => current.includes(code) ? current.filter((c) => c !== code) : current.length >= 4 ? current : [...current, code]);
   }
 
-  function addToWatchlist(code) {
-    try {
-      const raw = localStorage.getItem("mfp_watchlist");
-      const list = raw ? JSON.parse(raw) : [];
-      if (!list.includes(code)) list.unshift(code);
-      localStorage.setItem("mfp_watchlist", JSON.stringify(list.slice(0, 200)));
-      window.dispatchEvent(new Event("mfp-watchlist"));
-    } catch {}
+  async function addToWatchlist(code) {
+    const fund = funds.find((item) => item.code === code);
+    if (!fund) return;
+    await saveWatchlist({ code: fund.code, name: fund.name, amc: fund.amcName });
   }
 
   const amcResults = sorted.filter((name) => shortAmc(name).toLowerCase().includes(query.toLowerCase())).slice(0, 12);
@@ -235,6 +247,12 @@ export default function CompareClient({ amcs, meta = {}, funds = [] }) {
         <section className="rounded-[2rem] border border-dashed border-line bg-surface p-8 text-center">
           <h2 className="text-xl font-semibold text-ink">Select at least two AMCs.</h2>
           <p className="mt-2 text-sm text-ink-muted">The comparison matrix, fund-level rows and category leadership sections appear once 2–4 AMCs are selected.</p>
+        </section>
+      ) : loadingAmcEvidence ? (
+        <section className="rounded-[2rem] border border-line bg-surface p-10 text-center" role="status" aria-live="polite">
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-line border-t-accent" aria-hidden="true" />
+          <h2 className="mt-4 text-base font-semibold text-ink">Loading selected AMC evidence…</h2>
+          <p className="mt-2 text-sm text-ink-muted">Fetching only the fund records needed for this comparison.</p>
         </section>
       ) : (
         <>

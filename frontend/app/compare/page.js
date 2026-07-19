@@ -30,31 +30,6 @@ export default async function Compare({ searchParams }) {
       };
     }).filter(Boolean);
 
-    const allFundsCompareList = allFundsList.map(f => {
-      const h = fundHealth(f);
-      return {
-        code: f.code,
-        name: f.name,
-        amc: f.amc,
-        category: f.category,
-        assetClass: f.assetClass,
-        plan: f.plan,
-        isDirect: f.isDirect,
-        isIdcw: f.isIdcw,
-        r1m: f.r1m,
-        r3m: f.r3m,
-        r1y: f.r1y,
-        vol90: f.vol90,
-        maxdd90: f.maxdd90,
-        consistency: f.consistency,
-        catRank: f.catRank,
-        catSize: f.catSize,
-        catPct: f.catPct,
-        _h: h?.overall ?? null,
-        _g: h?.grade ?? null
-      };
-    });
-
     return (
       <>
         <Nav active="/compare" />
@@ -64,7 +39,7 @@ export default async function Compare({ searchParams }) {
           <p className="measure mt-4 text-sm leading-6 text-ink-muted">Compare observed performance, risk, health, and data completeness. MF Pulse does not label one fund a universal winner.</p>
           <ProvenanceDisclosure className="mt-5" source="AMFI NAV history" sourceUrl="https://www.amfiindia.com" updatedAt={asOf} confidence="High" coverage={`${allFundsList.length.toLocaleString("en-IN")} scheme records available for selection`} freshness="Daily on trading days" methodology="Comparison metrics use the same deterministic return, risk, category-percentile and health-score functions as each fund page." limitations="A missing metric stays unavailable. Comparison describes evidence differences and is not a suitability decision." />
           <div className="mt-8">
-            <CompareFundsClient initialFunds={initialFunds} allFundsList={allFundsCompareList} />
+            <CompareFundsClient initialFunds={initialFunds} />
           </div>
           <p className="mt-6 text-right text-[11.5px] text-ink-faint">
             <a href="/compare" className="transition-colors hover:text-ink">Switch to AMC Comparison Center →</a>
@@ -92,30 +67,6 @@ export default async function Compare({ searchParams }) {
     m.classes = m._cls.size;
     delete m._cls;
   }
-  const amcFunds = allFundsList.map((f) => {
-    const h = fundHealth(f);
-    return {
-      code: f.code,
-      name: f.name,
-      amcName: `${f.amc} Mutual Fund`,
-      category: f.category,
-      assetClass: f.assetClass,
-      plan: f.plan,
-      isDirect: f.isDirect,
-      isGrowth: f.isGrowth,
-      isIdcw: f.isIdcw,
-      active: f.active,
-      r1m: f.r1m,
-      r1y: f.r1y,
-      vol90: f.vol90,
-      maxdd90: f.maxdd90,
-      consistency: f.consistency,
-      catPct: f.catPct,
-      _h: h?.overall ?? null,
-      _g: h?.grade ?? null,
-    };
-  });
-
   return (
     <>
       <Nav active="/compare" />
@@ -128,7 +79,7 @@ export default async function Compare({ searchParams }) {
         </p>
         <ProvenanceDisclosure className="mt-5" source="AMFI NAV history and latest scheme universe" sourceUrl="https://www.amfiindia.com" updatedAt={asOf} confidence="High" coverage={`${Object.keys(trendData.amcs).length} AMCs with 30-day trend series`} freshness="Daily on trading days" methodology="AMC comparison normalizes observed equity-fund NAV history and combines it with current scheme distribution." limitations="The public source does not include AMC-level AUM or qualitative corporate-governance ratings; those fields are not inferred." />
         <div className="mt-8">
-          <CompareClient amcs={trendData.amcs} meta={meta} funds={amcFunds} />
+          <CompareClient amcs={trendData.amcs} meta={meta} />
         </div>
         <p className="mt-4 text-right text-[11.5px] text-ink-faint">
           <a href="/research" className="transition-colors hover:text-ink">More reports &amp; analysis tools in the Research Hub →</a>
