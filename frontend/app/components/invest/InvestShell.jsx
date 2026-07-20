@@ -39,6 +39,7 @@ export default function InvestShell({ eyebrow = "Suasion Invest", title, descrip
             <div className="mt-4 rounded-2xl bg-accent/10 p-4">
               <div className="text-[10px] font-bold uppercase tracking-[.16em] text-accent">Secure workspace</div>
               <p className="mt-2 text-xs leading-5 text-ink-muted">Your investment readiness and financial records stay separate from public research.</p>
+              <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-accent"><span aria-hidden="true">✓</span> Session protected · source-aware</div>
             </div>
           </div>
         </aside>
@@ -56,7 +57,7 @@ export default function InvestShell({ eyebrow = "Suasion Invest", title, descrip
         </section>
       </div>
 
-      <nav className="fixed inset-x-3 bottom-3 z-[65] grid grid-cols-5 rounded-[1.6rem] border border-line/80 bg-surface/95 p-1.5 shadow-float backdrop-blur-2xl lg:hidden" aria-label="Invest mobile navigation">
+      <nav className="fixed inset-x-3 bottom-3 z-[65] grid grid-cols-5 rounded-[1.6rem] border border-line/80 bg-surface/95 p-1.5 pb-[calc(.375rem+env(safe-area-inset-bottom))] shadow-float backdrop-blur-2xl lg:hidden" aria-label="Invest mobile navigation">
         {links.slice(0, 4).concat([["More", "/invest/more", "••"]]).map(([label, href, icon]) => {
           const active = path === href || (href !== "/invest" && path.startsWith(`${href}/`));
           return <Link key={label} href={href} aria-current={active ? "page" : undefined} className={`flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-1 rounded-[1.15rem] text-[10px] font-semibold ${active ? "bg-ink text-bg" : "text-ink-muted"}`}><span className="text-base" aria-hidden="true">{icon}</span><span className="truncate">{label}</span></Link>;
@@ -71,5 +72,6 @@ export function ButtonLink({ href, children, secondary = false }) { return <Link
 export function StatusPill({ status }) {
   const done = status === "completed" || status === "verified";
   const review = status === "needs_review" || status === "rejected" || status === "failed" || status === "retry_required";
-  return <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.1em] ${done ? "bg-pos/10 text-pos" : review ? "bg-neg/10 text-neg" : "bg-surface-2 text-ink-muted"}`}>{String(status || "pending").replaceAll("_", " ")}</span>;
+  const label = String(status || "pending").replaceAll("_", " ");
+  return <span role="status" aria-label={`Status: ${label}`} className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.1em] ${done ? "bg-pos/10 text-pos" : review ? "bg-neg/10 text-neg" : "bg-surface-2 text-ink-muted"}`}>{label}</span>;
 }

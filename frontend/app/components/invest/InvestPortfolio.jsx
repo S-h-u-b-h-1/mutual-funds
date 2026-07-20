@@ -25,7 +25,7 @@ export default function InvestPortfolio() {
   const summary = portfolio?.summary || {};
   const holdings = portfolio?.holdings || [];
   const allocations = portfolio?.allocation || {};
-  const trend = performance?.history || [];
+  const trend = useMemo(() => performance?.history || [], [performance]);
   const hasHoldings = holdings.length > 0;
   const maxHistory = useMemo(() => Math.max(...trend.map(item => Number(item.total_value) || 0), 1), [trend]);
   return <InvestShell title="Portfolio, with context." description="A source-aware view of holdings, allocation, performance and portfolio health. Every value comes from the Journey 3 portfolio service." actions={<><ButtonLink href="/portfolio" secondary>Import statement</ButtonLink>{!hasHoldings && <button type="button" onClick={connect} disabled={connecting} className="inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-white disabled:opacity-50">{connecting ? "Connecting…" : "Connect demo portfolio"}</button>}</>}>

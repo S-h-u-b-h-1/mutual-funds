@@ -1,12 +1,18 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import InvestShell, { ButtonLink, Card, InvestIcon, StatusPill } from "./InvestShell";
 import { ErrorCard, LoadingCards, useInvestData } from "./useInvestData";
+import { portfolioApi } from "../../lib/invest/api";
 
 const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
 export default function InvestDashboard() {
   const { data, loading, error, refresh } = useInvestData();
+  const [summary, setSummary] = useState(null);
+  const [summaryError, setSummaryError] = useState("");
+  useEffect(() => { portfolioApi.getSummary().then(setSummary).catch(e => setSummaryError(e.message)); }, []);
   const readiness = data?.compliance;
   const ready = readiness?.overallStatus === "completed";
   return <InvestShell title="Your wealth, clearly." description="A calm view of what is invested, what needs attention, and what comes next." actions={<ButtonLink href={ready ? "/funds" : "/invest/onboarding"}>{ready ? "Explore investments" : "Continue setup"}</ButtonLink>}>
@@ -16,10 +22,10 @@ export default function InvestDashboard() {
         <div className="relative grid gap-8 xl:grid-cols-[1fr_340px] xl:items-end">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-ink-muted"><span className="h-2 w-2 rounded-full bg-pos" />Portfolio overview</div>
-            <div className="mt-5 text-[clamp(2.5rem,6vw,5rem)] font-semibold tracking-[-.07em] text-ink">{money.format(0)}</div>
-            <p className="mt-2 text-sm text-ink-muted">Current value · No investment holdings synced</p>
+            <div className="mt-5 break-words text-[clamp(2.5rem,6vw,5rem)] font-semibold tracking-[-.07em] text-ink">{summary?.totalValue == null ? "Not available" : money.format(Number(summary.totalValue))}</div>
+            <p className="mt-2 text-sm text-ink-muted">{summaryError || (summary?.totalValue == null ? "Current value will appear after a portfolio is connected" : "Current value · latest server valuation")}</p>
             <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {[["Today", "—"], ["Overall returns", "—"], ["Net invested", money.format(0)]].map(([label, value]) => <div key={label} className="rounded-2xl bg-surface-2 p-4"><div className="text-xs text-ink-faint">{label}</div><div className="mt-1 text-lg font-semibold text-ink">{value}</div></div>)}
+              {["Today", "Overall returns", "Net invested"].map((label) => <div key={label} className="rounded-2xl bg-surface-2 p-4"><div className="text-xs text-ink-faint">{label}</div><div className="mt-1 break-words text-lg font-semibold text-ink">{label === "Net invested" && summary?.investedValue != null ? money.format(Number(summary.investedValue)) : "Not available"}</div></div>)}
             </div>
           </div>
           <div className="rounded-[1.45rem] border border-line bg-bg/55 p-5">
