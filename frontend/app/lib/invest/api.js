@@ -3,6 +3,14 @@
 const GET_TTL = 4000;
 const cache = new Map();
 const inFlight = new Map();
+let activeSessionKey = null;
+
+export function setInvestSessionKey(key) {
+  if (key === activeSessionKey) return;
+  activeSessionKey = key;
+  cache.clear();
+  inFlight.clear();
+}
 
 export class InvestApiError extends Error {
   constructor(message, { status = 0, code = "unknown", body = null } = {}) {

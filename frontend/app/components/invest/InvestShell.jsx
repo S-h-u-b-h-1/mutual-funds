@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { setInvestSessionKey } from "../../lib/invest/api";
 
 const links = [
   ["Overview", "/invest", "⌂"], ["Portfolio", "/invest/portfolio", "◒"],
@@ -19,6 +20,7 @@ export default function InvestShell({ eyebrow = "Suasion Invest", title, descrip
   const path = usePathname();
   const { data: session } = useSession();
   const firstName = session?.user?.name?.split(" ")?.[0] || "Investor";
+  setInvestSessionKey(session?.user?.id || session?.user?.email || null);
   return (
     <main className="min-h-screen bg-bg pb-28 pt-5 lg:pb-12 lg:pt-8">
       <div className="container-px mx-auto grid max-w-[1500px] gap-6 lg:grid-cols-[238px_minmax(0,1fr)]">
