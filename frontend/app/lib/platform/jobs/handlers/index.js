@@ -4,5 +4,9 @@
 // directly instead.
 import "./vaultRetentionSweep.js";
 import "./jobHistoryPrune.js";
+// M2 webhook platform: registers 'webhook-process' + 'webhook-outbound-deliver' job types and
+// the incoming provider handlers they dispatch to.
+import "../../webhooks/core.js";
+import "../../webhooks/providers/mockPayments.js";
 
 export { registeredTypes } from "../registry.js";
