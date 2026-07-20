@@ -8,6 +8,7 @@ import { logAudit } from "./audit.js";
 import { notifyUser } from "./notifications.js";
 import { getComplianceProgress } from "./complianceService.js";
 import { getAccount } from "./identityService.js";
+import { reconcileCompletedOrder } from "./portfolioService.js";
 
 export const ORDER_TYPES = ["purchase", "redemption", "switch_in", "switch_out"];
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled", "reversed", "retry_required"]);
@@ -67,6 +68,10 @@ async function transition(order, toStatus, reason = null) {
     });
   }
   await logAudit(order.user_id, "order_status_changed", { orderId: order.id, fromStatus, toStatus, reason });
+  // Journey 3: a completed order is real, genuine investor intent (they submitted it, compliance
+  // gated it) that settled — reconcile it into the SAME portfolio_holdings/portfolio_transactions
+  // tables CAS import uses, so the portfolio view never needs to know an order was involved.
+  if (toStatus === "completed") await reconcileCompletedOrder(r.rows[0]);
   return r.rows[0];
 }
 

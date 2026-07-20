@@ -99,15 +99,38 @@ describe("MockPaymentProvider", () => {
   });
 });
 
-describe("MockPortfolioProvider", () => {
+describe("MockPortfolioProvider (Journey 3)", () => {
   const provider = new MockPortfolioProvider();
+
   it("is a real PortfolioProvider", () => {
     expect(provider).toBeInstanceOf(PortfolioProvider);
   });
-  it("syncHoldings is a safe no-op until Module 6/7 exist", async () => {
-    const result = await provider.syncHoldings("u1");
-    expect(result.synced).toBe(true);
-    expect(result.holdingsUpdated).toBe(0);
+
+  it("returns 3-6 holdings with real-shaped scheme codes and a synthetic-but-plausible cost factor", async () => {
+    const { provider: providerName, holdings } = await provider.syncHoldings("user-a");
+    expect(providerName).toBe("mock-portfolio");
+    expect(holdings.length).toBeGreaterThanOrEqual(3);
+    expect(holdings.length).toBeLessThanOrEqual(6);
+    for (const h of holdings) {
+      expect(h.schemeCode).toMatch(/^\d+$/);
+      expect(h.units).toBeGreaterThan(0);
+      expect(h.costFactor).toBeGreaterThanOrEqual(0.75);
+      expect(h.costFactor).toBeLessThanOrEqual(1.25);
+      expect(h.purchaseDaysAgo).toBeGreaterThan(0);
+      expect(h.folioNumber).toMatch(/^MOCK/);
+    }
+  });
+
+  it("is deterministic per user — same userId produces the same portfolio every call", async () => {
+    const first = await provider.syncHoldings("stable-user");
+    const second = await provider.syncHoldings("stable-user");
+    expect(second.holdings).toEqual(first.holdings);
+  });
+
+  it("different users get different portfolios (not identical datasets)", async () => {
+    const a = await provider.syncHoldings("user-alpha");
+    const b = await provider.syncHoldings("user-beta");
+    expect(a.holdings).not.toEqual(b.holdings);
   });
 });
 

@@ -1,11 +1,11 @@
 # Invest Platform — API Contracts
 
 Documents every Invest endpoint live as of this pass: Journey 1 (Investor Identity + Compliance
-Engine) and Journey 2 (Order Management). This is the contract for frontend integration: request/
-response shapes here are stable; any breaking change gets a version bump or a new field, not a
-silent reshape. Endpoints for Journeys 3-6 (Portfolio, Documents, CRM, Notifications) will be
-appended here as each lands — see `docs/INVEST_PLATFORM_ARCHITECTURE.md` for the full target
-surface.
+Engine), Journey 2 (Order Management), and Journey 3 (Portfolio). This is the contract for
+frontend integration: request/response shapes here are stable; any breaking change gets a version
+bump or a new field, not a silent reshape. Endpoints for Journeys 4-6 (Documents, CRM,
+Notifications) will be appended here as each lands — see `docs/INVEST_PLATFORM_ARCHITECTURE.md`
+for the full target surface.
 
 **Path convention**: `/api/v1/invest/...`, not the bare `/invest/...` used in the brief's own
 examples — this repo already has an established `/api/v1/` namespace (`/api/v1/sync/*`,
@@ -241,6 +241,147 @@ Response: `{ "order": { ..., "status": "submitted" } }`.
   message text if the UI wants to redirect to `/invest` onboarding specifically (e.g.
   `error.includes("Compliance must be fully completed")`), since no separate error `code` field
   exists yet.
+
+---
+
+## Journey 3 — Portfolio
+
+Source-agnostic: a holding may originate from a CAS import, a completed Journey 2 order, or an
+explicit mock-connect action (below) — every endpoint in this section returns the same shape
+regardless, and a single scheme held via two different sources consolidates into **one** row
+(see `sources` in the holdings shape). Nothing here recomputes analytics itself; it's a thin read
+layer over the existing, already-live `frontend/app/lib/portfolioIntelligence/*` engine that also
+backs `/api/v1/portfolio/intelligence` (the pre-Invest CAS-import page) — same math, same
+`portfolio_holdings`/`portfolio_transactions` tables, different API surface.
+
+**Empty-state contract**: every endpoint below returns a clean `200` with a zeroed/empty shape for
+a user with no holdings yet — never a `400`. This is a deliberate improvement over
+`/api/v1/portfolio/intelligence`'s `400 "No holdings to analyze"`: a brand-new investor with zero
+holdings is a normal, common state, not an error condition.
+
+### `GET /api/v1/invest/portfolio`
+
+Combined view — everything a dashboard needs in one call.
+
+```json
+{
+  "holdings": [
+    {
+      "schemeCode": "119551", "schemeName": "...", "isin": "...", "units": 245.318,
+      "avgCost": 42.10, "purchaseValue": 10332.89, "currentValue": 11145.02,
+      "amc": "...", "category": "Large Cap", "benchmark": "...", "expenseRatio": 0.45,
+      "nav": 45.43, "weight": 22.3,
+      "sources": [ { "source": "mock-connected", "folioNumber": "MOCK12345678", "units": 245.318, "currentValue": 11145.02 } ]
+    }
+  ],
+  "unresolved": [],
+  "summary": { "totalValue": 50000, "investedValue": 46000, "gainLoss": 4000, "gainLossPct": 8.7, "xirr": 12.1, "holdingsCount": 4, "healthScore": 72, "qualityScore": 68, "effectiveHoldings": 3.2, "effectiveAmcs": 2.8, "effectiveCategories": 3.1, "staleHoldingCount": 0, "latestNavCoveragePct": 100 },
+  "allocation": { "amc": [ { "name": "...", "value": 22000, "weight": 44 } ], "category": [...], "benchmark": [...], "sector": {...} },
+  "topHoldings": [ /* top N by weight, subset of holdings */ ],
+  "performanceLeaders": [ /* best/worst performing holdings by return */ ],
+  "strengths": ["..."], "weaknesses": ["..."], "bottomLine": "..."
+}
+```
+
+Empty state: `{ "holdings": [], "unresolved": [], "summary": { "totalValue": 0, "investedValue": 0, "gainLoss": 0, "gainLossPct": null, "xirr": null, "holdingsCount": 0, "healthScore": null, "qualityScore": null, "effectiveHoldings": 0, "effectiveAmcs": 0, "effectiveCategories": 0 }, "allocation": null, "topHoldings": [], "performanceLeaders": [] }`.
+
+**`sources`** on each holding is the source-agnostic guarantee made concrete: if a scheme was
+partly CAS-imported and partly bought through a completed order, this array has two entries and
+`units`/`currentValue` on the parent object are already summed — the frontend never needs to merge
+by source itself. **`unresolved`** lists any `portfolio_holdings` rows whose `scheme_code` no
+longer resolves to a live fund (delisted/merged schemes) — surfaced, not silently dropped or
+crashed on.
+
+### `GET /api/v1/invest/portfolio/summary`
+
+`{ "summary": { /* same shape as above */ } }` — for a lightweight dashboard widget that doesn't need full holdings.
+
+### `GET /api/v1/invest/portfolio/holdings`
+
+`{ "holdings": [...], "unresolved": [...] }` — same per-holding shape as the combined view, standalone.
+
+### `GET /api/v1/invest/portfolio/allocation`
+
+`{ "allocation": { "amc": [...], "category": [...], "benchmark": [...], "sector": {...} } }`.
+Empty state: `{ "allocation": { "amc": [], "category": [], "benchmark": [], "sector": null } }`.
+
+### `GET /api/v1/invest/portfolio/performance`
+
+```json
+{
+  "valuation": { "investedValue": 46000, "currentValue": 50000, "gainLoss": 4000, "gainLossPct": 8.7, "xirr": 12.1 },
+  "performanceLeaders": [...],
+  "history": [ { "snapshot_date": "2026-07-01", "total_value": 48500, "holdings_count": 4 } ],
+  "historyNote": null
+}
+```
+
+`history` is real daily `portfolio_snapshots` rows, oldest first — **never backfilled or
+estimated**. `historyNote` is non-null (and `history` may be short) until at least 3 snapshots
+exist: `"Only 1 historical snapshot(s) recorded — too little to chart a trend yet. This grows over
+time, never backfilled with estimates."` Render `history` as a real (if short) line, not a fake
+smooth curve, while `historyNote` is present. Empty state (no holdings at all):
+`{ "valuation": null, "performanceLeaders": [], "history": [], "historyNote": "No holdings yet." }`.
+
+### `GET /api/v1/invest/portfolio/history?limit=50`
+
+Portfolio Timeline — merges order lifecycle events (Journey 2) and settled transactions (CAS
+import + reconciled orders) into one chronological feed, newest first.
+
+```json
+{
+  "events": [
+    { "type": "order_status", "label": "Units allotted", "schemeCode": "119551", "orderType": "purchase", "amount": 5000, "units": 110.5, "reason": null, "occurredAt": "..." },
+    { "type": "transaction", "label": "Investment settled", "schemeCode": "119551", "amount": 5000, "source": "invest-order", "occurredAt": "..." }
+  ]
+}
+```
+
+`limit` (query param, optional): clamped to `[1, 200]`, defaults to `50`. Only emits event types
+this platform has real data for today — `label` values map from real order statuses
+(`submitted`/`processing`/`units_pending`/`completed`/`failed`/`cancelled`/`retry_required`/
+`reversed`) and real transaction types
+(`purchase`/`redemption`/`switch_in`/`switch_out`/`dividend_payout`/`dividend_reinvest`).
+"Document Generated" / "Advisor Note" event types are **not yet emitted** — they arrive with
+Journeys 4/5's real data, never stubbed in ahead of that.
+
+### `POST /api/v1/invest/portfolio/connect`
+
+Explicit, user-initiated only — generates a realistic demo portfolio for a user with no holdings
+yet, using real, currently-active fund identities (real scheme code, current NAV/AMC/category);
+only the "you hold N units, purchased on date D" fact is synthetic. Every row this creates is
+tagged `source: "mock-connected"`, distinct from `"cas"` (real CAS import) and `"invest-order"`
+(a real completed order) everywhere downstream. **Never called automatically** — this platform
+does not fabricate a user's financial position without an explicit tap.
+
+**Idempotent**: a second call for an already-connected user returns the existing portfolio
+unchanged, not a fresh/different one.
+
+```json
+{ "alreadyConnected": false, "holdings": [...], "unresolved": [], "summary": {...}, "allocation": {...}, "topHoldings": [...], "performanceLeaders": [...] }
+```
+
+(Same shape as `GET /portfolio`, plus the leading `alreadyConnected` flag.)
+
+### Frontend integration notes
+
+- **Empty state is `200`, not `400`** — every endpoint above; see the empty-state contract note at
+  the top of this section. Render an empty/zeroed dashboard, not an error screen, for a
+  brand-new investor.
+- **`unresolved` is not an error** — a delisted/merged scheme in a user's real CAS-imported
+  history is a legitimate state. Surface it as "N holdings need review" or similar, don't drop it
+  silently and don't treat its presence as a failed request.
+- **One consolidated row per scheme, `sources` shows the breakdown** — never sum
+  `holdings[].units` across rows for the "same" fund; if a scheme appears via two sources it is
+  already one row with `units` pre-summed and `sources` listing the parts.
+- **A completed Journey 2 order updates the portfolio automatically** — no separate "sync" call is
+  needed after an order reaches `completed`; `GET /portfolio*` reflects it on the next read.
+- **`connectMockPortfolio` is a deliberate, opt-in demo action** — surface it as something like
+  "Connect a demo portfolio" for a first-time/empty-state user, not auto-triggered on page load,
+  and don't re-offer it once `alreadyConnected` comes back `true` on a prior call.
+- **`historyNote` gates how `performance.history` should render** — a non-null note means fewer
+  than 3 real snapshots exist yet; show the real (short) series plainly rather than smoothing or
+  projecting a trend from it.
 
 ---
 
