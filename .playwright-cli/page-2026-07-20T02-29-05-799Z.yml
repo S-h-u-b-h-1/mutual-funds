@@ -1,0 +1,87 @@
+- generic [active] [ref=f1e1]:
+  - link "Skip to main content" [ref=f1e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=f1e4]:
+    - generic [ref=f1e5]:
+      - complementary [ref=f1e6]:
+        - generic [ref=f1e7]:
+          - link "SS Suasion Invest Powered by MF Pulse" [ref=f1e8] [cursor=pointer]:
+            - /url: /invest
+            - generic [ref=f1e9]: SS
+            - generic [ref=f1e10]:
+              - generic [ref=f1e11]: Suasion Invest
+              - generic [ref=f1e12]: Powered by MF Pulse
+          - navigation "Invest navigation" [ref=f1e13]:
+            - link "Overview" [ref=f1e14] [cursor=pointer]:
+              - /url: /invest
+              - generic [ref=f1e15]: ⌂
+              - text: Overview
+            - link "Portfolio" [ref=f1e16] [cursor=pointer]:
+              - /url: /invest/portfolio
+              - generic [ref=f1e17]: ◒
+              - text: Portfolio
+            - link "Orders" [ref=f1e18] [cursor=pointer]:
+              - /url: /invest/orders
+              - generic [ref=f1e19]: ↗
+              - text: Orders
+            - link "Transactions" [ref=f1e20] [cursor=pointer]:
+              - /url: /invest/transactions
+              - generic [ref=f1e21]: ⇄
+              - text: Transactions
+            - link "Readiness" [ref=f1e22] [cursor=pointer]:
+              - /url: /invest/compliance
+              - generic [ref=f1e23]: ✓
+              - text: Readiness
+            - link "Documents" [ref=f1e24] [cursor=pointer]:
+              - /url: /invest/documents
+              - generic [ref=f1e25]: ▤
+              - text: Documents
+            - link "Notifications" [ref=f1e26] [cursor=pointer]:
+              - /url: /invest/notifications
+              - generic [ref=f1e27]: ◌
+              - text: Notifications
+            - link "Advisor" [ref=f1e28] [cursor=pointer]:
+              - /url: /invest/advisor
+              - generic [ref=f1e29]: ◇
+              - text: Advisor
+          - generic [ref=f1e30]:
+            - generic [ref=f1e31]: Secure workspace
+            - paragraph [ref=f1e32]: Your investment readiness and financial records stay separate from public research.
+      - generic [ref=f1e33]:
+        - generic [ref=f1e34]:
+          - generic [ref=f1e35]:
+            - generic [ref=f1e36]: Suasion Invest
+            - heading "Every order, explained." [level=1] [ref=f1e37]
+            - paragraph [ref=f1e38]: Review a simulated mutual-fund order, submit it to the mock provider, and follow every status change.
+          - link "Research funds" [ref=f1e40] [cursor=pointer]:
+            - /url: /funds
+        - generic "Workspace for Aarav" [ref=f1e41]:
+          - generic [ref=f1e42]:
+            - strong [ref=f1e43]: Mock investment environment.
+            - text: Orders are synthetic, payment is not collected, and no real units are purchased or redeemed.
+          - generic [ref=f1e44]:
+            - generic [ref=f1e45]:
+              - generic [ref=f1e46]: New order
+              - heading "Investment details" [level=2] [ref=f1e82]
+              - generic [ref=f1e83]:
+                - generic [ref=f1e84]:
+                  - text: AMFI scheme code
+                  - textbox "AMFI scheme code" [ref=f1e85]:
+                    - /placeholder: "For example: 120503"
+                - generic [ref=f1e86]:
+                  - text: Order type
+                  - combobox "Order type" [ref=f1e87]:
+                    - option "Purchase" [selected]
+                    - option "Redemption"
+                - generic [ref=f1e88]:
+                  - text: Amount in rupees
+                  - spinbutton "Amount in rupees" [ref=f1e89]
+                - button "Review order" [ref=f1e90] [cursor=pointer]
+            - generic [ref=f1e56]:
+              - generic [ref=f1e57]:
+                - heading "Order history" [level=2] [ref=f1e58]
+                - button "Refresh" [ref=f1e59] [cursor=pointer]
+              - generic [ref=f1e61]:
+                - generic [ref=f1e62]: No investment orders yet
+                - paragraph [ref=f1e63]: Your first mock order will appear here after the server accepts it.
+  - alert [ref=f1e64]

@@ -1,0 +1,8 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - heading "Checking access" [level=1] [ref=e8]
+      - paragraph [ref=e9]: Verifying your secure MF Pulse workspace before loading this page.
+  - alert [ref=e10]

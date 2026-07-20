@@ -1,0 +1,89 @@
+- generic [active] [ref=f1e1]:
+  - link "Skip to main content" [ref=f1e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=f1e4]:
+    - generic [ref=f1e5]:
+      - complementary [ref=f1e6]:
+        - generic [ref=f1e7]:
+          - link "SS Suasion Invest Powered by MF Pulse" [ref=f1e8] [cursor=pointer]:
+            - /url: /invest
+            - generic [ref=f1e9]: SS
+            - generic [ref=f1e10]:
+              - generic [ref=f1e11]: Suasion Invest
+              - generic [ref=f1e12]: Powered by MF Pulse
+          - navigation "Invest navigation" [ref=f1e13]:
+            - link "Overview" [ref=f1e14] [cursor=pointer]:
+              - /url: /invest
+              - generic [ref=f1e15]: ⌂
+              - text: Overview
+            - link "Portfolio" [ref=f1e16] [cursor=pointer]:
+              - /url: /invest/portfolio
+              - generic [ref=f1e17]: ◒
+              - text: Portfolio
+            - link "Orders" [ref=f1e18] [cursor=pointer]:
+              - /url: /invest/orders
+              - generic [ref=f1e19]: ↗
+              - text: Orders
+            - link "Transactions" [ref=f1e20] [cursor=pointer]:
+              - /url: /invest/transactions
+              - generic [ref=f1e21]: ⇄
+              - text: Transactions
+            - link "Readiness" [ref=f1e22] [cursor=pointer]:
+              - /url: /invest/compliance
+              - generic [ref=f1e23]: ✓
+              - text: Readiness
+            - link "Documents" [ref=f1e24] [cursor=pointer]:
+              - /url: /invest/documents
+              - generic [ref=f1e25]: ▤
+              - text: Documents
+            - link "Notifications" [ref=f1e26] [cursor=pointer]:
+              - /url: /invest/notifications
+              - generic [ref=f1e27]: ◌
+              - text: Notifications
+            - link "Advisor" [ref=f1e28] [cursor=pointer]:
+              - /url: /invest/advisor
+              - generic [ref=f1e29]: ◇
+              - text: Advisor
+          - generic [ref=f1e30]:
+            - generic [ref=f1e31]: Secure workspace
+            - paragraph [ref=f1e32]: Your investment readiness and financial records stay separate from public research.
+      - generic [ref=f1e33]:
+        - generic [ref=f1e34]:
+          - generic [ref=f1e35]:
+            - generic [ref=f1e36]: Suasion Invest
+            - heading "Every order, explained." [level=1] [ref=f1e37]
+            - paragraph [ref=f1e38]: Review a simulated mutual-fund order, submit it to the mock provider, and follow every status change.
+          - link "Research funds" [ref=f1e40] [cursor=pointer]:
+            - /url: /funds
+        - generic "Workspace for Aarav" [ref=f1e41]:
+          - generic [ref=f1e42]:
+            - strong [ref=f1e43]: Mock investment environment.
+            - text: Orders are synthetic, payment is not collected, and no real units are purchased or redeemed.
+          - generic [ref=f1e44]:
+            - generic [ref=f1e45]:
+              - generic [ref=f1e46]: New order
+              - heading "Review before submitting" [level=2] [ref=f1e65]
+              - generic [ref=f1e66]:
+                - generic [ref=f1e67]: Draft saved on the server · draft-1
+                - generic [ref=f1e68]:
+                  - generic [ref=f1e69]:
+                    - term [ref=f1e70]: Scheme
+                    - definition [ref=f1e71]: "120503"
+                  - generic [ref=f1e72]:
+                    - term [ref=f1e73]: Type
+                    - definition [ref=f1e74]: purchase
+                  - generic [ref=f1e75]:
+                    - term [ref=f1e76]: Amount
+                    - definition [ref=f1e77]: ₹5,000.00
+                - paragraph [ref=f1e78]: By submitting, you acknowledge this is a provider simulation. There is no payment step and no money movement.
+                - generic [ref=f1e79]:
+                  - button "Edit" [ref=f1e80] [cursor=pointer]
+                  - button "Submit mock order" [ref=f1e81] [cursor=pointer]
+            - generic [ref=f1e56]:
+              - generic [ref=f1e57]:
+                - heading "Order history" [level=2] [ref=f1e58]
+                - button "Refresh" [ref=f1e59] [cursor=pointer]
+              - generic [ref=f1e61]:
+                - generic [ref=f1e62]: No investment orders yet
+                - paragraph [ref=f1e63]: Your first mock order will appear here after the server accepts it.
+  - alert [ref=f1e64]

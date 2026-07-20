@@ -1,0 +1,59 @@
+- generic [active] [ref=f18e1]:
+  - link "Skip to main content" [ref=f18e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=f18e4]:
+    - generic [ref=f18e6]:
+      - generic [ref=f18e7]:
+        - generic [ref=f18e8]:
+          - generic [ref=f18e9]: Suasion Invest
+          - heading "Every order, explained." [level=1] [ref=f18e10]
+          - paragraph [ref=f18e11]: Review a simulated mutual-fund order, submit it to the mock provider, and follow every status change.
+        - link "Research funds" [ref=f18e13] [cursor=pointer]:
+          - /url: /funds
+      - generic "Workspace for Aarav" [ref=f18e14]:
+        - generic [ref=f18e15]:
+          - strong [ref=f18e16]: Mock investment environment.
+          - text: Orders are synthetic, payment is not collected, and no real units are purchased or redeemed.
+        - generic [ref=f18e17]:
+          - generic [ref=f18e18]:
+            - generic [ref=f18e19]: New order
+            - heading "Review before submitting" [level=2] [ref=f18e54]
+            - generic [ref=f18e55]:
+              - generic [ref=f18e56]:
+                - generic [ref=f18e57]:
+                  - term [ref=f18e58]: Scheme
+                  - definition [ref=f18e59]: "120503"
+                - generic [ref=f18e60]:
+                  - term [ref=f18e61]: Type
+                  - definition [ref=f18e62]: purchase
+                - generic [ref=f18e63]:
+                  - term [ref=f18e64]: Amount
+                  - definition [ref=f18e65]: ₹5,000.00
+              - paragraph [ref=f18e66]: By submitting, you acknowledge this is a provider simulation. There is no payment step and no money movement.
+              - generic [ref=f18e67]:
+                - button "Edit" [ref=f18e68] [cursor=pointer]
+                - button "Submit mock order" [ref=f18e69] [cursor=pointer]
+          - generic [ref=f18e29]:
+            - generic [ref=f18e30]:
+              - heading "Order history" [level=2] [ref=f18e31]
+              - button "Refresh" [ref=f18e32] [cursor=pointer]
+            - generic [ref=f18e34]:
+              - generic [ref=f18e35]: No investment orders yet
+              - paragraph [ref=f18e36]: Your first mock order will appear here after the server accepts it.
+    - navigation "Invest mobile navigation" [ref=f18e37]:
+      - link "Overview" [ref=f18e38] [cursor=pointer]:
+        - /url: /invest
+        - generic [ref=f18e39]: ⌂
+      - link "Portfolio" [ref=f18e41] [cursor=pointer]:
+        - /url: /invest/portfolio
+        - generic [ref=f18e42]: ◒
+      - link "Orders" [ref=f18e44] [cursor=pointer]:
+        - /url: /invest/orders
+        - generic [ref=f18e45]: ↗
+      - link "Transactions" [ref=f18e47] [cursor=pointer]:
+        - /url: /invest/transactions
+        - generic [ref=f18e48]: ⇄
+      - link "More" [ref=f18e50] [cursor=pointer]:
+        - /url: /invest/more
+        - generic [ref=f18e51]: ••
+  - alert [ref=f18e53]
