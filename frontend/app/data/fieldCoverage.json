@@ -54,40 +54,40 @@
     "investable_n": 3441
    },
    "1M": {
-    "universe_pct": 28.33,
-    "universe_n": 4030,
-    "investable_pct": 99.48,
-    "investable_n": 3436
+    "universe_pct": 28.26,
+    "universe_n": 4021,
+    "investable_pct": 99.62,
+    "investable_n": 3441
    },
    "3M": {
-    "universe_pct": 28.07,
-    "universe_n": 3993,
+    "universe_pct": 27.97,
+    "universe_n": 3979,
     "investable_pct": 98.7,
     "investable_n": 3409
    },
    "6M": {
     "universe_pct": 26.53,
-    "universe_n": 3774,
-    "investable_pct": 95.57,
-    "investable_n": 3301
+    "universe_n": 3775,
+    "investable_pct": 95.6,
+    "investable_n": 3302
    },
    "1Y": {
-    "universe_pct": 24.88,
-    "universe_n": 3539,
-    "investable_pct": 90.07,
-    "investable_n": 3111
+    "universe_pct": 24.92,
+    "universe_n": 3545,
+    "investable_pct": 90.24,
+    "investable_n": 3117
    },
    "3Y": {
-    "universe_pct": 18.92,
-    "universe_n": 2692,
-    "investable_pct": 68.99,
-    "investable_n": 2383
+    "universe_pct": 18.94,
+    "universe_n": 2694,
+    "investable_pct": 69.02,
+    "investable_n": 2384
    },
    "5Y": {
-    "universe_pct": 13.34,
-    "universe_n": 1898,
-    "investable_pct": 48.99,
-    "investable_n": 1692
+    "universe_pct": 13.38,
+    "universe_n": 1904,
+    "investable_pct": 49.16,
+    "investable_n": 1698
    },
    "Volatility": {
     "universe_pct": 28.04,
