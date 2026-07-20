@@ -1,0 +1,6 @@
+import Link from "next/link";
+import InvestShell, { Card } from "../../components/invest/InvestShell";
+
+const links = [["Investment readiness","/invest/compliance","Complete KYC, bank, nominee and declarations"],["Document vault","/invest/documents","Statements, confirmations and tax records"],["Notifications","/invest/notifications","Account activity that deserves attention"],["Advisor","/invest/advisor","Guidance and service requests"]];
+export const metadata={title:"More | Suasion Invest"};
+export default function Page(){return <InvestShell title="Your Invest workspace" description="Readiness, records and human support—organized around what you need next."><div className="grid gap-4 sm:grid-cols-2">{links.map(([label,href,detail])=><Link href={href} key={href}><Card className="h-full p-5 transition hover:-translate-y-0.5 hover:border-accent/30"><div className="flex items-start justify-between gap-4"><div><h2 className="font-semibold text-ink">{label}</h2><p className="mt-2 text-sm leading-6 text-ink-muted">{detail}</p></div><span className="text-accent" aria-hidden="true">→</span></div></Card></Link>)}</div></InvestShell>}

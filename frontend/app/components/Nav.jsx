@@ -8,6 +8,7 @@ import FreshnessBadge from "./ui/FreshnessBadge";
 import { asOf } from "../lib/funds";
 import { marketStatus } from "../lib/marketStatus";
 const NAV_MENUS = [
+  { label: "Invest", links: [["Overview", "/invest"], ["Investment Readiness", "/invest/compliance"], ["Portfolio", "/invest/portfolio"], ["Orders", "/invest/orders"], ["Advisor", "/invest/advisor"]] },
   { label: "Research", links: [["Funds", "/funds"], ["AMCs", "/amc"], ["Categories", "/categories"], ["Benchmarks", "/performance"], ["Compare", "/compare"]] },
   { label: "Intelligence", links: [["Brief", "/brief"], ["News", "/news"], ["Signals", "/signals"], ["Market Map", "/market-map"]] },
   { label: "Personal", links: [["Dashboard", "/dashboard"], ["Portfolio", "/portfolio"], ["Watchlist", "/dashboard#watchlist"], ["Notebook", "/dashboard#notebook"]] },
@@ -72,7 +73,7 @@ export default function Nav({ active }) {
             </Link>
             <ThemeToggle className="hidden border-line/70 bg-bg/35 lg:inline-flex" />
             <AuthStatus />
-            <MobileNav active={active} />
+            {!active?.startsWith("/invest") && <MobileNav active={active} />}
           </div>
         </div>
       </div>

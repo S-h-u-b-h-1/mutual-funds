@@ -1,4 +1,5 @@
 export const NAV_GROUPS = [
+  { label: "Suasion Invest", links: [["Invest Overview", "/invest"], ["Investment Readiness", "/invest/compliance"], ["Orders", "/invest/orders"], ["Documents", "/invest/documents"], ["Advisor", "/invest/advisor"]] },
   { label: "Overview", links: [["Home", "/"], ["Markets", "/performance"], ["Morning Brief", "/brief"]] },
   { label: "Research", links: [["Funds", "/funds"], ["Research", "/research"], ["Categories", "/categories"], ["AMCs", "/amc"], ["Compare", "/compare"], ["Discover", "/discover"]] },
   { label: "Intelligence", links: [["News", "/news"], ["Signals", "/signals"], ["Market Map", "/market-map"], ["Research Queue", "/dashboard"]] },

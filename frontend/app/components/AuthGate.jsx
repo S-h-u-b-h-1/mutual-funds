@@ -59,6 +59,7 @@ export default function AuthGate({ children }) {
   const isLanding = pathname === "/";
   const isAuthPage = AUTH_PAGES.has(pathname);
   const isSetupPage = pathname === "/profile/setup";
+  const isInvestPath = pathname === "/invest" || pathname.startsWith("/invest/");
   const isPublic = isLanding || isAuthPage || isPublicResearchPath(pathname);
   const target = useMemo(() => currentTarget(pathname), [pathname]);
 
@@ -90,10 +91,10 @@ export default function AuthGate({ children }) {
       router.replace(`/login?callbackUrl=${encodeURIComponent(target)}`);
       return;
     }
-    if (status === "authenticated" && profileReady && !profileComplete && !isPublic && !isSetupPage) {
+    if (status === "authenticated" && profileReady && !profileComplete && !isPublic && !isSetupPage && !isInvestPath) {
       router.replace(`/profile/setup?callbackUrl=${encodeURIComponent(target)}`);
     }
-  }, [isPublic, isSetupPage, profileComplete, profileReady, router, status, target]);
+  }, [isInvestPath, isPublic, isSetupPage, profileComplete, profileReady, router, status, target]);
 
   if (isPublic) return children;
 
@@ -111,7 +112,7 @@ export default function AuthGate({ children }) {
     );
   }
 
-  if (!profileComplete && !isSetupPage) {
+  if (!profileComplete && !isSetupPage && !isInvestPath) {
     return <GateShell title="Complete your profile" detail="MF Pulse uses your role, research goal, risk comfort, and horizon to personalize the frontend workspace." />;
   }
 
