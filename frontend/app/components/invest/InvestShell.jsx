@@ -68,6 +68,6 @@ export function Card({ className = "", children }) { return <section className={
 export function ButtonLink({ href, children, secondary = false }) { return <Link href={href} className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-semibold transition ${secondary ? "border border-line bg-surface text-ink hover:bg-surface-2" : "bg-ink text-bg hover:opacity-90"}`}>{children}</Link>; }
 export function StatusPill({ status }) {
   const done = status === "completed" || status === "verified";
-  const review = status === "needs_review" || status === "rejected";
+  const review = status === "needs_review" || status === "rejected" || status === "failed" || status === "retry_required";
   return <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.1em] ${done ? "bg-pos/10 text-pos" : review ? "bg-neg/10 text-neg" : "bg-surface-2 text-ink-muted"}`}>{String(status || "pending").replaceAll("_", " ")}</span>;
 }

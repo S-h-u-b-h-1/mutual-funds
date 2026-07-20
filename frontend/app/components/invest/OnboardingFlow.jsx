@@ -23,7 +23,7 @@ export default function OnboardingFlow() {
   const [form, setForm] = useState({ otp:"", pan:"", consent:false, dateOfBirth:"", gender:"", occupation:"", annualIncomeBand:"", city:"", state:"", pincode:"", horizonScore:3, lossToleranceScore:3, incomeStabilityScore:3, experienceScore:3, preferredPlan:"direct", sipDay:5, goalName:"", accountNumber:"", ifsc:"", accountHolderName:"", nomineeName:"", relationship:"", fatca:false });
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
-  const { data, loading, error, refresh, request } = useInvestData();
+  const { data, loading, error, refresh, api } = useInvestData();
   const [stepId, stepName] = steps[index];
   const item = data?.compliance?.items?.find(i => i.item_key === stepId);
   const update = e => { const {name, value, type, checked} = e.target; setForm(f => ({...f, [name]: type === "checkbox" ? checked : value})); setNotice(""); };
@@ -37,14 +37,14 @@ export default function OnboardingFlow() {
   async function submit(e) {
     e.preventDefault(); setSaving(true); setNotice("");
     try {
-      if (stepId === "profile") await request("/api/v1/invest/profile", { method:"PUT", body:JSON.stringify({ dateOfBirth:form.dateOfBirth, gender:form.gender, occupation:form.occupation, annualIncomeBand:form.annualIncomeBand, city:form.city, state:form.state, pincode:form.pincode }) });
-      else if (stepId === "risk_profile") { await request("/api/v1/invest/risk-profile", { method:"PUT", body:JSON.stringify({ horizonScore:Number(form.horizonScore), lossToleranceScore:Number(form.lossToleranceScore), incomeStabilityScore:Number(form.incomeStabilityScore), experienceScore:Number(form.experienceScore) }) }); await request("/api/v1/invest/compliance/items/risk_profile", {method:"POST", body:"{}"}); }
-      else if (stepId === "preferences") await request("/api/v1/invest/preferences", { method:"PUT", body:JSON.stringify({ preferredPlan:form.preferredPlan, sipDay:Number(form.sipDay), goals:form.goalName ? [{name:form.goalName}] : [] }) });
+      if (stepId === "profile") await api.updateProfile({ dateOfBirth:form.dateOfBirth, gender:form.gender, occupation:form.occupation, annualIncomeBand:form.annualIncomeBand, city:form.city, state:form.state, pincode:form.pincode });
+      else if (stepId === "risk_profile") { await api.updateRiskProfile({ horizonScore:Number(form.horizonScore), lossToleranceScore:Number(form.lossToleranceScore), incomeStabilityScore:Number(form.incomeStabilityScore), experienceScore:Number(form.experienceScore) }); await api.submitCompliance("risk_profile", {}); }
+      else if (stepId === "preferences") await api.updatePreferences({ preferredPlan:form.preferredPlan, sipDay:Number(form.sipDay), goals:form.goalName ? [{name:form.goalName}] : [] });
       else {
         const payload = stepId === "mobile" ? {otp:form.otp} : stepId === "pan" ? {pan:form.pan} : stepId === "identity" ? {pan:form.pan, consentToken:form.consent ? `consent-${Date.now()}` : ""} : stepId === "bank" ? {accountNumber:form.accountNumber, ifsc:form.ifsc, accountHolderName:form.accountHolderName} : stepId === "nominee" ? {name:form.nomineeName, relationship:form.relationship, allocationPct:100, minor:false} : {declared:form.fatca};
-        const result = await request(`/api/v1/invest/compliance/items/${stepId}`, {method:"POST", body:JSON.stringify(payload)});
+        const result = await api.submitCompliance(stepId, payload);
         if (stepId === "fatca" && result.overallStatus === "completed") {
-          await request("/api/v1/invest/account", { method:"POST", body:"{}" });
+          await api.openAccount();
         }
       }
       await refresh(); setNotice("Saved securely. You can continue or return later.");

@@ -1,2 +1,2 @@
-import InvestModule from "../../components/invest/InvestModule";
-export const metadata={title:"Notifications | Suasion Invest"}; export default function Page(){return <InvestModule kind="notifications"/>}
+import NotificationsCenter from "../../components/invest/NotificationsCenter";
+export const metadata={title:"Notifications | Suasion Invest"}; export default function Page(){return <NotificationsCenter/>}

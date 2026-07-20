@@ -1,0 +1,3 @@
+export default function Loading() {
+  return <main className="min-h-screen bg-bg pb-24 pt-8"><div className="container-px mx-auto max-w-[1200px]" aria-label="Loading Invest workspace"><div className="h-3 w-28 animate-pulse rounded-full bg-surface-2" /><div className="mt-4 h-12 max-w-md animate-pulse rounded-2xl bg-surface-2" /><div className="mt-3 h-5 max-w-xl animate-pulse rounded-full bg-surface-2" /><div className="mt-8 grid gap-5 sm:grid-cols-2"><div className="h-48 animate-pulse rounded-[1.65rem] bg-surface-2" /><div className="h-48 animate-pulse rounded-[1.65rem] bg-surface-2" /></div></div></main>;
+}

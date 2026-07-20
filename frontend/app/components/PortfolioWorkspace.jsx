@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { saveWatchlist } from "../lib/cloudSync";
+import { portfolioApi } from "../lib/invest/api";
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
 const PAGE_SIZE = 12;
@@ -560,19 +561,14 @@ export default function PortfolioWorkspace() {
   }, [file]);
 
   async function loadHoldings() {
-    const response = await fetch("/api/v1/portfolio/holdings");
-    if (response.status === 401) return [];
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Holdings could not be loaded.");
+    const data = await portfolioApi.getHoldings();
     setHoldings(data.items || []);
     setUnresolved(data.unresolved || []);
     return data.items || [];
   }
 
   async function computeReport() {
-    const response = await fetch("/api/v1/portfolio/intelligence");
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Portfolio intelligence could not be loaded.");
+    const data = await portfolioApi.getIntelligence();
     setReport(data.report);
     setComputedAt(data.computedAt || null);
     setUnresolved(data.unresolvedHoldings || []);
@@ -621,16 +617,14 @@ export default function PortfolioWorkspace() {
     try {
       const form = new FormData(); form.append("source", statementType); form.append("file", file);
       setUploadPhase("processing");
-      const response = await fetch("/api/v1/portfolio/upload", { method: "POST", body: form, signal: controller.signal });
-      const data = await response.json();
-      if (!response.ok) throw new Error(uploadErrorMessage(data, response.status));
+      const data = await portfolioApi.uploadStatement(form, controller.signal);
       await loadHoldings(); await computeReport();
       setUploadPhase("complete");
       setMessage(`Portfolio saved and synced. ${data.imported} holding${data.imported === 1 ? "" : "s"} imported by the server.`);
       setView("dashboard"); setFile(null);
       window.requestAnimationFrame(() => noticeRef.current?.focus());
     } catch (err) {
-      const text = err.name === "AbortError" ? "Upload cancelled. Portfolio was not saved by this request." : `${err.message || "Statement processing failed."} Portfolio was not shown as saved.`;
+      const text = err.name === "AbortError" ? "Upload cancelled. Portfolio was not saved by this request." : `${uploadErrorMessage(err.body, err.status) || err.message || "Statement processing failed."} Portfolio was not shown as saved.`;
       setUploadPhase("error"); setError(text); window.requestAnimationFrame(() => noticeRef.current?.focus());
     } finally { requestRef.current = null; setBusy(false); }
   }

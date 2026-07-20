@@ -1,13 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-
-async function request(path, options) {
-  const response = await fetch(path, { ...options, headers: { "Content-Type": "application/json", ...(options?.headers || {}) } });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.error || "We could not complete that request.");
-  return body;
-}
+import { investApi } from "../../lib/invest/api";
 
 export function useInvestData() {
   const [data, setData] = useState(null);
@@ -16,13 +10,13 @@ export function useInvestData() {
   const refresh = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const [profile, compliance] = await Promise.all([request("/api/v1/invest/profile"), request("/api/v1/invest/compliance")]);
+      const [profile, compliance] = await Promise.all([investApi.getProfile(), investApi.getCompliance()]);
       setData({ ...profile, compliance });
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
-  return { data, loading, error, refresh, request };
+  return { data, loading, error, refresh, api: investApi };
 }
 
 export function LoadingCards() { return <div className="grid gap-4 sm:grid-cols-2" aria-label="Loading investment workspace"><div className="h-44 animate-pulse rounded-[1.65rem] bg-surface-2" /><div className="h-44 animate-pulse rounded-[1.65rem] bg-surface-2" /></div>; }
