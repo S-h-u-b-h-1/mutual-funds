@@ -101,8 +101,30 @@ async function uploadStatement(formData, signal) {
 }
 
 export const portfolioApi = {
-  getHoldings: () => requestJson("/api/v1/portfolio/holdings"),
-  getIntelligence: () => requestJson("/api/v1/portfolio/intelligence"),
+  getPortfolio: () => requestJson("/api/v1/invest/portfolio"),
+  getSummary: () => requestJson("/api/v1/invest/portfolio/summary"),
+  getHoldings: () => requestJson("/api/v1/invest/portfolio/holdings"),
+  getAllocation: () => requestJson("/api/v1/invest/portfolio/allocation"),
+  getPerformance: () => requestJson("/api/v1/invest/portfolio/performance"),
+  getHistory: (limit = 50) => requestJson(`/api/v1/invest/portfolio/history?limit=${Math.min(200, Math.max(1, limit))}`),
+  connect: () => requestJson("/api/v1/invest/portfolio/connect", { method: "POST", body: "{}" }),
+  getPresentationData: async () => {
+    const value = await requestJson("/api/v1/invest/portfolio");
+    return {
+      holdings: value.holdings || [],
+      unresolved: value.unresolved || [],
+      report: {
+        portfolioSummary: value.summary || {},
+        allocations: value.allocation || {},
+        topHoldings: value.topHoldings || [],
+        performanceLeaders: value.performanceLeaders || [],
+        strengths: value.strengths || [],
+        weaknesses: value.weaknesses || [],
+        bottomLine: value.bottomLine || null,
+      },
+      computedAt: value.summary?.computedAt || null,
+    };
+  },
   uploadStatement,
 };
 

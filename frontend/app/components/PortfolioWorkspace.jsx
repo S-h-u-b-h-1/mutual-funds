@@ -547,6 +547,7 @@ export default function PortfolioWorkspace() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loadingPortfolio, setLoadingPortfolio] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [uploadPhase, setUploadPhase] = useState("idle");
   const [view, setView] = useState("dashboard");
   const uploadInputRef = useRef(null);
@@ -562,17 +563,31 @@ export default function PortfolioWorkspace() {
 
   async function loadHoldings() {
     const data = await portfolioApi.getHoldings();
-    setHoldings(data.items || []);
+    setHoldings(data.holdings || []);
     setUnresolved(data.unresolved || []);
-    return data.items || [];
+    return data.holdings || [];
   }
 
   async function computeReport() {
-    const data = await portfolioApi.getIntelligence();
+    const data = await portfolioApi.getPresentationData();
     setReport(data.report);
     setComputedAt(data.computedAt || null);
-    setUnresolved(data.unresolvedHoldings || []);
+    setUnresolved(data.unresolved || []);
     return data.report;
+  }
+
+  async function connectDemoPortfolio() {
+    setConnecting(true); setError(""); setMessage("");
+    try {
+      const data = await portfolioApi.connect();
+      setHoldings(data.holdings || []);
+      setUnresolved(data.unresolved || []);
+      setReport({ portfolioSummary: data.summary || {}, allocations: data.allocation || {}, topHoldings: data.topHoldings || [], performanceLeaders: data.performanceLeaders || [], strengths: data.strengths || [], weaknesses: data.weaknesses || [], bottomLine: data.bottomLine || null });
+      setComputedAt(data.summary?.computedAt || null);
+      setView("dashboard");
+      setMessage(data.alreadyConnected ? "Your connected portfolio is already up to date." : "Demo portfolio connected. Every synthetic position is labelled as mock-connected.");
+    } catch (err) { setError(err.message || "Portfolio could not be connected."); }
+    finally { setConnecting(false); }
   }
 
   useEffect(() => {
@@ -660,7 +675,7 @@ export default function PortfolioWorkspace() {
 
           {view === "import" && <ImportWorkspace file={file} fileUrl={fileUrl} statementType={statementType} setStatementType={setStatementType} dragging={dragging} setDragging={setDragging} selectFile={selectFile} uploadInputRef={uploadInputRef} processStatement={processStatement} busy={busy} uploadPhase={uploadPhase} error={error} message={message} noticeRef={noticeRef} onDrop={onDrop} cancelUpload={cancelUpload} />}
 
-          {view === "dashboard" && !holdings.length && <section className="portfolio-card-outlined p-8 text-center"><div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent/12 text-accent"><FileIcon /></div><h2 className="section-title mt-5">No saved portfolio yet.</h2><p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-ink-muted">Upload a supported statement to create user-scoped server holdings. The dashboard will not be populated from temporary browser state.</p><button type="button" onClick={openImport} className="mt-6 inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-semibold text-white">Upload statement</button></section>}
+          {view === "dashboard" && !holdings.length && <section className="portfolio-card-outlined p-8 text-center"><div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent/12 text-accent"><FileIcon /></div><h2 className="section-title mt-5">No saved portfolio yet.</h2><p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-ink-muted">Upload a supported statement to create user-scoped server holdings, or connect the clearly labelled demo portfolio for an interactive preview. Nothing is connected automatically.</p><div className="mt-6 flex flex-wrap justify-center gap-3"><button type="button" onClick={openImport} className="inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-semibold text-white">Upload statement</button><button type="button" onClick={connectDemoPortfolio} disabled={connecting} className="inline-flex min-h-11 items-center rounded-full border border-line px-5 text-sm font-semibold text-ink disabled:opacity-50">{connecting ? "Connecting…" : "Connect demo portfolio"}</button></div></section>}
 
           {view === "dashboard" && holdings.length > 0 && <><ExecutiveSummary summary={summary} computedAt={computedAt} /><PerformanceLeaders leaders={report?.performanceLeaders} /><ValueHistory history={report?.valueHistory || []} ranges={report?.valueHistoryRanges || []} /><HoldingsSection holdings={holdings} /><AllocationSection allocations={allocations} /><IntelligenceSection report={report} /><ChangesSection diff={report?.statementDiff} /><ProvenanceSection summary={summary} computedAt={computedAt} unresolved={unresolved} /></>}
         </>
