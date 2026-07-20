@@ -766,7 +766,7 @@
 {
 "category": "Value",
 "count": 44,
-"avg": 1.3,
+"avg": 1.31,
 "median": 1.16,
 "best": {
 "name": "Groww Value Fund (formerly known as Indiabulls Value Fund) - Direct Plan - Growth Option",
@@ -889,10 +889,10 @@
 {
 "amc": "Kotak Mahindra",
 "funds": 54,
-"avg": 2.16,
+"avg": 2.14,
 "pct_outperform": 70,
 "breadth": 89,
-"score": 74.4
+"score": 74.3
 },
 {
 "amc": "Invesco",
@@ -1017,10 +1017,10 @@
 {
 "amc": "DSP",
 "funds": 32,
-"avg": 1.86,
+"avg": 1.88,
 "pct_outperform": 50,
 "breadth": 91,
-"score": 63.1
+"score": 63.2
 },
 {
 "amc": "Mahindra Manulife",
