@@ -61,6 +61,35 @@ describe("MockDocumentProvider", () => {
     expect(doc.storageRef).toMatch(/^doc_/);
     expect(doc.source).toBe("mock-digilocker");
   });
+
+  it("generateDocument (Journey 4) returns a synthetic reference tagged mock-document-generator, with a plausible file size", async () => {
+    const doc = await provider.generateDocument("account_statement", { userId: "u1" });
+    expect(doc.storageRef).toMatch(/^doc_/);
+    expect(doc.provider).toBe("mock-document-generator");
+    expect(doc.mimeType).toBe("application/pdf");
+    expect(doc.fileSizeBytes).toBeGreaterThan(0);
+    expect(doc.context).toEqual({ userId: "u1" });
+  });
+
+  it("generateDocument uses a sane fallback size range for an unrecognized docType", async () => {
+    const doc = await provider.generateDocument("something-new", {});
+    expect(doc.fileSizeBytes).toBeGreaterThanOrEqual(20_000);
+    expect(doc.fileSizeBytes).toBeLessThanOrEqual(100_000);
+  });
+
+  it("storeUpload (Journey 4) returns a synthetic reference tagged mock-document-store", async () => {
+    const stored = await provider.storeUpload({ mimeType: "application/pdf", fileSizeBytes: 12345 });
+    expect(stored.storageRef).toMatch(/^doc_/);
+    expect(stored.provider).toBe("mock-document-store");
+    expect(stored.mimeType).toBe("application/pdf");
+    expect(stored.fileSizeBytes).toBe(12345);
+  });
+
+  it("storeUpload defaults mimeType and fileSizeBytes when the caller doesn't supply them", async () => {
+    const stored = await provider.storeUpload();
+    expect(stored.mimeType).toBe("application/octet-stream");
+    expect(stored.fileSizeBytes).toBeNull();
+  });
 });
 
 describe("MockInvestmentProvider", () => {

@@ -26,6 +26,18 @@ export class DocumentProvider {
   // interface from KYCProvider rather than folded into it.
   /** @param {string} consentToken @param {string} docType */
   async fetchDocument(consentToken, docType) { throw new Error("DocumentProvider.fetchDocument not implemented"); }
+  // Generation (Journey 4) — the platform fabricating a document (a statement, a confirmation),
+  // as opposed to fetchDocument's retrieval of one the user already holds elsewhere. Returns a
+  // synthetic storage reference only, same as fetchDocument — no concrete provider (mock or
+  // real) ever returns real document bytes through this interface.
+  /** @param {string} docType @param {object} context */
+  async generateDocument(docType, context) { throw new Error("DocumentProvider.generateDocument not implemented"); }
+  // Mints a storage reference for a user-supplied upload. Kept on the provider (not synthesized
+  // directly in documentService.js) for the same reason as fetchDocument/generateDocument — a
+  // real object-storage backend would return this reference itself; documentService should never
+  // need to change when the provider behind it does.
+  /** @param {{mimeType?: string, fileSizeBytes?: number}} fileMetadata */
+  async storeUpload(fileMetadata) { throw new Error("DocumentProvider.storeUpload not implemented"); }
 }
 
 export class InvestmentProvider {

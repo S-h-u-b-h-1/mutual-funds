@@ -9,6 +9,7 @@ import { notifyUser } from "./notifications.js";
 import { getComplianceProgress } from "./complianceService.js";
 import { getAccount } from "./identityService.js";
 import { reconcileCompletedOrder } from "./portfolioService.js";
+import { generateDocument } from "./documentService.js";
 
 export const ORDER_TYPES = ["purchase", "redemption", "switch_in", "switch_out"];
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled", "reversed", "retry_required"]);
@@ -71,7 +72,17 @@ async function transition(order, toStatus, reason = null) {
   // Journey 3: a completed order is real, genuine investor intent (they submitted it, compliance
   // gated it) that settled — reconcile it into the SAME portfolio_holdings/portfolio_transactions
   // tables CAS import uses, so the portfolio view never needs to know an order was involved.
-  if (toStatus === "completed") await reconcileCompletedOrder(r.rows[0]);
+  if (toStatus === "completed") {
+    await reconcileCompletedOrder(r.rows[0]);
+    // Journey 4: a real brokerage issues a contract note on settlement — same idea here, into
+    // the same document vault a CAS upload or a KYC PDF would land in.
+    await generateDocument(order.user_id, {
+      docType: "investment_confirmation",
+      title: `Investment Confirmation — ${order.order_type} ${order.scheme_code}`,
+      relatedEntityType: "order",
+      relatedEntityId: order.id,
+    });
+  }
   return r.rows[0];
 }
 

@@ -1,9 +1,9 @@
 # Invest Platform — API Contracts
 
 Documents every Invest endpoint live as of this pass: Journey 1 (Investor Identity + Compliance
-Engine), Journey 2 (Order Management), and Journey 3 (Portfolio). This is the contract for
-frontend integration: request/response shapes here are stable; any breaking change gets a version
-bump or a new field, not a silent reshape. Endpoints for Journeys 4-6 (Documents, CRM,
+Engine), Journey 2 (Order Management), Journey 3 (Portfolio), and Journey 4 (Document Vault). This
+is the contract for frontend integration: request/response shapes here are stable; any breaking
+change gets a version bump or a new field, not a silent reshape. Endpoints for Journeys 5-6 (CRM,
 Notifications) will be appended here as each lands — see `docs/INVEST_PLATFORM_ARCHITECTURE.md`
 for the full target surface.
 
@@ -382,6 +382,103 @@ unchanged, not a fresh/different one.
 - **`historyNote` gates how `performance.history` should render** — a non-null note means fewer
   than 3 real snapshots exist yet; show the real (short) series plainly rather than smoothing or
   projecting a trend from it.
+
+---
+
+## Journey 4 — Document Vault
+
+The canonical document layer for the whole platform — Research and Invest can both write into it
+in the future; nothing here is tied to a specific provider (mock or real). **No real binary
+storage backend exists this phase** — every `storageRef`/`storage_ref` is a synthetic reference
+from `documentProvider` (mock today), never real file bytes. `POST /upload` accepts document
+**metadata** (title, category, tags, mimeType, fileSizeBytes), not a real file body.
+
+Categories: `identity` \| `compliance` \| `portfolio` \| `transactions` \| `statements` \| `tax` \|
+`mandates` \| `research_exports` \| `advisor_documents` \| `other`. Doc types:
+`cas` \| `account_statement` \| `investment_confirmation` \| `tax_statement` \| `kyc_pdf` \|
+`mandate` \| `advisor_note` \| `user_upload`. Status: `generated` \| `uploaded` \| `reviewed` \|
+`verified` \| `archived` \| `expired` (`reviewed`/`verified` are valid states reserved for a future
+advisor-review workflow — Journey 5 — no endpoint transitions a document to them yet). Visibility:
+`private` \| `shared` \| `advisor` \| `internal` — captured now for future RBAC, but **not yet
+enforced across users**: every endpoint below is self-service (the caller's own documents only,
+same as every other Invest endpoint). An advisor actually seeing a `shared`-visibility document is
+Journey 5 (CRM)'s concern, built on this same column.
+
+### `GET /api/v1/invest/documents`
+
+Simple list, latest first. Optional `?category=`, `?status=`, `?limit=` (default 50, clamped to
+1-200 — `?limit=0` resolves to the 50 default, not 0, the same `parseInt(...) || 50` convention
+used by `/portfolio/history`). `{ "documents": [ { "id": "...", "category": "tax", "doc_type": "tax_statement", "title": "...", "description": null, "tags": [], "source": "mock-generated", "provider": "mock-document-generator", "storage_ref": "doc_...", "mime_type": "application/pdf", "file_size_bytes": 128233, "status": "generated", "visibility": "private", "related_entity_type": "order", "related_entity_id": "...", "expires_at": null, "created_at": "...", "updated_at": "..." } ] }`.
+Empty vault: `{ "documents": [] }`, not an error.
+
+### `GET /api/v1/invest/documents/{id}`
+
+Document Details + Document Timeline in one call: `{ "document": { ... same shape as above ... }, "timeline": [ { "id": "...", "event_type": "generated", "actor_user_id": null, "metadata": {}, "created_at": "..." } ] }`.
+`404 {"error": "Document not found"}` if it doesn't exist or belongs to another user (deliberately
+indistinguishable, same as orders).
+
+### `GET /api/v1/invest/documents/search`
+
+Full-text + multi-filter search, all params optional and combinable: `?keyword=` (ranks by
+relevance via Postgres `ts_rank` when present, otherwise sorted by `created_at desc`),
+`?category=`, `?status=`, `?source=` (`mock-generated` \| `user-upload`), `?tags=fy25,urgent`
+(comma-separated, array-overlap match — any tag matches), `?dateFrom=`, `?dateTo=` (ISO dates,
+inclusive, filter on `created_at`), `?limit=`. There is no `owner` param — search is always scoped
+to the caller; accepting an arbitrary owner would be a cross-user data leak, not a feature.
+Response: `{ "documents": [...] }`, same shape as the list endpoint.
+
+### `POST /api/v1/invest/documents/upload`
+
+```json
+{ "category": "tax", "docType": "user_upload", "title": "My Form 16", "description": null, "tags": ["fy2025-26"], "mimeType": "application/pdf", "fileSizeBytes": 55000 }
+```
+
+`category` and `docType` (default `"user_upload"`) are validated against the fixed lists above —
+`400` on an unrecognized value or a missing `title`. Response: `{ "document": { ..., "source": "user-upload", "status": "uploaded" } }`.
+
+### `POST /api/v1/invest/documents/{id}/archive`
+
+No body. `400 {"error": "Document is already archived."}` if already archived — otherwise
+`{ "document": { ..., "status": "archived" } }`. `404` if not found/not yours.
+
+### `POST /api/v1/invest/documents/{id}/download`
+
+No body. Records a `downloaded` timeline event and returns `{ "document": { ... } }` (including
+its `storage_ref`) — **not a binary response**; there is no real object-storage backend to stream
+bytes from this phase (see the section intro). Never changes `status`; safe to call repeatedly.
+
+### `POST /api/v1/invest/documents/{id}/share`
+
+```json
+{ "visibility": "advisor", "note": "for Q3 review" }
+```
+
+`visibility` must be one of the 4 values above — `400` otherwise. Also how a share is **revoked**:
+pass `visibility: "private"`. Records a `shared` timeline event with the note. Response:
+`{ "document": { ..., "visibility": "advisor" } }`.
+
+### Frontend integration notes
+
+- **Empty vault is `200`, not `404`/`400`** — `GET /documents` and `/documents/search` both return
+  `{ "documents": [] }` for a brand-new user.
+- **`/download` doesn't return a file.** Mock phase has no real storage backend — treat the
+  response as "record the download + fetch the reference," not an actual browser download. A real
+  provider swap would change what `storage_ref` resolves to, not this endpoint's shape.
+  `/upload` is the mirror case: it accepts metadata only, never a real file body.
+  `document_events`/`document.status` are also honest about the same distinction (`source` on
+  every document is exactly `mock-generated` or `user-upload` — never anything implying a real
+  provider is involved yet).
+- **A completed Journey 2 order generates a document automatically** — `investment_confirmation`,
+  tagged `related_entity_type: "order"` / `related_entity_id: <orderId>`, the moment the order
+  reaches `completed` (mirroring a real brokerage's contract note on settlement). No separate call
+  is needed; it will already be in `GET /documents` on the next read.
+  `reviewed`/`verified` statuses and their timeline events **do not have a live trigger yet** —
+  they exist in the schema for a future advisor-review workflow (Journey 5), so don't build UI
+  that assumes a document can reach them today.
+- **`visibility` is not yet cross-user enforced.** Setting a document to `shared`/`advisor` today
+  only changes that flag on the document itself — it does not yet grant an advisor account actual
+  access via any endpoint. Treat it as "marked for future sharing," not "is currently shared with
+  someone," until Journey 5 lands.
 
 ---
 
