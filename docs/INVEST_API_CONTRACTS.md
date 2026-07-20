@@ -1,11 +1,11 @@
 # Invest Platform — API Contracts
 
-Phase 1 (Modules 1, 2, 5). Documents every Invest endpoint live as of this pass — Investor
-Identity and the Compliance Engine. This is the contract for frontend integration: request/
+Documents every Invest endpoint live as of this pass: Journey 1 (Investor Identity + Compliance
+Engine) and Journey 2 (Order Management). This is the contract for frontend integration: request/
 response shapes here are stable; any breaking change gets a version bump or a new field, not a
-silent reshape. Endpoints for Modules 6-10 (Order Engine, Portfolio Engine, Document Vault, CRM,
-Notifications) will be appended here as each module lands — see
-`docs/INVEST_PLATFORM_ARCHITECTURE.md` for the full target surface.
+silent reshape. Endpoints for Journeys 3-6 (Portfolio, Documents, CRM, Notifications) will be
+appended here as each lands — see `docs/INVEST_PLATFORM_ARCHITECTURE.md` for the full target
+surface.
 
 **Path convention**: `/api/v1/invest/...`, not the bare `/invest/...` used in the brief's own
 examples — this repo already has an established `/api/v1/` namespace (`/api/v1/sync/*`,
@@ -144,6 +144,103 @@ Response shape (every item, on success):
 `400 {"error": "..."}` on validation failure (missing fields, unknown itemKey, or the
 `investment_ready` guard) — the error message is human-readable and safe to surface directly in a
 UI toast.
+
+---
+
+## Journey 2 — Order Management
+
+Order lifecycle: `draft` → `submitted` → `processing` → `units_pending` → `completed` \|
+`failed` \| `retry_required`, plus `cancelled` (from any non-terminal state) and `reversed` (an
+explicit action on a completed order only). **Placing an order or SIP requires compliance to be
+fully `completed` and an active investment account** — both checked server-side on every call, not
+just at signup; a `400` with a clear message is returned otherwise, e.g.
+`"Compliance must be fully completed before placing an order."`
+
+No background worker exists — `GET /orders/{orderId}` is the polling entry point: it recomputes
+status from elapsed time since submission on every call (not just returning a stored value), so
+poll it (e.g. every 5-10s while an order is non-terminal) rather than assuming push updates.
+
+### `GET /api/v1/invest/orders`
+
+```json
+{ "orders": [ { "id": "...", "scheme_code": "119551", "order_type": "purchase", "amount": 5000, "units": null, "status": "processing", "provider_order_id": "ord_...", "rejection_reason": null, "created_at": "...", "updated_at": "..." } ] }
+```
+
+### `POST /api/v1/invest/orders`
+
+Request:
+
+```json
+{ "schemeCode": "119551", "orderType": "purchase", "amount": 5000, "draft": false }
+```
+
+`orderType`: `purchase` \| `redemption` \| `switch_in` \| `switch_out`. Either `amount` or `units`
+is required. `switch_in`/`switch_out` also require `relatedSchemeCode` (the other leg of the
+switch). `draft` (optional, default `false`): `true` creates without submitting to the provider —
+call `POST /orders/{orderId}/submit` later to send it. Response: `{ "order": { ... } }` — same
+shape as the list endpoint's rows.
+
+### `GET /api/v1/invest/orders/{orderId}`
+
+Order Details + Order Timeline in one call. Refreshes status first (see the polling note above).
+
+```json
+{
+  "order": { "id": "...", "status": "units_pending", "...": "..." },
+  "timeline": [
+    { "from_status": null, "to_status": "submitted", "reason": null, "created_at": "..." },
+    { "from_status": "submitted", "to_status": "processing", "reason": null, "created_at": "..." },
+    { "from_status": "processing", "to_status": "units_pending", "reason": null, "created_at": "..." }
+  ]
+}
+```
+
+`404 {"error": "Order not found"}` if the order doesn't exist or belongs to another user — the two
+cases are deliberately indistinguishable in the response, so a client can't probe for the
+existence of another user's order id.
+
+### `POST /api/v1/invest/orders/{orderId}/submit`
+
+Submits a `draft` order (see the `draft` flag above). `400` if the order isn't in `draft`.
+Response: `{ "order": { ... } }`.
+
+### `POST /api/v1/invest/orders/{orderId}/cancel`
+
+Allowed from `draft`, `submitted`, or `processing` — not from `units_pending` onward (allotment is
+too far along to cancel, matching real fund-order behavior) or any terminal state. `400
+{"error": "Order cannot be cancelled from status: units_pending."}` otherwise. Response:
+`{ "order": { ..., "status": "cancelled" } }`.
+
+### `POST /api/v1/invest/orders/{orderId}/retry`
+
+Only valid when `status` is `retry_required` — resubmits to the (mock) provider. `400` otherwise.
+Response: `{ "order": { ..., "status": "submitted" } }`.
+
+### `GET` / `POST /api/v1/invest/sips`
+
+```json
+{ "schemeCode": "119551", "amount": 2000, "frequency": "monthly", "startDate": "2026-08-01", "endDate": null }
+```
+
+`frequency`: `monthly` \| `weekly` \| `quarterly`. Response: `{ "sip": { "id": "...", "mandate_status": "active", "provider_mandate_id": "mandate_...", "...": "..." } }`. `GET` returns `{ "sips": [...] }`.
+
+### Frontend integration notes (state, edge cases, empty states)
+
+- **Empty state**: `GET /orders` with no orders yet returns `{ "orders": [] }` — not a 404, not
+  an error. Same for `GET /sips`.
+- **The ~8% immediate-rejection case**: `POST /orders` can return a `submitted`-shaped success
+  response where `order.status` is actually `"failed"` with a `rejection_reason` set — this is a
+  deliberate mock-realism choice (a real order gateway can reject at submission), not a bug. Check
+  `order.status`, don't assume `200` means `"submitted"`.
+- **`retry_required` needs a distinct UI state**: an order can resolve to `retry_required` after
+  processing (not just `completed`/`failed`) — this is the one non-terminal-looking status that
+  still needs a user action (`POST .../retry`) rather than more waiting.
+- **Timeline ordering**: `timeline` is chronological (oldest first) — render top-to-bottom or
+  reverse client-side as needed, it's not pre-reversed.
+- **Compliance-gate failures surface as normal `400`s**, not a special error code — match on the
+  message text if the UI wants to redirect to `/invest` onboarding specifically (e.g.
+  `error.includes("Compliance must be fully completed")`), since no separate error `code` field
+  exists yet.
 
 ---
 

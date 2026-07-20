@@ -1,8 +1,12 @@
-// Mock investment/order provider (Invest Platform Phase 1, Module 4). Never contacts a real
-// BSE Star MF / CAMS / KFintech endpoint or moves real money — every account number, order id,
-// and status here is synthetic. Full interface is implemented now (Module 3/4 scope) even
-// though only openAccount() is exercised by Module 1/2's flows this phase — placeOrder/etc. are
-// ready for Module 6 (Order Engine) without a second pass.
+// Mock investment/order provider. Never contacts a real BSE Star MF / CAMS / KFintech endpoint
+// or moves real money — every account number, order id, and status here is synthetic.
+//
+// placeOrder() has a weighted, realistic outcome (not an always-succeeds stub) — a real order
+// gateway can reject at submission time (bad scheme code, amount below minimum, etc.) before an
+// order ever starts processing. The AFTER-submission progression (processing -> units_pending ->
+// resolved, including retry_required/temporary failures) is deliberately NOT simulated here —
+// that needs the order's real elapsed time since submission, which only orderService.js (reading
+// investment_orders.submitted_at from Postgres) has; see orderService.js's decideOrderStatus().
 import { InvestmentProvider } from "../types.js";
 import { mockRef, mockAccountNumber } from "./ids.js";
 
@@ -17,9 +21,11 @@ export class MockInvestmentProvider extends InvestmentProvider {
   }
 
   async placeOrder(order) {
+    const accepted = Math.random() < 0.92; // ~8% immediate rejection at submission — realistic gateway-level validation failure
     return {
       providerOrderId: mockRef("ord"),
-      status: "accepted",
+      status: accepted ? "accepted" : "rejected",
+      rejectionReason: accepted ? null : "Mock gateway rejection: scheme not open for subscription (simulated).",
       provider: "mock-investment",
       submittedOrder: order,
     };
