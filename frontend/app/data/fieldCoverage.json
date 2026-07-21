@@ -34,10 +34,10 @@
     "investable_n": 3463
    },
    "Benchmark": {
-    "universe_pct": 85.85,
-    "universe_n": 12227,
-    "investable_pct": 71.96,
-    "investable_n": 2492
+    "universe_pct": 85.82,
+    "universe_n": 12223,
+    "investable_pct": 71.9,
+    "investable_n": 2490
    }
   },
   "Performance": {
