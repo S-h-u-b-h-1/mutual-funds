@@ -23,6 +23,13 @@ import {
 import { registerHandler } from "./registry.js";
 import { vaultRetentionSweep } from "./handlers/vaultRetentionSweep.js";
 import { jobHistoryPrune, ROUTINE_RETENTION_DAYS, DEAD_RETENTION_DAYS } from "./handlers/jobHistoryPrune.js";
+// Full production handler set (webhooks/reconciliation/event-dispatch), not just this file's own
+// two handlers. runWorkerTick() below claims from the SAME shared `jobs` table that other test
+// files' real service calls (M2/M3/M4) can leave due rows in — without every real handler
+// registered, a claimed stranger fails with "No handler registered for job type ..." instead of
+// running (or harmlessly no-op'ing) on its own merits, which both corrupts this file's precise
+// claim-count assertions and dead-letters jobs that a correctly-equipped worker would process fine.
+import "./handlers/index.js";
 import { acquireClaimTestLock, releaseClaimTestLock } from "./testClaimLock.js";
 
 const RUN = crypto.randomBytes(3).toString("hex");

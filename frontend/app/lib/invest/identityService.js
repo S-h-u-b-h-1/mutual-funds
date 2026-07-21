@@ -5,6 +5,7 @@
 import { query } from "../db.js";
 import { investmentProvider } from "./providers/index.js";
 import { logAudit } from "./audit.js";
+import { emitEvent } from "../platform/events/core.js";
 import { getComplianceProgress } from "./complianceService.js";
 
 export async function getProfile(userId) {
@@ -60,6 +61,7 @@ export async function ensureAccount(userId) {
     [userId, opened.accountNumber, opened.status]
   );
   await logAudit(userId, "invest_account_opened", { accountNumber: opened.accountNumber, provider: opened.provider });
+  await emitEvent("InvestorCreated", { userId, accountNumber: opened.accountNumber }, { correlationId: userId, source: "identityService" });
   return r.rows[0];
 }
 

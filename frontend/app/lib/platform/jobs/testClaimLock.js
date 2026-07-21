@@ -1,15 +1,16 @@
 // Test-only helper. NOT imported by any production code path.
 //
-// jobPlatform.test.js and webhookPlatform.test.js both call claimJobs()/runWorkerTick()
-// against the real, shared `jobs` table — correctly, since that's exactly what production
-// workers do (claim ANY due row, not just "mine"). Run as separate files under Vitest's
-// default file-level parallelism, though, the two can race each other: one file's claim can
-// land on a row the other file's cleanup deletes in the same instant (job_events FK
-// violation), or steal a job the other file's own runWorkerTick() call was waiting to process.
+// Any test file that calls claimJobs()/runWorkerTick() (jobPlatform.test.js,
+// webhookPlatform.test.js, eventBus.test.js, and any future one) touches the real, shared
+// `jobs` table — correctly, since that's exactly what production workers do (claim ANY due
+// row, not just "mine"). Run as separate files under Vitest's default file-level parallelism,
+// though, they can race each other: one file's claim can land on a row another file's cleanup
+// deletes in the same instant (job_events FK violation), or steal a job another file's own
+// runWorkerTick() call was waiting to process.
 //
-// Fix: a Postgres advisory lock, held for each file's entire run, so the two files serialize
-// against EACH OTHER without touching Vitest's scheduler or slowing down the other 36 files
-// that never call claimJobs(). Advisory locks are session-scoped, so this uses its own
+// Fix: a Postgres advisory lock, held for each file's entire run, so every file that acquires
+// it serializes against every OTHER file that does, without touching Vitest's scheduler or
+// slowing down the files that never call claimJobs(). Advisory locks are session-scoped, so this uses its own
 // dedicated `pg.Client` rather than the app's pooled query() helper — a lock acquired on one
 // pooled connection would be invisible to an unlock issued on a different one.
 //
@@ -38,7 +39,14 @@
 import pg from "pg";
 
 const LOCK_KEY = 847_331_009; // arbitrary constant, just needs to match between both call sites
-const MAX_WAIT_MS = 180_000;
+// eventBus.test.js's real-wiring tests (makeInvestmentReadyUser + a full order lifecycle) run up
+// to 180s EACH under real contention, and its own afterAll now runs a final drain on top of that
+// (see its comment) before releasing the lock — so whichever of the three files holds the lock
+// can legitimately occupy it for several hundred seconds. 180s (sized for the original two-file
+// M1-era pairing) was proven too short once M4 joined this same lock group: a real run had
+// jobPlatform.test.js time out waiting while eventBus.test.js was still legitimately running.
+// Sized with real headroom above today's worst-case sum (180+180+120+drain+small tests ≈ 525s).
+const MAX_WAIT_MS = 600_000;
 const POLL_INTERVAL_MS = 500;
 
 function directConnectionString() {
@@ -59,7 +67,7 @@ export async function acquireClaimTestLock() {
       client = undefined;
       throw new Error(
         `acquireClaimTestLock: could not acquire advisory lock ${LOCK_KEY} within ${MAX_WAIT_MS}ms. ` +
-          "Either jobPlatform.test.js/webhookPlatform.test.js are both genuinely still running, " +
+          "Either jobPlatform.test.js/webhookPlatform.test.js/eventBus.test.js are both genuinely still running, " +
           "or an earlier run was killed abnormally and left its lock orphaned — check " +
           "`select l.pid, a.state, now() - a.state_change as idle_for from pg_locks l " +
           "join pg_stat_activity a on a.pid = l.pid where l.locktype = 'advisory'` " +

@@ -17,6 +17,7 @@ import { buildHealthReport } from "../portfolioIntelligence/healthReport.js";
 import { portfolioProvider } from "./providers/index.js";
 import { logAudit } from "./audit.js";
 import { notifyUser } from "./notifications.js";
+import { emitEvent } from "../platform/events/core.js";
 
 function toValuationHolding(h) {
   return { id: h.schemeCode, schemeCode: h.schemeCode, unitBalance: h.units, investedValue: h.purchaseValue };
@@ -193,6 +194,9 @@ export async function connectMockPortfolio(userId) {
 
   await logAudit(userId, "mock_portfolio_connected", { holdingsInserted: inserted });
   await notifyUser(userId, "portfolio_connected", { title: "Demo portfolio connected", body: `${inserted} holdings added from the mock provider.`, relatedEntityType: "portfolio" });
+  if (inserted > 0) {
+    await emitEvent("PortfolioUpdated", { userId, reason: "mock_connected", holdingsInserted: inserted }, { correlationId: userId, source: "portfolioService" });
+  }
 
   return { alreadyConnected: false, ...(await getPortfolio(userId)) };
 }
@@ -225,4 +229,5 @@ export async function reconcileCompletedOrder(order) {
      values ($1, $2, $3, $4, $5, $6, current_date, 'invest-order', $7)`,
     [order.user_id, order.scheme_code, transactionType, units, nav, order.amount ?? +(units * nav).toFixed(2), `order-${order.id}`]
   );
+  await emitEvent("PortfolioUpdated", { userId: order.user_id, reason: "order_settled", orderId: order.id, schemeCode: order.scheme_code }, { correlationId: order.user_id, source: "portfolioService" });
 }

@@ -5,6 +5,7 @@
 // function rather than knowing anything about how notifications are stored or delivered — the
 // decoupling the brief explicitly asked for ("avoid tightly coupling services").
 import { query } from "../db.js";
+import { emitEvent } from "../platform/events/core.js";
 
 export async function notifyUser(userId, type, { title, body = null, relatedEntityType = null, relatedEntityId = null } = {}) {
   await query(
@@ -12,4 +13,5 @@ export async function notifyUser(userId, type, { title, body = null, relatedEnti
      values ($1, $2, $3, $4, $5, $6)`,
     [userId, type, title, body, relatedEntityType, relatedEntityId]
   );
+  await emitEvent("NotificationSent", { userId, type, title }, { correlationId: userId, source: "notifications" });
 }

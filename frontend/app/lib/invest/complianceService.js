@@ -6,6 +6,7 @@
 import { query } from "../db.js";
 import { kycProvider, documentProvider } from "./providers/index.js";
 import { logAudit } from "./audit.js";
+import { emitEvent } from "../platform/events/core.js";
 
 // 'investment_ready' is last on purpose — it's a derived gate, never directly submitted by the
 // user, only auto-completed once every other item is done (see maybeCompleteInvestmentReady).
@@ -85,6 +86,7 @@ async function maybeCompleteInvestmentReady(userId, applicationId) {
   const others = items.filter((i) => i.item_key !== "investment_ready");
   if (others.every((i) => DONE_STATUSES.has(i.status))) {
     await setItemStatus(applicationId, "investment_ready", { status: "completed" });
+    await emitEvent("InvestmentReady", { userId }, { correlationId: userId, source: "complianceService" });
   }
 }
 
@@ -174,6 +176,12 @@ export async function submitItem(userId, itemKey, payload = {}) {
   }
 
   const updated = await setItemStatus(application.id, itemKey, outcome);
+  // DONE_STATUSES, not a literal 'completed' check — PAN/identity finish via 'verified', and
+  // that's just as much "this item is done" as the other items' 'completed' (see DONE_STATUSES
+  // above and maybeCompleteInvestmentReady's own use of the same set).
+  if (DONE_STATUSES.has(updated.status)) {
+    await emitEvent("ComplianceCompleted", { userId, itemKey }, { correlationId: userId, source: "complianceService" });
+  }
   await maybeCompleteInvestmentReady(userId, application.id);
   const overallStatus = await refreshOverallStatus(userId);
   await logAudit(userId, "compliance_item_submitted", { itemKey, status: outcome.status, overallStatus });

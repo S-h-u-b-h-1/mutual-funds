@@ -8,6 +8,7 @@ import { query } from "../db.js";
 import { documentProvider } from "./providers/index.js";
 import { logAudit } from "./audit.js";
 import { notifyUser } from "./notifications.js";
+import { emitEvent } from "../platform/events/core.js";
 
 export const CATEGORIES = [
   "identity", "compliance", "portfolio", "transactions", "statements", "tax",
@@ -152,6 +153,7 @@ export async function generateDocument(userId, { docType, title = null, descript
   await logAudit(userId, "document_generated", { documentId: document.id, docType, relatedEntityType, relatedEntityId });
   const copy = NOTIFICATION_COPY.generated;
   await notifyUser(userId, copy.type, { title: copy.title, body: resolvedTitle, relatedEntityType: relatedEntityType || "document", relatedEntityId: relatedEntityId || document.id });
+  await emitEvent("DocumentGenerated", { userId, documentId: document.id, docType, relatedEntityType, relatedEntityId }, { correlationId: userId, source: "documentService" });
   return document;
 }
 

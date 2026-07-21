@@ -6,6 +6,7 @@ import { query } from "../db.js";
 import { investmentProvider } from "./providers/index.js";
 import { logAudit } from "./audit.js";
 import { notifyUser } from "./notifications.js";
+import { emitEvent } from "../platform/events/core.js";
 import { getComplianceProgress } from "./complianceService.js";
 import { getAccount } from "./identityService.js";
 import { reconcileCompletedOrder } from "./portfolioService.js";
@@ -69,6 +70,9 @@ async function transition(order, toStatus, reason = null) {
     });
   }
   await logAudit(order.user_id, "order_status_changed", { orderId: order.id, fromStatus, toStatus, reason });
+  if (toStatus === "submitted") {
+    await emitEvent("OrderSubmitted", { orderId: order.id, userId: order.user_id, orderType: order.order_type, schemeCode: order.scheme_code }, { correlationId: order.id, source: "orderService" });
+  }
   // Journey 3: a completed order is real, genuine investor intent (they submitted it, compliance
   // gated it) that settled — reconcile it into the SAME portfolio_holdings/portfolio_transactions
   // tables CAS import uses, so the portfolio view never needs to know an order was involved.
@@ -82,6 +86,7 @@ async function transition(order, toStatus, reason = null) {
       relatedEntityType: "order",
       relatedEntityId: order.id,
     });
+    await emitEvent("OrderCompleted", { orderId: order.id, userId: order.user_id, orderType: order.order_type, schemeCode: order.scheme_code }, { correlationId: order.id, source: "orderService" });
   }
   return r.rows[0];
 }
