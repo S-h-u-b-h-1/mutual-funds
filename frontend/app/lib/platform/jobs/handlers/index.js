@@ -8,5 +8,8 @@ import "./jobHistoryPrune.js";
 // the incoming provider handlers they dispatch to.
 import "../../webhooks/core.js";
 import "../../webhooks/providers/mockPayments.js";
+// M3 reconciliation engine: registers the 'reconciliation-run' job type + every comparator.
+import "../../reconciliation/core.js";
+import "../../reconciliation/comparators/index.js";
 
 export { registeredTypes } from "../registry.js";

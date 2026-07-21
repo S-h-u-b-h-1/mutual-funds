@@ -23,6 +23,7 @@ import {
 import { registerHandler } from "./registry.js";
 import { vaultRetentionSweep } from "./handlers/vaultRetentionSweep.js";
 import { jobHistoryPrune, ROUTINE_RETENTION_DAYS, DEAD_RETENTION_DAYS } from "./handlers/jobHistoryPrune.js";
+import { acquireClaimTestLock, releaseClaimTestLock } from "./testClaimLock.js";
 
 const RUN = crypto.randomBytes(3).toString("hex");
 const T = (name) => `test-${RUN}-${name}`;
@@ -53,11 +54,15 @@ async function claimOwn({ limit = 10, leaseSeconds = 120 } = {}) {
 }
 
 beforeAll(async () => {
+  // See testClaimLock.js: this file and webhookPlatform.test.js both claim from the shared
+  // `jobs` table and race each other under Vitest's file-level parallelism without this.
+  await acquireClaimTestLock();
   await cleanup();
 });
 
 afterAll(async () => {
   await cleanup();
+  await releaseClaimTestLock();
 });
 
 describe("job platform (integration, real Neon)", () => {

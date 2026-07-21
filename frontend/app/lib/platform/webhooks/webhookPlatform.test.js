@@ -17,6 +17,7 @@ import {
 import { runWorkerTick, getJob } from "../jobs/core.js";
 // full production handler set so a tick from this suite executes ANY real due job correctly
 import "../jobs/handlers/index.js";
+import { acquireClaimTestLock, releaseClaimTestLock } from "../jobs/testClaimLock.js";
 
 const RUN = crypto.randomBytes(3).toString("hex");
 const SECRET = `test-secret-${RUN}`;
@@ -37,7 +38,11 @@ async function receiveTracked(provider, args) {
   return result;
 }
 
-beforeAll(() => {
+beforeAll(async () => {
+  // See jobs/testClaimLock.js: this file's runWorkerTick() call and jobPlatform.test.js both
+  // claim from the shared `jobs` table and race each other under Vitest's file-level
+  // parallelism without this.
+  await acquireClaimTestLock();
   // the seeded mock-payments endpoint names this env var as its secret source
   process.env.WEBHOOK_SECRET_MOCK_PAYMENTS = SECRET;
   process.env[`WEBHOOK_SECRET_TEST_OUT_${RUN}`] = SECRET;
@@ -61,6 +66,7 @@ afterAll(async () => {
        and not exists (select 1 from webhook_deliveries wd where wd.id::text = jobs.payload->>'deliveryId')
        and not exists (select 1 from webhook_outbound_deliveries od where od.id::text = jobs.payload->>'outboundDeliveryId')`
   );
+  await releaseClaimTestLock();
 });
 
 describe("webhook signature scheme", () => {
