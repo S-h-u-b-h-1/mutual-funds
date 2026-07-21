@@ -1,5 +1,5 @@
 {
-"asOf": "2026-07-20",
+"asOf": "2026-07-21",
 "universe": 1191,
 "source": "AMFI NAV history \u00b7 equity Direct/Growth plans \u00b7 point-to-point NAV returns",
 "windows": [
@@ -16,10 +16,10 @@
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
 "nav": 10.6522,
-"r1w": 1.43,
+"r1w": 1.77,
 "r1m": 8.95,
-"r3m": 16.15,
-"r6m": 15.05,
+"r3m": 15.83,
+"r6m": 17.45,
 "r1y": null
 },
 {
@@ -28,10 +28,10 @@
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
 "nav": 10.5245,
-"r1w": 1.4,
+"r1w": 1.74,
 "r1m": 8.8,
-"r3m": 15.66,
-"r6m": 14.08,
+"r3m": 15.35,
+"r6m": 16.46,
 "r1y": null
 },
 {
@@ -40,11 +40,11 @@
 "amc": "HDFC",
 "category": "Sectoral/ Thematic",
 "nav": 11.949,
-"r1w": 0.93,
+"r1w": 1.37,
 "r1m": 7.28,
-"r3m": -0.16,
-"r6m": -15.88,
-"r1y": -14.42
+"r3m": 3.09,
+"r6m": -14.31,
+"r1y": -14.51
 },
 {
 "code": "152964",
@@ -52,11 +52,11 @@
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
 "nav": 9.8875,
-"r1w": -0.9,
+"r1w": -0.03,
 "r1m": 7.26,
-"r3m": 10.17,
-"r6m": -4.36,
-"r1y": -3.71
+"r3m": 11.42,
+"r6m": -1.98,
+"r1y": -4.6
 },
 {
 "code": "152058",
@@ -64,11 +64,11 @@
 "amc": "HDFC",
 "category": "Sectoral/ Thematic",
 "nav": 11.547,
-"r1w": 0.91,
+"r1w": 1.35,
 "r1m": 7.17,
-"r3m": -0.43,
-"r6m": -16.36,
-"r1y": -15.41
+"r3m": 2.81,
+"r6m": -14.79,
+"r1y": -15.49
 },
 {
 "code": "152966",
@@ -76,11 +76,11 @@
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
 "nav": 9.6441,
-"r1w": -0.92,
+"r1w": -0.05,
 "r1m": 7.14,
-"r3m": 9.79,
-"r6m": -5.02,
-"r1y": -5.08
+"r3m": 11.03,
+"r6m": -2.65,
+"r1y": -5.94
 },
 {
 "code": "145454",
@@ -88,11 +88,11 @@
 "amc": "DSP",
 "category": "Sectoral/ Thematic",
 "nav": 49.343,
-"r1w": -0.45,
+"r1w": -0.11,
 "r1m": 6.99,
-"r3m": 17.59,
-"r6m": 15.35,
-"r1y": 11.07
+"r3m": 16.71,
+"r6m": 17.78,
+"r1y": 11.78
 },
 {
 "code": "145456",
@@ -100,11 +100,11 @@
 "amc": "DSP",
 "category": "Sectoral/ Thematic",
 "nav": 44.117,
-"r1w": -0.47,
+"r1w": -0.13,
 "r1m": 6.86,
-"r3m": 17.2,
-"r6m": 14.59,
-"r1y": 9.6
+"r3m": 16.33,
+"r6m": 17.02,
+"r1y": 10.32
 },
 {
 "code": "147409",
@@ -112,11 +112,11 @@
 "amc": "Aditya Birla Sun Life",
 "category": "Sectoral/ Thematic",
 "nav": 40.08,
-"r1w": 1.49,
+"r1w": 0.83,
 "r1m": 6.68,
-"r3m": 16.78,
-"r6m": 19.57,
-"r1y": 17.12
+"r3m": 16.48,
+"r6m": 21.86,
+"r1y": 16.68
 },
 {
 "code": "152796",
@@ -124,11 +124,11 @@
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
 "nav": 12.5177,
-"r1w": 0.25,
+"r1w": 0.49,
 "r1m": 6.66,
-"r3m": 8.51,
-"r6m": 0.69,
-"r1y": -1.94
+"r3m": 9.14,
+"r6m": 2.46,
+"r1y": -3.42
 },
 {
 "code": "147407",
@@ -136,11 +136,11 @@
 "amc": "Aditya Birla Sun Life",
 "category": "Sectoral/ Thematic",
 "nav": 36.02,
-"r1w": 1.44,
+"r1w": 0.81,
 "r1m": 6.57,
-"r3m": 16.42,
-"r6m": 18.8,
-"r1y": 15.56
+"r3m": 16.08,
+"r6m": 21.08,
+"r1y": 15.12
 },
 {
 "code": "152794",
@@ -148,11 +148,11 @@
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
 "nav": 12.1996,
-"r1w": 0.23,
+"r1w": 0.47,
 "r1m": 6.56,
-"r3m": 8.2,
-"r6m": 0.18,
-"r1y": -3.09
+"r3m": 8.84,
+"r6m": 1.95,
+"r1y": -4.54
 },
 {
 "code": "152915",
@@ -160,11 +160,11 @@
 "amc": "WhiteOak Capital",
 "category": "Sectoral/ Thematic",
 "nav": 10.243,
-"r1w": 0.29,
+"r1w": 0.5,
 "r1m": 6.51,
-"r3m": 9.01,
-"r6m": -4.22,
-"r1y": -0.8
+"r3m": 10.6,
+"r6m": -2.13,
+"r1y": -1.9
 },
 {
 "code": "119783",
@@ -172,11 +172,11 @@
 "amc": "SBI",
 "category": "Sectoral/ Thematic",
 "nav": 586.4105,
-"r1w": 1.59,
+"r1w": 1.06,
 "r1m": 6.45,
-"r3m": 18.06,
-"r6m": 23.5,
-"r1y": 16.42
+"r3m": 17.69,
+"r6m": 26.21,
+"r1y": 16.88
 },
 {
 "code": "120186",
@@ -184,11 +184,11 @@
 "amc": "ICICI Prudential",
 "category": "Sectoral/ Thematic",
 "nav": 86.75,
-"r1w": 0.43,
+"r1w": 1.13,
 "r1m": 6.43,
-"r3m": 5.28,
-"r6m": 2.75,
-"r1y": 20.44
+"r3m": 4.77,
+"r6m": 3.51,
+"r1y": 20.84
 },
 {
 "code": "102823",
@@ -196,11 +196,11 @@
 "amc": "SBI",
 "category": "Sectoral/ Thematic",
 "nav": 506.9451,
-"r1w": 1.57,
+"r1w": 1.04,
 "r1m": 6.36,
-"r3m": 17.78,
-"r6m": 22.89,
-"r1y": 15.25
+"r3m": 17.41,
+"r6m": 25.59,
+"r1y": 15.71
 },
 {
 "code": "152914",
@@ -208,11 +208,11 @@
 "amc": "WhiteOak Capital",
 "category": "Sectoral/ Thematic",
 "nav": 9.933,
-"r1w": 0.27,
+"r1w": 0.48,
 "r1m": 6.36,
-"r3m": 8.56,
-"r6m": -5.04,
-"r1y": -2.52
+"r3m": 10.15,
+"r6m": -2.97,
+"r1y": -3.58
 },
 {
 "code": "117620",
@@ -220,11 +220,11 @@
 "amc": "ICICI Prudential",
 "category": "Sectoral/ Thematic",
 "nav": 77.05,
-"r1w": 0.42,
+"r1w": 1.12,
 "r1m": 6.35,
-"r3m": 5.07,
-"r6m": 2.32,
-"r1y": 19.44
+"r3m": 4.56,
+"r6m": 3.09,
+"r1y": 19.85
 },
 {
 "code": "152776",
@@ -232,11 +232,11 @@
 "amc": "SBI",
 "category": "Sectoral/ Thematic",
 "nav": 10.2666,
-"r1w": 0.0,
+"r1w": 0.9,
 "r1m": 6.0,
-"r3m": 9.93,
-"r6m": 7.7,
-"r1y": 5.57
+"r3m": 9.62,
+"r6m": 9.74,
+"r1y": 5.49
 },
 {
 "code": "153039",
@@ -244,11 +244,11 @@
 "amc": "PGIM India",
 "category": "Sectoral/ Thematic",
 "nav": 12.06,
-"r1w": 1.69,
+"r1w": 0.92,
 "r1m": 5.98,
-"r3m": 18.58,
-"r6m": 24.46,
-"r1y": 18.7
+"r3m": 18.24,
+"r6m": 26.81,
+"r1y": 18.93
 },
 {
 "code": "152774",
@@ -256,11 +256,11 @@
 "amc": "SBI",
 "category": "Sectoral/ Thematic",
 "nav": 10.0544,
-"r1w": -0.02,
+"r1w": 0.88,
 "r1m": 5.91,
-"r3m": 9.66,
-"r6m": 7.17,
-"r1y": 4.5
+"r3m": 9.36,
+"r6m": 9.2,
+"r1y": 4.43
 },
 {
 "code": "152024",
@@ -268,11 +268,11 @@
 "amc": "LIC",
 "category": "Sectoral/ Thematic",
 "nav": 36.3346,
-"r1w": 1.16,
+"r1w": 0.58,
 "r1m": 5.81,
-"r3m": 15.74,
-"r6m": 16.16,
-"r1y": 11.31
+"r3m": 15.14,
+"r6m": 19.03,
+"r1y": 11.36
 },
 {
 "code": "152214",
@@ -280,11 +280,11 @@
 "amc": "Kotak Mahindra",
 "category": "Sectoral/ Thematic",
 "nav": 17.084,
-"r1w": 1.42,
+"r1w": 0.91,
 "r1m": 5.8,
-"r3m": 20.31,
-"r6m": 27.26,
-"r1y": 21.15
+"r3m": 19.69,
+"r6m": 29.95,
+"r1y": 20.75
 },
 {
 "code": "153157",
@@ -292,11 +292,11 @@
 "amc": "Bajaj Finserv",
 "category": "Sectoral/ Thematic",
 "nav": 11.523,
-"r1w": 1.47,
+"r1w": 0.79,
 "r1m": 5.77,
-"r3m": 17.51,
-"r6m": 20.7,
-"r1y": 15.17
+"r3m": 17.14,
+"r6m": 23.04,
+"r1y": 15.59
 },
 {
 "code": "152349",
@@ -304,11 +304,11 @@
 "amc": "WhiteOak Capital",
 "category": "Sectoral/ Thematic",
 "nav": 17.013,
-"r1w": 0.91,
+"r1w": 0.53,
 "r1m": 5.7,
-"r3m": 18.25,
-"r6m": 22.12,
-"r1y": 19.71
+"r3m": 17.84,
+"r6m": 24.79,
+"r1y": 19.06
 },
 {
 "code": "152025",
@@ -316,11 +316,11 @@
 "amc": "LIC",
 "category": "Sectoral/ Thematic",
 "nav": 32.8539,
-"r1w": 1.14,
+"r1w": 0.56,
 "r1m": 5.69,
-"r3m": 15.37,
-"r6m": 15.36,
-"r1y": 9.85
+"r3m": 14.77,
+"r6m": 18.21,
+"r1y": 9.92
 },
 {
 "code": "153040",
@@ -328,11 +328,11 @@
 "amc": "PGIM India",
 "category": "Sectoral/ Thematic",
 "nav": 11.72,
-"r1w": 1.56,
+"r1w": 0.86,
 "r1m": 5.68,
-"r3m": 18.03,
-"r6m": 23.37,
-"r1y": 16.62
+"r3m": 17.67,
+"r6m": 25.62,
+"r1y": 16.85
 },
 {
 "code": "152216",
@@ -340,11 +340,11 @@
 "amc": "Kotak Mahindra",
 "category": "Sectoral/ Thematic",
 "nav": 16.371,
-"r1w": 1.39,
+"r1w": 0.88,
 "r1m": 5.66,
-"r3m": 19.84,
-"r6m": 26.25,
-"r1y": 19.21
+"r3m": 19.24,
+"r6m": 28.93,
+"r1y": 18.83
 },
 {
 "code": "153155",
@@ -352,11 +352,11 @@
 "amc": "Bajaj Finserv",
 "category": "Sectoral/ Thematic",
 "nav": 11.224,
-"r1w": 1.45,
+"r1w": 0.76,
 "r1m": 5.63,
-"r3m": 17.03,
-"r6m": 19.71,
-"r1y": 13.27
+"r3m": 16.66,
+"r6m": 22.04,
+"r1y": 13.7
 },
 {
 "code": "152462",
@@ -364,11 +364,11 @@
 "amc": "Kotak Mahindra",
 "category": "Sectoral/ Thematic",
 "nav": 10.375,
-"r1w": 0.75,
+"r1w": 1.1,
 "r1m": 5.63,
-"r3m": -1.04,
-"r6m": -14.59,
-"r1y": -12.0
+"r3m": 1.13,
+"r6m": -12.93,
+"r1y": -12.34
 }
 ],
 "bottom": [
@@ -378,11 +378,11 @@
 "amc": "Nippon India",
 "category": "Sectoral/ Thematic",
 "nav": 29.455,
-"r1w": -11.16,
+"r1w": -8.84,
 "r1m": -21.18,
-"r3m": -7.6,
-"r6m": 63.28,
-"r1y": 118.83
+"r3m": -8.55,
+"r6m": 58.8,
+"r1y": 121.06
 },
 {
 "code": "149329",
@@ -390,11 +390,11 @@
 "amc": "Nippon India",
 "category": "Sectoral/ Thematic",
 "nav": 31.4877,
-"r1w": -11.14,
+"r1w": -8.82,
 "r1m": -21.09,
-"r3m": -7.3,
-"r6m": 64.37,
-"r1y": 121.85
+"r3m": -8.26,
+"r6m": 59.85,
+"r1y": 124.09
 },
 {
 "code": "106979",
@@ -402,11 +402,11 @@
 "amc": "Franklin Templeton",
 "category": "Sectoral/ Thematic",
 "nav": 43.407,
-"r1w": -1.65,
+"r1w": -1.69,
 "r1m": -5.77,
-"r3m": 7.77,
-"r6m": 15.46,
-"r1y": 39.23
+"r3m": 7.85,
+"r6m": 16.72,
+"r1y": 38.1
 },
 {
 "code": "118559",
@@ -414,11 +414,11 @@
 "amc": "Franklin Templeton",
 "category": "Sectoral/ Thematic",
 "nav": 47.8757,
-"r1w": -1.64,
+"r1w": -1.67,
 "r1m": -5.7,
-"r3m": 8.01,
-"r6m": 15.98,
-"r1y": 40.44
+"r3m": 8.09,
+"r6m": 17.24,
+"r1y": 39.29
 },
 {
 "code": "151037",
@@ -426,11 +426,11 @@
 "amc": "HSBC",
 "category": "Sectoral/ Thematic",
 "nav": 49.0118,
-"r1w": -1.12,
+"r1w": -0.34,
 "r1m": -4.77,
-"r3m": 0.46,
-"r6m": 9.79,
-"r1y": 2.48
+"r3m": -0.3,
+"r6m": 12.5,
+"r1y": 2.15
 },
 {
 "code": "151040",
@@ -438,11 +438,11 @@
 "amc": "HSBC",
 "category": "Sectoral/ Thematic",
 "nav": 55.6779,
-"r1w": -1.1,
+"r1w": -0.33,
 "r1m": -4.69,
-"r3m": 0.72,
-"r6m": 10.37,
-"r1y": 3.55
+"r3m": -0.05,
+"r6m": 13.08,
+"r1y": 3.21
 },
 {
 "code": "153533",
@@ -450,11 +450,11 @@
 "amc": "Samco",
 "category": "Large & Mid Cap",
 "nav": 8.83,
-"r1w": 0.34,
+"r1w": 0.11,
 "r1m": -3.81,
-"r3m": -1.89,
-"r6m": -3.92,
-"r1y": -9.44
+"r3m": -2.21,
+"r6m": -2.0,
+"r1y": -9.81
 },
 {
 "code": "153534",
@@ -462,11 +462,11 @@
 "amc": "Samco",
 "category": "Large & Mid Cap",
 "nav": 8.98,
-"r1w": 0.34,
+"r1w": 0.11,
 "r1m": -3.75,
-"r3m": -1.54,
-"r6m": -3.23,
-"r1y": -7.99
+"r3m": -1.86,
+"r6m": -1.21,
+"r1y": -8.37
 },
 {
 "code": "152587",
@@ -474,11 +474,11 @@
 "amc": "Samco",
 "category": "Sectoral/ Thematic",
 "nav": 8.45,
-"r1w": -1.05,
+"r1w": -0.59,
 "r1m": -3.65,
-"r3m": 3.43,
-"r6m": 2.05,
-"r1y": -5.16
+"r3m": 2.67,
+"r6m": 4.32,
+"r1y": -5.9
 },
 {
 "code": "152586",
@@ -486,11 +486,11 @@
 "amc": "Samco",
 "category": "Sectoral/ Thematic",
 "nav": 8.74,
-"r1w": -1.02,
+"r1w": -0.57,
 "r1m": -3.53,
-"r3m": 3.8,
-"r6m": 2.82,
-"r1y": -3.64
+"r3m": 3.07,
+"r6m": 5.05,
+"r1y": -4.48
 },
 {
 "code": "153365",
@@ -498,11 +498,11 @@
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
 "nav": 13.5092,
-"r1w": -0.74,
+"r1w": -0.22,
 "r1m": -3.44,
-"r3m": 12.66,
-"r6m": 11.65,
-"r1y": 22.13
+"r3m": 11.44,
+"r6m": 14.24,
+"r1y": 21.18
 },
 {
 "code": "153364",
@@ -510,11 +510,11 @@
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
 "nav": 13.5276,
-"r1w": -0.74,
+"r1w": -0.22,
 "r1m": -3.43,
-"r3m": 12.69,
-"r6m": 11.71,
-"r1y": 22.25
+"r3m": 11.47,
+"r6m": 14.3,
+"r1y": 21.3
 },
 {
 "code": "149449",
@@ -522,11 +522,11 @@
 "amc": "Samco",
 "category": "Flexi Cap",
 "nav": 9.71,
-"r1w": -0.82,
+"r1w": 0.1,
 "r1m": -3.09,
-"r3m": -0.31,
-"r6m": -0.41,
-"r1y": -8.91
+"r3m": -1.12,
+"r6m": 1.57,
+"r1y": -9.17
 },
 {
 "code": "149450",
@@ -534,11 +534,11 @@
 "amc": "Samco",
 "category": "Flexi Cap",
 "nav": 10.36,
-"r1w": -0.77,
+"r1w": 0.1,
 "r1m": -3.0,
-"r3m": 0.0,
-"r6m": 0.29,
-"r1y": -7.5
+"r3m": -0.77,
+"r6m": 2.37,
+"r1y": -7.83
 },
 {
 "code": "153080",
@@ -546,11 +546,11 @@
 "amc": "Aditya Birla Sun Life",
 "category": "Equitys",
 "nav": 9.3984,
-"r1w": -0.17,
+"r1w": 0.32,
 "r1m": -2.97,
-"r3m": -3.28,
-"r6m": 6.23,
-"r1y": -0.36
+"r3m": -4.17,
+"r6m": 8.74,
+"r1y": -0.56
 }
 ],
 "categories": [
@@ -576,7 +576,7 @@
 {
 "category": "Small Cap",
 "count": 70,
-"avg": 1.85,
+"avg": 1.87,
 "median": 2.16,
 "best": {
 "name": "ITI Small Cap Fund - Direct Plan - Growth Option",
@@ -688,6 +688,25 @@
 "breadth": 78
 },
 {
+"category": "Multi Cap",
+"count": 64,
+"avg": 1.32,
+"median": 1.38,
+"best": {
+"name": "Motilal Oswal Multi Cap Fund-Direct Plan Growth",
+"amc": "Motilal Oswal",
+"ret": 5.04,
+"code": "152651"
+},
+"worst": {
+"name": "ICICI Prudential Multicap Fund - Growth",
+"amc": "ICICI Prudential",
+"ret": -0.56,
+"code": "101228"
+},
+"breadth": 92
+},
+{
 "category": "Large Cap",
 "count": 71,
 "avg": 1.31,
@@ -705,25 +724,6 @@
 "code": "153238"
 },
 "breadth": 97
-},
-{
-"category": "Multi Cap",
-"count": 64,
-"avg": 1.31,
-"median": 1.38,
-"best": {
-"name": "Motilal Oswal Multi Cap Fund-Direct Plan Growth",
-"amc": "Motilal Oswal",
-"ret": 5.04,
-"code": "152651"
-},
-"worst": {
-"name": "ICICI Prudential Multicap Fund - Growth",
-"amc": "ICICI Prudential",
-"ret": -0.56,
-"code": "101228"
-},
-"breadth": 92
 },
 {
 "category": "Mid Cap",
@@ -766,7 +766,7 @@
 {
 "category": "ELSS",
 "count": 99,
-"avg": 0.93,
+"avg": 0.94,
 "median": 1.01,
 "best": {
 "name": "Taurus ELSS Tax Saver Fund - Direct Plan - Growth",
@@ -785,7 +785,7 @@
 {
 "category": "Value",
 "count": 44,
-"avg": 0.9,
+"avg": 0.88,
 "median": 0.85,
 "best": {
 "name": "Axis Value Fund - Direct Plan - Growth",
@@ -948,10 +948,10 @@
 {
 "amc": "Kotak Mahindra",
 "funds": 54,
-"avg": 1.61,
+"avg": 1.62,
 "pct_outperform": 67,
 "breadth": 85,
-"score": 70.5
+"score": 70.6
 },
 {
 "amc": "Invesco",
@@ -994,20 +994,20 @@
 "score": 66.4
 },
 {
+"amc": "Groww",
+"funds": 12,
+"avg": 1.82,
+"pct_outperform": 50,
+"breadth": 100,
+"score": 65.4
+},
+{
 "amc": "ITI",
 "funds": 26,
 "avg": 1.65,
 "pct_outperform": 54,
 "breadth": 92,
 "score": 65.3
-},
-{
-"amc": "Groww",
-"funds": 12,
-"avg": 1.5,
-"pct_outperform": 50,
-"breadth": 100,
-"score": 64.9
 },
 {
 "amc": "Mahindra Manulife",
@@ -1084,7 +1084,7 @@
 {
 "amc": "DSP",
 "funds": 32,
-"avg": 1.44,
+"avg": 1.43,
 "pct_outperform": 38,
 "breadth": 88,
 "score": 54.8

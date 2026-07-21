@@ -1,6 +1,6 @@
 {
- "asOf": "2026-07-20",
- "amfiLastUpdated": "2026-07-20",
+ "asOf": "2026-07-21",
+ "amfiLastUpdated": "2026-07-21",
  "factsheetLastUpdated": "2026-07-19",
  "denominators": {
   "universe": 14243,
@@ -48,22 +48,22 @@
     "investable_n": 3463
    },
    "NAV History (90d)": {
-    "universe_pct": 28.03,
-    "universe_n": 3992,
+    "universe_pct": 28.01,
+    "universe_n": 3990,
     "investable_pct": 99.42,
     "investable_n": 3443
    },
    "1M": {
-    "universe_pct": 28.23,
-    "universe_n": 4021,
+    "universe_pct": 28.18,
+    "universe_n": 4014,
     "investable_pct": 99.36,
     "investable_n": 3441
    },
    "3M": {
-    "universe_pct": 27.94,
-    "universe_n": 3979,
-    "investable_pct": 98.44,
-    "investable_n": 3409
+    "universe_pct": 27.89,
+    "universe_n": 3973,
+    "investable_pct": 98.47,
+    "investable_n": 3410
    },
    "6M": {
     "universe_pct": 26.5,
@@ -72,10 +72,10 @@
     "investable_n": 3302
    },
    "1Y": {
-    "universe_pct": 24.89,
-    "universe_n": 3545,
-    "investable_pct": 90.01,
-    "investable_n": 3117
+    "universe_pct": 24.92,
+    "universe_n": 3550,
+    "investable_pct": 90.12,
+    "investable_n": 3121
    },
    "3Y": {
     "universe_pct": 18.91,
@@ -90,14 +90,14 @@
     "investable_n": 1698
    },
    "Volatility": {
-    "universe_pct": 28.03,
-    "universe_n": 3992,
+    "universe_pct": 28.01,
+    "universe_n": 3990,
     "investable_pct": 99.42,
     "investable_n": 3443
    },
    "Drawdown": {
-    "universe_pct": 28.03,
-    "universe_n": 3992,
+    "universe_pct": 28.01,
+    "universe_n": 3990,
     "investable_pct": 99.42,
     "investable_n": 3443
    }
