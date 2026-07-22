@@ -9,6 +9,12 @@
 // claiming is FOR UPDATE SKIP LOCKED and crash recovery is lease-based (core.js).
 import "../app/lib/platform/jobs/handlers/index.js";
 import { runWorkerTick } from "../app/lib/platform/jobs/core.js";
+import { validateStartup, PLATFORM_CONFIG_SCHEMA } from "../app/lib/platform/config/core.js";
+
+// Fail fast with one clear, actionable message instead of a cryptic connection error several
+// lines into runWorkerTick — the Configuration Platform's whole point (docs/CONFIGURATION_PLATFORM.md).
+// The workflow's own shell-level guard step stays in place as harmless defense-in-depth.
+validateStartup(PLATFORM_CONFIG_SCHEMA);
 
 const summary = await runWorkerTick({
   workerId: `gh-${process.env.GITHUB_RUN_ID ?? "local"}`,

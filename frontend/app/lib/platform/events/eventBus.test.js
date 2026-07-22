@@ -67,11 +67,14 @@ describe("EVENT_TYPES catalog", () => {
 
 describe("emitEvent core mechanics (integration, real Neon)", () => {
   it("an unknown event type is rejected without throwing and without writing a row", async () => {
-    const before = await query(`select count(*)::int as c from domain_events`);
-    const result = await emitEvent("NotARealEvent", {});
+    // Scoped to a marker unique to this test run, not a whole-table count: dozens of other
+    // files in the full suite emit real events concurrently (that's the whole point of M4's
+    // wiring), so a global count(*) before/after comparison races against every one of them.
+    const marker = `evt-${RUN}-unknown-type-check`;
+    const result = await emitEvent("NotARealEvent", {}, { correlationId: marker });
     expect(result).toEqual({ ok: false, reason: "unknown_type" });
-    const after = await query(`select count(*)::int as c from domain_events`);
-    expect(after.rows[0].c).toBe(before.rows[0].c);
+    const after = await query(`select count(*)::int as c from domain_events where correlation_id = $1`, [marker]);
+    expect(after.rows[0].c).toBe(0);
   });
 
   it("never throws even on a genuine internal error (unserializable payload) — returns {ok:false} instead", async () => {

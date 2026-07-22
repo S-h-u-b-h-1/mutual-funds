@@ -109,7 +109,12 @@ describe("Journey 1 — Investment Readiness, end-to-end through real routes + r
 
     res = await submit("risk_profile", {});
     expect((await res.json()).item.status).toBe("completed");
-  }, 90000);
+    // 8 sequential real route-handler calls, each now also writing a domain_events row + job
+    // enqueue via M4's emitEvent() wiring in complianceService.js — more DB round-trips than
+    // when 90s was chosen, and reproducibly insufficient under full-suite contention (timed out
+    // twice in a row on a DNS-healthy run). 180s matches the established ceiling for this same
+    // class of "full compliance flow" work in eventBus.test.js's real-wiring tests.
+  }, 180000);
 
   it("investment_ready auto-completes and GET /compliance reports 100%", async () => {
     const res = await complianceRoute.GET();
