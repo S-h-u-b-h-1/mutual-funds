@@ -54,10 +54,10 @@
     "investable_n": 3443
    },
    "1M": {
-    "universe_pct": 28.18,
-    "universe_n": 4014,
-    "investable_pct": 99.36,
-    "investable_n": 3441
+    "universe_pct": 28.2,
+    "universe_n": 4017,
+    "investable_pct": 99.42,
+    "investable_n": 3443
    },
    "3M": {
     "universe_pct": 27.89,
@@ -72,10 +72,10 @@
     "investable_n": 3302
    },
    "1Y": {
-    "universe_pct": 24.92,
-    "universe_n": 3550,
-    "investable_pct": 90.12,
-    "investable_n": 3121
+    "universe_pct": 24.96,
+    "universe_n": 3556,
+    "investable_pct": 90.3,
+    "investable_n": 3127
    },
    "3Y": {
     "universe_pct": 18.91,
