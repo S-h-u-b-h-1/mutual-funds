@@ -3,39 +3,39 @@
  "amfiLastUpdated": "2026-07-21",
  "factsheetLastUpdated": "2026-07-19",
  "denominators": {
-  "universe": 14243,
-  "active": 8486,
+  "universe": 14246,
+  "active": 8489,
   "investable": 3463
  },
  "fields": {
   "Identity": {
    "Scheme Name": {
     "universe_pct": 100.0,
-    "universe_n": 14243,
+    "universe_n": 14246,
     "investable_pct": 100.0,
     "investable_n": 3463
    },
    "AMC": {
     "universe_pct": 100.0,
-    "universe_n": 14243,
+    "universe_n": 14246,
     "investable_pct": 100.0,
     "investable_n": 3463
    },
    "Category": {
     "universe_pct": 100.0,
-    "universe_n": 14243,
+    "universe_n": 14246,
     "investable_pct": 100.0,
     "investable_n": 3463
    },
    "Asset Class": {
     "universe_pct": 100.0,
-    "universe_n": 14243,
+    "universe_n": 14246,
     "investable_pct": 100.0,
     "investable_n": 3463
    },
    "Benchmark": {
-    "universe_pct": 85.82,
-    "universe_n": 12223,
+    "universe_pct": 85.81,
+    "universe_n": 12225,
     "investable_pct": 71.9,
     "investable_n": 2490
    }
@@ -43,7 +43,7 @@
   "Performance": {
    "Latest NAV": {
     "universe_pct": 98.29,
-    "universe_n": 14000,
+    "universe_n": 14003,
     "investable_pct": 100.0,
     "investable_n": 3463
    },
