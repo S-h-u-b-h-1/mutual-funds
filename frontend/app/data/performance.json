@@ -555,6 +555,25 @@
 ],
 "categories": [
 {
+"category": "Sectoral",
+"count": 2,
+"avg": 3.37,
+"median": 3.37,
+"best": {
+"name": "Groww Banking & Financial Services Fund - Direct Plan - Growth",
+"amc": "Groww",
+"ret": 3.45,
+"code": "152254"
+},
+"worst": {
+"name": "Groww Banking & Financial Services Fund - Regular - Growth",
+"amc": "Groww",
+"ret": 3.28,
+"code": "152274"
+},
+"breadth": 100
+},
+{
 "category": "Small Cap",
 "count": 70,
 "avg": 2.25,
@@ -650,25 +669,6 @@
 "breadth": 96
 },
 {
-"category": "Sectoral/ Thematic",
-"count": 483,
-"avg": 1.71,
-"median": 1.72,
-"best": {
-"name": "Motilal Oswal Consumption Fund-Direct-Growth",
-"amc": "Motilal Oswal",
-"ret": 9.51,
-"code": "153913"
-},
-"worst": {
-"name": "Nippon India Taiwan Equity fund- Regular Plan- Growth Option",
-"amc": "Nippon India",
-"ret": -16.18,
-"code": "149328"
-},
-"breadth": 81
-},
-{
 "category": "Mid Cap",
 "count": 64,
 "avg": 1.71,
@@ -686,6 +686,25 @@
 "code": "102528"
 },
 "breadth": 91
+},
+{
+"category": "Sectoral/ Thematic",
+"count": 481,
+"avg": 1.7,
+"median": 1.72,
+"best": {
+"name": "Motilal Oswal Consumption Fund-Direct-Growth",
+"amc": "Motilal Oswal",
+"ret": 9.51,
+"code": "153913"
+},
+"worst": {
+"name": "Nippon India Taiwan Equity fund- Regular Plan- Growth Option",
+"amc": "Nippon India",
+"ret": -16.18,
+"code": "149328"
+},
+"breadth": 80
 },
 {
 "category": "Flexi Cap",
@@ -785,7 +804,7 @@
 {
 "category": "Value",
 "count": 44,
-"avg": 0.95,
+"avg": 0.94,
 "median": 0.95,
 "best": {
 "name": "Axis Value Fund - Direct Plan - Growth",
@@ -1002,14 +1021,6 @@
 "score": 65.4
 },
 {
-"amc": "Groww",
-"funds": 12,
-"avg": 1.82,
-"pct_outperform": 50,
-"breadth": 100,
-"score": 65.4
-},
-{
 "amc": "Mahindra Manulife",
 "funds": 30,
 "avg": 1.44,
@@ -1040,6 +1051,14 @@
 "pct_outperform": 50,
 "breadth": 93,
 "score": 63.8
+},
+{
+"amc": "Groww",
+"funds": 12,
+"avg": 1.82,
+"pct_outperform": 42,
+"breadth": 100,
+"score": 60.8
 },
 {
 "amc": "Bajaj Finserv",
@@ -1092,7 +1111,7 @@
 {
 "amc": "DSP",
 "funds": 32,
-"avg": 1.52,
+"avg": 1.51,
 "pct_outperform": 31,
 "breadth": 88,
 "score": 51.5
@@ -1203,7 +1222,7 @@
 }
 ],
 "insights": [
-"Small Cap led equity categories at +2.2% (1-month NAV), outpacing Equitys (+0.3%) by 2.0 pts.",
+"Sectoral led equity categories at +3.4% (1-month NAV), outpacing Equitys (+0.3%) by 3.1 pts.",
 "The top 10 equity funds averaged +7.6% over 1 month, led by Motilal Oswal Consumption Fund-Direct-Gr (+9.5%).",
 "Across 1,191 equity Growth funds, 88% posted positive 1-month NAV returns.",
 "WhiteOak Capital ranks #1 on AMC quality (100% of its funds beat their category median)."
