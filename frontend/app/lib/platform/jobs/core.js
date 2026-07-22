@@ -8,6 +8,7 @@
 import crypto from "node:crypto";
 import { query } from "../../db.js";
 import { getHandler } from "./registry.js";
+import { computeBackoff } from "../retry/core.js";
 
 const TERMINAL = new Set(["succeeded", "dead", "cancelled"]);
 
@@ -111,11 +112,12 @@ export async function completeJob(jobId, result = null) {
 }
 
 // Exponential backoff with ±25% jitter so a burst of same-time failures doesn't retry as a
-// synchronized thundering herd. attempt is 1-based (the attempt that just failed).
+// synchronized thundering herd. attempt is 1-based (the attempt that just failed). Delegates to
+// the Phase 4.5 Retry Framework (see docs/RETRY_FRAMEWORK.md) — kept as its own named export
+// here, unchanged, since job scheduling wants seconds (a future `run_at` row) while the shared
+// module's other consumers (withRetry) want milliseconds; this is just the seconds-flavored call.
 export function computeBackoffSeconds(attempt, baseSeconds, maxSeconds, random = Math.random) {
-  const exact = Math.min(baseSeconds * 2 ** (attempt - 1), maxSeconds);
-  const jitter = exact * 0.25 * (random() * 2 - 1);
-  return Math.max(1, Math.round(exact + jitter));
+  return computeBackoff(attempt, { strategy: "exponential", base: baseSeconds, max: maxSeconds, random });
 }
 
 /**
