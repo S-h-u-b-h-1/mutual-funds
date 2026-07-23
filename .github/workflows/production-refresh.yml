@@ -112,8 +112,14 @@ jobs:
           # correctly covers it too. Non-critical: it does its own redundant live-AMFI fetch for
           # the scheme-level diff, so a network blip here must never fail the NAV pipeline that
           # already succeeded above.
-          python -m scripts.market_coverage_audit || echo "::warning::market_coverage_audit failed — fieldCoverage.json not refreshed this run, last-known copy stays committed"
-          if git diff --quiet -- frontend/app/data/; then
+          python -m scripts.market_coverage_audit || echo "::warning::market_coverage_audit failed — fieldCoverage.json/data/warehouse not refreshed this run, last-known copies stay committed"
+          # data/warehouse/*.json (production_validation.json, coverage_dashboard.json, etc.) must
+          # be diffed and committed alongside the frontend bundles — Completion Sprint Phase 2 gap
+          # found 2026-07-23: this audit ran here and gated step 4 fine (fresh, snapshot-matched),
+          # but its output was never committed, so ci.yml's bare `pytest tests/ -q` (no regen step)
+          # kept checking a copy frozen since 2026-07-19, which drifted into a false "orphan funds"
+          # failure with zero relation to any real code/data change. See docs/DATA_COVERAGE_MATRIX.md.
+          if git diff --quiet -- frontend/app/data/ data/warehouse/; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No change in rebuilt bundles vs the committed copy — nothing to commit."
           else
@@ -137,7 +143,7 @@ jobs:
         run: |
           git config user.name "mfpulse-bot"
           git config user.email "bot@mfpulse.local"
-          git add frontend/app/data/funds.json frontend/app/data/performance.json frontend/app/data/daily.json frontend/app/data/fieldCoverage.json
+          git add frontend/app/data/funds.json frontend/app/data/performance.json frontend/app/data/daily.json frontend/app/data/fieldCoverage.json data/warehouse/
           git commit -m "chore(refresh): production data refresh $(date -u +%Y-%m-%d)"
           git push
           echo "pushed=true" >> "$GITHUB_OUTPUT"

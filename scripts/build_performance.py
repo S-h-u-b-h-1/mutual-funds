@@ -142,6 +142,29 @@ def risk_from_series(navs_by_date):
     }
 
 
+def assert_returns_usable(coverage):
+    """Fail fast and loudly, right at the source, if the AMFI historical-fetch pipeline came
+    back so empty that funds.json would ship with r1m nulled out fleet-wide — the exact failure
+    mode tests/test_amfi_retry.py documents (2026-07-10 incident) and test_scores.py's
+    zero-tolerance test_health_in_range_on_real_data exists to catch as a last resort. A 50%
+    floor never trips on normal operation (~99% coverage per docs/DATA_COVERAGE_MATRIX.md) — it
+    only trips on a real, near-total outage of the history endpoint, and previously that only
+    surfaced several steps later as a cryptic `assert ([])` in pytest instead of here.
+    """
+    priced = coverage["priced"]
+    r1m_pct = 100 * coverage["with30d"] / max(1, priced)
+    if r1m_pct < 50:
+        print(f"::error::Cause: AMFI's NAV history endpoint (DownloadNAVHistoryReport_Po.aspx) "
+              f"returned unusable/empty data for this run — only {coverage['with30d']}/{priced} priced "
+              f"schemes ({r1m_pct:.1f}%) got a 1-month return, far below the normal ~99%. This "
+              f"funds.json would fail test_scores.py::test_health_in_range_on_real_data and must not "
+              f"be committed or deployed. Location: scripts/build_performance.py fetch_series()/"
+              f"_fetch_window(). Fix: usually a transient AMFI outage (see tests/test_amfi_retry.py) — "
+              f"production-refresh.yml runs again within 24h and should self-heal; only investigate "
+              f"the endpoint directly if this repeats across runs.", file=sys.stderr)
+        sys.exit(1)
+
+
 def market_asof(dim):
     """Latest real trading date — NOT the raw max nav_date. Overnight/liquid funds forward-date
     their NAV past weekends/holidays (a Saturday AMFI file carries Sunday-dated NAVs), so raw
@@ -281,6 +304,7 @@ def main():
         "direct": sum(1 for f in vals if f["isDirect"]), "noCategory": sum(1 for f in vals if f["category"] == "Other"),
         "coveragePct": round(100 * sum(1 for f in vals if f["r3m"] is not None) / max(1, len(vals))),
     }
+    assert_returns_usable(coverage)
 
     # Keep EVERY priced scheme so every searchable scheme is also routable/openable.
     # (Previously trimmed to r1m-or-active, which made ~5.6k schemes 404 on click.)

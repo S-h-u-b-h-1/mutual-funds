@@ -13,7 +13,9 @@ import time
 import urllib.request
 from datetime import date
 
-from scripts.build_performance import _fetch_window
+import pytest
+
+from scripts.build_performance import _fetch_window, assert_returns_usable
 
 VALID_ROW = "100033;INF209K01165;-;Test Fund;123.45;-;-;01-Jul-2026"
 EMPTY_BODY = "Scheme Code;ISIN Div Payout/ISIN Growth;ISIN Div Reinvestment;Scheme Name;Net Asset Value;Repurchase Price;Sale Price;Date\n"
@@ -84,3 +86,17 @@ def test_fetch_window_still_retries_on_rate_limit_banner(monkeypatch):
 
     assert len(calls) == 2
     assert result == {"100033": {date(2026, 7, 1): 123.45}}
+
+
+def test_build_aborts_when_returns_pipeline_comes_back_empty():
+    """2026-07-2x: a sustained gap (multiple consecutive chunks each giving up after 4 attempts,
+    per this file's docstring incident class) left r1m null for every fund in one production-
+    refresh run. That should be caught here, at the source, not several steps later as a bare
+    `assert ([])` in test_scores.py."""
+    with pytest.raises(SystemExit):
+        assert_returns_usable({"priced": 14000, "with30d": 0})
+
+
+def test_build_proceeds_on_normal_returns_coverage():
+    """~99% r1m coverage (the documented normal case) must never trip the guard."""
+    assert_returns_usable({"priced": 14000, "with30d": 13900}) is None
