@@ -166,24 +166,62 @@ changes to `core.js`:
 No business logic anywhere else — `notifyUser()`, `orderService`, the eventual public APIs —
 needs to know a real provider exists.
 
-## 4. Preference evaluation
+## 4. Preferences (Slice 3)
+
+Owned by `platform/notifications/preferences.js`, not `core.js` — a real, independently
+documented vertical now, not a one-function detail of the send pipeline. `core.js` imports
+`getPreferences`/`resolveChannelEnabled` from it; nothing moved the other way.
 
 `getPreferences(userId)` returns a real `notification_preferences` row, or an in-memory default
-(`{enabled_channels: ['in_app'], quiet_hours: null, ...}`) if the user has none — matching the
-schema's own comment that absence means "all defaults," not "blocked." `in_app` skips the
+(`{enabled_channels: ['in_app'], category_settings: {}, ...}`) if the user has none — matching
+the schema's own comment that absence means "all defaults," not "blocked." `in_app` skips the
 preference round-trip entirely and always sends: it's the schema's own always-on default with no
 UI/API yet to disable it, so evaluating preferences for it would be a pure-overhead no-op on the
 hottest path in the system (every existing `notifyUser()` call site). Every other channel is
-evaluated against `enabled_channels` before a row is even written; a disabled channel returns
+evaluated via `resolveChannelEnabled(preferences, category, channel)`; a disabled channel returns
 `{sent: false, reason: 'channel_disabled'}` — a normal, expected outcome, not an error, matching
 `emitEvent`'s own "never throw for an expected non-send" precedent from the Event Bus.
 
-Quiet hours, digest batching, and per-category overrides are schema-ready
-(`quiet_hours_start/end`, `digest_enabled/frequency`, `category_settings`) but not yet evaluated
-by `sendNotification` — that lands with M5 sub-step 3 (User Preferences), which also needs the
-brief's explicit "Critical bypasses quiet hours" rule. Recording this now rather than silently:
-today, *no* channel respects quiet hours yet, including non-critical ones on non-in_app channels,
-because no channel is live to actually test that gate against.
+**Category inheritance** is standard prototype-style inheritance, not a narrowing intersection: a
+category with an explicit `category_settings[category]` override is authoritative for that
+category outright — it can NARROW below `enabled_channels` (mute a noisy category down to
+`in_app` only) or WIDEN beyond it (a `security` override forcing email/SMS through even if the
+user has disabled those channels globally — the brief's "Security Notification Rules" only make
+sense with widening allowed). A category with no override simply inherits the global default.
+`{enabled: false}` on a category blocks every channel for it outright, overriding everything else.
+
+**`category_settings` keys stay free-form**, matching every other "type" string already in this
+codebase (job types, reconciliation types, event types) — a notification's own `category` field
+is still whatever `notifyUser()`/`sendNotification()` callers pass (mostly `relatedEntityType`
+today: `'order'`, `'document'`, `'compliance'`, ...), unchanged from sub-step 1. `SUGGESTED_CATEGORIES`
+exports the brief's own 10-name taxonomy (transactional/system/security/compliance/portfolio/
+investment/advisor/marketing/operational/administrative) purely as UI-facing labels for a
+settings screen — never enforced as the only valid keys, since forcing every caller onto a fixed
+taxonomy now would mean rewriting five already-shipped, already-tested service call sites for no
+functional gain.
+
+**Validation** (`upsertPreferences`, partial-update semantics — only the keys actually sent are
+validated and changed, everything else keeps its stored value): `enabled_channels` and every
+`category_settings[*].channels` entry must be drawn from the 6 known channels;
+`quiet_hours_start/end` must be an integer 0-23 or `null`; `digest_frequency` must be `daily` or
+`weekly`; `language` must look like an ISO 639-1 code. A rejected call writes nothing — validated
+before any query runs.
+
+**Deliberately still deferred to Slice 5 (Scheduling)**: quiet-hours and digest are fully
+schema-ready and now have a validated read/write API, but `sendNotification` does not yet check
+the clock against `quiet_hours_start/end`, and nothing batches queued sends into a digest. Quiet
+hours is fundamentally a send-TIMING decision (send now vs. defer), the same axis Scheduling
+already owns (immediate/scheduled/expiry) — bolting a second, unrelated timing mechanism into
+Preferences would blur that boundary. The brief's "Critical bypasses quiet hours" rule belongs
+there too, once quiet-hours enforcement exists to bypass.
+
+**API**: `GET /api/v1/invest/notifications/preferences` (own-user-only, via `requireUser()`) —
+`{preferences, knownChannels, suggestedCategories}`, the latter two purely reference data for a
+settings UI to render checkboxes from. `PUT` with a partial body — merges onto whatever's stored,
+`200 {preferences}` on success, `400 {error}` with the exact validation message on a rejected
+field, `401` with no session. Route-layer tests mock `auth.js`/`preferences.js` (contract only,
+matching every other route in this codebase); the real validation/inheritance logic is covered by
+`preferences.test.js`'s real-Neon tests.
 
 ## 5. Failure modes & recovery
 
@@ -263,3 +301,20 @@ because no channel is live to actually test that gate against.
   Consistent with this session's documented full-suite timing anomaly (see
   [[mfpulse-invest-phase3-gate]]) at a smaller scale than previously seen — not caused by any
   sub-step-2 code, confirmed by isolating rather than assumed.
+
+## 9. Verification record (M5 Slice 3)
+
+- 16 real-Neon tests in `preferences.test.js`: defaults-without-a-row, every validation rule
+  (unknown channel at both the global and category level, non-boolean category flag, out-of-range
+  quiet hour, invalid digest frequency, malformed language, a rejected call writes nothing),
+  partial-update semantics (one field changes, everything else survives; `category_settings`
+  round-trips exactly through jsonb; `enabled_channels` de-duplicates), and all 4 inheritance
+  shapes (no override inherits global, `enabled:false` blocks everything for that category,
+  narrowing below global, widening beyond global).
+- 6 route-contract tests in `preferences/route.test.js` (401/400/200, correct delegation,
+  validation-error message surfaced verbatim in the 400 body).
+- `core.test.js`/`notifications.test.js` re-verified green after wiring `resolveChannelEnabled`
+  into `sendNotification`'s preference check (the no-override case is behaviorally identical to
+  the old `isChannelEnabled`, confirmed by the existing "channel not in enabled_channels" test
+  passing unmodified).
+- Full clean suite green; lint clean.

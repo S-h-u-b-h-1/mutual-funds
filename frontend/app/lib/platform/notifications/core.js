@@ -23,6 +23,7 @@ import { enqueueJob } from "../jobs/core.js";
 import { registerHandler } from "../jobs/registry.js";
 import { renderTemplate } from "../templates/core.js";
 import { getChannelProvider } from "./registry.js";
+import { getPreferences, resolveChannelEnabled } from "./preferences.js";
 
 const PRIORITY_TO_JOB_PRIORITY = { critical: 1, high: 3, normal: 5, low: 7 };
 
@@ -53,29 +54,6 @@ async function recordEvents(notificationId, events) {
     `insert into notification_events (notification_id, event, detail, created_at) values ${values.join(", ")}`,
     params
   );
-}
-
-const DEFAULT_PREFERENCES = Object.freeze({
-  enabled_channels: ["in_app"],
-  category_settings: {},
-  quiet_hours_start: null,
-  quiet_hours_end: null,
-  quiet_hours_timezone: "Asia/Kolkata",
-  digest_enabled: false,
-  digest_frequency: "daily",
-  language: "en",
-});
-
-/** Absence of a row means "all defaults" (in-app only, no quiet hours) rather than requiring a
- * preferences row to exist before a user can receive anything — see notification_preferences'
- * own schema comment. */
-export async function getPreferences(userId) {
-  const r = await query(`select * from notification_preferences where user_id = $1`, [userId]);
-  return r.rows[0] ?? { user_id: userId, ...DEFAULT_PREFERENCES };
-}
-
-function isChannelEnabled(preferences, channel) {
-  return (preferences.enabled_channels ?? DEFAULT_PREFERENCES.enabled_channels).includes(channel);
 }
 
 /**
@@ -127,10 +105,12 @@ export async function sendNotification(userId, opts = {}) {
   // not an interruption channel a user opts out of the way they would push/SMS/email, so it
   // skips the preference round-trip entirely. This also preserves notifyUser()'s exact pre-M5
   // behavior (which had no concept of preferences at all) with zero added latency on its hot
-  // path. Every other channel still goes through full preference evaluation.
+  // path. Every other channel goes through full preference evaluation, including per-category
+  // inheritance (Slice 3) — e.g. a 'security' category override can force email/SMS through even
+  // if the user has those channels off globally.
   if (channel !== "in_app") {
     const preferences = await getPreferences(userId);
-    if (!isChannelEnabled(preferences, channel)) {
+    if (!resolveChannelEnabled(preferences, category, channel)) {
       return { sent: false, reason: "channel_disabled" };
     }
   }
