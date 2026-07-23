@@ -14,5 +14,9 @@ import "../../reconciliation/comparators/index.js";
 // M4 event bus: registers the 'event-dispatch' job type + every internal listener.
 import "../../events/core.js";
 import "../../events/listeners/index.js";
+// Phase 5 M5 notification platform: registers the 'notification-deliver' job type + every
+// channel provider (channels/index.js is the swap point core.js's handler reads from).
+import "../../notifications/core.js";
+import "../../notifications/channels/index.js";
 
 export { registeredTypes } from "../registry.js";
