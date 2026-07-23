@@ -85,6 +85,14 @@ export const investApi = {
   retryOrder: async (orderId) => { const value = await requestJson(`/api/v1/invest/orders/${orderId}/retry`, { method: "POST", body: "{}" }); return { ...value, order: order(value.order) }; },
 };
 
+export const sipApi = {
+  list: async () => {
+    const value = await requestJson("/api/v1/invest/sips");
+    return { ...value, sips: Array.isArray(value.sips) ? value.sips : [] };
+  },
+  create: (payload) => requestJson("/api/v1/invest/sips", { method: "POST", body: JSON.stringify(payload) }),
+};
+
 async function uploadStatement(formData, signal) {
   let response;
   let body = {};

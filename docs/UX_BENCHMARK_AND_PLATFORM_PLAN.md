@@ -185,6 +185,45 @@ Add pending money, SIP health, recent activity, documents, readiness and explici
 
 Implement role-protected client/household workflows and exception queues once Journey 5 contracts and permissions land.
 
+## 9. Four-viewpoint workflow review
+
+Every future slice must pass all four reviews before it is considered complete.
+
+| Viewpoint | Questions the first viewport must answer | Minimum evidence/action |
+| --- | --- | --- |
+| Investor | Am I eligible? What is missing? Why? Where is my money? Did it complete? What happens next? | readiness gate, source/timestamp, lifecycle state, money state, next action and support route |
+| Advisor | Which clients need attention? Which mandates/SIPs/orders failed? Who needs follow-up? | filterable client queue, client/household context, permissioned assisted action, note/task audit |
+| Operations | What exception is unresolved? What caused it? Who owns it? What resolves it? | exception queue, stable reason, retry/reprocess action, owner, SLA only when contract-backed, resolution event |
+| Management | What is the business trend and what drives it? | KPI freshness/source, period/filter controls, drill-down to underlying investor/order/AMC/scheme records |
+
+### Workflow quality gates
+
+Before implementation, the product owner and frontend reviewer should answer:
+
+- Can the happy path be completed without exposing backend terminology?
+- Are verified fields reused and are only new fields requested?
+- Is progressive disclosure used for sensitive or conditional information?
+- Can the investor save and resume without losing a partially completed step?
+- Can an advisor act for a client only where the permission contract allows it?
+- Does the same state remain truthful on phone, tablet and desktop?
+- Does every mutation return a reference, timestamp, status and next step?
+- Does every failure state explain money safety and support escalation?
+- Can operations resolve the issue without leaving the queue?
+- Can management drill from a KPI to the exact underlying records?
+
+### Required workflow metadata
+
+The minimum frontend contract for any money-moving or compliance workflow is:
+
+status, status_label, status_reason, reference_id, created_at, updated_at, next_action,
+action_required, retryable, money_state, expected_step (only when provider-backed), source,
+freshness, and support_reference.
+
+For advisor/operations surfaces add:
+
+owner_id, permission_scope, priority, queue, resolution_action, resolved_at, and an audit event
+for each assisted action.
+
 ## Sources
 
 - CAMS/myCAMS features and FAQ: https://newmycams.camsonline.com/help/faq

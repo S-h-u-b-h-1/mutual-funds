@@ -9,7 +9,7 @@ const links = [
   ["Overview", "/invest", "⌂"], ["Portfolio", "/invest/portfolio", "◒"],
   ["Orders", "/invest/orders", "↗"], ["Transactions", "/invest/transactions", "⇄"],
   ["Readiness", "/invest/compliance", "✓"], ["Documents", "/invest/documents", "▤"],
-  ["Notifications", "/invest/notifications", "◌"], ["Advisor", "/invest/advisor", "◇"],
+  ["SIPs", "/invest/sips", "⌁"], ["Notifications", "/invest/notifications", "◌"], ["Advisor", "/invest/advisor", "◇"],
 ];
 
 export function InvestIcon({ children }) {
@@ -70,7 +70,7 @@ export default function InvestShell({ eyebrow = "Suasion Invest", title, descrip
 export function Card({ className = "", children }) { return <section className={`min-w-0 rounded-[1.65rem] border border-line bg-surface shadow-sm ${className}`}>{children}</section>; }
 export function ButtonLink({ href, children, secondary = false }) { return <Link href={href} className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-semibold transition ${secondary ? "border border-line bg-surface text-ink hover:bg-surface-2" : "bg-ink text-bg hover:opacity-90"}`}>{children}</Link>; }
 export function StatusPill({ status }) {
-  const done = status === "completed" || status === "verified";
+  const done = ["completed", "verified", "active", "ready", "scheduled"].includes(status);
   const review = status === "needs_review" || status === "rejected" || status === "failed" || status === "retry_required";
   const label = String(status || "pending").replaceAll("_", " ");
   return <span role="status" aria-label={`Status: ${label}`} className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.1em] ${done ? "bg-pos/10 text-pos" : review ? "bg-neg/10 text-neg" : "bg-surface-2 text-ink-muted"}`}>{label}</span>;
