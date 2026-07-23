@@ -104,39 +104,64 @@ two small orthogonal machines instead of one large one.
 Same swap-point pattern as M2 (payment providers) and M4.5's Provider Registry, applied to
 notification channels:
 
-- **`types.js`** — `NotificationProvider` base class, one method: `send(notification)`.
+- **`types.js`** — `NotificationProvider` base class: `send(notification)` (must throw on
+  failure) and `getHealth()` (default `{status: 'healthy'}`, overridden by anything with real
+  internal failure state to report).
 - **`registry.js`** — `registerChannelProvider(channel, provider)` /
-  `getChannelProvider(channel)`. Holds live, invokable instances (a Map), deliberately separate
-  from the cross-cutting Provider Registry (`platform/providerRegistry/`), which holds only
-  operational metadata (version, health, capabilities) — the same split `invest/providers/`
-  already established; see `docs/PROVIDER_REGISTRY.md` §"Registry vs. domain modules".
+  `getChannelProvider(channel)` / `registeredChannels()`. Holds live, invokable instances (a
+  Map), deliberately separate from the cross-cutting Provider Registry
+  (`platform/providerRegistry/`), which holds only operational metadata (version, health,
+  capabilities) — the same split `invest/providers/` already established; see
+  `docs/PROVIDER_REGISTRY.md` §"Registry vs. domain modules".
 - **`channels/index.js`** — the one file that wires instances together: instantiates each
-  provider and calls `registerChannelProvider`, then separately registers the same instance's
+  provider, calls `registerChannelProvider`, then separately registers the same instance's
   *metadata* into the Provider Registry (`notification-channel-<channel>`) via
-  `deriveCapabilities(NotificationProvider)` so capabilities can never drift from what the class
-  actually implements.
+  `deriveCapabilities(NotificationProvider)` (capabilities can never drift from what the class
+  actually implements) and `getHealth: () => provider.getHealth()` (every channel's health comes
+  from the instance itself — this file never hand-copies per-channel health logic).
 
-**Today**: only `channels/inApp.js` is real — `InAppNotificationProvider.send()` is a no-op that
-returns `{delivered: true}`, because for `in_app`, writing the `notifications` row already *is*
-the delivery; there is no external call to make. No other channel is registered, so
-`getChannelProvider('email')` (etc.) returns `undefined` today — `sendNotification` would enqueue
-the job, but `deliverNotification` throws `no channel provider registered for 'email'` when a
-worker tries to claim it, which is the correct, honest failure (not a silent drop) until a real
-adapter exists.
+**As of sub-step 2**: `channels/inApp.js` is the only REAL implementation —
+`InAppNotificationProvider.send()` is a no-op returning `{delivered: true}`, because for
+`in_app`, writing the `notifications` row already *is* the delivery; there is no external call to
+make. Every other channel — `email`/`sms`/`push`/`whatsapp`/`webhook` — has a **mock** adapter
+(`channels/mock/Mock*Provider.js`), registered in `mode: 'sandbox'` (vs. in-app's `'production'`):
+each `send()` deterministically returns a plausible fake provider response (a synthetic message
+ID via the same `mockRef()` helper `invest/providers/mock/` uses, so "what does a mock reference
+look like" has one answer platform-wide) without ever attempting a real network call, and each
+wraps that no-op in its **own** Circuit Breaker instance, constructed from
+`getProviderConfig('notification-channel-<channel>')` — the Configuration→Circuit-Breaker
+composition the brief's per-channel architecture names is genuinely wired, not just decorative,
+even though a mock that always succeeds will never actually trip it. Retry is deliberately NOT
+implemented inside these adapters — a queued channel's retry comes for free from the M1 job's own
+requeue-with-backoff (see `docs/RETRY_FRAMEWORK.md`'s job-queue-backed-retries split), so an
+adapter's only contract is "let a failure throw." Recipient contact resolution (an email address,
+a phone number, a device token) is deliberately NOT modeled anywhere yet — the schema has no such
+column, and a mock has nothing to send an address to; that lookup is a real adapter's own concern
+to add when it lands, not something to guess at now.
+
+A gap worth recording because it wasn't obvious until a real consumer hit it: `getHealth()`
+cannot simply return a circuit breaker's own `getMetrics()` — the breaker reports `state`
+(closed/open/half_open), but the Provider Registry's `runProviderConformanceCheck` requires a
+`status` field, and the two vocabularies were never reconciled anywhere before these mocks existed
+(no earlier provider used a breaker AS its `getHealth()` source). Fixed via a small
+`channels/mock/breakerHealth.js` adapter (`state` → `status` via a fixed mapping, spreading the
+rest of the metrics through unchanged) — worth reusing for any future breaker-backed provider
+outside notifications too, rather than rediscovering the same gap.
 
 **Adding a real provider later is exactly the four steps the brief specifies**, and needs zero
 changes to `core.js`:
-1. Write an adapter class extending `NotificationProvider`, wrapping the vendor SDK call in its
-   own Circuit Breaker (`docs/CIRCUIT_BREAKER_FRAMEWORK.md`) — retry for a queued channel comes
-   for free from the M1 job's own requeue-with-backoff (see `docs/RETRY_FRAMEWORK.md`'s
-   job-queue-backed-retries split), so the adapter itself should let a failed `send()` throw
-   rather than retry internally.
-2. Register it in `channels/index.js` (`registerChannelProvider('email', new
-   ResendEmailProvider(...))`) and add its config keys to the Configuration Platform.
+1. Replace the `Mock*Provider` with an adapter class extending `NotificationProvider`, wrapping
+   the vendor SDK call in the same Circuit Breaker composition the mock already established.
+2. Swap the registration in `channels/index.js` (`new ResendEmailProvider(...)` in place of `new
+   MockEmailProvider()`) — the channel key, Provider Registry name, and everything downstream
+   (core.js, the job handler, future public/internal APIs) needs no change.
 3. Supply real credentials via the Configuration Platform, not hardcoded.
-4. Run it through a conformance suite (not built yet — the same `testChannel` pattern
-   `core.test.js` already uses against the mock is the template: assert `send()` resolves on
-   success and throws on failure, nothing adapter-specific).
+4. Run it through the conformance suite: `runProviderConformanceCheck('notification-channel-
+   <channel>')` (generic registration-shape check, from the Provider Registry itself) plus
+   `channels/channels.test.js`'s behavioral pattern (does `send()` actually resolve for a
+   well-formed notification, is the breaker genuinely exercised) — both already exist and already
+   run against every mock channel today, so a real adapter is verified by the exact same suite,
+   not a bespoke one written for it.
 
 No business logic anywhere else — `notifyUser()`, `orderService`, the eventual public APIs —
 needs to know a real provider exists.
@@ -211,3 +236,30 @@ because no channel is live to actually test that gate against.
   as a genuine hot-path optimization rather than just padding the threshold: skip preference
   evaluation for `in_app` (§4) and consolidate `created`+`delivered`/`created`+`queued` into one
   `recordEvents()` round trip (§6), cutting the immediate in-app path from 4 DB round trips to 2.
+
+## 8. Verification record (M5 sub-step 2)
+
+- 20 pure in-memory tests in `channels/channels.test.js` (no real Neon needed — channel
+  registration/circuit-breaker/`send()` never touches the database): all 6 channels registered in
+  both the channel registry and Provider Registry; `in_app` alone in `'production'` mode; every
+  channel passes the generic `runProviderConformanceCheck` (registration shape); every channel's
+  `send()` genuinely resolves for a well-formed notification; every mock channel's circuit
+  breaker is genuinely exercised (`sampleSize` moves, `failureRate` stays 0) by a real `send()`
+  call, not just present-but-inert; `in_app`'s health correctly stays the interface default since
+  it has no breaker.
+- Full sub-step-1 suite (`core.test.js` 11, `notifications.test.js` 3) re-verified green after
+  `types.js`'s `getHealth()` addition and `channels/index.js`'s rewrite — confirms sub-step 2
+  didn't regress sub-step 1's sendNotification/state-transition behavior.
+- **Bug found and fixed before it shipped**: `runProviderConformanceCheck` failed all 5 mock
+  channels with `"getHealth() result missing required field 'status'"` — a circuit breaker's
+  `getMetrics()` uses `state`, not `status`; the Provider Registry (Phase 4.5) and Circuit
+  Breaker Framework (also Phase 4.5) were never actually wired together by an earlier consumer,
+  so this vocabulary mismatch had no chance to surface until now. Fixed via
+  `channels/mock/breakerHealth.js` (§3).
+- **Transient failure investigated and ruled out as environmental, not a regression**: running
+  `channels.test.js` + `core.test.js` + `notifications.test.js` together produced 2 failures in
+  `core.test.js`'s async-channel tests (a job stuck at `attempts: 0`, a fail-pair consumed by the
+  wrong test) that did not reproduce running `core.test.js` alone seconds later (11/11 green).
+  Consistent with this session's documented full-suite timing anomaly (see
+  [[mfpulse-invest-phase3-gate]]) at a smaller scale than previously seen — not caused by any
+  sub-step-2 code, confirmed by isolating rather than assumed.
