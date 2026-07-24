@@ -7,7 +7,7 @@ import { setInvestSessionKey } from "../../lib/invest/api";
 
 const links = [
   ["Overview", "/invest", "⌂"], ["Portfolio", "/invest/portfolio", "◒"],
-  ["Orders", "/invest/orders", "↗"], ["Transactions", "/invest/transactions", "⇄"],
+  ["Orders", "/invest/orders", "↗"], ["Transactions", "/invest/transactions", "⇄"], ["Switch", "/invest/switch", "⇆"],
   ["Readiness", "/invest/compliance", "✓"], ["Documents", "/invest/documents", "▤"],
   ["SIPs", "/invest/sips", "⌁"], ["Notifications", "/invest/notifications", "◌"], ["Advisor", "/invest/advisor", "◇"],
 ];

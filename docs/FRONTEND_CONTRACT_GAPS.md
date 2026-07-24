@@ -30,13 +30,11 @@ Still required from backend:
 
 ## Switch journey
 
-The redemption contract is now live at `GET /api/v1/invest/redemption/{schemeCode}/eligibility`
-and `POST /api/v1/invest/redemption`; the frontend uses that dedicated enforcement boundary.
-
-Switch remains blocked. The current order API accepts `switch_in` and `switch_out`, but no contract
-yet exposes destination-scheme metadata, source/destination folio validation, available units,
-switch-specific tax and exit-load context, or a combined switch timeline. Do not enable switch
-submission until those fields and state transitions are published.
+The dedicated switch contract is live at `GET /api/v1/invest/switch/eligibility?source=&destination=`
+and `POST /api/v1/invest/switch`. The frontend uses this boundary for same-AMC validation,
+source-folio eligibility, amount/units limits, exit-load and tax context, linked switch-out and
+switch-in orders, and independent transaction timelines. Cross-AMC moves remain intentionally
+blocked by the backend and are presented as separate redemption plus purchase journeys.
 
 ## SIP management
 

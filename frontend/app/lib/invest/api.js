@@ -96,6 +96,18 @@ export const redemptionApi = {
   },
 };
 
+export const switchApi = {
+  eligibility: async (sourceSchemeCode, destinationSchemeCode) => {
+    const params = new URLSearchParams({ source: sourceSchemeCode, destination: destinationSchemeCode });
+    const value = await requestJson(`/api/v1/invest/switch/eligibility?${params.toString()}`);
+    return value.eligibility || value;
+  },
+  create: async (payload) => {
+    const value = await requestJson("/api/v1/invest/switch", { method: "POST", body: JSON.stringify(payload) });
+    return { ...value, switchOut: order(value.switchOut), switchIn: order(value.switchIn) };
+  },
+};
+
 export const sipApi = {
   list: async () => {
     const value = await requestJson("/api/v1/invest/sips");
