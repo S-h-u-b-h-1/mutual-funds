@@ -67,6 +67,15 @@ communication, meeting, or permission contract is live yet. Required backend add
 Until these contracts land, the workspace must render “Awaiting backend data” states and must not
 show fabricated client metrics or enable mutating controls.
 
+## Operations and management consoles
+
+No permission-scoped operations or management read contracts are live yet. Required additions
+include paginated exception queues (KYC, mandates, payments, allotments, reconciliation,
+documents and notifications), provider-health summaries, detail timelines, resolution commands,
+and audited management KPI endpoints for AUM, flows, SIPs, investor growth, allocation, advisor
+performance and operational health. The internal consoles render layouts and disabled states only
+until those contracts are published.
+
 ## Timeline minimum
 
 Every money-moving response should eventually include:
