@@ -135,6 +135,15 @@ function validateOrderInput({ schemeCode, orderType, amount, units, relatedSchem
   if (orderType === "redemption") {
     throw new Error("Redemption orders must be created via redemptionService.createRedemptionOrder(), which validates live folio eligibility — not orderService.createOrder().");
   }
+  // Switch Contract: same reasoning as redemption above — a switch_out leg needs the exact same
+  // folio/eligibility/exit-load enforcement as a redemption (it IS a redemption of the source,
+  // tax- and eligibility-wise), and a switch_in leg only makes sense as one half of a linked
+  // pair created together — a standalone switch_in has no source of funds. Both must go through
+  // switchService.createSwitchOrder(), which writes both linked rows directly (never calls
+  // createOrder), so this guard cannot block a legitimate switch.
+  if (orderType === "switch_in" || orderType === "switch_out") {
+    throw new Error("Switch orders must be created via switchService.createSwitchOrder(), which validates live eligibility for both legs together — not orderService.createOrder().");
+  }
 }
 
 export async function createOrder(userId, input) {
@@ -175,6 +184,7 @@ export async function submitOrder(userId, orderId) {
     schemeCode: order.scheme_code, orderType: order.order_type, amount: order.amount, units: order.units,
     distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin,
     folioNumber: order.folio_number, exitLoadPct: order.exit_load_pct, exitLoadAmount: order.exit_load_amount,
+    relatedSchemeCode: order.related_scheme_code, switchOrderId: order.switch_order_id,
   });
   await query(
     `update investment_orders set provider = $2, provider_order_id = $3, submitted_at = now(), updated_at = now()

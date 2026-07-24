@@ -125,7 +125,7 @@ export async function getRedemptionEligibility(userId, schemeCode) {
   if (fund.nav == null) portfolioBlockers.push("No live NAV available for this scheme — cannot compute redemption value.");
 
   return {
-    schemeCode, fundName: fund.name ?? null, category: fund.category ?? null,
+    schemeCode, fundName: fund.name ?? null, fundAmc: fund.amc ?? null, category: fund.category ?? null,
     nav: fund.nav ?? null, navDate: fund.navDate ?? null,
     taxTreatment: { treatment: taxTreatment.treatment, treatmentDetail: taxTreatment.treatment ? { label: taxTreatment.label, ltcgHoldingPeriod: taxTreatment.ltcgHoldingPeriod, ltcgRate: taxTreatment.ltcgRate, stcgHoldingPeriod: taxTreatment.stcgHoldingPeriod, stcgRate: taxTreatment.stcgRate, note: taxTreatment.note } : null, isElss: taxTreatment.isElss },
     payoutBank,

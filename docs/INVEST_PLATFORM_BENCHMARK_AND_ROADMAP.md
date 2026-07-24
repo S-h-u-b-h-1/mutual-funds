@@ -89,7 +89,7 @@ Legend for the "MF Pulse today" column: **live** (real, working) · **mock** (in
 | Redemption by amount | Universal | **live** — `redemptionService.createRedemptionOrder()` accepts either amount or units, re-validates live folio eligibility server-side before creating **[verified, shipped 2026-07-24]** | Closed — see `docs/REDEMPTION_CONTRACT.md` |
 | Redemption by units | Same | **live** — same path | Closed |
 | Full redemption | Same | **live** — requesting the folio's full `unitsRedeemable` is a normal call, no special-cased "full redemption" flag needed | Closed |
-| Switch | Universal | **partial** — `order_type` supports `switch_in`/`switch_out` and `related_scheme_code`, but the audited service inventory didn't surface a dedicated switch-creation helper distinct from generic `createOrder` — likely functional via the generic path but unverified end-to-end | Verify/harden as its own tested path — **next slice, Switch Contract** |
+| Switch | Universal | **live** — `switchService.createSwitchOrder()` creates both linked legs, reuses the redemption eligibility contract for the source side, enforces same-AMC (real BSE StAR MF constraint) **[verified, shipped 2026-07-24]** | Closed — see `docs/SWITCH_CONTRACT.md` |
 | STP | Standard (RTA-side recurring switch) | **absent** — no STP concept in schema at all | Structural gap |
 | SWP | Standard (RTA-side recurring redemption) | **absent** — no SWP concept in schema at all | Structural gap |
 | Folio-level transactions | Standard once multiple folios per AMC exist | **live for redemption** — `createRedemptionOrder` requires an explicit `folioNumber`, validated against the user's real per-folio holdings before the order is created **[verified, shipped 2026-07-24]**; still **partial for purchase** (a purchase always creates/targets an implicit folio, no selection of an existing one) | Purchase-side folio selection remains open; not needed until multi-folio-per-scheme purchase flows exist |
@@ -250,7 +250,7 @@ Each journey uses the same compact template (entry → eligibility → required 
 
 **10. Full and partial redemption** — **Closed 2026-07-24.** `redemptionService.createRedemptionOrder()` is now a distinct, folio-validated, exit-load/tax/payout-aware creation path — see `docs/REDEMPTION_CONTRACT.md`. Of the two clearest P0 gaps this document originally identified, this is the one that's closed; payment-lifecycle visibility (the Payment Attempt entity, #12 below) remains open.
 
-**11. Switch transaction** — **Partial** — schema supports it, dedicated tested path not confirmed. Needs verification before being called "live."
+**11. Switch transaction** — **Closed 2026-07-24.** `switchService.createSwitchOrder()` is now a distinct, folio-validated, same-AMC-enforced creation path producing two linked orders — see `docs/SWITCH_CONTRACT.md`.
 
 **12. Failed payment** — **Absent as a distinct journey** — because there is no payment-attempt entity, there is nothing to fail independently of the order itself. This is the same structural gap as #8 and §2.4's payment-lifecycle rows, appearing a third time — a strong signal that a "Payment Attempt" entity is the single highest-leverage structural addition in this whole document (it unblocks #8, #12, mandate-verification-latency modeling, and duplicate-payment prevention all at once).
 
@@ -359,7 +359,7 @@ Every capability area above already has a home in the infrastructure built this 
 | Mandates | `sip_mandates` | **partial** — see Payment Attempts below, this table conflates mandate-registration with payment-execution status |
 | SIP registrations | `sip_mandates` | **live** at registration level |
 | SIP instalments | — | **absent** — the single most-flagged gap in this document (§3, §4 journeys #8/#12) |
-| Purchases/redemptions/switches | `investment_orders` | **live** for purchase and redemption (redemption closed 2026-07-24, `docs/REDEMPTION_CONTRACT.md`); switch still unverified as its own tested path (§2.3) |
+| Purchases/redemptions/switches | `investment_orders` | **live** for all three — purchase, redemption (closed 2026-07-24, `docs/REDEMPTION_CONTRACT.md`), and switch (closed 2026-07-24, `docs/SWITCH_CONTRACT.md`) |
 | STP | — | **absent** |
 | SWP | — | **absent** |
 | Payment attempts | — | **absent** — see §5 Recommendation 1, the highest-leverage single addition in this document |
@@ -471,7 +471,7 @@ Consolidated from findings scattered through §2-§8, in one place as this docum
 - ~~Distributor ARN/EUIN attribution is entirely absent~~ **Corrected 2026-07-24 — no longer true.** Suasion's real ARN (289322)/EUIN (E544323) are configured (config/DB-backed, not hardcoded) and stamped on every order and SIP mandate at creation; see §9/§10 and `docs/DISTRIBUTOR_IDENTITY.md`. What genuinely remains open: advisor-specific EUIN attribution has no live caller yet (Journey 5/CRM scope), and the `rm_assignments`/`placed_by_user_id` mechanism is still just an internal RM-tracking convenience, unconnected to the distributor tables.
 - **The management/AUM view does not exist in any form** — no mock, no partial route, nothing. Every other gap area in this document has at least a mock or a partial field to point to; this one has none.
 - **No service-request/ticket/case data model exists anywhere** in the schema.
-- ~~Redemption, STP, and SWP order-creation paths could not be confirmed as built~~ **Partially corrected 2026-07-24.** Redemption now has a real, tested, folio-validated creation path (`docs/REDEMPTION_CONTRACT.md`) — no longer true for redemption specifically. STP and SWP are still genuinely absent (no concept in the schema at all, not just an unbuilt route), and switch remains unverified as its own tested path (next slice, Switch Contract).
+- ~~Redemption, STP, and SWP order-creation paths could not be confirmed as built~~ **Mostly corrected 2026-07-24.** Redemption and switch now both have real, tested, folio-validated creation paths (`docs/REDEMPTION_CONTRACT.md`, `docs/SWITCH_CONTRACT.md`). STP and SWP remain genuinely absent — no concept in the schema at all, not just an unbuilt route; not part of the current 5-item priority brief.
 - **RBAC enforcement beyond own-user-only scoping does not exist** — every audited route is single-investor-scoped by construction (a real security strength for what it covers), but there is no role-scoped advisor/ops/admin route surface yet, and this is already tracked (Phase 4 M12) rather than newly discovered here.
 - **This document's own BSE StAR MF and regulatory-specifics research is unverified this session** (§0) — treat those specific claims as informed-but-uncited until a follow-up research pass replaces them with real sources.
 
