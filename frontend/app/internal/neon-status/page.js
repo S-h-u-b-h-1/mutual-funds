@@ -19,6 +19,10 @@ import GlassPanel from "../../components/ui/GlassPanel";
 import SectionHeader from "../../components/ui/SectionHeader";
 
 export const metadata = { title: "Neon Status (Internal)", robots: { index: false, follow: false } };
+// This page performs live database comparisons and must never be prerendered during a build.
+// Keeping it dynamic also makes an unavailable Neon/Supabase dependency a visible page state
+// rather than a release failure.
+export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 const TABLES = [
