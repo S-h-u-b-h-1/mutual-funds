@@ -22,16 +22,11 @@ Still required from backend:
 - idempotency: read-only
 - notification/audit: none
 
-- endpoint: payment and order lifecycle metadata
-- method: provider-specific contract to be confirmed
-- request: order reference and payment context
-- response: payment_pending, payment_received, accepted, processing, units_pending,
-  completed, money state, timestamps, provider-safe reference, next action and support reference
-- permission: authenticated investor; no client-supplied user id
-- state impact: order/payment timeline and notifications
-- error codes: stable machine-readable code plus retryable, money_state, action_required
-- idempotency: payment initiation and final submission must accept an idempotency key
-- notification/audit: payment state event, order state event, audit correlation id
+- payment metadata is now returned on purchase orders and SIP mandates: payment reference,
+  payment status, payment bank reference, plan/option snapshots and stable provider error codes.
+  The frontend surfaces these fields in Orders and SIP Center.
+- still required: a first-class payment-attempt resource with retry history, idempotency keys,
+  provider-safe reference, money state, next action, support reference and payment notifications.
 
 ## Switch journey
 
@@ -49,12 +44,6 @@ GET/POST /api/v1/invest/sips supports listing and creation. Pause, modify, cance
 installment, installment history and mandate retry mutations are not yet published. The frontend
 keeps those actions informational until each endpoint, permission, idempotency rule, notification
 event and audit event is available.
-
-## Dashboard notifications
-
-The investor dashboard can show an unread-notification count only after the Journey 5 notification
-read contract is published. No `GET /api/v1/invest/notifications` endpoint is currently live;
-the dashboard renders this metric as unavailable rather than probing a missing route.
 
 ## Advisor workspace
 

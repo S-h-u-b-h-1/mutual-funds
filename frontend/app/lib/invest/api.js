@@ -157,8 +157,13 @@ export const documentsApi = {
 };
 
 export const notificationsApi = {
-  list: () => requestJson("/api/v1/invest/notifications"),
+  list: (params = {}) => requestJson(`/api/v1/invest/notifications?${new URLSearchParams(params).toString()}`),
+  unreadCount: () => requestJson("/api/v1/invest/notifications/unread-count"),
+  details: (notificationId) => requestJson(`/api/v1/invest/notifications/${notificationId}`),
   markRead: (notificationId) => requestJson(`/api/v1/invest/notifications/${notificationId}/read`, { method: "POST", body: "{}" }),
+  markUnread: (notificationId) => requestJson(`/api/v1/invest/notifications/${notificationId}/unread`, { method: "POST", body: "{}" }),
+  archive: (notificationId) => requestJson(`/api/v1/invest/notifications/${notificationId}/archive`, { method: "POST", body: "{}" }),
+  dismiss: (notificationId) => requestJson(`/api/v1/invest/notifications/${notificationId}/dismiss`, { method: "POST", body: "{}" }),
 };
 
 export const advisorApi = {

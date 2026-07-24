@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import InvestShell, { ButtonLink, Card, InvestIcon, StatusPill } from "./InvestShell";
 import { ErrorCard, LoadingCards, useInvestData } from "./useInvestData";
-import { documentsApi, investApi, portfolioApi, sipApi } from "../../lib/invest/api";
+import { documentsApi, investApi, notificationsApi, portfolioApi, sipApi } from "../../lib/invest/api";
 
 const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
@@ -12,19 +12,19 @@ export default function InvestDashboard() {
   const { data, loading, error, refresh } = useInvestData();
   const [summary, setSummary] = useState(null);
   const [summaryError, setSummaryError] = useState("");
-  const [dashboardData, setDashboardData] = useState({ orders: [], sips: [], documents: [], notifications: null });
+  const [dashboardData, setDashboardData] = useState({ orders: [], sips: [], documents: [], unreadNotifications: null });
   useEffect(() => {
-    Promise.allSettled([portfolioApi.getSummary(), investApi.getOrders(), sipApi.list(), documentsApi.list()]).then(([summaryResult, orders, sips, documents]) => {
+    Promise.allSettled([portfolioApi.getSummary(), investApi.getOrders(), sipApi.list(), documentsApi.list(), notificationsApi.unreadCount()]).then(([summaryResult, orders, sips, documents, unreadResult]) => {
       if (summaryResult.status === "fulfilled") setSummary(summaryResult.value.summary || summaryResult.value);
       else setSummaryError(summaryResult.reason?.message || "Portfolio summary unavailable.");
-      setDashboardData({ orders: orders.status === "fulfilled" ? orders.value.orders || [] : [], sips: sips.status === "fulfilled" ? sips.value.sips || [] : [], documents: documents.status === "fulfilled" ? documents.value.documents || [] : [], notifications: null });
+      setDashboardData({ orders: orders.status === "fulfilled" ? orders.value.orders || [] : [], sips: sips.status === "fulfilled" ? sips.value.sips || [] : [], documents: documents.status === "fulfilled" ? documents.value.documents || [] : [], unreadNotifications: unreadResult.status === "fulfilled" ? unreadResult.value.count : null });
     });
   }, []);
   const readiness = data?.compliance;
   const ready = readiness?.overallStatus === "completed";
   const pendingOrders = dashboardData.orders.filter(order => !["completed", "failed", "cancelled", "reversed"].includes(order.status));
   const activeSips = dashboardData.sips.filter(sip => ["active", "verified", "completed"].includes(sip.mandate_status || sip.status));
-  const unread = dashboardData.notifications == null ? null : dashboardData.notifications.filter(item => !(item.read ?? item.is_read ?? item.read_at)).length;
+  const unread = dashboardData.unreadNotifications;
   return <InvestShell title="Your wealth, clearly." description="A calm view of what is invested, what needs attention, and what comes next." actions={<ButtonLink href={ready ? "/funds" : "/invest/onboarding"}>{ready ? "Explore investments" : "Continue setup"}</ButtonLink>}>
     {loading ? <LoadingCards /> : error ? <ErrorCard message={error} retry={refresh} /> : <>
       <Card className="relative overflow-hidden p-6 sm:p-8">
