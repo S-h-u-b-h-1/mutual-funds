@@ -77,8 +77,9 @@ async function transition(order, toStatus, reason = null) {
   // Journey 3: a completed order is real, genuine investor intent (they submitted it, compliance
   // gated it) that settled — reconcile it into the SAME portfolio_holdings/portfolio_transactions
   // tables CAS import uses, so the portfolio view never needs to know an order was involved.
+  let completedOrder = r.rows[0];
   if (toStatus === "completed") {
-    await reconcileCompletedOrder(r.rows[0]);
+    await reconcileCompletedOrder(completedOrder);
     // Journey 4: a real brokerage issues a contract note on settlement — same idea here, into
     // the same document vault a CAS upload or a KYC PDF would land in.
     await generateDocument(order.user_id, {
@@ -88,12 +89,28 @@ async function transition(order, toStatus, reason = null) {
       relatedEntityId: order.id,
       metadata: { distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin },
     });
+    // Redemption Contract, settlement lifecycle: units are redeemed (above) and the payout is
+    // instructed as a SEPARATE step, matching how a real RTA redemption actually works — see
+    // InvestmentProvider.initiatePayout's own comment for why this is 'initiated', not a fake
+    // 'credited' state this app has no way to actually confirm.
+    if (completedOrder.order_type === "redemption") {
+      const payoutAck = await investmentProvider.initiatePayout(completedOrder);
+      const payoutUpdate = await query(
+        `update investment_orders set payout_status = $2, payout_reference = $3, payout_initiated_at = now(), updated_at = now()
+         where id = $1 returning *`,
+        [completedOrder.id, payoutAck.status, payoutAck.payoutReference]
+      );
+      completedOrder = payoutUpdate.rows[0];
+      await logAudit(order.user_id, "redemption_payout_initiated", {
+        orderId: order.id, payoutReference: payoutAck.payoutReference, payoutBankAccountId: completedOrder.payout_bank_account_id,
+      });
+    }
     await emitEvent("OrderCompleted", { orderId: order.id, userId: order.user_id, orderType: order.order_type, schemeCode: order.scheme_code }, { correlationId: order.id, source: "orderService" });
   }
-  return r.rows[0];
+  return completedOrder;
 }
 
-async function assertInvestmentReady(userId) {
+export async function assertInvestmentReady(userId) {
   const [progress, account] = await Promise.all([getComplianceProgress(userId), getAccount(userId)]);
   if (progress.overallStatus !== "completed") {
     throw new Error("Compliance must be fully completed before placing an order.");
@@ -109,6 +126,14 @@ function validateOrderInput({ schemeCode, orderType, amount, units, relatedSchem
   if (amount == null && units == null) throw new Error("Either amount or units is required.");
   if ((orderType === "switch_in" || orderType === "switch_out") && !relatedSchemeCode) {
     throw new Error("relatedSchemeCode is required for switch orders.");
+  }
+  // Redemption Contract: a bare orderType='redemption' through the generic path has no folio,
+  // no redeemable-balance check, no ELSS lock-in check, and no payout bank — createOrder has no
+  // way to enforce those generically. redemptionService.createRedemptionOrder() is the only safe
+  // entry point; it re-validates live eligibility, then writes the order row directly (it does
+  // not call createOrder), so this guard cannot block a legitimate redemption.
+  if (orderType === "redemption") {
+    throw new Error("Redemption orders must be created via redemptionService.createRedemptionOrder(), which validates live folio eligibility — not orderService.createOrder().");
   }
 }
 
@@ -149,6 +174,7 @@ export async function submitOrder(userId, orderId) {
   const ack = await investmentProvider.placeOrder({
     schemeCode: order.scheme_code, orderType: order.order_type, amount: order.amount, units: order.units,
     distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin,
+    folioNumber: order.folio_number, exitLoadPct: order.exit_load_pct, exitLoadAmount: order.exit_load_amount,
   });
   await query(
     `update investment_orders set provider = $2, provider_order_id = $3, submitted_at = now(), updated_at = now()

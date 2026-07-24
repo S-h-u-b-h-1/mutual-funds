@@ -71,6 +71,10 @@ const CATEGORY_TAX_MAP = [
   { test: /gold|international|overseas|global|fund of|\bfof\b/i, treatment: "otherFund" },
 ];
 
+// Shared with redemptionService.js's per-folio exit-load estimate (Redemption Contract) — one
+// string, not two independently-drifting copies of the same hedge.
+export const EXIT_LOAD_GENERAL_GUIDANCE = "Exit load is fund-specific and not yet available from this app's factsheet data for your holdings — check your fund's factsheet or the AMC's website for the exact figure. As a general market convention (not specific to your funds): open-ended equity funds typically charge around 1% if redeemed within 12 months and nil after; liquid/overnight debt funds typically charge a small graded load only in the first few days; most other debt funds charge nil to 1% within the first 6-12 months.";
+
 function classifyCategory(categoryRaw) {
   const cat = categoryRaw || "";
   for (const rule of CATEGORY_TAX_MAP) {
@@ -120,7 +124,7 @@ export function buildTaxProfile(report) {
         ? "ELSS funds qualify for a deduction of up to ₹1.5 lakh/year under Section 123 of the Income-tax Act, 2025 (the section formerly numbered 80C) — but only if you file under the old tax regime. Each ELSS purchase, including each individual SIP instalment, is separately locked in for 3 years from its own purchase date."
         : "No ELSS holdings detected in this portfolio. ELSS is the only equity category with a mandatory lock-in — it also carries a Section 123 (formerly 80C) deduction of up to ₹1.5 lakh/year, but only under the old tax regime.",
     },
-    exitLoadGuidance: "Exit load is fund-specific and not yet available from this app's factsheet data for your holdings — check your fund's factsheet or the AMC's website for the exact figure. As a general market convention (not specific to your funds): open-ended equity funds typically charge around 1% if redeemed within 12 months and nil after; liquid/overnight debt funds typically charge a small graded load only in the first few days; most other debt funds charge nil to 1% within the first 6-12 months.",
+    exitLoadGuidance: EXIT_LOAD_GENERAL_GUIDANCE,
     methodology: "Classifies each real held category (report.allocations.category, real portfolio weights) into its Income-tax Act, 2025 / Finance Act 2026 treatment for FY 2026-27, verified against SBI Mutual Fund's official Tax Reckoner FY 2026-27 — category-level only, never a specific fund. This app does not track each holding's purchase date, so it states which rule determines short-term vs long-term status rather than asserting which one applies to your specific units. All rates are before surcharge and Health & Education Cess (4%), and assume resident individual taxpayer status — consult a tax advisor for your specific position.",
   };
 }

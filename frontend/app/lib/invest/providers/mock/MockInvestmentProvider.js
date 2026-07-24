@@ -47,4 +47,15 @@ export class MockInvestmentProvider extends InvestmentProvider {
       submittedMandate: mandate,
     };
   }
+
+  // Synchronous acknowledgement only — a real RTA/bank rail's actual credit timing (T+1/T+2/T+3,
+  // weekends, bank holidays) is not something this mock simulates; see
+  // docs/REDEMPTION_CONTRACT.md §4 for why 'initiated' is the last state this app asserts.
+  async initiatePayout(order) {
+    return {
+      payoutReference: mockRef("payout"),
+      status: "initiated",
+      provider: "mock-investment",
+    };
+  }
 }

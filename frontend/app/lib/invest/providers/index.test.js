@@ -15,7 +15,7 @@ describe("invest providers registered into the Provider Registry", () => {
   it("each provider's capabilities match its interface's real declared methods", () => {
     expect(getProvider("kyc").capabilities).toEqual(["checkCKYCStatus", "checkStatus", "initiateVerification"]);
     expect(getProvider("investment").capabilities).toEqual(
-      ["cancelOrder", "createSIPMandate", "getOrderStatus", "openAccount", "placeOrder"].sort()
+      ["cancelOrder", "createSIPMandate", "getOrderStatus", "initiatePayout", "openAccount", "placeOrder"].sort()
     );
   });
 

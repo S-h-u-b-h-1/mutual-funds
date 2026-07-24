@@ -51,6 +51,12 @@ export class InvestmentProvider {
   async cancelOrder(providerOrderId) { throw new Error("InvestmentProvider.cancelOrder not implemented"); }
   /** @param {object} mandate */
   async createSIPMandate(mandate) { throw new Error("InvestmentProvider.createSIPMandate not implemented"); }
+  // Redemption Contract: a real RTA redemption both redeems units AND instructs the payout as
+  // part of processing the SAME request — so this lives on InvestmentProvider, not
+  // PaymentProvider (which is scoped to INBOUND purchase money movement only). Called once, when
+  // a redemption order reaches 'completed'; see orderService.js's transition().
+  /** @param {object} order */
+  async initiatePayout(order) { throw new Error("InvestmentProvider.initiatePayout not implemented"); }
 }
 
 export class PaymentProvider {
