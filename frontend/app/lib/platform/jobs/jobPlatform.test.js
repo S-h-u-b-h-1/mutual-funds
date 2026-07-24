@@ -115,7 +115,7 @@ describe("job platform (integration, real Neon)", () => {
       expect(claimTyped[0].status).toBe("running");
       expect(claimTyped[0].attempts).toBe(1);
       expect(new Date(claimTyped[0].lease_expires_at).getTime()).toBeGreaterThan(Date.now());
-      for (const j of mine) await completeJob(j.id);
+      for (const j of mine) await completeJob(j.id, W);
     });
 
     it("a delayed job (future run_at) is not claimable before its time", async () => {
@@ -141,7 +141,7 @@ describe("job platform (integration, real Neon)", () => {
           [j.id]
         );
       }
-      await completeJob(job.id);
+      await completeJob(job.id, W);
     });
   });
 
@@ -149,20 +149,46 @@ describe("job platform (integration, real Neon)", () => {
     it("completeJob → succeeded with result + event; completing a non-running job throws", async () => {
       const { job } = await enqueueJob(T("done"), {});
       const [claimed] = await claimOwn({ limit: 1 });
-      const done = await completeJob(claimed.id, { ok: true });
+      const done = await completeJob(claimed.id, W, { ok: true });
       expect(done.status).toBe("succeeded");
       expect(done.result.ok).toBe(true);
       expect(done.finished_at).not.toBeNull();
-      await expect(completeJob(job.id)).rejects.toThrow(/not running/);
+      await expect(completeJob(job.id, W)).rejects.toThrow(/not running/);
       const events = await getJobEvents(job.id);
       expect(events.at(-1).event).toBe("succeeded");
+    });
+
+    it("completeJob/failJob are fenced to the claiming worker — a second worker's call on a job it doesn't hold the lease for is a no-op, not a steal", async () => {
+      const { job } = await enqueueJob(T("fence"), {});
+      const [claimed] = await claimOwn({ limit: 1 });
+      expect(claimed.id).toBe(job.id);
+      // A worker id that never actually claimed this job (simulating the lease-reclaim race:
+      // a second worker picked it up after this job's real lease expired while the first worker
+      // was still mid-execution) must not be able to complete or fail it out from under the
+      // real owner.
+      const impostor = `${W}-impostor`;
+      const completeResult = await completeJob(job.id, impostor, { ok: true });
+      expect(completeResult.fenced).toBe(true);
+      const stillRunning = await getJob(job.id);
+      expect(stillRunning.status).toBe("running");
+      expect(stillRunning.locked_by).toBe(W);
+
+      const failResult = await failJob(job.id, impostor, new Error("impostor failure"));
+      expect(failResult.fenced).toBe(true);
+      const stillRunning2 = await getJob(job.id);
+      expect(stillRunning2.status).toBe("running"); // impostor's failJob call had zero effect
+      expect(stillRunning2.last_error).toBeNull();
+
+      // the REAL owner can still complete it normally
+      const done = await completeJob(job.id, W, { ok: true });
+      expect(done.status).toBe("succeeded");
     });
 
     it("failJob below max_attempts requeues with exponential backoff and a retry_scheduled event", async () => {
       const { job } = await enqueueJob(T("retry"), {}, { backoffBaseSeconds: 40, backoffMaxSeconds: 3600 });
       const [claimed] = await claimOwn({ limit: 1 });
       expect(claimed.id).toBe(job.id);
-      const outcome = await failJob(job.id, new Error("transient provider failure"));
+      const outcome = await failJob(job.id, W, new Error("transient provider failure"));
       expect(outcome.status).toBe("queued");
       // attempt 1, base 40 → exact 40s, ±25% jitter → [30, 50]
       expect(outcome.retryInSeconds).toBeGreaterThanOrEqual(30);
@@ -175,13 +201,13 @@ describe("job platform (integration, real Neon)", () => {
       expect(events.at(-1).event).toBe("retry_scheduled");
       await query(`update jobs set run_at = now() where id = $1`, [job.id]);
       const [reclaimed] = await claimOwn({ limit: 1 });
-      await completeJob(reclaimed.id);
+      await completeJob(reclaimed.id, W);
     });
 
     it("failJob at max_attempts dead-letters (the DLQ), and requeueDeadJob revives it", async () => {
       const { job } = await enqueueJob(T("dlq"), {}, { maxAttempts: 1 });
       await claimOwn({ limit: 1 });
-      const outcome = await failJob(job.id, new Error("hard failure"));
+      const outcome = await failJob(job.id, W, new Error("hard failure"));
       expect(outcome.status).toBe("dead");
       const dead = await getJob(job.id);
       expect(dead.status).toBe("dead");
@@ -215,7 +241,7 @@ describe("job platform (integration, real Neon)", () => {
       const { job: runningJob } = await enqueueJob(T("cancel"), {});
       await claimOwn({ limit: 1 });
       await expect(cancelJob(runningJob.id)).rejects.toThrow(/status 'running'/);
-      await completeJob(runningJob.id);
+      await completeJob(runningJob.id, W);
     });
   });
 

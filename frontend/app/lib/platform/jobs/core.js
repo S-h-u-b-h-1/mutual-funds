@@ -99,14 +99,30 @@ export async function claimJobs(workerId, { limit = 5, leaseSeconds = 120 } = {}
   return r.rows;
 }
 
-export async function completeJob(jobId, result = null) {
+/**
+ * workerId must be the SAME id the caller claimed this job with (claimJobs' first arg) — see
+ * the module header's at-least-once note: reclaimExpiredLeases can hand a job to a second
+ * worker while a first, slow-but-still-alive worker is mid-execution. Without this fencing
+ * check, the first worker's eventual completeJob()/failJob() call would silently steal the
+ * second worker's claim (double-completing, or a stale result overwriting a fresher one).
+ */
+export async function completeJob(jobId, workerId, result = null) {
   const r = await query(
-    `update jobs set status = 'succeeded', result = $2, finished_at = now(),
+    `update jobs set status = 'succeeded', result = $3, finished_at = now(),
         locked_by = null, lease_expires_at = null, updated_at = now()
-     where id = $1 and status = 'running' returning *`,
-    [jobId, result == null ? null : JSON.stringify(result)]
+     where id = $1 and status = 'running' and locked_by = $2 returning *`,
+    [jobId, workerId, result == null ? null : JSON.stringify(result)]
   );
-  if (!r.rows[0]) throw new Error(`completeJob: job ${jobId} is not running.`);
+  if (!r.rows[0]) {
+    const cur = await query(`select status from jobs where id = $1`, [jobId]);
+    if (!cur.rows[0] || cur.rows[0].status !== "running") {
+      throw new Error(`completeJob: job ${jobId} is not running.`);
+    }
+    // Status IS running, but locked_by no longer matches workerId — a different worker now
+    // owns this claim (a lease-reclaim race, not an error on this caller's part). No-op rather
+    // than throw: this worker lost the race, it didn't do anything wrong.
+    return { fenced: true, jobId };
+  }
   await recordEvent(jobId, "succeeded", { result });
   return r.rows[0];
 }
@@ -125,27 +141,32 @@ export function computeBackoffSeconds(attempt, baseSeconds, maxSeconds, random =
  * exponentially backed-off run_at (that IS the retry mechanism — there is no separate retry
  * table); at max_attempts it dead-letters ('dead', kept for inspection and manual requeue).
  */
-export async function failJob(jobId, error) {
+/** See completeJob's own comment — workerId fences this against a lease-reclaim race the same way. */
+export async function failJob(jobId, workerId, error) {
   const message = String(error?.message ?? error).slice(0, 2000);
   const cur = await query(`select * from jobs where id = $1`, [jobId]);
   const job = cur.rows[0];
   if (!job || job.status !== "running") throw new Error(`failJob: job ${jobId} is not running.`);
   if (job.attempts >= job.max_attempts) {
-    await query(
+    const r = await query(
       `update jobs set status = 'dead', last_error = $2, finished_at = now(),
-          locked_by = null, lease_expires_at = null, updated_at = now() where id = $1`,
-      [jobId, message]
+          locked_by = null, lease_expires_at = null, updated_at = now()
+       where id = $1 and locked_by = $3 returning id`,
+      [jobId, message, workerId]
     );
+    if (!r.rows[0]) return { fenced: true, jobId };
     await recordEvent(jobId, "dead_lettered", { error: message, attempts: job.attempts });
     return { status: "dead" };
   }
   const delay = computeBackoffSeconds(job.attempts, job.backoff_base_seconds, job.backoff_max_seconds);
-  await query(
+  const r = await query(
     `update jobs set status = 'queued', last_error = $2,
         run_at = now() + make_interval(secs => $3),
-        locked_by = null, lease_expires_at = null, updated_at = now() where id = $1`,
-    [jobId, message, delay]
+        locked_by = null, lease_expires_at = null, updated_at = now()
+     where id = $1 and locked_by = $4 returning id`,
+    [jobId, message, delay, workerId]
   );
+  if (!r.rows[0]) return { fenced: true, jobId };
   await recordEvent(jobId, "retry_scheduled", { error: message, attempt: job.attempts, retry_in_seconds: delay });
   return { status: "queued", retryInSeconds: delay };
 }
@@ -286,11 +307,13 @@ export async function runWorkerTick({
       try {
         if (!handler) throw new Error(`No handler registered for job type '${job.type}'.`);
         const result = await handler(job.payload ?? {}, { job });
-        await completeJob(job.id, result ?? null);
-        summary.succeeded += 1;
+        const outcome = await completeJob(job.id, workerId, result ?? null);
+        if (!outcome.fenced) summary.succeeded += 1;
       } catch (err) {
-        const outcome = await failJob(job.id, err);
-        if (outcome.status === "dead") summary.deadLettered += 1;
+        const outcome = await failJob(job.id, workerId, err);
+        if (outcome.fenced) {
+          // lost the lease to a second worker mid-execution — not this worker's outcome to count
+        } else if (outcome.status === "dead") summary.deadLettered += 1;
         else summary.retried += 1;
       }
     }
