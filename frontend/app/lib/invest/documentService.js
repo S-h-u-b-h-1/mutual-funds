@@ -135,7 +135,7 @@ export async function uploadDocument(userId, { category, docType = "user_upload"
 // action) and internally by other services on a real lifecycle event (see orderService.js's
 // order-completion hook, which generates an investment_confirmation the same way a real
 // brokerage issues a contract note on settlement).
-export async function generateDocument(userId, { docType, title = null, description = null, tags = [], category = null, relatedEntityType = null, relatedEntityId = null } = {}) {
+export async function generateDocument(userId, { docType, title = null, description = null, tags = [], category = null, relatedEntityType = null, relatedEntityId = null, metadata = {} } = {}) {
   assertDocType(docType);
   const resolvedCategory = category || DOC_TYPE_DEFAULT_CATEGORY[docType] || "other";
   assertCategory(resolvedCategory);
@@ -143,10 +143,10 @@ export async function generateDocument(userId, { docType, title = null, descript
 
   const generated = await documentProvider.generateDocument(docType, { userId, relatedEntityType, relatedEntityId });
   const r = await query(
-    `insert into documents (user_id, category, doc_type, title, description, tags, source, provider, storage_ref, mime_type, file_size_bytes, status, related_entity_type, related_entity_id)
-     values ($1,$2,$3,$4,$5,$6,'mock-generated',$7,$8,$9,$10,'generated',$11,$12)
+    `insert into documents (user_id, category, doc_type, title, description, tags, source, provider, storage_ref, mime_type, file_size_bytes, status, related_entity_type, related_entity_id, metadata)
+     values ($1,$2,$3,$4,$5,$6,'mock-generated',$7,$8,$9,$10,'generated',$11,$12,$13)
      returning *`,
-    [userId, resolvedCategory, docType, resolvedTitle, description, tags, generated.provider, generated.storageRef, generated.mimeType, generated.fileSizeBytes, relatedEntityType, relatedEntityId]
+    [userId, resolvedCategory, docType, resolvedTitle, description, tags, generated.provider, generated.storageRef, generated.mimeType, generated.fileSizeBytes, relatedEntityType, relatedEntityId, JSON.stringify(metadata)]
   );
   const document = r.rows[0];
   await recordEvent(document.id, "generated", null, { docType });

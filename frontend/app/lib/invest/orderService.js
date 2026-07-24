@@ -11,6 +11,7 @@ import { getComplianceProgress } from "./complianceService.js";
 import { getAccount } from "./identityService.js";
 import { reconcileCompletedOrder } from "./portfolioService.js";
 import { generateDocument } from "./documentService.js";
+import { getDefaultDistributorAttribution } from "../platform/distributor/core.js";
 
 export const ORDER_TYPES = ["purchase", "redemption", "switch_in", "switch_out"];
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled", "reversed", "retry_required"]);
@@ -85,6 +86,7 @@ async function transition(order, toStatus, reason = null) {
       title: `Investment Confirmation — ${order.order_type} ${order.scheme_code}`,
       relatedEntityType: "order",
       relatedEntityId: order.id,
+      metadata: { distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin },
     });
     await emitEvent("OrderCompleted", { orderId: order.id, userId: order.user_id, orderType: order.order_type, schemeCode: order.scheme_code }, { correlationId: order.id, source: "orderService" });
   }
@@ -115,14 +117,21 @@ export async function createOrder(userId, input) {
   await assertInvestmentReady(userId);
   const { schemeCode, relatedSchemeCode = null, orderType, amount = null, units = null, draft = false } = input;
 
+  // Distributor attribution is stamped once, here, at creation — not re-derived later. It's a
+  // snapshot of who gets commission/audit credit for this specific order, so it must freeze at
+  // the moment the order comes into existence, matching every other provider_reference-style
+  // column in this schema (see sql/neon/017_distributor_identity.sql). No advisor context is
+  // passed into createOrder today, so this always resolves to the default distributor EUIN.
+  const distributor = await getDefaultDistributorAttribution();
+
   const r = await query(
-    `insert into investment_orders (user_id, scheme_code, related_scheme_code, order_type, amount, units, status)
-     values ($1, $2, $3, $4, $5, $6, 'draft')
+    `insert into investment_orders (user_id, scheme_code, related_scheme_code, order_type, amount, units, status, distributor_arn, distributor_euin)
+     values ($1, $2, $3, $4, $5, $6, 'draft', $7, $8)
      returning *`,
-    [userId, schemeCode, relatedSchemeCode, orderType, amount, units]
+    [userId, schemeCode, relatedSchemeCode, orderType, amount, units, distributor.arn, distributor.euin]
   );
   const order = r.rows[0];
-  await logAudit(userId, "order_created", { orderId: order.id, orderType, schemeCode });
+  await logAudit(userId, "order_created", { orderId: order.id, orderType, schemeCode, distributorArn: distributor.arn, distributorEuin: distributor.euin });
   if (draft) return order;
   return submitOrder(userId, order.id);
 }
@@ -139,6 +148,7 @@ export async function submitOrder(userId, orderId) {
 
   const ack = await investmentProvider.placeOrder({
     schemeCode: order.scheme_code, orderType: order.order_type, amount: order.amount, units: order.units,
+    distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin,
   });
   await query(
     `update investment_orders set provider = $2, provider_order_id = $3, submitted_at = now(), updated_at = now()
@@ -194,6 +204,7 @@ export async function retryOrder(userId, orderId) {
   if (order.status !== "retry_required") throw new Error(`Only an order in retry_required can be retried (current status: ${order.status}).`);
   const ack = await investmentProvider.placeOrder({
     schemeCode: order.scheme_code, orderType: order.order_type, amount: order.amount, units: order.units,
+    distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin,
   });
   await query(`update investment_orders set provider_order_id = $2, submitted_at = now(), updated_at = now() where id = $1`, [order.id, ack.providerOrderId]);
   return transition(order, ack.status === "accepted" ? "submitted" : "failed", ack.rejectionReason);
@@ -214,14 +225,19 @@ export async function createSipMandate(userId, { schemeCode, amount, frequency, 
   if (!schemeCode || !(amount > 0) || !["monthly", "weekly", "quarterly"].includes(frequency) || !startDate) {
     throw new Error("schemeCode, amount (>0), frequency (monthly|weekly|quarterly), and startDate are required.");
   }
-  const ack = await investmentProvider.createSIPMandate({ schemeCode, amount, frequency, startDate });
+  // Same freeze-at-creation reasoning as createOrder — see sql/neon/017_distributor_identity.sql.
+  const distributor = await getDefaultDistributorAttribution();
+  const ack = await investmentProvider.createSIPMandate({
+    schemeCode, amount, frequency, startDate,
+    distributorArn: distributor.arn, distributorEuin: distributor.euin,
+  });
   const r = await query(
-    `insert into sip_mandates (user_id, scheme_code, amount, frequency, start_date, end_date, mandate_status, provider_mandate_id, provider)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `insert into sip_mandates (user_id, scheme_code, amount, frequency, start_date, end_date, mandate_status, provider_mandate_id, provider, distributor_arn, distributor_euin)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      returning *`,
-    [userId, schemeCode, amount, frequency, startDate, endDate, ack.status, ack.providerMandateId, ack.provider]
+    [userId, schemeCode, amount, frequency, startDate, endDate, ack.status, ack.providerMandateId, ack.provider, distributor.arn, distributor.euin]
   );
-  await logAudit(userId, "sip_mandate_created", { schemeCode, amount, frequency });
+  await logAudit(userId, "sip_mandate_created", { schemeCode, amount, frequency, distributorArn: distributor.arn, distributorEuin: distributor.euin });
   await notifyUser(userId, "sip_mandate_created", { title: "SIP set up", body: `${frequency} SIP of ₹${amount} in ${schemeCode}`, relatedEntityType: "sip_mandate", relatedEntityId: r.rows[0].id });
   return r.rows[0];
 }

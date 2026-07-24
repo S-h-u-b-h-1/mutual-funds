@@ -52,7 +52,7 @@ Legend for the "MF Pulse today" column: **live** (real, working) · **mock** (in
 | Penny-drop/bank verification | Standard automated verification | Standard | Standard | Standard | **mock (inline, not provider-routed)** — ~90% success simulated *inside* `complianceService.js` directly, **not** routed through `PaymentProvider` **[verified]** | Architectural cleanup: penny-drop is a payment-adjacent capability and arguably belongs behind `PaymentProvider`, not hardcoded in the compliance service — worth relocating even before a real vendor exists |
 | Signature & IPV readiness | In-person or video-IPV for higher-value onboarding **[industry knowledge — verify before compliance use]** | Same | — | Often skipped for smaller tickets via eKYC | **absent** | Real gap if Suasion's regulatory category requires IPV; depends on Suasion's SEBI registration type |
 | Consent & declaration capture | Explicit, timestamped | Explicit | Explicit | Explicit | **partial** — `investor_profile.consent_given_at` exists for the financial-planning profile; **no general-purpose consent/declaration ledger** for KYC-specific declarations (FATCA self-cert, PEP, terms) **[verified]** | Add a `consent_records` table (Phase 4 lists this explicitly — see §8) |
-| Distributor ARN/EUIN attribution | Every order carries the distributor's ARN and the individual agent's EUIN for commission/audit **[industry knowledge — verify before compliance use]** | Same — this is how BSE StAR MF attributes commission | — | N/A (Groww is a direct/RIA-adjacent platform in parts of its business) | **absent** — zero mentions anywhere; a *different*, purely internal RM-assignment mechanism exists (`rm_assignments`, `investment_orders.placed_by_user_id`) that is **not** a substitute **[verified]** | Real, P0-relevant gap the moment Suasion needs commission-bearing distribution — this is a hard BSE StAR MF requirement, not optional |
+| Distributor ARN/EUIN attribution | Every order carries the distributor's ARN and the individual agent's EUIN for commission/audit **[industry knowledge — verify before compliance use]** | Same — this is how BSE StAR MF attributes commission | — | N/A (Groww is a direct/RIA-adjacent platform in parts of its business) | **live** — Suasion's confirmed production ARN (289322) and EUIN (E544323) are configured in `distributor_arns`/`distributor_euins` (not hardcoded — see `docs/DISTRIBUTOR_IDENTITY.md`) and stamped as a snapshot on every order/SIP mandate at creation, flowing through into the provider payload, order-confirmation documents, and audit metadata **[verified, shipped 2026-07-24]** | Remaining gap is narrower than before: advisor-specific EUIN attribution (multiple EUINs under the one ARN, each mapped to a specific RM) is schema-ready but not wired into any order-placement path yet, since no path currently accepts an advisor context — this is Journey 5 (CRM) scope |
 | Terms/privacy/regulatory consent | Explicit checkbox + timestamp, standard | Standard | Standard | Standard | **partial** — no dedicated table (see consent row above) | Same fix |
 
 ### 2.2 Account & folio servicing
@@ -207,7 +207,7 @@ Condensed view of the sharpest findings across §2, ranked by how structural (sc
 5. No payment-attempt table distinct from the order itself (payment lifecycle is invisible).
 6. No consent-records ledger (only one ad hoc `consent_given_at` field on one profile table).
 7. No management/AUM aggregation layer of any kind.
-8. No ARN/EUIN distributor attribution capture anywhere.
+8. ~~No ARN/EUIN distributor attribution capture anywhere.~~ **Closed 2026-07-24** — see §9/§10; the remaining piece (advisor-specific EUIN wiring) is genuinely Journey 5 scope, not this gap.
 9. No CRS or PEP capture.
 10. No maker-checker/approval workflow primitive.
 
@@ -391,7 +391,8 @@ Every capability area above already has a home in the infrastructure built this 
 
 | Item | Why P0 | Relationship to existing backlog |
 |---|---|---|
-| ARN/EUIN capture + structured FATCA/CRS + PEP declaration | Regulatory/commercial hard requirements the moment Suasion routes a real commission-bearing order; purely additive schema + compliance-item work, no provider blocker | **New** — not currently tracked anywhere found in this audit |
+| ~~ARN/EUIN capture~~ Distributor Identity & Regulatory Configuration | Regulatory/commercial hard requirement — **shipped 2026-07-24** once real ARN (289322)/EUIN (E544323) were confirmed; see §10 | **Done** — `docs/DISTRIBUTOR_IDENTITY.md` |
+| Structured FATCA/CRS + PEP declaration | Same regulatory tier as distributor identity was; purely additive schema + compliance-item work, no provider blocker | **New** — not currently tracked anywhere found in this audit; now the next-most-natural small regulatory-capture slice |
 | Payment Attempt entity (§5 Recommendation 1) | Unblocks payment-failure visibility, SIP-instalment tracking, redemption, and duplicate-payment prevention simultaneously — the single highest-leverage structural change found | **New**, though it directly serves the already-pending Journey 5/6 and Mission B items below |
 | Redemption order-creation path | Explicitly flagged as absent by both this audit and the existing UX-benchmark doc | **New** at the service layer; UI-side already flagged as P1 in the UX-benchmark doc's own slice plan |
 | SIP pause/modify/cancel routes | Data model ready, small effort, closes a real investor-facing gap | **New**, small |
@@ -417,18 +418,44 @@ Unchanged from the brief's own list (AI portfolio insights, goal planning, clien
 
 ---
 
-## 10. Recommended first implementation slice
+## 10. Recommended first implementation slice — SHIPPED 2026-07-24
 
-**Do not start with the Payment Attempt entity or the AUM layer first, tempting as they are as "highest leverage."** Both are genuinely P0/P1-important but both are multi-day efforts that touch several existing services (`orderService`, `paymentService`-that-doesn't-exist-yet, the Reconciliation Engine). They violate this session's own newly-adopted discipline ("no slice should require multiple hours of uninterrupted work") if taken as a first slice.
+**Original recommendation (superseded):** this section originally recommended "ARN/EUIN +
+structured FATCA/CRS + PEP declaration capture" as one combined slice, reasoning that ARN/EUIN
+*capture* (an investor-facing KYC-style field) was the regulatory-load-bearing gap. That framing
+was correct at the time but is no longer the right shape of work: **Suasion's real ARN (289322)
+and EUIN (E544323) were confirmed**, which changes this from "capture a value from someone" to
+"configure Suasion's own distributor identity" — a materially different, and actually smaller and
+more self-contained, piece of work. It shipped as its own slice, split cleanly from the
+FATCA/CRS/PEP work (which remains a real, separate, not-yet-started gap — see the updated §9 P0
+table).
 
-**Recommended first slice: ARN/EUIN + structured FATCA/CRS + PEP declaration capture.**
+**What shipped: Distributor Identity & Regulatory Configuration.**
 
-Why this one, specifically, first:
-- **Additive-only migration** — new nullable columns on `investor_profiles`/`compliance_items` and possibly one new small table for structured FATCA fields; zero risk to existing data or tests.
-- **No architectural decisions pending** — unlike the Payment Attempt entity (which depends on finishing the design conversation in §5) or the AUM layer (which depends on the three-work-streams reconciliation in §9), this slice has no open design question blocking it.
-- **Genuinely regulatory-load-bearing** — of everything in the P0 list, this is the one gap that would actually block Suasion from routing a real commission-bearing order through a real distributor agreement, independent of which provider gets integrated first.
-- **Naturally small** — a handful of columns, one or two new `compliance_items` entries (or extending the existing `fatca` item's payload shape), one validation addition (nominee percentage), and the primary-bank-account constraint — all independently testable, matching exactly the "complete implementation → tests → docs → deploy → verify → stop" shape already proven across five M5 slices this session.
-- **Does not interrupt the in-flight M5 sequence** — this is Invest-module schema/compliance work, orthogonal to the Notification Platform's own Slice 4 (Timeline), so either can proceed without blocking the other; the recommendation is to finish this slice *before* resuming M5 Slice 4, not instead of it, since it's smaller and closes a sharper regulatory gap.
+- `distributor_arns`/`distributor_euins` tables (additive migration 017), modeling the real AMFI
+  structure — one ARN (firm-level), many EUINs (individual-employee-level) under it — seeded with
+  the confirmed production values, not a placeholder.
+- `platform/distributor/core.js`: `getDefaultDistributorAttribution()`,
+  `getDistributorAttributionForAdvisor(advisorId)` (RM-mapping-aware, ready for Journey 5, not yet
+  called from any live path), `getDistributorProfile(arn)`.
+- Snapshot `distributor_arn`/`distributor_euin` columns on `investment_orders` and `sip_mandates`,
+  stamped once at creation (never a live join — see `docs/DISTRIBUTOR_IDENTITY.md` §3 for why).
+- Wired into the `InvestmentProvider` payload (so a future real BSE StAR MF/CAMS/KFintech adapter
+  receives it structurally, with zero interface change needed), order-confirmation document
+  metadata, audit-log metadata, and the order review/confirmation UI.
+- Config/DB-backed throughout — the ARN/EUIN literal values appear in exactly one place in the
+  whole codebase (the migration's seed `insert`), per the explicit "no hardcoding" requirement.
+- 8 new tests (7 unit/integration on the module itself, 1 on `orderService` asserting the real
+  values land on a real order and SIP mandate) + full existing suite re-verified green.
+
+Full detail: `docs/DISTRIBUTOR_IDENTITY.md`.
+
+**Next recommended slice, now that this one is done: structured FATCA/CRS + PEP declaration
+capture.** Same regulatory tier this section originally grouped ARN/EUIN with, still genuinely
+gapped (§2.1, §3), still additive-only (new columns on `investor_profiles`/`compliance_items`,
+no architectural decisions pending), still small enough to match the established slice
+discipline. Does not interrupt the in-flight M5 Notification Platform sequence (Slice 4/Timeline
+next there) — either can proceed without blocking the other.
 
 ---
 
@@ -441,7 +468,7 @@ Consolidated from findings scattered through §2-§8, in one place as this docum
 - **`MockInvestmentProvider.getOrderStatus()` is a hardcoded stub** that always returns `"processing"` — the real progression logic lives in `orderService.decideNextStatus()` instead, driven by elapsed wall-clock time, not a real exchange/RTA state.
 - **No real document ever exists** — `documentService`/`DocumentProvider` produce metadata rows with synthetic `storage_ref` values; no PDF, no real bytes, no real storage backend (blocked on the already-tracked Phase 4 M7).
 - **CRS and PEP capture are entirely absent** — not partial, not mocked, simply not present anywhere in code or schema.
-- **Distributor ARN/EUIN attribution is entirely absent** — the existing `rm_assignments`/`placed_by_user_id` mechanism is an internal RM-tracking convenience, not a substitute for regulated distributor attribution.
+- ~~Distributor ARN/EUIN attribution is entirely absent~~ **Corrected 2026-07-24 — no longer true.** Suasion's real ARN (289322)/EUIN (E544323) are configured (config/DB-backed, not hardcoded) and stamped on every order and SIP mandate at creation; see §9/§10 and `docs/DISTRIBUTOR_IDENTITY.md`. What genuinely remains open: advisor-specific EUIN attribution has no live caller yet (Journey 5/CRM scope), and the `rm_assignments`/`placed_by_user_id` mechanism is still just an internal RM-tracking convenience, unconnected to the distributor tables.
 - **The management/AUM view does not exist in any form** — no mock, no partial route, nothing. Every other gap area in this document has at least a mock or a partial field to point to; this one has none.
 - **No service-request/ticket/case data model exists anywhere** in the schema.
 - **Redemption, STP, and SWP order-creation paths could not be confirmed as built** in this audit (purchase and CAS-import are confirmed mature; switch is partial/unverified; redemption/STP/SWP were not found).

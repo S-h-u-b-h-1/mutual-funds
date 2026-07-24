@@ -117,4 +117,19 @@ describe("orderService (integration, real Neon, disposable investment-ready user
       schemeCode: "119551", amount: 2000, frequency: "monthly", startDate: "2026-08-01",
     })).rejects.toThrow(/Compliance must be fully completed/);
   });
+
+  // Real production values (sql/neon/017_distributor_identity.sql) — not fixtures. An order or
+  // mandate placed with no distributor attribution at all would be a genuine data-integrity gap,
+  // not just a missing-nice-to-have field, so this asserts the real values, not just "truthy".
+  it("stamps the real Suasion Securities distributor attribution on every order and SIP mandate at creation", async () => {
+    const order = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 1500, draft: true });
+    expect(order.distributor_arn).toBe("289322");
+    expect(order.distributor_euin).toBe("E544323");
+
+    const sip = await orderService.createSipMandate(readyUserId, {
+      schemeCode: "119551", amount: 1000, frequency: "monthly", startDate: "2026-09-01",
+    });
+    expect(sip.distributor_arn).toBe("289322");
+    expect(sip.distributor_euin).toBe("E544323");
+  });
 }, 180000);
