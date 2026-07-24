@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import InvestShell, { ButtonLink, Card, InvestIcon, StatusPill } from "./InvestShell";
 import { ErrorCard, LoadingCards, useInvestData } from "./useInvestData";
-import { portfolioApi } from "../../lib/invest/api";
+import { documentsApi, investApi, portfolioApi, sipApi } from "../../lib/invest/api";
 
 const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
@@ -12,9 +12,19 @@ export default function InvestDashboard() {
   const { data, loading, error, refresh } = useInvestData();
   const [summary, setSummary] = useState(null);
   const [summaryError, setSummaryError] = useState("");
-  useEffect(() => { portfolioApi.getSummary().then(setSummary).catch(e => setSummaryError(e.message)); }, []);
+  const [dashboardData, setDashboardData] = useState({ orders: [], sips: [], documents: [], notifications: null });
+  useEffect(() => {
+    Promise.allSettled([portfolioApi.getSummary(), investApi.getOrders(), sipApi.list(), documentsApi.list()]).then(([summaryResult, orders, sips, documents]) => {
+      if (summaryResult.status === "fulfilled") setSummary(summaryResult.value.summary || summaryResult.value);
+      else setSummaryError(summaryResult.reason?.message || "Portfolio summary unavailable.");
+      setDashboardData({ orders: orders.status === "fulfilled" ? orders.value.orders || [] : [], sips: sips.status === "fulfilled" ? sips.value.sips || [] : [], documents: documents.status === "fulfilled" ? documents.value.documents || [] : [], notifications: null });
+    });
+  }, []);
   const readiness = data?.compliance;
   const ready = readiness?.overallStatus === "completed";
+  const pendingOrders = dashboardData.orders.filter(order => !["completed", "failed", "cancelled", "reversed"].includes(order.status));
+  const activeSips = dashboardData.sips.filter(sip => ["active", "verified", "completed"].includes(sip.mandate_status || sip.status));
+  const unread = dashboardData.notifications == null ? null : dashboardData.notifications.filter(item => !(item.read ?? item.is_read ?? item.read_at)).length;
   return <InvestShell title="Your wealth, clearly." description="A calm view of what is invested, what needs attention, and what comes next." actions={<ButtonLink href={ready ? "/funds" : "/invest/onboarding"}>{ready ? "Explore investments" : "Continue setup"}</ButtonLink>}>
     {loading ? <LoadingCards /> : error ? <ErrorCard message={error} retry={refresh} /> : <>
       <Card className="relative overflow-hidden p-6 sm:p-8">
@@ -36,6 +46,8 @@ export default function InvestDashboard() {
         </div>
       </Card>
 
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[["Active SIP amount", activeSips.reduce((total, sip) => total + Number(sip.amount || 0), 0), "/invest/sips"], ["Pending transactions", pendingOrders.length, "/invest/transactions"], ["Documents", dashboardData.documents.length, "/invest/documents"], ["Unread notifications", unread == null ? "Not available" : unread, "/invest/notifications"]].map(([label, value, href]) => <a key={label} href={href} className="rounded-2xl border border-line bg-surface p-4 transition hover:border-accent/40"><div className="text-xs text-ink-faint">{label}</div><div className="mt-2 text-2xl font-semibold text-ink">{label === "Active SIP amount" ? money.format(value) : value}</div><div className="mt-2 text-xs font-semibold text-accent">View details →</div></a>)}</div>
+
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
         <div className="grid gap-5 sm:grid-cols-2">
           <Card className="p-5"><div className="flex items-center gap-3"><InvestIcon>◎</InvestIcon><div><h2 className="font-semibold text-ink">Asset allocation</h2><p className="text-xs text-ink-faint">After your first holding</p></div></div><div className="mt-8 flex items-center gap-5"><div className="grid h-24 w-24 place-items-center rounded-full border-[10px] border-line text-xs font-semibold text-ink-faint">No data</div><p className="text-sm leading-6 text-ink-muted">Equity, debt and hybrid allocation will appear here once a portfolio is connected.</p></div></Card>
@@ -44,7 +56,7 @@ export default function InvestDashboard() {
         </div>
         <div className="grid gap-5">
           <Card className="p-5"><h2 className="font-semibold text-ink">Up next</h2><div className="mt-4 grid gap-3">{[["Complete readiness", `${readiness?.percent || 0}% complete`, "/invest/compliance"], ["Connect a portfolio", "Import or add holdings", "/invest/portfolio"], ["Meet your advisor", data?.rmAssignment?.advisor_name || "Request guidance", "/invest/advisor"]].map(([a,b,c], i)=><a href={c} key={a} className="flex min-h-16 items-center gap-3 rounded-2xl bg-surface-2 px-4"><span className="grid h-7 w-7 place-items-center rounded-full bg-surface text-xs font-bold text-accent">{i+1}</span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-ink">{a}</span><span className="block truncate text-xs text-ink-faint">{b}</span></span><span aria-hidden="true">→</span></a>)}</div></Card>
-          <Card className="p-5"><div className="flex items-center justify-between"><h2 className="font-semibold text-ink">Upcoming SIPs</h2><a href="/invest/transactions" className="text-xs font-semibold text-accent">View all</a></div><div className="mt-6 py-5 text-center"><div className="text-sm font-semibold text-ink">No SIP scheduled</div><p className="mt-2 text-xs leading-5 text-ink-muted">Upcoming dates will appear after a mandate and SIP are confirmed.</p></div></Card>
+          <Card className="p-5"><div className="flex items-center justify-between"><h2 className="font-semibold text-ink">Upcoming SIPs</h2><a href="/invest/sips" className="text-xs font-semibold text-accent">View all</a></div>{activeSips.length ? <div className="mt-4 grid gap-3">{activeSips.slice(0, 3).map(sip => <div key={sip.id} className="flex items-center justify-between gap-3 rounded-2xl bg-surface-2 p-3"><div><div className="text-sm font-semibold text-ink">₹{Number(sip.amount || 0).toLocaleString("en-IN")}</div><div className="mt-1 text-xs text-ink-faint">Next debit: {sip.next_debit_date || "Date unavailable"}</div></div><StatusPill status={sip.mandate_status || "active"} /></div>)}</div> : <div className="mt-6 py-5 text-center"><div className="text-sm font-semibold text-ink">No SIP scheduled</div><p className="mt-2 text-xs leading-5 text-ink-muted">Upcoming dates will appear after a mandate and SIP are confirmed.</p></div>}</Card>
         </div>
       </div>
     </>}

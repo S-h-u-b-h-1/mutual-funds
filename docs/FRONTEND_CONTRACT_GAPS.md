@@ -47,6 +47,12 @@ installment, installment history and mandate retry mutations are not yet publish
 keeps those actions informational until each endpoint, permission, idempotency rule, notification
 event and audit event is available.
 
+## Dashboard notifications
+
+The investor dashboard can show an unread-notification count only after the Journey 5 notification
+read contract is published. No `GET /api/v1/invest/notifications` endpoint is currently live;
+the dashboard renders this metric as unavailable rather than probing a missing route.
+
 ## Timeline minimum
 
 Every money-moving response should eventually include:

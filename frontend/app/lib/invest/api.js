@@ -138,7 +138,11 @@ export const portfolioApi = {
 
 export const documentsApi = {
   list: () => requestJson("/api/v1/invest/documents"),
-  download: (documentId) => requestJson(`/api/v1/invest/documents/${documentId}/download`),
+  details: (documentId) => requestJson(`/api/v1/invest/documents/${documentId}`),
+  search: (query) => requestJson(`/api/v1/invest/documents/search?${new URLSearchParams(query).toString()}`),
+  download: (documentId) => requestJson(`/api/v1/invest/documents/${documentId}/download`, { method: "POST", body: "{}" }),
+  archive: (documentId) => requestJson(`/api/v1/invest/documents/${documentId}/archive`, { method: "POST", body: "{}" }),
+  share: (documentId, payload) => requestJson(`/api/v1/invest/documents/${documentId}/share`, { method: "POST", body: JSON.stringify(payload) }),
 };
 
 export const notificationsApi = {
