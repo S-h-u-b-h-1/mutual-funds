@@ -397,7 +397,7 @@ Every capability area above already has a home in the infrastructure built this 
 | Redemption order-creation path | Explicitly flagged as absent by both this audit and the existing UX-benchmark doc | **New** at the service layer; UI-side already flagged as P1 in the UX-benchmark doc's own slice plan |
 | SIP pause/modify/cancel routes | Data model ready, small effort, closes a real investor-facing gap | **New**, small |
 | Nominee-percentage cross-row validation, bank-primary-account constraint | Small, correctness-critical fixes | **New**, trivial effort |
-| Complete M5 Slices 4-7 (Timeline, Scheduling, Metrics, Admin APIs) | Already in flight, already sequenced, "reconciliation and audit" and "notifications" both appear explicitly in the brief's own lifecycle diagram | **Already tracked**, continue as planned |
+| Complete M5 Slices 5-7 (Scheduling, Metrics, Admin APIs) | Already in flight, already sequenced, "reconciliation and audit" and "notifications" both appear explicitly in the brief's own lifecycle diagram | **Already tracked**, continue as planned. Slice 4 (Timeline) **shipped 2026-07-24** under the newer backend-contract priority brief — see `docs/NOTIFICATION_READ_APIS.md` |
 
 ### P1 — Strong launch
 
