@@ -28,6 +28,12 @@ export function buildHolding(fund, { units, avgCost, purchaseValue, purchaseDate
     benchmark: fund.benchmark || null,
     expenseRatio: meta?.expense_ratio ?? meta?.direct_expense_ratio ?? meta?.regular_expense_ratio ?? null,
     nav,
+    // Portfolio Metadata: the date this specific nav value is from, and how many trading days old
+    // it is — same fields revaluation.js's own (separately re-fetched) getFund() call already
+    // relies on, now carried on the holding itself so callers of getPortfolio()/getPortfolioHoldings()
+    // can show per-holding freshness without a second lookup.
+    navDate: fund.navDate || null,
+    staleDays: fund.staleDays ?? null,
     weight: null, // filled in by computeWeights, once the full batch total is known
     source,
     folioNumber: folioNumber ?? null,

@@ -136,7 +136,7 @@ Covered in full as its own state machine in §5, since the brief asks for a comp
 |---|---|---|
 | Current value, invested value, gain/loss, absolute return | **live** — `portfolio_metrics`/`portfolio_snapshots` **[verified]** | None |
 | XIRR | **live** — present in `portfolio_snapshots.xirr` (added migration 008) **[verified]** | None |
-| Day change | **partial** — depends on daily NAV refresh freshness, not confirmed live in this audit | Verify against current data pipeline |
+| Day change | **partial** — NAV freshness itself is now directly verifiable and surfaced, per-holding and portfolio-wide (`navDate`/`staleDays` on every holding, a `dataQuality` object with `navDateRange`/`staleHoldingCount`/`calculatedAt`), closing this row's original "verify against current data pipeline" instruction **[verified, shipped 2026-07-24 — `docs/PORTFOLIO_METADATA.md`]**. "Day change" itself (today's value vs. yesterday's) is a distinct metric this slice deliberately did NOT add — it needs a stored prior-day valuation to diff against, not just current-NAV freshness | Day-change computation remains a real, separate, unbuilt gap |
 | Scheme/AMC/category/asset-class allocation | **live** — `portfolio_snapshots.allocation` jsonb explicitly models all four **[verified]** | None |
 | Folio allocation | **absent** — allocation jsonb doesn't appear to break down by folio specifically | Minor addition once folios are more central |
 | SIP contribution (view) | **absent from any dashboard aggregate** — SIP data exists (`sip_mandates`/`portfolio_sips`) but isn't rolled into the portfolio summary view per the existing UX-benchmark doc's own finding **[UX-benchmark, cited]** | Wire existing data into the summary view |
@@ -465,10 +465,17 @@ docs → deploy → verify) and each documented in its own file rather than expa
    `PaymentProvider` into real purchase/SIP-mandate paths for the first time, adds the plan/option
    scheme snapshot, and adds standardized `PROVIDER_ERROR_CODES`.
 
-**Item 5, Portfolio Metadata** (NAV timestamps, valuation freshness, refresh metadata,
-calculation timestamps, data quality indicators) is next in this same sequence. Structured
-FATCA/CRS + PEP declaration capture (§9 P0) remains real, genuinely gapped, and not yet started —
-it was deferred by the priority brief, not dropped.
+5. **Portfolio Metadata** — `docs/PORTFOLIO_METADATA.md`. Per-holding `navDate`/`staleDays` and a
+   portfolio-level `dataQuality` object (`calculatedAt`, `datasetAsOf`, `lastImportedAt`,
+   `navDateRange`, `staleHoldingCount`, `latestNavCoveragePct`, `unresolvedCount`) — reusing
+   `funds.json`'s already-existing per-scheme NAV facts and `portfolio_holdings.imported_at`
+   rather than inventing new storage; no migration needed.
+
+**All five priority-brief items are now shipped** (Redemption, Switch, Notification Read APIs,
+Provider Metadata, Portfolio Metadata) — the 2026-07-24 backend-contract priority brief is
+complete. Structured FATCA/CRS + PEP declaration capture (§9 P0) remains real, genuinely gapped,
+and not yet started — it was deferred by the priority brief, not dropped, and is the most
+natural next slice using the same discipline.
 
 ---
 

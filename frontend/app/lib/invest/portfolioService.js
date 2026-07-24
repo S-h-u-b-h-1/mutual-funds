@@ -9,7 +9,7 @@
 // mock-connect action all write into the same two tables, tagged by `source`. Nothing downstream
 // (allocation, health score, valuation) needs to know which.
 import { query } from "../db.js";
-import { getFund } from "../funds.js";
+import { getFund, asOf as fundsDatasetAsOf } from "../funds.js";
 import { getUserHoldings, getUserTransactions } from "../portfolioImport/holdingsRead.js";
 import { revaluePortfolio } from "../portfolioImport/revaluation.js";
 import { computePerformanceLeaders } from "../portfolioImport/performanceLeaders.js";
@@ -47,7 +47,10 @@ async function loadHoldingsAndReport(userId) {
 export async function getPortfolio(userId) {
   const { rawHoldings, unresolved, report, valuation, leaders } = await loadHoldingsAndReport(userId);
   if (!report) {
-    return { holdings: [], unresolved, summary: EMPTY_SUMMARY, allocation: null, topHoldings: [], performanceLeaders: [] };
+    return {
+      holdings: [], unresolved, summary: EMPTY_SUMMARY, allocation: null, topHoldings: [], performanceLeaders: [],
+      dataQuality: buildDataQuality(rawHoldings, unresolved, valuation),
+    };
   }
   const a = report._analytics;
   return {
@@ -60,6 +63,7 @@ export async function getPortfolio(userId) {
     strengths: report.strengths,
     weaknesses: report.weaknesses,
     bottomLine: report.bottomLine,
+    dataQuality: buildDataQuality(rawHoldings, unresolved, valuation),
   };
 }
 
@@ -79,6 +83,46 @@ function buildSummary(a, valuation) {
     staleHoldingCount: valuation.staleHoldingCount,
     latestNavCoveragePct: valuation.latestNavCoveragePct,
   };
+}
+
+// Portfolio Metadata: freshness/quality facts ABOUT the valuation above, not the valuation
+// itself — deliberately a separate top-level key from `summary`, never merged into it, so the
+// existing exact-shape EMPTY_SUMMARY contract never has to change for this. `rawHoldings` (the
+// pre-consolidation list from getUserHoldings, already ordered imported_at desc) is used rather
+// than the consolidated/analytics holdings list, since every individual lot's own import/NAV
+// facts matter here, not the scheme-deduplicated view.
+function buildDataQuality(rawHoldings, unresolved, valuation) {
+  const navDates = rawHoldings.map((h) => h.navDate).filter(Boolean).sort(); // "YYYY-MM-DD" — lexicographic sort is chronological
+  const importedTimes = rawHoldings
+    .map((h) => (h.importedAt ? new Date(h.importedAt).getTime() : null))
+    .filter((t) => t != null && !Number.isNaN(t));
+
+  return {
+    calculatedAt: new Date().toISOString(),
+    // The whole AMFI-derived dataset's own last refresh (funds.js's exported `asOf`) — a
+    // system-wide fact distinct from any one holding's navDate, e.g. "our pipeline last ran on
+    // this date" vs. "this specific scheme's NAV is from this date" (a stale/delisted scheme can
+    // have a much older navDate than the dataset's own asOf).
+    datasetAsOf: fundsDatasetAsOf,
+    lastImportedAt: importedTimes.length ? new Date(Math.max(...importedTimes)).toISOString() : null,
+    navDateRange: {
+      oldest: navDates.length ? navDates[0] : null,
+      newest: navDates.length ? navDates[navDates.length - 1] : null,
+    },
+    // Reused, not recomputed — revaluation.js already derives these from the same per-holding
+    // navDate/staleDays facts; duplicating the logic here would risk the two silently diverging.
+    staleHoldingCount: valuation?.staleHoldingCount ?? 0,
+    latestNavCoveragePct: valuation?.latestNavCoveragePct ?? null,
+    unresolvedCount: unresolved.length,
+  };
+}
+
+// Standalone, for a UI that wants a lightweight freshness/quality check (e.g. a "prices as of"
+// badge) without pulling the full combined getPortfolio() payload. Also folded into getPortfolio()
+// itself below, same pattern as getPortfolioAllocation/getPortfolioHoldings.
+export async function getPortfolioDataQuality(userId) {
+  const { rawHoldings, unresolved, valuation } = await loadHoldingsAndReport(userId);
+  return buildDataQuality(rawHoldings, unresolved, valuation);
 }
 
 export async function getPortfolioSummary(userId) {

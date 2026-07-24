@@ -35,6 +35,15 @@ describe("portfolioService (integration, real Neon, disposable investment-ready 
         holdingsCount: 0, healthScore: null, qualityScore: null,
         effectiveHoldings: 0, effectiveAmcs: 0, effectiveCategories: 0,
       });
+      // Portfolio Metadata: dataQuality is always a fully-shaped object, never null — an empty
+      // portfolio has a real "calculated at this instant, zero holdings to describe" state, same
+      // reasoning as EMPTY_SUMMARY being a zeroed object rather than summary: null.
+      expect(p.dataQuality.calculatedAt).toBeTruthy();
+      expect(p.dataQuality.datasetAsOf).toBeTruthy();
+      expect(p.dataQuality.lastImportedAt).toBeNull();
+      expect(p.dataQuality.navDateRange).toEqual({ oldest: null, newest: null });
+      expect(p.dataQuality.staleHoldingCount).toBe(0);
+      expect(p.dataQuality.unresolvedCount).toBe(0);
     });
 
     it("getPortfolioSummary matches the same EMPTY_SUMMARY shape standalone", async () => {
@@ -110,6 +119,31 @@ describe("portfolioService (integration, real Neon, disposable investment-ready 
         [connectUserId]
       );
       expect(notif.rows.length).toBe(1);
+    });
+
+    // Portfolio Metadata: real per-holding NAV facts (from the same funds.json data every fund
+    // page already reads) and portfolio-level freshness, now surfaced for the first time —
+    // previously computed internally by revaluation.js's own staleHoldingCount/latestNavCoveragePct
+    // but never per-holding, and never with an explicit "when was this valuation computed" or
+    // "when did this user's data last get imported" fact anywhere in the API surface.
+    it("surfaces per-holding navDate/staleDays and portfolio-level dataQuality for a connected portfolio", async () => {
+      const p = await portfolioService.getPortfolio(connectUserId);
+      expect(p.holdings.length).toBeGreaterThan(0);
+      for (const h of p.holdings) {
+        expect(h.navDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(typeof h.staleDays).toBe("number");
+      }
+
+      expect(p.dataQuality.lastImportedAt).toBeTruthy();
+      expect(p.dataQuality.navDateRange.oldest).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(p.dataQuality.navDateRange.newest).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(p.dataQuality.navDateRange.oldest <= p.dataQuality.navDateRange.newest).toBe(true);
+      expect(p.dataQuality.latestNavCoveragePct).toBe(100); // connectMockPortfolio only ever inserts holdings with a resolvable live NAV
+
+      // Standalone endpoint returns the identical shape, not a second, possibly-diverging computation.
+      const standalone = await portfolioService.getPortfolioDataQuality(connectUserId);
+      expect(standalone.navDateRange).toEqual(p.dataQuality.navDateRange);
+      expect(standalone.datasetAsOf).toBe(p.dataQuality.datasetAsOf);
     });
   });
 
