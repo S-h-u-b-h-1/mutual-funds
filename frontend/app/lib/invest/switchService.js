@@ -50,6 +50,11 @@ export async function createSwitchOrder(userId, { sourceSchemeCode, destinationS
   await assertInvestmentReady(userId);
   if (!folioNumber) throw new Error("folioNumber is required — see GET the switch eligibility contract for which folios are available.");
   if (amount == null && units == null) throw new Error("Either amount or units is required.");
+  // Backend Hardening (2026-07-24): same negative/zero gap as redemptionService's own guard —
+  // this file's overdraw check has the identical `requestedUnits > unitsRedeemable` shape,
+  // which a negative value would always pass.
+  if (amount != null && !(amount > 0)) throw new Error("amount must be greater than 0.");
+  if (units != null && !(units > 0)) throw new Error("units must be greater than 0.");
 
   const eligibility = await getSwitchEligibility(userId, sourceSchemeCode, destinationSchemeCode);
   const folio = eligibility.source.folios.find((f) => f.folioNumber === folioNumber);

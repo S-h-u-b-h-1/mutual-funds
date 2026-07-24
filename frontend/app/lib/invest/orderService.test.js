@@ -69,6 +69,17 @@ describe("orderService (integration, real Neon, disposable investment-ready user
       .rejects.toThrow(/relatedSchemeCode is required/);
   });
 
+  // Backend Hardening (2026-07-24): amount/units were only null-checked before this — a
+  // negative or zero value reached the provider/DB layer unvalidated.
+  it("rejects a negative or zero amount/units before touching the provider", async () => {
+    await expect(orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 0 }))
+      .rejects.toThrow(/amount must be greater than 0/);
+    await expect(orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: -500 }))
+      .rejects.toThrow(/amount must be greater than 0/);
+    await expect(orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", units: -1 }))
+      .rejects.toThrow(/units must be greater than 0/);
+  });
+
   it("draft:true creates without submitting (no provider call, stays in draft)", async () => {
     const order = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 5000, draft: true });
     expect(order.status).toBe("draft");

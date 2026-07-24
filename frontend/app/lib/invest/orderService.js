@@ -126,6 +126,11 @@ function validateOrderInput({ schemeCode, orderType, amount, units, relatedSchem
   if (!schemeCode) throw new Error("schemeCode is required.");
   if (!ORDER_TYPES.includes(orderType)) throw new Error(`orderType must be one of: ${ORDER_TYPES.join(", ")}`);
   if (amount == null && units == null) throw new Error("Either amount or units is required.");
+  // Backend Hardening (2026-07-24): amount/units were only null-checked — a negative or zero
+  // value passed the check above and reached the provider/DB layer unvalidated. Same `!(x > 0)`
+  // idiom already used by createSipMandate below (rejects NaN, negative, and zero alike).
+  if (amount != null && !(amount > 0)) throw new Error("amount must be greater than 0.");
+  if (units != null && !(units > 0)) throw new Error("units must be greater than 0.");
   if ((orderType === "switch_in" || orderType === "switch_out") && !relatedSchemeCode) {
     throw new Error("relatedSchemeCode is required for switch orders.");
   }

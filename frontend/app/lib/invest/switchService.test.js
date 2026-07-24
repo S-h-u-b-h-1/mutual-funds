@@ -66,6 +66,14 @@ describe("createSwitchOrder", () => {
       .rejects.toThrow(/No holding found/);
   });
 
+  // Backend Hardening (2026-07-24): same negative/zero gap as redemptionService's own guard.
+  it("rejects a negative or zero amount/units before checking eligibility", async () => {
+    await expect(switchService.createSwitchOrder(userId, { sourceSchemeCode: SOURCE_SCHEME, destinationSchemeCode: SAME_AMC_DESTINATION, folioNumber: "does-not-exist", units: -1 }))
+      .rejects.toThrow(/units must be greater than 0/);
+    await expect(switchService.createSwitchOrder(userId, { sourceSchemeCode: SOURCE_SCHEME, destinationSchemeCode: SAME_AMC_DESTINATION, folioNumber: "does-not-exist", amount: 0 }))
+      .rejects.toThrow(/amount must be greater than 0/);
+  });
+
   it("rejects a cross-AMC switch even with a valid folio and units", async () => {
     await insertHolding(userId, SOURCE_SCHEME, { folioNumber: "FOLIO-CROSS-AMC", units: 50, avgCost: 100 });
     await expect(switchService.createSwitchOrder(userId, { sourceSchemeCode: SOURCE_SCHEME, destinationSchemeCode: DIFFERENT_AMC_DESTINATION, folioNumber: "FOLIO-CROSS-AMC", units: 10 }))

@@ -149,6 +149,15 @@ describe("createRedemptionOrder", () => {
       .rejects.toThrow(/No holding found/);
   });
 
+  // Backend Hardening (2026-07-24): a negative units value made the overdraw check
+  // (`requestedUnits > unitsRedeemable`) always false — this now throws before that check ever runs.
+  it("rejects a negative or zero amount/units before checking eligibility", async () => {
+    await expect(redemptionService.createRedemptionOrder(userId, { schemeCode: DEBT_SCHEME, folioNumber: "does-not-exist", units: -1 }))
+      .rejects.toThrow(/units must be greater than 0/);
+    await expect(redemptionService.createRedemptionOrder(userId, { schemeCode: DEBT_SCHEME, folioNumber: "does-not-exist", amount: 0 }))
+      .rejects.toThrow(/amount must be greater than 0/);
+  });
+
   it("rejects a request for more units than are redeemable", async () => {
     await insertHolding(userId, DEBT_SCHEME, { folioNumber: "FOLIO-OVERDRAW", units: 5, avgCost: 100 });
     await expect(redemptionService.createRedemptionOrder(userId, { schemeCode: DEBT_SCHEME, folioNumber: "FOLIO-OVERDRAW", units: 999 }))

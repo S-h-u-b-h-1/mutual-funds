@@ -133,6 +133,11 @@ export async function createRedemptionOrder(userId, { schemeCode, folioNumber, a
   if (!schemeCode) throw new Error("schemeCode is required.");
   if (!folioNumber) throw new Error("folioNumber is required — see GET the eligibility contract for which folios are available.");
   if (amount == null && units == null) throw new Error("Either amount or units is required.");
+  // Backend Hardening (2026-07-24): a negative requestedUnits made the overdraw check below
+  // (`requestedUnits > folio.unitsRedeemable`) always false, silently letting a negative
+  // amount/units request through to order creation. Same idiom as orderService's own guard.
+  if (amount != null && !(amount > 0)) throw new Error("amount must be greater than 0.");
+  if (units != null && !(units > 0)) throw new Error("units must be greater than 0.");
 
   const eligibility = await getRedemptionEligibility(userId, schemeCode);
   const folio = eligibility.folios.find((f) => f.folioNumber === folioNumber);
