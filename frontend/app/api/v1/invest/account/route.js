@@ -16,6 +16,10 @@ export async function POST() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
-  const account = await identityService.ensureAccount(user.id);
-  return Response.json({ account });
+  try {
+    const account = await identityService.ensureAccount(user.id);
+    return Response.json({ account });
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 400 });
+  }
 }

@@ -104,6 +104,10 @@ describe("emitEvent core mechanics (integration, real Neon)", () => {
     const job = await query(`select * from jobs where idempotency_key = $1`, [`event-dispatch:${result.eventId}:test-listener-${RUN}-a`]);
     expect(job.rows.length).toBe(1);
     expect(job.rows[0].type).toBe("event-dispatch");
+    // Backend Hardening (2026-07-24): emitEvent() previously omitted correlationId from its own
+    // enqueueJob() call, so every event-dispatch job's correlation_id was NULL even though the
+    // domain_events row it came from had one — silently breaking cross-table trace lookups.
+    expect(job.rows[0].correlation_id).toBe(marker);
 
     await runWorkerTick({ workerId: `test-events-${RUN}`, maxJobs: 50 });
     expect(received).toEqual({ marker, userId: "u1" });

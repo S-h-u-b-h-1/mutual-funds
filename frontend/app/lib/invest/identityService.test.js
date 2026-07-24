@@ -68,6 +68,28 @@ describe("identityService (integration, real Neon, disposable test user)", () =>
     expect(second.account_number).toBe(first.account_number);
   });
 
+  // Backend Hardening (2026-07-24): the sequential test above only exercises the fast path
+  // (second call's own getAccount() sees the first call's already-committed row). This exercises
+  // the actual race — two concurrent calls that both pass the getAccount() check before either
+  // insert commits — which used to let the losing call's raw 23505 propagate instead of honoring
+  // ensureAccount()'s own documented idempotency guarantee.
+  it("ensureAccount is race-safe: two concurrent calls for the same fresh user both resolve to the same row, neither throws", async () => {
+    const raceUserId = await createTestUser("identity-race");
+    try {
+      const [a, b] = await Promise.all([
+        identityService.ensureAccount(raceUserId),
+        identityService.ensureAccount(raceUserId),
+      ]);
+      expect(a.id).toBe(b.id);
+      expect(a.account_number).toBe(b.account_number);
+
+      const rows = await identityService.getAccount(raceUserId);
+      expect(rows.id).toBe(a.id); // exactly one account row exists, not two
+    } finally {
+      await deleteTestUser(raceUserId);
+    }
+  });
+
   it("upsertRiskProfile persists the derived category and raw answers", async () => {
     const answers = { horizonScore: 4, lossToleranceScore: 4, incomeStabilityScore: 3, experienceScore: 3 };
     const saved = await identityService.upsertRiskProfile(userId, answers);

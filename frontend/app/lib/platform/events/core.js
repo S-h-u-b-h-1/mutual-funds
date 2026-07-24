@@ -50,7 +50,7 @@ export async function emitEvent(type, payload = {}, { correlationId = null, sour
       await enqueueJob(
         "event-dispatch",
         { eventId, eventType: type, listenerName },
-        { idempotencyKey: `event-dispatch:${eventId}:${listenerName}`, priority: 4 }
+        { idempotencyKey: `event-dispatch:${eventId}:${listenerName}`, priority: 4, correlationId }
       );
     }
 

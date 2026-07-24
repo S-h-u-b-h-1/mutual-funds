@@ -54,12 +54,23 @@ export async function ensureAccount(userId) {
   if (existing) return existing;
 
   const opened = await investmentProvider.openAccount({ userId });
-  const r = await query(
-    `insert into investment_accounts (user_id, account_number, status, opened_at)
-     values ($1, $2, $3, now())
-     returning *`,
-    [userId, opened.accountNumber, opened.status]
-  );
+  let r;
+  try {
+    r = await query(
+      `insert into investment_accounts (user_id, account_number, status, opened_at)
+       values ($1, $2, $3, now())
+       returning *`,
+      [userId, opened.accountNumber, opened.status]
+    );
+  } catch (err) {
+    // Backend Hardening (2026-07-24): investment_accounts.user_id is unique, so this can only
+    // mean a concurrent call already won the race between our own getAccount() check above and
+    // this insert — same shape as webhooks/core.js's receiveWebhook() insert-race handling.
+    // Honor this function's own doc comment ("idempotent — returns the existing account") rather
+    // than letting the loser's raw 23505 propagate.
+    if (err?.code === "23505") return await getAccount(userId);
+    throw err;
+  }
   await logAudit(userId, "invest_account_opened", { accountNumber: opened.accountNumber, provider: opened.provider });
   await emitEvent("InvestorCreated", { userId, accountNumber: opened.accountNumber }, { correlationId: userId, source: "identityService" });
   return r.rows[0];

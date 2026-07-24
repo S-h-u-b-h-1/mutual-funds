@@ -34,4 +34,16 @@ describe("POST /api/v1/invest/portfolio/connect", () => {
     expect(res.status).toBe(200);
     expect(body.alreadyConnected).toBe(true);
   });
+
+  // Backend Hardening (2026-07-24): this route previously had no try/catch at all — a thrown
+  // error from connectMockPortfolio() would have been an unhandled server error, not a
+  // client-facing 400, unlike every other invest route's established error-handling pattern.
+  it("400s with the error message when connectMockPortfolio throws, instead of an unhandled error", async () => {
+    auth.mockResolvedValue({ user: { id: "user-1" } });
+    connectMockPortfolio.mockRejectedValue(new Error("provider unavailable"));
+    const res = await POST();
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body.error).toBe("provider unavailable");
+  });
 });

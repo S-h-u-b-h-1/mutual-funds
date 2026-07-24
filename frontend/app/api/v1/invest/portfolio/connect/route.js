@@ -9,6 +9,10 @@ export async function POST() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
-  const result = await connectMockPortfolio(user.id);
-  return Response.json(result);
+  try {
+    const result = await connectMockPortfolio(user.id);
+    return Response.json(result);
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 400 });
+  }
 }

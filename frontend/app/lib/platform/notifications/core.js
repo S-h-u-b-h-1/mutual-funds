@@ -175,6 +175,12 @@ export async function deliverNotification({ notificationId }) {
   if (!notification) throw new Error(`deliverNotification: notification ${notificationId} not found.`);
 
   if (notification.status === "cancelled") return { skipped: true, reason: "cancelled" };
+  // Backend Hardening (2026-07-24): a lease-expiry requeue (see jobs/core.js's
+  // reclaimExpiredLeases) can hand this same notification to a second worker after the first
+  // one's provider.send() already succeeded but crashed before this function reached its own
+  // 'delivered' write below. Without this guard, deliverNotification would re-run from the top
+  // and send a real duplicate the moment a real (non-mock) channel provider replaces the mock.
+  if (notification.status === "delivered") return { skipped: true, reason: "already_delivered" };
   if (notification.expires_at && new Date(notification.expires_at) < new Date()) {
     await query(`update notifications set status = 'failed', last_error = 'expired before delivery', updated_at = now() where id = $1`, [notification.id]);
     await recordEvent(notification.id, "failed", { reason: "expired" });
