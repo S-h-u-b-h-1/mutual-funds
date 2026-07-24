@@ -53,6 +53,20 @@ The investor dashboard can show an unread-notification count only after the Jour
 read contract is published. No `GET /api/v1/invest/notifications` endpoint is currently live;
 the dashboard renders this metric as unavailable rather than probing a missing route.
 
+## Advisor workspace
+
+The advisor workspace shell is ready, but no advisor-scoped client, household, task, note,
+communication, meeting, or permission contract is live yet. Required backend additions are:
+
+- authenticated advisor workspace summary and paginated client roster;
+- server-side client search, household relationships and client-detail rollups;
+- permission-scoped readiness, portfolio, SIP, transaction and document summaries;
+- task, note, communication and meeting-history read/write endpoints with audit references;
+- stable queue counts and health indicators for follow-up and operational exceptions.
+
+Until these contracts land, the workspace must render “Awaiting backend data” states and must not
+show fabricated client metrics or enable mutating controls.
+
 ## Timeline minimum
 
 Every money-moving response should eventually include:
