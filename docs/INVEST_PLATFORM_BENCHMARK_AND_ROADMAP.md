@@ -94,8 +94,8 @@ Legend for the "MF Pulse today" column: **live** (real, working) · **mock** (in
 | SWP | Standard (RTA-side recurring redemption) | **absent** — no SWP concept in schema at all | Structural gap |
 | Folio-level transactions | Standard once multiple folios per AMC exist | **live for redemption** — `createRedemptionOrder` requires an explicit `folioNumber`, validated against the user's real per-folio holdings before the order is created **[verified, shipped 2026-07-24]**; still **partial for purchase** (a purchase always creates/targets an implicit folio, no selection of an existing one) | Purchase-side folio selection remains open; not needed until multi-folio-per-scheme purchase flows exist |
 | Scheme-level transactions | Universal | **live** | None |
-| Direct vs regular plan | Universal, commission-relevant | **partial** — `investment_preferences.preferred_plan` exists as a *preference*, but individual orders don't appear to carry their own plan flag independent of the account-level preference | Add per-order plan capture, since a real investor can hold both direct and regular units |
-| Growth vs IDCW | Universal | **partial** — modeled on `portfolio_holding` (CAS-import side, `option` field) but not on `investment_orders` (platform-native side) **[verified]** | Add to the order model |
+| Direct vs regular plan | Universal, commission-relevant | **live** — `investment_orders.plan`/`sip_mandates.plan` now snapshot the scheme's plan at creation (`getFund()`, migration 021) **[verified, shipped 2026-07-24]** | Closed — see `docs/PROVIDER_METADATA.md`. `investment_preferences.preferred_plan` (account-level default) is unchanged and separate from this per-order snapshot |
+| Growth vs IDCW | Universal | **live** — `investment_orders.option`/`sip_mandates.option` now capture this on the platform-native side, matching `portfolio_holding`'s existing CAS-import-side `option` field **[verified, shipped 2026-07-24]** | Closed — see `docs/PROVIDER_METADATA.md` |
 | Cut-off & business-day treatment | T+1 NAV for same-day cut-off (industry-standard ~3pm for equity/debt, ~1:30pm for liquid/overnight) **[industry knowledge — verify before compliance use]** | **absent** — no cut-off-time logic anywhere; the mock provider's order-status progression is purely elapsed-wall-clock-based, not calendar/cutoff-aware **[verified]** | Real gap — this is genuinely regulated behavior, needs care once building against a real exchange feed |
 | Minimum investment validation | Per-scheme minimums, standard | **absent** — not found in `orderService.createOrder`'s validation | Needs scheme-level minimum-amount data, which ties to the existing fund-research data platform (separate from Invest) |
 | Exit-load communication | Must be disclosed before transacting **[industry knowledge — verify before compliance use]** | **absent** in the order flow (exit-load data exists on the *research* side of MF Pulse already, per prior sprints, but isn't surfaced during order creation) | Wire existing research-side data into the order flow — likely a quick win, not a new capability |
@@ -111,13 +111,13 @@ Legend for the "MF Pulse today" column: **live** (real, working) · **mock** (in
 | UPI | Now the dominant retail payment rail for MF purchases **[industry knowledge]** | **absent as a distinct method** — `PaymentProvider.initiatePayment()` is method-agnostic and the mock doesn't distinguish payment rails | Real gap once a real gateway is chosen |
 | Net banking | Standard | Same as above | Same |
 | Bank transfer | Standard for larger tickets | Same | Same |
-| eNACH | Standard mandate rail | **partial** — `sip_mandates.provider_mandate_id` exists as a field, but `MockPaymentProvider.initiateMandate()` **always returns success synchronously with zero failure modeling** — the single weakest mock of the five, per the internal audit **[verified]** | Real gap in mock realism *before* any real integration — worth improving the mock alone as prep |
+| eNACH | Standard mandate rail | **partial** — `sip_mandates.provider_mandate_id` exists; `MockPaymentProvider.initiateMandate()` is now called from a real path for the first time and realistically weighted (95% accept / 5% decline), no longer unconditional **[verified, shipped 2026-07-24 — `docs/PROVIDER_METADATA.md`]** | Mock realism gap closed; the async-approval structural gap below is still open |
 | OTM (one-time mandate) | Standard for SIP registration in some flows | **absent** as a distinct concept from eNACH | Minor — likely fine to treat OTM as a mandate-type variant later |
-| Mandate registration | Standard | **mock, unconditional success** — see above | Same fix |
-| Mandate verification | Standard, async (bank approval can take days) | **absent** — no async/pending mandate state is modeled; the mock is synchronous | Real structural gap — a real eNACH mandate is NOT instant, and neither the schema (`mandate_status` lacks a "bank-approval-pending" state) nor the mock reflects that |
-| Mandate status | Standard | **partial** — enum exists (`pending`/`active`/`paused`/`cancelled`/`expired`) but nothing populates transitions beyond initial creation | Same fix as above |
-| Payment initiated/pending/successful/failed/reversed | Standard multi-state lifecycle | **absent as distinct states** — `MockPaymentProvider` collapses this to instant, unconditional success; no payment-attempt table exists separate from the order itself | Real, structural gap — flagged again in §8 |
-| Mandate rejected | Standard | **absent** — no rejection path modeled at all | Same |
+| Mandate registration | Standard | **live** — `createSipMandate()` calls `paymentProvider.initiateMandate()` before ever calling `InvestmentProvider.createSIPMandate()`; a declined mandate is persisted as `mandate_status: 'failed'` and the investment provider is never contacted **[verified, shipped 2026-07-24]** | Closed at the registration-call level; async bank-approval timing (next row) is unrelated and still open |
+| Mandate verification | Standard, async (bank approval can take days) | **absent** — no async/pending mandate state is modeled; the mock is synchronous (accepts or declines immediately, no multi-day pending window) | Real structural gap, unchanged by Provider Metadata — a real eNACH mandate is NOT instant, and neither the schema (`mandate_status` lacks a "bank-approval-pending" state) nor the mock reflects that |
+| Mandate status | Standard | **partial** — enum exists (`pending`/`active`/`paused`/`cancelled`/`expired`); creation now sets `active` or `failed` based on a real (mock) authorization outcome, but nothing populates transitions *after* creation (pause/cancel routes still don't exist — §2.3) | Pause/cancel mutation routes remain the open gap |
+| Payment initiated/pending/successful/failed/reversed | Standard multi-state lifecycle | **partial** — `initiated`/`success`/`declined` are now real, persisted, distinct states (`investment_orders.payment_status`/`sip_mandates.payment_status`) for the one attempt each order/mandate makes **[verified, shipped 2026-07-24]**; `pending` and `reversed` are not modeled, and there is still no payment-attempt table distinct from the order/mandate itself (one row = one attempt, not a history) | Payment Attempt entity (§5 Recommendation 1, §8) is the remaining structural piece |
+| Mandate rejected | Standard | **live** — a declined `initiateMandate()` result sets `mandate_status: 'failed'` and `provider_error_code: 'MANDATE_DECLINED'`, and skips calling the investment provider entirely **[verified, shipped 2026-07-24]** | Closed — see `docs/PROVIDER_METADATA.md` §3 |
 | Retry | Standard | **absent** for payments specifically (order-level `retry_required` exists, but nothing distinguishes "retry the payment" from "retry the whole order") | Design gap — payment retry and order retry are different operations conflated today |
 | Refund | Standard | **absent** — see Order Lifecycle discussion in §5 | Structural gap |
 | Duplicate-payment prevention | Standard, idempotency-key-based | **partial** — `enqueueJob`'s idempotency-key mechanism (Job Platform, verified working in this session's own build) could back this, but nothing in `orderService`/`PaymentProvider` currently uses an idempotency key for payment initiation specifically | Should reuse the existing Job Platform idempotency mechanism rather than build a new one — genuine architecture-reuse opportunity |
@@ -213,15 +213,15 @@ Condensed view of the sharpest findings across §2, ranked by how structural (sc
 
 **Incremental gaps (schema mostly ready, mutation paths/UI missing):**
 1. SIP pause/modify/cancel (enum values exist, routes don't).
-2. Redemption/switch order creation (order_type values exist, dedicated creation paths not confirmed).
+2. ~~Redemption/switch order creation (order_type values exist, dedicated creation paths not confirmed).~~ **Closed 2026-07-24** — see `docs/REDEMPTION_CONTRACT.md`, `docs/SWITCH_CONTRACT.md`.
 3. Account closure (status value exists, route doesn't).
 4. Nominee/bank-account update flows (insert exists, update doesn't).
 5. Statements/reports (Phase 4 M6, already tracked, not started).
 
 **Design debt worth fixing regardless of what's prioritized next:**
-1. Penny-drop verification is hardcoded inline in `complianceService` instead of routed through `PaymentProvider` — an architectural inconsistency with every other provider-abstracted capability.
-2. `MockPaymentProvider` is the weakest of the five mocks (zero failure modeling), which will make Slice work that depends on payment failure paths harder to test honestly until it's improved.
-3. Direct-vs-regular plan and Growth-vs-IDCW are captured inconsistently between the CAS-import side (`portfolio_holding`) and the platform-native order side (`investment_orders`).
+1. Penny-drop verification is hardcoded inline in `complianceService` instead of routed through `PaymentProvider` — an architectural inconsistency with every other provider-abstracted capability. Unchanged by Provider Metadata (that slice starts from an already-verified bank account, doesn't touch verification itself).
+2. ~~`MockPaymentProvider` is the weakest of the five mocks (zero failure modeling)...~~ **Closed 2026-07-24** — now realistically weighted (95/5) and called from real purchase/SIP-mandate paths; see `docs/PROVIDER_METADATA.md`.
+3. ~~Direct-vs-regular plan and Growth-vs-IDCW are captured inconsistently...~~ **Closed 2026-07-24** — both now snapshot onto `investment_orders`/`sip_mandates` at creation; see `docs/PROVIDER_METADATA.md` §5.
 4. Multiple near-duplicate/overlapping tables already flagged by the internal audit (`investor_profile` vs `investor_profiles` vs `research_profile`; `portfolio_holdings` vs `portfolio_holding`; `portfolio_sips` vs `sip_mandates`; `user_notification_settings` vs `notification_preferences`) — none of these block new work, but they're worth a deliberate consolidation pass before they compound further.
 
 ---
@@ -369,7 +369,7 @@ Every capability area above already has a home in the infrastructure built this 
 | NAV | (research-side NAV data, outside Invest module) | **live**, external to this audit's scope |
 | Portfolio snapshots | `portfolio_snapshots` | **live**, mature |
 | AUM snapshots (platform-wide, not per-investor) | — | **absent** — see §6 |
-| Commissions | — | **absent** — blocked on ARN/EUIN + plan-type capture |
+| Commissions | — | **absent** — both stated prerequisites (ARN/EUIN, plan-type capture) are now closed (`docs/DISTRIBUTOR_IDENTITY.md`, `docs/PROVIDER_METADATA.md`), so this is no longer blocked, just not yet built |
 | Service requests | — | **absent** — flagged repeatedly throughout this document as the clearest single structural gap |
 | Documents | `documents` + `document_events` | **live**, mature |
 | Compliance records | `compliance_applications` + `compliance_items` | **live** |
@@ -393,8 +393,8 @@ Every capability area above already has a home in the infrastructure built this 
 |---|---|---|
 | ~~ARN/EUIN capture~~ Distributor Identity & Regulatory Configuration | Regulatory/commercial hard requirement — **shipped 2026-07-24** once real ARN (289322)/EUIN (E544323) were confirmed; see §10 | **Done** — `docs/DISTRIBUTOR_IDENTITY.md` |
 | Structured FATCA/CRS + PEP declaration | Same regulatory tier as distributor identity was; purely additive schema + compliance-item work, no provider blocker | **New** — not currently tracked anywhere found in this audit; now the next-most-natural small regulatory-capture slice |
-| Payment Attempt entity (§5 Recommendation 1) | Unblocks payment-failure visibility, SIP-instalment tracking, redemption, and duplicate-payment prevention simultaneously — the single highest-leverage structural change found | **New**, though it directly serves the already-pending Journey 5/6 and Mission B items below |
-| Redemption order-creation path | Explicitly flagged as absent by both this audit and the existing UX-benchmark doc | **New** at the service layer; UI-side already flagged as P1 in the UX-benchmark doc's own slice plan |
+| Payment Attempt entity (§5 Recommendation 1) | Unblocks payment-failure visibility, SIP-instalment tracking, redemption, and duplicate-payment prevention simultaneously — the single highest-leverage structural change found | **Partially pre-served, not built** — Provider Metadata (**shipped 2026-07-24**, `docs/PROVIDER_METADATA.md`) added the payment reference/status/bank/error-code *fields* onto the existing order/mandate rows and wired `PaymentProvider` into a real call path for the first time, but deliberately did not build the distinct multi-attempt table or retry lifecycle this row describes — that remains the open item |
+| ~~Redemption order-creation path~~ Redemption & Switch order-creation paths | Explicitly flagged as absent by both this audit and the existing UX-benchmark doc | **Done — shipped 2026-07-24** — `docs/REDEMPTION_CONTRACT.md`, `docs/SWITCH_CONTRACT.md`. UI-side still P1 per the UX-benchmark doc's own slice plan |
 | SIP pause/modify/cancel routes | Data model ready, small effort, closes a real investor-facing gap | **New**, small |
 | Nominee-percentage cross-row validation, bank-primary-account constraint | Small, correctness-critical fixes | **New**, trivial effort |
 | Complete M5 Slices 5-7 (Scheduling, Metrics, Admin APIs) | Already in flight, already sequenced, "reconciliation and audit" and "notifications" both appear explicitly in the brief's own lifecycle diagram | **Already tracked**, continue as planned. Slice 4 (Timeline) **shipped 2026-07-24** under the newer backend-contract priority brief — see `docs/NOTIFICATION_READ_APIS.md` |
@@ -450,12 +450,25 @@ table).
 
 Full detail: `docs/DISTRIBUTOR_IDENTITY.md`.
 
-**Next recommended slice, now that this one is done: structured FATCA/CRS + PEP declaration
-capture.** Same regulatory tier this section originally grouped ARN/EUIN with, still genuinely
-gapped (§2.1, §3), still additive-only (new columns on `investor_profiles`/`compliance_items`,
-no architectural decisions pending), still small enough to match the established slice
-discipline. Does not interrupt the in-flight M5 Notification Platform sequence (Slice 4/Timeline
-next there) — either can proceed without blocking the other.
+**What shipped next — superseding the "FATCA/CRS next" note originally here:** a 2026-07-24
+priority brief redirected effort toward closing the remaining *backend contract* gaps blocking
+the investor platform (rather than the regulatory-capture track this section had recommended
+next), on the explicit reasoning that Codex needs these contracts to unlock Redemption, Switch,
+Notifications, and related frontend work without inventing behavior. Four of five priority items
+have shipped so far, each following the same discipline (migration → service → API → tests →
+docs → deploy → verify) and each documented in its own file rather than expanding this one:
+
+1. **Redemption Contract** — `docs/REDEMPTION_CONTRACT.md`.
+2. **Switch Contract** — `docs/SWITCH_CONTRACT.md`.
+3. **Journey 5 Notification Read APIs** — `docs/NOTIFICATION_READ_APIS.md`.
+4. **Provider Metadata** — `docs/PROVIDER_METADATA.md`. Wires the long-registered-but-never-called
+   `PaymentProvider` into real purchase/SIP-mandate paths for the first time, adds the plan/option
+   scheme snapshot, and adds standardized `PROVIDER_ERROR_CODES`.
+
+**Item 5, Portfolio Metadata** (NAV timestamps, valuation freshness, refresh metadata,
+calculation timestamps, data quality indicators) is next in this same sequence. Structured
+FATCA/CRS + PEP declaration capture (§9 P0) remains real, genuinely gapped, and not yet started —
+it was deferred by the priority brief, not dropped.
 
 ---
 
@@ -464,7 +477,7 @@ next there) — either can proceed without blocking the other.
 Consolidated from findings scattered through §2-§8, in one place as this document's final section, per the brief's explicit instruction to be honest about this:
 
 - **Every regulated external integration is mocked**: KYC/KRA/CKYC, BSE StAR MF order routing, CAMS/KFintech RTA processing, any payment gateway, DigiLocker/document-fetch. This is a standing, repeatedly-documented, deliberate constraint — not an oversight, and not something this document proposes changing without official credentials.
-- **`MockPaymentProvider` is unconditionally successful** with zero failure-mode simulation — the weakest of the five mocks, and worth strengthening even before a real gateway exists, since it currently can't exercise any payment-failure test path.
+- ~~`MockPaymentProvider` is unconditionally successful with zero failure-mode simulation~~ **Corrected 2026-07-24.** Now realistically weighted (95% accept / 5% decline) on both `initiatePayment()` and `initiateMandate()`, and — for the first time since it was built in Phase 1 — actually called from a real path (`orderService.js`'s purchase submission and SIP mandate creation); see `docs/PROVIDER_METADATA.md`. What genuinely remains open: no async/pending mandate-approval window (still instant accept-or-decline) and no distinct Payment Attempt entity (one attempt per order/mandate, not a retry-able history) — see §9's P0 table.
 - **`MockInvestmentProvider.getOrderStatus()` is a hardcoded stub** that always returns `"processing"` — the real progression logic lives in `orderService.decideNextStatus()` instead, driven by elapsed wall-clock time, not a real exchange/RTA state.
 - **No real document ever exists** — `documentService`/`DocumentProvider` produce metadata rows with synthetic `storage_ref` values; no PDF, no real bytes, no real storage backend (blocked on the already-tracked Phase 4 M7).
 - **CRS and PEP capture are entirely absent** — not partial, not mocked, simply not present anywhere in code or schema.

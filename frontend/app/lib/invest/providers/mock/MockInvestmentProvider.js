@@ -7,7 +7,7 @@
 // resolved, including retry_required/temporary failures) is deliberately NOT simulated here —
 // that needs the order's real elapsed time since submission, which only orderService.js (reading
 // investment_orders.submitted_at from Postgres) has; see orderService.js's decideOrderStatus().
-import { InvestmentProvider } from "../types.js";
+import { InvestmentProvider, PROVIDER_ERROR_CODES } from "../types.js";
 import { mockRef, mockAccountNumber } from "./ids.js";
 
 export class MockInvestmentProvider extends InvestmentProvider {
@@ -26,6 +26,7 @@ export class MockInvestmentProvider extends InvestmentProvider {
       providerOrderId: mockRef("ord"),
       status: accepted ? "accepted" : "rejected",
       rejectionReason: accepted ? null : "Mock gateway rejection: scheme not open for subscription (simulated).",
+      rejectionCode: accepted ? null : PROVIDER_ERROR_CODES.SCHEME_NOT_OPEN,
       provider: "mock-investment",
       submittedOrder: order,
     };

@@ -8,6 +8,18 @@
 // bank/payment endpoint. Only Mock* subclasses (./mock/) exist right now — see
 // docs/INVEST_PLATFORM_ARCHITECTURE.md §11 for what's explicitly out of scope this phase.
 
+// Provider Metadata (2026-07-24 priority brief) — standardized error codes shared by every
+// provider's rejection/decline path. investment_orders.rejection_reason (migration 010) is
+// free-text prose, fine for a human, unusable for a caller to branch on; provider_error_code
+// (migration 021) carries one of these instead, alongside the reason, never replacing it.
+// Deliberately a flat, small set — grows only when a real rejection path needs a new one, not
+// speculatively ahead of need.
+export const PROVIDER_ERROR_CODES = Object.freeze({
+  SCHEME_NOT_OPEN: "SCHEME_NOT_OPEN",
+  PAYMENT_DECLINED: "PAYMENT_DECLINED",
+  MANDATE_DECLINED: "MANDATE_DECLINED",
+});
+
 export class KYCProvider {
   /** @param {{userId: string, pan?: string}} input */
   async initiateVerification(input) { throw new Error("KYCProvider.initiateVerification not implemented"); }

@@ -110,12 +110,38 @@ describe("orderService (integration, real Neon, disposable investment-ready user
     const sip = await orderService.createSipMandate(readyUserId, {
       schemeCode: "119551", amount: 2000, frequency: "monthly", startDate: "2026-08-01",
     });
-    expect(sip.mandate_status).toBe("active");
-    expect(sip.provider_mandate_id).toMatch(/^mandate_/);
+    // Provider Metadata: mandate_status now reflects a real (mock) payment-authorization
+    // outcome — paymentProvider.initiateMandate() rejects ~5% of the time by design, same
+    // weighted-outcome pattern as the investment provider's own ~8% order-rejection rate.
+    expect(["active", "failed"]).toContain(sip.mandate_status);
+    if (sip.mandate_status === "active") expect(sip.provider_mandate_id).toMatch(/^mandate_/);
+    expect(sip.payment_reference).toMatch(/^mandate_/);
 
     await expect(orderService.createSipMandate(freshUserId, {
       schemeCode: "119551", amount: 2000, frequency: "monthly", startDate: "2026-08-01",
     })).rejects.toThrow(/Compliance must be fully completed/);
+  });
+
+  // Provider Metadata (sql/neon/021_provider_metadata.sql) — plan/option are a scheme snapshot
+  // (populated regardless of payment/provider outcome); the payment_* fields are only meaningful
+  // for a purchase order/SIP mandate, since redemption/switch never go through submitOrder's
+  // purchase-payment branch (see submitOrder's own comment on why).
+  it("stamps Provider Metadata fields (plan/option/payment) on a purchase order and a SIP mandate", async () => {
+    const draft = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 1200, draft: true });
+    expect(draft.plan).toBeTruthy();
+    expect(draft.option).toBeTruthy();
+
+    const submitted = await orderService.submitOrder(readyUserId, draft.id);
+    expect(submitted.payment_reference).toMatch(/^pay_/);
+    expect(["success", "declined"]).toContain(submitted.payment_status);
+    expect(submitted.payment_bank_account_id).toBeTruthy();
+
+    const sip = await orderService.createSipMandate(readyUserId, {
+      schemeCode: "119551", amount: 1500, frequency: "monthly", startDate: "2026-08-01",
+    });
+    expect(sip.plan).toBeTruthy();
+    expect(sip.option).toBeTruthy();
+    expect(sip.payment_bank_account_id).toBeTruthy();
   });
 
   // Real production values (sql/neon/017_distributor_identity.sql) — not fixtures. An order or

@@ -3,7 +3,7 @@
 // state) and reversed (an explicit action on a completed order). Backs
 // docs/INVEST_PLATFORM_ARCHITECTURE.md §7 and the Phase 1 brief's Module 6 lifecycle.
 import { query } from "../db.js";
-import { investmentProvider } from "./providers/index.js";
+import { investmentProvider, paymentProvider } from "./providers/index.js";
 import { logAudit } from "./audit.js";
 import { notifyUser } from "./notifications.js";
 import { emitEvent } from "../platform/events/core.js";
@@ -12,6 +12,8 @@ import { getAccount } from "./identityService.js";
 import { reconcileCompletedOrder } from "./portfolioService.js";
 import { generateDocument } from "./documentService.js";
 import { getDefaultDistributorAttribution } from "../platform/distributor/core.js";
+import { getVerifiedBankAccount } from "./bankAccounts.js";
+import { getFund } from "../funds.js";
 
 export const ORDER_TYPES = ["purchase", "redemption", "switch_in", "switch_out"];
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled", "reversed", "retry_required"]);
@@ -157,12 +159,17 @@ export async function createOrder(userId, input) {
   // column in this schema (see sql/neon/017_distributor_identity.sql). No advisor context is
   // passed into createOrder today, so this always resolves to the default distributor EUIN.
   const distributor = await getDefaultDistributorAttribution();
+  // Provider Metadata: a snapshot of the scheme's plan/option at order time — same reasoning as
+  // distributor attribution above. getFund() already resolved successfully for any schemeCode
+  // reaching this point (compliance/eligibility gates upstream never call createOrder with an
+  // unresolvable code), so a missing fund here is not a case this needs to guard against.
+  const fund = getFund(schemeCode);
 
   const r = await query(
-    `insert into investment_orders (user_id, scheme_code, related_scheme_code, order_type, amount, units, status, distributor_arn, distributor_euin)
-     values ($1, $2, $3, $4, $5, $6, 'draft', $7, $8)
+    `insert into investment_orders (user_id, scheme_code, related_scheme_code, order_type, amount, units, status, distributor_arn, distributor_euin, plan, option)
+     values ($1, $2, $3, $4, $5, $6, 'draft', $7, $8, $9, $10)
      returning *`,
-    [userId, schemeCode, relatedSchemeCode, orderType, amount, units, distributor.arn, distributor.euin]
+    [userId, schemeCode, relatedSchemeCode, orderType, amount, units, distributor.arn, distributor.euin, fund?.plan ?? null, fund?.option ?? null]
   );
   const order = r.rows[0];
   await logAudit(userId, "order_created", { orderId: order.id, orderType, schemeCode, distributorArn: distributor.arn, distributorEuin: distributor.euin });
@@ -180,18 +187,46 @@ export async function submitOrder(userId, orderId) {
   if (!order) throw new Error("Order not found.");
   if (order.status !== "draft") throw new Error(`Only a draft order can be submitted (current status: ${order.status}).`);
 
+  // Provider Metadata: a purchase needs money to move before the investment provider is even
+  // asked to place it — paymentProvider.initiatePayment() has been fully built and registered
+  // since Phase 1 but never actually called from any real path until this slice. A declined
+  // payment means there is nothing to submit; the investment provider is never contacted.
+  // Redemption/switch never reach this branch: their money movement is payout-at-completion
+  // (initiatePayout) or none at all (a switch's value moves internally), not a payment-in.
+  let paymentReference = null, paymentStatus = null, paymentBankAccountId = null;
+  if (order.order_type === "purchase") {
+    const bank = await getVerifiedBankAccount(userId);
+    if (!bank) {
+      await query(`update investment_orders set payment_status = 'failed', updated_at = now() where id = $1`, [order.id]);
+      return transition(order, "failed", "No verified payment bank account on file.");
+    }
+    const paymentAck = await paymentProvider.initiatePayment({ amount: order.amount, bankAccountId: bank.id, schemeCode: order.scheme_code });
+    paymentReference = paymentAck.paymentRef;
+    paymentStatus = paymentAck.status;
+    paymentBankAccountId = bank.id;
+    await query(
+      `update investment_orders set payment_reference = $2, payment_status = $3, payment_bank_account_id = $4, provider_error_code = $5, updated_at = now()
+       where id = $1`,
+      [order.id, paymentReference, paymentStatus, paymentBankAccountId, paymentAck.errorCode ?? null]
+    );
+    if (paymentStatus !== "success") {
+      return transition(order, "failed", `Payment ${paymentReference} was declined.`);
+    }
+  }
+
   const ack = await investmentProvider.placeOrder({
     schemeCode: order.scheme_code, orderType: order.order_type, amount: order.amount, units: order.units,
     distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin,
     folioNumber: order.folio_number, exitLoadPct: order.exit_load_pct, exitLoadAmount: order.exit_load_amount,
     relatedSchemeCode: order.related_scheme_code, switchOrderId: order.switch_order_id,
+    paymentReference,
   });
   await query(
-    `update investment_orders set provider = $2, provider_order_id = $3, submitted_at = now(), updated_at = now()
+    `update investment_orders set provider = $2, provider_order_id = $3, provider_error_code = coalesce($4, provider_error_code), submitted_at = now(), updated_at = now()
      where id = $1`,
-    [order.id, ack.provider, ack.providerOrderId]
+    [order.id, ack.provider, ack.providerOrderId, ack.rejectionCode ?? null]
   );
-  const refreshed = { ...order, provider: ack.provider, provider_order_id: ack.providerOrderId };
+  const refreshed = { ...order, provider: ack.provider, provider_order_id: ack.providerOrderId, payment_reference: paymentReference, payment_status: paymentStatus, payment_bank_account_id: paymentBankAccountId };
   return transition(refreshed, ack.status === "accepted" ? "submitted" : "failed", ack.rejectionReason);
 }
 
@@ -263,18 +298,49 @@ export async function createSipMandate(userId, { schemeCode, amount, frequency, 
   }
   // Same freeze-at-creation reasoning as createOrder — see sql/neon/017_distributor_identity.sql.
   const distributor = await getDefaultDistributorAttribution();
-  const ack = await investmentProvider.createSIPMandate({
-    schemeCode, amount, frequency, startDate,
-    distributorArn: distributor.arn, distributorEuin: distributor.euin,
-  });
+  const fund = getFund(schemeCode);
+
+  // Provider Metadata: a SIP mandate is a standing NACH/UPI Autopay authorization, not itself a
+  // fund movement — paymentProvider.initiateMandate() (not .initiatePayment(), which is for a
+  // one-time purchase) registers that authorization. No verified bank on file is a genuine
+  // precondition failure (like the field-required checks above), so that still throws. A
+  // *declined* authorization is a normal, probabilistic outcome instead — same reasoning as a
+  // purchase's payment decline — so it is recorded as mandate_status='failed' and returned, not
+  // thrown; the investment provider is never asked to register a mandate with no real
+  // authorization behind it.
+  const bank = await getVerifiedBankAccount(userId);
+  if (!bank) throw new Error("No verified payment bank account on file — required before setting up a SIP mandate.");
+  const mandateAck = await paymentProvider.initiateMandate({ amount, frequency, bankAccountId: bank.id, schemeCode });
+
+  let providerAck = { status: "failed", providerMandateId: null, provider: mandateAck.provider };
+  if (mandateAck.status === "active") {
+    providerAck = await investmentProvider.createSIPMandate({
+      schemeCode, amount, frequency, startDate,
+      distributorArn: distributor.arn, distributorEuin: distributor.euin,
+      paymentReference: mandateAck.mandateRef,
+    });
+  }
+
   const r = await query(
-    `insert into sip_mandates (user_id, scheme_code, amount, frequency, start_date, end_date, mandate_status, provider_mandate_id, provider, distributor_arn, distributor_euin)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    `insert into sip_mandates (
+       user_id, scheme_code, amount, frequency, start_date, end_date, mandate_status,
+       provider_mandate_id, provider, distributor_arn, distributor_euin,
+       plan, option, payment_reference, payment_status, payment_bank_account_id, provider_error_code
+     )
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
      returning *`,
-    [userId, schemeCode, amount, frequency, startDate, endDate, ack.status, ack.providerMandateId, ack.provider, distributor.arn, distributor.euin]
+    [
+      userId, schemeCode, amount, frequency, startDate, endDate, providerAck.status, providerAck.providerMandateId, providerAck.provider, distributor.arn, distributor.euin,
+      fund?.plan ?? null, fund?.option ?? null, mandateAck.mandateRef, mandateAck.status, bank.id, mandateAck.errorCode ?? null,
+    ]
   );
-  await logAudit(userId, "sip_mandate_created", { schemeCode, amount, frequency, distributorArn: distributor.arn, distributorEuin: distributor.euin });
-  await notifyUser(userId, "sip_mandate_created", { title: "SIP set up", body: `${frequency} SIP of ₹${amount} in ${schemeCode}`, relatedEntityType: "sip_mandate", relatedEntityId: r.rows[0].id });
+  await logAudit(userId, "sip_mandate_created", {
+    schemeCode, amount, frequency, distributorArn: distributor.arn, distributorEuin: distributor.euin,
+    paymentReference: mandateAck.mandateRef, paymentStatus: mandateAck.status, paymentBankAccountId: bank.id,
+  });
+  if (mandateAck.status === "active") {
+    await notifyUser(userId, "sip_mandate_created", { title: "SIP set up", body: `${frequency} SIP of ₹${amount} in ${schemeCode}`, relatedEntityType: "sip_mandate", relatedEntityId: r.rows[0].id });
+  }
   return r.rows[0];
 }
 

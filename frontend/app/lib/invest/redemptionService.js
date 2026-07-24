@@ -17,6 +17,7 @@ import { classifyFundTaxTreatment, EXIT_LOAD_GENERAL_GUIDANCE } from "../portfol
 import { assertInvestmentReady, submitOrder } from "./orderService.js";
 import { logAudit } from "./audit.js";
 import { getDefaultDistributorAttribution } from "../platform/distributor/core.js";
+import { getVerifiedBankAccount } from "./bankAccounts.js";
 
 const ELSS_LOCK_IN_DAYS = 3 * 365;
 // A redemption order in any of these statuses is genuinely resolved — its units are free again.
@@ -44,7 +45,7 @@ export async function getRedemptionEligibility(userId, schemeCode) {
   if (!fund) throw new Error(`Unknown scheme code '${schemeCode}': cannot resolve fund/NAV data.`);
   const taxTreatment = classifyFundTaxTreatment(fund.category);
 
-  const [holdingsResult, pendingResult, earliestResult, bankResult] = await Promise.all([
+  const [holdingsResult, pendingResult, earliestResult, payoutBank] = await Promise.all([
     query(`select source, folio_number, units, avg_cost from portfolio_holdings where user_id = $1 and scheme_code = $2 and units > 0`, [userId, schemeCode]),
     query(
       `select folio_number, coalesce(sum(units), 0) as pending_units
@@ -60,19 +61,11 @@ export async function getRedemptionEligibility(userId, schemeCode) {
        group by folio_number`,
       [userId, schemeCode]
     ),
-    query(
-      `select id, account_number_masked, ifsc, account_holder_name
-       from bank_accounts where user_id = $1 and verified = true
-       order by is_primary desc, created_at desc limit 1`,
-      [userId]
-    ),
+    getVerifiedBankAccount(userId),
   ]);
 
   const pendingByFolio = new Map(pendingResult.rows.map((r) => [r.folio_number, Number(r.pending_units)]));
   const earliestByFolio = new Map(earliestResult.rows.map((r) => [r.folio_number, r.earliest_purchase]));
-  const payoutBank = bankResult.rows[0]
-    ? { id: bankResult.rows[0].id, accountNumberMasked: bankResult.rows[0].account_number_masked, ifsc: bankResult.rows[0].ifsc, accountHolderName: bankResult.rows[0].account_holder_name }
-    : null;
 
   const today = new Date();
   const folios = holdingsResult.rows.map((row) => {
