@@ -38,14 +38,15 @@ dependencies that still prevent a full production launch.
 
 ## Quality evidence
 
-- Production build completed successfully with 95 routes, including the switch and notification
+- Production build completed successfully with 97 routes, including the switch and notification
   API surfaces.
-- ESLint passed with no warnings.
+- ESLint passed with no warnings. The Transactions route includes a visible retry path for failed
+  loads and a refresh control.
 - Focused transaction, notification and redemption route tests passed. Switch service coverage is
   present in `switchService.test.js`; execution requires the configured Neon database.
 - Representative Playwright checks at 375px, 768px and 1440px found no horizontal overflow on
   Investor, Portfolio, Redemption, Notifications and Advisor routes. Mocked flows reported zero
-  console errors.
+  console errors. The broader browser matrix remains a release-candidate validation task.
 - Native form controls, semantic headings, status roles, alert regions, dialog roles and visible
   focus styles are used across the implemented journeys. Full account-based manual coverage still
   depends on production test credentials.
