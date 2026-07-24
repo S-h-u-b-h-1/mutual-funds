@@ -85,6 +85,17 @@ export const investApi = {
   retryOrder: async (orderId) => { const value = await requestJson(`/api/v1/invest/orders/${orderId}/retry`, { method: "POST", body: "{}" }); return { ...value, order: order(value.order) }; },
 };
 
+export const redemptionApi = {
+  eligibility: async (schemeCode) => {
+    const value = await requestJson(`/api/v1/invest/redemption/${encodeURIComponent(schemeCode)}/eligibility`);
+    return value.eligibility || value;
+  },
+  create: async (payload) => {
+    const value = await requestJson("/api/v1/invest/redemption", { method: "POST", body: JSON.stringify(payload) });
+    return { ...value, order: order(value.order) };
+  },
+};
+
 export const sipApi = {
   list: async () => {
     const value = await requestJson("/api/v1/invest/sips");

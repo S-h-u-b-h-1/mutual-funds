@@ -33,12 +33,15 @@ Still required from backend:
 - idempotency: payment initiation and final submission must accept an idempotency key
 - notification/audit: payment state event, order state event, audit correlation id
 
-## Redemption and switch
+## Switch journey
 
-The current order API accepts redemption, switch_in and switch_out, but no contract currently
-exposes holdings/folios as an order-entry source, available units, exit load, tax context, linked
-payout bank, destination scheme metadata, or redemption-specific validation. Do not enable those
-flows until those fields and state transitions are published.
+The redemption contract is now live at `GET /api/v1/invest/redemption/{schemeCode}/eligibility`
+and `POST /api/v1/invest/redemption`; the frontend uses that dedicated enforcement boundary.
+
+Switch remains blocked. The current order API accepts `switch_in` and `switch_out`, but no contract
+yet exposes destination-scheme metadata, source/destination folio validation, available units,
+switch-specific tax and exit-load context, or a combined switch timeline. Do not enable switch
+submission until those fields and state transitions are published.
 
 ## SIP management
 
