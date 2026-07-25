@@ -14,7 +14,7 @@ import {
   deliverOutboundWebhook,
   getWebhookMetrics,
 } from "./core.js";
-import { runWorkerTick, claimJobs, getJob } from "../jobs/core.js";
+import { runWorkerTick, getJob } from "../jobs/core.js";
 // full production handler set so a tick from this suite executes ANY real due job correctly
 import "../jobs/handlers/index.js";
 import { acquireClaimTestLock, releaseClaimTestLock } from "../jobs/testClaimLock.js";
@@ -22,42 +22,6 @@ import { acquireClaimTestLock, releaseClaimTestLock } from "../jobs/testClaimLoc
 const RUN = crypto.randomBytes(3).toString("hex");
 const SECRET = `test-secret-${RUN}`;
 const createdDeliveryIds = [];
-
-// runWorkerTick() claims ANY due job in the shared `jobs` table, not just this file's own — e.g.
-// an undrained event-dispatch job left by another file's makeInvestmentReadyUser() call (see
-// jobs/testClaimLock.js and jobPlatform.test.js's own claimOwn() for the general shared-table
-// problem). Unlike claimJobs(), runWorkerTick claims AND executes in one call, so "put strangers
-// back" isn't enough on its own — a stranger put back before the tick runs is immediately due
-// again and gets reclaimed by the very same tick. Instead, park every currently-due stranger
-// under a throwaway lease for the duration of the real tick, then release them back exactly as
-// found — so the tick can only ever see and execute this file's own job(s).
-async function runWorkerTickOwn(isMine, opts) {
-  const parkWorkerId = `park-${crypto.randomBytes(3).toString("hex")}`;
-  const claimed = await claimJobs(parkWorkerId, { limit: 200, leaseSeconds: 300 });
-  const foreign = [];
-  for (const job of claimed) {
-    if (isMine(job)) {
-      await query(
-        `update jobs set status = 'queued', locked_by = null, lease_expires_at = null,
-            attempts = attempts - 1, updated_at = now() where id = $1`,
-        [job.id]
-      );
-    } else {
-      foreign.push(job);
-    }
-  }
-  try {
-    return await runWorkerTick(opts);
-  } finally {
-    for (const job of foreign) {
-      await query(
-        `update jobs set status = 'queued', locked_by = null, lease_expires_at = null,
-            attempts = attempts - 1, updated_at = now() where id = $1`,
-        [job.id]
-      );
-    }
-  }
-}
 
 function signedHeaders(rawBody, { secret = SECRET, ageSeconds = 0 } = {}) {
   const ts = Math.floor(Date.now() / 1000) - ageSeconds;
@@ -252,7 +216,9 @@ describe("processing (handler execution via job platform)", () => {
   it("end-to-end: receive → worker tick → processed", async () => {
     const rawBody = JSON.stringify({ event_id: `evt-${RUN}-e2e`, payment_id: "pay_5", order_ref: "ord_5", status: "refunded", test_run: RUN });
     const received = await receiveTracked("mock-payments", { rawBody, headers: signedHeaders(rawBody) });
-    await runWorkerTickOwn((job) => job.id === received.jobId, { workerId: `test-webhook-${RUN}`, maxJobs: 50 });
+    // idIn scopes the claim to this exact job at the SQL level — the shared jobs table can hold
+    // unrelated due rows from other concurrently-running test files (see jobs/testClaimLock.js).
+    await runWorkerTick({ workerId: `test-webhook-${RUN}`, maxJobs: 1, idIn: [received.jobId] });
     const d = await query(`select status from webhook_deliveries where id = $1`, [received.deliveryId]);
     expect(d.rows[0].status).toBe("processed");
     const job = await getJob(received.jobId);

@@ -69,14 +69,22 @@ export async function enqueueJob(type, payload = {}, opts = {}) {
  * concurrent workers: FOR UPDATE SKIP LOCKED means two claimers can never take the same row,
  * and the status flip to 'running' happens in the same statement. attempts increments at
  * claim time — an attempt is "a worker started executing", whatever happens afterwards.
+ *
+ * typeLike/idIn are optional, additive scoping filters (both default to null = no filter,
+ * i.e. today's exact behavior) — added for the test suite's disposable-run isolation, so a
+ * test can claim only its own jobs directly in SQL instead of claiming everything and sorting
+ * client-side, which under real concurrent noise from unrelated jobs means claiming, then
+ * releasing, a lot of rows that were never going to match. Real workers never pass these.
  */
-export async function claimJobs(workerId, { limit = 5, leaseSeconds = 120 } = {}) {
+export async function claimJobs(workerId, { limit = 5, leaseSeconds = 120, typeLike = null, idIn = null } = {}) {
   // The outer SELECT re-orders because UPDATE ... RETURNING has no guaranteed row order —
   // callers get the batch in true execution-priority order.
   const r = await query(
     `with due as (
        select id from jobs
        where status = 'queued' and run_at <= now()
+         and ($4::text is null or type like $4)
+         and ($5::uuid[] is null or id = any($5::uuid[]))
        order by priority asc, run_at asc
        for update skip locked
        limit $2
@@ -91,7 +99,7 @@ export async function claimJobs(workerId, { limit = 5, leaseSeconds = 120 } = {}
        returning j.*
      )
      select * from claimed order by priority asc, run_at asc`,
-    [workerId, limit, leaseSeconds]
+    [workerId, limit, leaseSeconds, typeLike, idIn]
   );
   for (const job of r.rows) {
     await recordEvent(job.id, "claimed", { worker: workerId, attempt: job.attempts });
@@ -286,6 +294,7 @@ export async function runWorkerTick({
   batchSize = 5,
   timeBudgetMs = 240_000,
   leaseSeconds = 300,
+  idIn = null,
 } = {}) {
   const startedAt = Date.now();
   const summary = { workerId, claimed: 0, succeeded: 0, retried: 0, deadLettered: 0 };
@@ -299,6 +308,7 @@ export async function runWorkerTick({
     const batch = await claimJobs(workerId, {
       limit: Math.min(batchSize, maxJobs - summary.claimed),
       leaseSeconds,
+      idIn,
     });
     if (batch.length === 0) break;
     summary.claimed += batch.length;

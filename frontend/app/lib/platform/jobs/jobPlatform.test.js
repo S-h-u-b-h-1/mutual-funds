@@ -41,23 +41,20 @@ async function cleanup() {
   await query(`delete from job_schedules where name like $1`, [`test-${RUN}-%`]);
 }
 
-// Claim only this run's jobs — the production queue may hold real due jobs during a test run,
-// and tests must neither steal them nor be confused by them.
+// Claim only this run's jobs — the production queue may hold real due jobs during a test run
+// (e.g. undrained event-dispatch jobs from other files' makeInvestmentReadyUser() calls), and
+// tests must neither steal them nor be confused by them. Filtered at the SQL level (claimJobs'
+// typeLike option) rather than over-claiming and sorting client-side: under the full suite's
+// true concurrency, claiming a batch that includes foreign rows and then releasing the ones
+// that don't match is itself an amplifier — every foreign row claimed costs an extra write to
+// put back, and a first attempt at over-claiming with a fixed headroom (limit+20, then an
+// unbounded claim-and-park loop) both proved insufficient or too expensive under real noise
+// volume (measured: a full-suite run needed more than 21 headroom, and the loop's extra round
+// trips were enough to start timing out unrelated files' own Neon connections). Since Postgres
+// never even considers non-matching rows with a WHERE-clause filter, this is both correct
+// regardless of how much foreign noise exists AND touches only this run's own rows.
 async function claimOwn({ limit = 10, leaseSeconds = 120 } = {}) {
-  const claimed = await claimJobs(W, { limit: limit + 20, leaseSeconds });
-  const mine = [];
-  for (const job of claimed) {
-    if (job.type.startsWith(`test-${RUN}-`)) mine.push(job);
-    else {
-      // put a stranger back exactly as found: queued, attempt count restored
-      await query(
-        `update jobs set status = 'queued', locked_by = null, lease_expires_at = null,
-            attempts = attempts - 1, updated_at = now() where id = $1`,
-        [job.id]
-      );
-    }
-  }
-  return mine;
+  return claimJobs(W, { limit, leaseSeconds, typeLike: `test-${RUN}-%` });
 }
 
 beforeAll(async () => {
@@ -319,6 +316,13 @@ describe("job platform (integration, real Neon)", () => {
 
   describe("runWorkerTick (end-to-end)", () => {
     it("drains the queue: succeeds good jobs, retries a flaky one, dead-letters an unknown type", async () => {
+      // Deliberately calls the real, unfiltered runWorkerTick() (not claimOwn()) — the point of
+      // this test is the real drain behavior, and its assertions already tolerate extra due jobs
+      // succeeding alongside via toBeGreaterThanOrEqual. Under the full suite's true concurrency
+      // that can mean genuinely draining a meaningful amount of other files' foreign due jobs
+      // (e.g. undrained event-dispatch jobs) within maxJobs's budget, which the global 45s
+      // testTimeout isn't sized for — this failed on a timeout, not a wrong assertion, in a real
+      // full-suite run.
       let flakyCalls = 0;
       registerHandler(T("ok"), async (payload) => ({ echoed: payload.n }));
       registerHandler(T("flaky"), async () => {
@@ -350,7 +354,7 @@ describe("job platform (integration, real Neon)", () => {
       expect(flakyDone.status).toBe("succeeded");
       expect(flakyDone.result.recoveredOnAttempt).toBe(2);
       expect(flakyDone.attempts).toBe(2);
-    });
+    }, 120000);
 
     it("respects maxJobs as a hard claim ceiling", async () => {
       registerHandler(T("bulk"), async () => ({}));

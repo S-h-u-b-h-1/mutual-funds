@@ -15,7 +15,7 @@ import {
 } from "./core.js";
 import { registerChannelProvider } from "./registry.js";
 import { registerTemplate } from "../templates/core.js";
-import { runWorkerTick, claimJobs } from "../jobs/core.js";
+import { runWorkerTick } from "../jobs/core.js";
 import "../jobs/handlers/index.js"; // full production handler set, including notification-deliver
 import { acquireClaimTestLock, releaseClaimTestLock } from "../jobs/testClaimLock.js";
 import { createTestUser, deleteTestUser } from "../../invest/testHelpers.js";
@@ -26,45 +26,9 @@ const T = (name) => `test-${RUN}-${name}`;
 let userId;
 const testChannel = T("channel"); // a throwaway async channel, registered once for this whole file
 let deliveryOutcomes = []; // controls what testChannel.send() does per call, consumed in order
-const createdJobIds = []; // every notification-deliver job this file itself enqueued
-
-// runWorkerTick() claims ANY due job in the shared `jobs` table, not just this file's own — e.g.
-// an undrained event-dispatch job left by another file's makeInvestmentReadyUser() call (see
-// jobs/testClaimLock.js and jobPlatform.test.js's own claimOwn() for the general shared-table
-// problem). Unlike claimJobs(), runWorkerTick claims AND executes in one call, so "put strangers
-// back" isn't enough on its own — a stranger put back before the tick runs is immediately due
-// again and gets reclaimed by the very same tick. Instead, park every currently-due stranger
-// under a throwaway lease for the duration of the real tick, then release them back exactly as
-// found — so the tick can only ever see and execute this file's own job(s). Most important for
-// the afterAll final drain below: by design every job this file enqueues is already drained
-// inline by its own test, so that drain should normally touch nothing at all.
-async function runWorkerTickOwn(isMine, opts) {
-  const parkWorkerId = `park-${crypto.randomBytes(3).toString("hex")}`;
-  const claimed = await claimJobs(parkWorkerId, { limit: 200, leaseSeconds: 300 });
-  const foreign = [];
-  for (const job of claimed) {
-    if (isMine(job)) {
-      await query(
-        `update jobs set status = 'queued', locked_by = null, lease_expires_at = null,
-            attempts = attempts - 1, updated_at = now() where id = $1`,
-        [job.id]
-      );
-    } else {
-      foreign.push(job);
-    }
-  }
-  try {
-    return await runWorkerTick(opts);
-  } finally {
-    for (const job of foreign) {
-      await query(
-        `update jobs set status = 'queued', locked_by = null, lease_expires_at = null,
-            attempts = attempts - 1, updated_at = now() where id = $1`,
-        [job.id]
-      );
-    }
-  }
-}
+const createdJobIds = []; // every notification-deliver job this file itself enqueued — the shared
+// jobs table can hold unrelated due rows from other concurrently-running test files (see
+// jobs/testClaimLock.js), so every runWorkerTick() call below passes idIn scoped to these ids.
 
 beforeAll(async () => {
   await acquireClaimTestLock();
@@ -86,10 +50,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   try {
-    await runWorkerTickOwn((job) => createdJobIds.includes(job.id), {
+    await runWorkerTick({
       workerId: `test-notif-core-${RUN}-final-drain`,
       maxJobs: 200,
       timeBudgetMs: 30000,
+      idIn: createdJobIds,
     });
   } catch (err) {
     console.error("core.test.js final drain failed (non-fatal, releasing lock anyway):", err);
@@ -152,7 +117,7 @@ describe("sendNotification — async channel (queued -> job -> delivered)", () =
     expect(result.notification.job_id).toBeTruthy();
     createdJobIds.push(result.notification.job_id);
 
-    await runWorkerTickOwn((job) => job.id === result.notification.job_id, { workerId: `test-notif-core-${RUN}`, maxJobs: 20 });
+    await runWorkerTick({ workerId: `test-notif-core-${RUN}`, maxJobs: 1, idIn: [result.notification.job_id] });
 
     const after = await query(`select status, delivered_at, attempts from notifications where id = $1`, [result.notification.id]);
     expect(after.rows[0]).toMatchObject({ status: "delivered", attempts: 1 });
@@ -168,7 +133,7 @@ describe("sendNotification — async channel (queued -> job -> delivered)", () =
     createdJobIds.push(result.notification.job_id);
     await query(`update notifications set max_attempts = 2 where id = $1`, [result.notification.id]);
 
-    await runWorkerTickOwn((job) => job.id === result.notification.job_id, { workerId: `test-notif-core-${RUN}-fail`, maxJobs: 20 });
+    await runWorkerTick({ workerId: `test-notif-core-${RUN}-fail`, maxJobs: 1, idIn: [result.notification.job_id] });
     const afterFirst = await query(`select status, job_id from notifications where id = $1`, [result.notification.id]);
     expect(afterFirst.rows[0].status).toBe("retrying");
 
@@ -177,7 +142,7 @@ describe("sendNotification — async channel (queued -> job -> delivered)", () =
     // same real-elapsed-time bypass already established elsewhere in this codebase (e.g.
     // eventBus.test.js backdates submitted_at) for exercising real retry logic without a real wait.
     await query(`update jobs set run_at = now() where id = $1`, [afterFirst.rows[0].job_id]);
-    await runWorkerTickOwn((job) => job.id === afterFirst.rows[0].job_id, { workerId: `test-notif-core-${RUN}-fail`, maxJobs: 20 });
+    await runWorkerTick({ workerId: `test-notif-core-${RUN}-fail`, maxJobs: 1, idIn: [afterFirst.rows[0].job_id] });
 
     const final = await query(`select status, attempts, last_error from notifications where id = $1`, [result.notification.id]);
     expect(final.rows[0]).toMatchObject({ status: "dead_letter", attempts: 2 });
@@ -238,7 +203,7 @@ describe("user-facing state transitions", () => {
     expect(cancelled.cancelled_at).toBeTruthy();
 
     // a cancelled notification's job must be a no-op if it still gets claimed
-    await runWorkerTickOwn((job) => job.id === queued.job_id, { workerId: `test-notif-core-${RUN}-cancel`, maxJobs: 20 });
+    await runWorkerTick({ workerId: `test-notif-core-${RUN}-cancel`, maxJobs: 1, idIn: [queued.job_id] });
     const after = await query(`select status from notifications where id = $1`, [queued.id]);
     expect(after.rows[0].status).toBe("cancelled"); // unchanged — deliverNotification() skips cancelled rows
   }, 60000);
