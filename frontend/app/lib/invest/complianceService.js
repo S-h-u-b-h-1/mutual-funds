@@ -21,13 +21,16 @@ export async function ensureApplication(userId) {
     [userId]
   );
   const applicationId = app.rows[0].id;
-  for (const itemKey of ITEM_KEYS) {
-    await query(
-      `insert into compliance_items (application_id, item_key) values ($1, $2)
-       on conflict (application_id, item_key) do nothing`,
-      [applicationId, itemKey]
-    );
-  }
+  // Batched into one round trip instead of one insert per item key — this runs unconditionally
+  // on every getApplication() call (the compliance gate checked before every order/redemption/
+  // switch/SIP action), so after the first call for a user every one of these becomes a pure-
+  // overhead no-op INSERT ... ON CONFLICT DO NOTHING. unnest() expands the array server-side.
+  await query(
+    `insert into compliance_items (application_id, item_key)
+       select $1, unnest($2::text[])
+     on conflict (application_id, item_key) do nothing`,
+    [applicationId, ITEM_KEYS]
+  );
   return app.rows[0];
 }
 
