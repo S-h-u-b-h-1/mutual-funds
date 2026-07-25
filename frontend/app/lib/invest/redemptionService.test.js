@@ -22,7 +22,23 @@ async function insertHolding(userId, schemeCode, { folioNumber, units, avgCost, 
   );
 }
 async function insertPurchaseTransaction(userId, schemeCode, { folioNumber, units, daysAgo, source = "cas" }) {
-  const date = new Date(Date.now() - daysAgo * 86400000).toISOString().slice(0, 10);
+  // Anchored to today's LOCAL midnight, not the precise current instant — and rendered via local
+  // getters, not toISOString(). redemptionService's daysBetween() re-parses this date-only column
+  // through node-postgres's date parser (postgres-date), which — per that package's own comment,
+  // "force YYYY-MM-DD dates to be parsed as local time" — reconstructs it at LOCAL midnight, not
+  // UTC midnight, then diffs it against `new Date()` (the precise current instant) at query time.
+  // Anchoring the write side to UTC (an earlier version of this fix) or rendering via
+  // toISOString() (which is always UTC) creates a real skew between the two: on a UTC+5:30 host,
+  // UTC-midnight-of-a-date is 5.5 hours EARLIER than that same date's local midnight, which is
+  // enough to push Math.floor() across a whole extra day depending what local time of day the
+  // suite happens to run (confirmed live: computed daysAgo+1 consistently in the early-morning-IST
+  // window). Matching the write side to local midnight — the same anchor the read side actually
+  // uses — means the two are always within [0, 1) local days of each other, so the floor is always
+  // exactly daysAgo regardless of what time of day or which timezone the suite runs in.
+  const todayLocalMidnight = new Date();
+  todayLocalMidnight.setHours(0, 0, 0, 0);
+  const target = new Date(todayLocalMidnight.getTime() - daysAgo * 86400000);
+  const date = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
   await query(
     `insert into portfolio_transactions (user_id, scheme_code, transaction_type, units, transaction_date, source, folio_number)
      values ($1, $2, 'purchase', $3, $4, $5, $6)`,
