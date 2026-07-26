@@ -13,12 +13,14 @@ export function setInvestSessionKey(key) {
 }
 
 export class InvestApiError extends Error {
-  constructor(message, { status = 0, code = "unknown", body = null } = {}) {
+  constructor(message, { status = 0, code = "unknown", body = null, retryAfter = null, supportId = null } = {}) {
     super(message);
     this.name = "InvestApiError";
     this.status = status;
     this.code = code;
     this.body = body;
+    this.retryAfter = retryAfter;
+    this.supportId = supportId;
   }
 }
 
@@ -26,6 +28,7 @@ function safeMessage(status, body) {
   if (status === 401) return "Your secure session has expired. Sign in again to continue.";
   if (status === 403) return "You do not have permission to view this workspace.";
   if (status === 404) return "This workspace feature is not available yet.";
+  if (status === 429) return "Too many attempts right now. Please wait a moment and try again.";
   if (status === 0) return "You appear to be offline. Check your connection and try again.";
   return body?.error || "Something went wrong. Please try again.";
 }
@@ -55,7 +58,12 @@ async function requestJson(path, options = {}) {
       }
       if (![502, 503, 504].includes(response.status) || attempt === 1) break;
     }
-    if (!response.ok) throw new InvestApiError(safeMessage(response.status, body), { status: response.status, body, code: response.status === 401 ? "unauthorized" : response.status === 404 ? "not_found" : "request_failed" });
+    if (!response.ok) {
+      const supportId = body?.supportId || body?.support_id || body?.requestId || body?.request_id || body?.correlationId || body?.correlation_id || response.headers.get("x-request-id") || null;
+      const retryAfter = response.headers.get("retry-after") || body?.retryAfter || body?.retry_after || null;
+      const suffix = supportId ? ` Reference: ${supportId}` : "";
+      throw new InvestApiError(`${safeMessage(response.status, body)}${suffix}`, { status: response.status, body, retryAfter, supportId, code: response.status === 401 ? "unauthorized" : response.status === 403 ? "forbidden" : response.status === 404 ? "not_found" : response.status === 429 ? "rate_limited" : "request_failed" });
+    }
     if (method === "GET") cache.set(path, { value: body, expires: Date.now() + GET_TTL });
     else { cache.clear(); inFlight.clear(); }
     return body;
@@ -137,6 +145,10 @@ export const portfolioApi = {
   getHoldings: () => requestJson("/api/v1/invest/portfolio/holdings"),
   getAllocation: () => requestJson("/api/v1/invest/portfolio/allocation"),
   getPerformance: () => requestJson("/api/v1/invest/portfolio/performance"),
+  getDataQuality: async () => {
+    const value = await requestJson("/api/v1/invest/portfolio/data-quality");
+    return value.dataQuality || value;
+  },
   getHistory: (limit = 50) => requestJson(`/api/v1/invest/portfolio/history?limit=${Math.min(200, Math.max(1, limit))}`),
   connect: () => requestJson("/api/v1/invest/portfolio/connect", { method: "POST", body: "{}" }),
   getPresentationData: async () => {

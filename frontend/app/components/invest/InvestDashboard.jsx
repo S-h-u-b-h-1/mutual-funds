@@ -11,12 +11,14 @@ const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR
 export default function InvestDashboard() {
   const { data, loading, error, refresh } = useInvestData();
   const [summary, setSummary] = useState(null);
+  const [dataQuality, setDataQuality] = useState(null);
   const [summaryError, setSummaryError] = useState("");
   const [dashboardData, setDashboardData] = useState({ orders: [], sips: [], documents: [], unreadNotifications: null });
   useEffect(() => {
-    Promise.allSettled([portfolioApi.getSummary(), investApi.getOrders(), sipApi.list(), documentsApi.list(), notificationsApi.unreadCount()]).then(([summaryResult, orders, sips, documents, unreadResult]) => {
+    Promise.allSettled([portfolioApi.getSummary(), portfolioApi.getDataQuality(), investApi.getOrders(), sipApi.list(), documentsApi.list(), notificationsApi.unreadCount()]).then(([summaryResult, qualityResult, orders, sips, documents, unreadResult]) => {
       if (summaryResult.status === "fulfilled") setSummary(summaryResult.value.summary || summaryResult.value);
       else setSummaryError(summaryResult.reason?.message || "Portfolio summary unavailable.");
+      if (qualityResult.status === "fulfilled") setDataQuality(qualityResult.value);
       setDashboardData({ orders: orders.status === "fulfilled" ? orders.value.orders || [] : [], sips: sips.status === "fulfilled" ? sips.value.sips || [] : [], documents: documents.status === "fulfilled" ? documents.value.documents || [] : [], unreadNotifications: unreadResult.status === "fulfilled" ? unreadResult.value.count : null });
     });
   }, []);
@@ -45,6 +47,12 @@ export default function InvestDashboard() {
           </div>
         </div>
       </Card>
+
+      {dataQuality && <p role="status" className={`mt-3 rounded-2xl p-3 text-xs leading-5 ${dataQuality.staleHoldingCount > 0 || dataQuality.latestNavCoveragePct == null ? "bg-warn/10 text-warn" : "bg-surface-2 text-ink-faint"}`}>
+        Valuation data: {dataQuality.latestNavCoveragePct == null ? "NAV coverage unavailable" : `${dataQuality.latestNavCoveragePct}% NAV coverage`}
+        {dataQuality.staleHoldingCount > 0 ? ` · ${dataQuality.staleHoldingCount} holding${dataQuality.staleHoldingCount === 1 ? " has" : "s have"} an older NAV` : " · no stale holdings reported"}
+        {dataQuality.navDateRange?.newest ? ` · latest holding NAV ${dataQuality.navDateRange.newest}` : ""}
+      </p>}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[["Active SIP amount", activeSips.reduce((total, sip) => total + Number(sip.amount || 0), 0), "/invest/sips"], ["Pending transactions", pendingOrders.length, "/invest/transactions"], ["Documents", dashboardData.documents.length, "/invest/documents"], ["Unread notifications", unread == null ? "Not available" : unread, "/invest/notifications"]].map(([label, value, href]) => <a key={label} href={href} className="rounded-2xl border border-line bg-surface p-4 transition hover:border-accent/40"><div className="text-xs text-ink-faint">{label}</div><div className="mt-2 text-2xl font-semibold text-ink">{label === "Active SIP amount" ? money.format(value) : value}</div><div className="mt-2 text-xs font-semibold text-accent">View details →</div></a>)}</div>
 
