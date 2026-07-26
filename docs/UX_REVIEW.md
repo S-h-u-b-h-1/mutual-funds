@@ -1,6 +1,6 @@
 # UX review
 
-Review date: 24 July 2026.
+Review date: 26 July 2026.
 
 ## Improvements made
 
@@ -11,6 +11,9 @@ Review date: 24 July 2026.
 - Kept unavailable Advisor, Operations and Management data visibly unavailable instead of inventing
   business metrics.
 - Added same-AMC explanation and linked-leg messaging to the Switch journey.
+- Added NAV freshness and coverage messaging so valuation and eligibility dates are visible without
+  implying a live-price guarantee.
+- Preserved support/correlation references and safe retry guidance for rate-limited API failures.
 - Added reduced-motion rules and semantic loading/alert regions.
 
 ## Remaining UX issues
@@ -19,7 +22,8 @@ Review date: 24 July 2026.
 - Advisor/Operations/Management workflows cannot be fully validated until their permissions and data
   contracts are live.
 - Payment-attempt detail and SIP installment history cannot be shown until backend metadata exists.
-- Full browser-matrix visual review remains a release gate.
+- Full authenticated browser-matrix visual review remains a release gate; Firefox evidence is blocked
+  by the local test-session routing issue.
 
 ## Non-blocking future enhancements
 

@@ -73,3 +73,10 @@ Every money-moving response should eventually include:
 reference_id, provider_reference, correlation_id, status, status_reason, created_at, updated_at,
 money_state, next_action, action_required, retryable, support_reference, and a chronological event
 list.
+
+## Authentication rate limits
+
+The auth endpoints do not currently publish a documented 429 contract or `Retry-After` semantics.
+Required before launch: status/code/message fields, safe retry timing (without threshold disclosure),
+and a stable support or correlation reference when an attempt is rejected. The frontend API adapter
+already handles 429 responses, `Retry-After`, and request/support IDs when the backend supplies them.

@@ -5,6 +5,7 @@ Priorities are release impact, not a promise of backend scope.
 | Priority | Debt | Estimated effort | Recommendation |
 |---|---|---:|---|
 | P0 | Production-like database and provider environment is not available to local integration tests. | 0.5–1 day setup | Provide a disposable Neon branch and provider sandboxes in CI; keep route tests independent. |
+| P0 | Authenticated E2E credentials and destructive-flow fixtures are not available for RC1. | 0.5 day setup | Create redacted staging users and isolated provider fixtures; keep account deletion hidden until session revocation is guaranteed. |
 | P1 | Modal focus trap and focus-return behavior is not centralized across document/notification/fund dialogs. | 1 day | Extract a shared accessible dialog primitive and test Escape, initial focus and return focus. |
 | P1 | The full Chrome/Edge/Safari/Firefox and 375–1920px matrix is not automated in this repository. | 1–2 days | Add a Playwright project matrix with authenticated fixtures and overflow/console assertions. |
 | P1 | Payment-attempt history and retry metadata are not yet exposed by the backend. | Backend-dependent | Integrate the first-class resource without duplicating payment state in UI. |
@@ -13,5 +14,6 @@ Priorities are release impact, not a promise of backend scope.
 | P2 | Large public research/fund pages contain heavier client components and remote data reads. | 1–2 days measured work | Profile real production traces before adding lazy boundaries or virtualization. |
 | P3 | A few legacy public components use direct Supabase fetches outside the Investor API adapter. | 1–2 days | Consolidate only where duplicate request behavior is measured; do not broaden the adapter casually. |
 | P3 | Some internal pages emit expected DNS warnings when external services are unavailable. | 0.5 day | Add observability-level filtering and explicit degraded-state telemetry in production. |
+| P2 | Auth routes do not yet publish a documented 429/Retry-After contract. | Backend-dependent | Publish safe rate-limit semantics; the frontend adapter already preserves retry timing and support IDs. |
 
 No debt item authorizes fabricated financial values or client-side business rules.

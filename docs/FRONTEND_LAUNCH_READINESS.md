@@ -1,6 +1,6 @@
 # MF Pulse frontend launch readiness
 
-Updated 24 July 2026. This checklist records the current frontend state and the backend
+Updated 26 July 2026. This checklist records the current frontend state and the backend
 dependencies that still prevent a full production launch.
 
 ## Implemented workflows
@@ -13,6 +13,8 @@ dependencies that still prevent a full production launch.
   and transaction timeline.
 - Same-AMC switch by amount or units, source-folio validation, linked redemption/purchase legs,
   and separate timelines for both legs.
+- Portfolio and dashboard data-quality indicators for NAV coverage, stale holdings and latest NAV
+  date; redemption and switch eligibility also show the backend valuation date when supplied.
 - Document Vault loading, empty, search/filter, permission and error states.
 - Notification inbox with unread count, filtering, pagination, detail timeline, read/unread and
   archive actions.
@@ -26,6 +28,8 @@ dependencies that still prevent a full production launch.
 - Advisor-scoped client, household, tasks, notes, communications, meetings and permission APIs.
 - Operations queue, detail, resolution and audit APIs.
 - Management KPI and drill-down APIs.
+- Authenticated rate-limit contracts for login/registration/recovery (status, retry timing and safe
+  user-facing error semantics).
 
 ## Known limitations
 
@@ -35,6 +39,8 @@ dependencies that still prevent a full production launch.
   a local database.
 - Real provider settlement, payment and document-storage confirmation require production provider
   credentials and backend contracts; the UI does not fabricate these values.
+- Account deletion UI remains intentionally hidden until the backend guarantees session revocation
+  and a safe confirmation contract.
 
 ## Quality evidence
 
@@ -44,16 +50,18 @@ dependencies that still prevent a full production launch.
   loads and a refresh control.
 - Focused transaction, notification and redemption route tests passed. Switch service coverage is
   present in `switchService.test.js`; execution requires the configured Neon database.
-- Representative Playwright checks at 375px, 768px and 1440px found no horizontal overflow on
-  Investor, Portfolio, Redemption, Notifications and Advisor routes. Mocked flows reported zero
-  console errors. The broader browser matrix remains a release-candidate validation task.
+- Chromium and WebKit checks at mobile and desktop widths found no horizontal overflow or console
+  errors on protected Investor routes and the public fund screener. Firefox verification is blocked
+  by an unrelated local Playwright routing/404 issue; it is not represented as passing evidence.
+- The current test run has 53 passing files, 296 passing tests and 176 skipped tests; 17 database-backed
+  files (34 tests) are blocked by the missing `DATABASE_URL`.
 - Native form controls, semantic headings, status roles, alert regions, dialog roles and visible
   focus styles are used across the implemented journeys. Full account-based manual coverage still
   depends on production test credentials.
 
 ## Launch gate
 
-The frontend is ready for contract-backed staging verification. Before public launch, run the
+The frontend is conditionally ready for contract-backed staging verification. Before public launch, run the
 authenticated end-to-end suite against production-like provider sandboxes, verify real payment and
 document callbacks, complete a browser matrix (Chromium, Safari and Firefox), and close the
 backend dependencies listed above.

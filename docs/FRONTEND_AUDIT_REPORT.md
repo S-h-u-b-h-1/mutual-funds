@@ -1,6 +1,6 @@
 # Frontend audit report
 
-Audit date: 24 July 2026  
+Audit date: 26 July 2026
 Scope: public, Investor, Advisor, Operations, Management and internal routes in `frontend/app`.
 
 ## Findings and fixes
@@ -14,6 +14,8 @@ Scope: public, Investor, Advisor, Operations, Management and internal routes in 
 | P2 | Advisor, Operations and Management investor workspace routes are permission-aware shells while their scoped read/write contracts remain incomplete. | Kept data unavailable states truthful and recorded the dependencies in `FRONTEND_CONTRACT_GAPS.md`. |
 | P2 | Browser automation could not be repeated in this sandbox through the CLI wrapper. | Existing representative Playwright evidence remains valid; release still requires the full browser/device matrix. |
 | P3 | Dialogs expose semantic `role="dialog"` and close controls, but a formal focus trap and focus return are not standardized across every modal. | Recorded as technical debt; do not block staging, but complete before broad public launch. |
+| P2 | NAV freshness was previously implicit in portfolio and eligibility views. | Surface backend `navDate`, stale-day counts and coverage in Portfolio, Dashboard, Redemption and Switch without calculating financial values in the client. |
+| P2 | Recoverable API errors could lose rate-limit timing and support correlation references. | `investApi` now preserves 429/Retry-After and support/request IDs for safe retry and escalation messaging. |
 
 ## Route coverage
 
@@ -37,5 +39,5 @@ permission-aware “awaiting backend data” states rather than fabricated metri
 
 The remaining risks are environment or backend readiness risks: production service DNS/credentials,
 database-backed integration execution, scoped internal-workspace contracts, payment-attempt history,
-SIP management mutations, and complete browser-matrix verification. No remaining risk requires
-inventing frontend business logic.
+SIP management mutations, auth rate-limit contracts, and complete browser-matrix verification. No
+remaining risk requires inventing frontend business logic.

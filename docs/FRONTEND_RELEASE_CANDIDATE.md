@@ -1,6 +1,11 @@
 # Frontend release candidate
 
-Release candidate review: 24 July 2026.
+Release candidate review: 26 July 2026.
+
+## RC1 verdict: CONDITIONALLY READY
+
+No new critical or high-severity frontend defect was found in this pass. RC1 is suitable for
+contract-backed staging verification, subject to the infrastructure and backend gates below.
 
 ## Implemented
 
@@ -20,11 +25,12 @@ APIs and Management KPI/drill-down APIs remain documented in `FRONTEND_CONTRACT_
 
 ## Browser and device support
 
-Responsive layouts have representative verification at 375px, 768px and 1440px with no horizontal
-overflow on the audited Investor, Portfolio, Redemption, Notifications and Advisor routes. Native
-links and controls support refresh, deep links and browser history. The release gate still requires
-authenticated verification in Chrome, Edge, Safari and Firefox at 375, 390, 414, 768, 1024, 1440
-and 1920px.
+Chromium and WebKit verification covered protected Investor routes and the public fund screener at
+mobile and desktop widths with no horizontal overflow or console errors. Existing representative
+evidence also covers 375px, 768px and 1440px Investor, Portfolio, Redemption, Notifications and
+Advisor routes. Firefox was not claimed: the local Playwright session routed to an unrelated 404
+application despite the MF Pulse dev server returning 200. Authenticated verification in Chrome,
+Edge, Safari and Firefox at 375, 390, 414, 768, 1024, 1440 and 1920px remains a release gate.
 
 ## Accessibility
 
@@ -40,13 +46,12 @@ Production profiling remains required for large research tables and remote data 
 
 ## Testing coverage
 
-Lint passes. Production build passes after the internal Neon route was made dynamic. Route tests and
-unit tests that do not require a database pass; database-backed suites are blocked by missing
-`DATABASE_URL`, and some external-health reads are blocked by sandbox DNS. Representative Playwright
-checks found no overflow or console errors in mocked Investor flows.
+Lint passes and the production build passes. The current test run has 53 passing test files, 296
+passing tests and 176 skipped tests; 17 database-backed files (34 tests) are blocked by the missing
+`DATABASE_URL`. Representative Chromium/WebKit Playwright checks found no overflow or console errors.
 
 ## Known limitations and recommendation
 
-The candidate is suitable for contract-backed staging verification, not unconditional public launch.
-Complete the environment-backed integration suite, browser matrix, dialog focus audit and remaining
-backend dependencies before enabling broad customer traffic.
+The candidate is conditionally ready for contract-backed staging verification, not unconditional
+public launch. Complete the isolated database/provider suite, authenticated browser matrix, Firefox
+verification, dialog focus audit and remaining backend dependencies before broad customer traffic.
