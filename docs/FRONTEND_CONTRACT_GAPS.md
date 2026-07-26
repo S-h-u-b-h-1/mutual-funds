@@ -80,3 +80,26 @@ The auth endpoints do not currently publish a documented 429 contract or `Retry-
 Required before launch: status/code/message fields, safe retry timing (without threshold disclosure),
 and a stable support or correlation reference when an attempt is rejected. The frontend API adapter
 already handles 429 responses, `Retry-After`, and request/support IDs when the backend supplies them.
+
+## Existing portfolio discovery and consolidation
+
+The frontend already consumes the authenticated CAS upload boundary at
+`POST /api/v1/portfolio/upload` for CAMS CAS PDF, KFintech CAS PDF and MF Central summary PDF.
+The existing portfolio engine also exposes user-scoped holdings, transaction history, provenance,
+official-NAV valuation, unresolved scheme reporting and duplicate-upload protection. The UI does
+not claim automatic PAN lookup or live CAMS/KFintech/MF Central account connectivity.
+
+Remaining backend requirements before this can be described as end-to-end portfolio discovery:
+
+- explicit authenticated import-draft, processing-status, approval, retry, cancellation and history
+  resources; the current upload persists immediately after parsing;
+- provider authorization/consent and identity verification records tied to the current investor;
+- provider/source freshness, last-fetched and last-reconciled timestamps for every portfolio source;
+- canonical folio and transaction identity needed to reconcile the same economic position across CAS,
+  RTA/provider feeds and Suasion orders without double counting;
+- deterministic match confidence, ambiguity-resolution and unresolved-record actions that preserve the
+  original source row;
+- servicing eligibility per holding before enabling redemption, switch, STP or SWP;
+- report-generation contracts with explicit transaction-history and tax-lot coverage.
+
+PAN is an identity attribute only. No frontend route accepts an arbitrary PAN to retrieve holdings.
