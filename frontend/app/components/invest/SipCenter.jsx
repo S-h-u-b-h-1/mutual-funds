@@ -2,62 +2,23 @@
 
 import { useEffect, useState } from "react";
 import InvestShell, { ButtonLink, Card, StatusPill } from "./InvestShell";
+import SchemePicker from "./SchemePicker";
 import { sipApi } from "../../lib/invest/api";
 
 const inputClass = "mt-2 min-h-12 w-full rounded-2xl border border-line bg-bg px-4 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15";
 const money = value => value == null ? "Not available" : new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(value));
-
-function date(value) {
-  return value ? new Date(value).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Date unavailable";
-}
+const date = value => value ? new Date(value).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Date unavailable";
 
 export default function SipCenter() {
-  const [sips, setSips] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [form, setForm] = useState({ schemeCode: "", amount: "", frequency: "monthly", startDate: "", endDate: "" });
-
-  async function load() {
-    setLoading(true);
-    setError("");
-    try {
-      const value = await sipApi.list();
-      setSips(value.sips);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
+  const [sips, setSips] = useState([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [scheme, setScheme] = useState(null); const [form, setForm] = useState({ amount: "", frequency: "monthly", startDate: "", endDate: "" });
+  async function load() { setLoading(true); setError(""); try { const value = await sipApi.list(); setSips(value.sips); } catch (err) { setError(err.message); } finally { setLoading(false); } }
   useEffect(() => { load(); }, []);
-
-  async function create(event) {
-    event.preventDefault();
-    setSaving(true);
-    setError("");
-    setNotice("");
-    try {
-      await sipApi.create({ ...form, amount: Number(form.amount), endDate: form.endDate || null });
-      setForm({ schemeCode: "", amount: "", frequency: "monthly", startDate: "", endDate: "" });
-      setNotice("Your SIP request was submitted to the investment service. The mandate status below is the source of truth.");
-      await load();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return <InvestShell title="Build a steady habit." description="Set up a recurring investment with a clear amount, date and mandate status. Nothing is marked active until the provider confirms it." actions={<ButtonLink href="/invest/orders" secondary>View orders</ButtonLink>}>
+  async function create(event) { event.preventDefault(); if (!scheme?.code) { setError("Choose a scheme from the search results before continuing."); return; } setSaving(true); setError(""); setNotice(""); try { await sipApi.create({ schemeCode: scheme.code, amount: Number(form.amount), frequency: form.frequency, startDate: form.startDate, endDate: form.endDate || null }); setScheme(null); setForm({ amount: "", frequency: "monthly", startDate: "", endDate: "" }); setNotice("Your SIP request was submitted to the investment service. The mandate status below is the source of truth."); await load(); } catch (err) { setError(err.message); } finally { setSaving(false); } }
+  return <InvestShell title="Build a steady habit." description="Set up a recurring investment with a clear fund name, amount, date and mandate status. Nothing is marked active until the provider confirms it." actions={<ButtonLink href="/invest/orders" secondary>View orders</ButtonLink>}>
     <div className="mb-5 rounded-2xl border border-information/20 bg-information/10 p-4 text-xs leading-5 text-ink-muted"><strong className="text-information">Before you begin.</strong> SIP setup requires completed investment readiness and an active investment account. The server will enforce both.</div>
-    {notice && <p role="status" className="mb-5 rounded-2xl bg-pos/10 p-4 text-sm leading-6 text-pos">{notice}</p>}
-    {error && <p role="alert" className="mb-5 rounded-2xl bg-neg/10 p-4 text-sm leading-6 text-neg">{error}</p>}
-    <div className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
-      <Card className="h-fit p-5 sm:p-6"><div className="text-[10px] font-bold uppercase tracking-[.16em] text-accent">New SIP</div><h2 className="mt-2 text-xl font-semibold text-ink">Choose your rhythm</h2><p className="mt-2 text-sm leading-6 text-ink-muted">You can save this step and return before submitting. The next debit date is only confirmed by the mandate provider.</p><form onSubmit={create} className="mt-5 grid gap-5"><label className="text-xs font-semibold text-ink-muted">AMFI scheme code<input className={inputClass} value={form.schemeCode} onChange={event => setForm({ ...form, schemeCode: event.target.value })} placeholder="For example: 120503" required /></label><label className="text-xs font-semibold text-ink-muted">Installment amount<input className={inputClass} type="number" min="1" value={form.amount} onChange={event => setForm({ ...form, amount: event.target.value })} placeholder="₹2,000" required /></label><label className="text-xs font-semibold text-ink-muted">Frequency<select className={inputClass} value={form.frequency} onChange={event => setForm({ ...form, frequency: event.target.value })}><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="quarterly">Quarterly</option></select></label><label className="text-xs font-semibold text-ink-muted">First instalment date<input className={inputClass} type="date" value={form.startDate} onChange={event => setForm({ ...form, startDate: event.target.value })} required /></label><label className="text-xs font-semibold text-ink-muted">End date <span className="font-normal text-ink-faint">(optional)</span><input className={inputClass} type="date" value={form.endDate} onChange={event => setForm({ ...form, endDate: event.target.value })} /></label><button type="submit" disabled={saving} className="min-h-12 rounded-full bg-ink px-5 text-sm font-semibold text-bg disabled:opacity-50">{saving ? "Submitting SIP…" : "Review and submit SIP"}</button></form></Card>
-      <div className="grid content-start gap-4"><div className="flex items-center justify-between"><div><h2 className="text-lg font-semibold text-ink">Your SIPs</h2><p className="mt-1 text-xs text-ink-faint">Mandate and payment status come from the investment service.</p></div><button type="button" onClick={load} className="min-h-10 rounded-full border border-line px-4 text-xs font-semibold text-ink">Refresh</button></div>{loading ? <div className="grid gap-3" role="status" aria-label="Loading SIPs" aria-busy="true"><div className="skeleton h-32 rounded-[1.5rem]" /><div className="skeleton h-32 rounded-[1.5rem]" /></div> : sips.length === 0 ? <Card className="grid min-h-64 place-items-center p-7 text-center"><div><div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent/10 text-xl text-accent" aria-hidden="true">⌁</div><h2 className="mt-5 text-lg font-semibold text-ink">No SIPs yet</h2><p className="mt-2 max-w-md text-sm leading-6 text-ink-muted">A SIP will appear here after the server accepts the setup request. It is not active until the mandate provider confirms it.</p></div></Card> : <div className="grid gap-3">{sips.map(sip => <Card key={sip.id} className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-ink">Scheme {sip.scheme_code}</h3><p className="mt-1 text-xs capitalize text-ink-faint">{sip.frequency} · starts {date(sip.start_date)}{sip.plan || sip.option ? ` · ${sip.plan || "Plan unavailable"} · ${sip.option || "Option unavailable"}` : ""}</p></div><StatusPill status={sip.mandate_status || "pending"} /></div><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5"><div><div className="text-xs text-ink-faint">Installment</div><div className="mt-1 font-semibold text-ink">{money(sip.amount)}</div></div><div><div className="text-xs text-ink-faint">Next debit</div><div className="mt-1 font-semibold text-ink">{date(sip.next_debit_date)}</div></div><div><div className="text-xs text-ink-faint">Mandate</div><div className="mt-1 break-words font-semibold text-ink">{sip.provider_mandate_id || "Pending"}</div></div><div><div className="text-xs text-ink-faint">Payment</div><div className="mt-1 break-words font-semibold text-ink">{sip.payment_status || "Not supplied"}</div></div><div><div className="text-xs text-ink-faint">End date</div><div className="mt-1 font-semibold text-ink">{date(sip.end_date)}</div></div></div>{sip.provider_error_code && <p className="mt-4 rounded-2xl bg-neg/10 p-3 text-xs leading-5 text-neg">Provider code: {sip.provider_error_code}</p>}<div className="mt-4 rounded-2xl bg-surface-2 p-3 text-xs leading-5 text-ink-muted">Pause, modify and cancel actions will appear when the corresponding provider contract is available. This avoids showing an action that cannot be completed.</div></Card>)}</div>}</div>
+    {notice && <p role="status" className="mb-5 rounded-2xl bg-pos/10 p-4 text-sm leading-6 text-pos">{notice}</p>}{error && <p role="alert" className="mb-5 rounded-2xl bg-neg/10 p-4 text-sm leading-6 text-neg">{error}</p>}
+    <div className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)]"><Card className="h-fit p-5 sm:p-6"><div className="text-[10px] font-bold uppercase tracking-[.16em] text-accent">New SIP</div><h2 className="mt-2 text-xl font-semibold text-ink">Choose your rhythm</h2><p className="mt-2 text-sm leading-6 text-ink-muted">The next debit date is only confirmed by the mandate provider.</p><form onSubmit={create} className="mt-5 grid gap-5"><SchemePicker value={scheme} onChange={setScheme} label="Fund or scheme" required /><label className="text-xs font-semibold text-ink-muted">Installment amount<input className={inputClass} type="number" min="1" value={form.amount} onChange={event => setForm({ ...form, amount: event.target.value })} placeholder="₹2,000" required /></label><label className="text-xs font-semibold text-ink-muted">Frequency<select className={inputClass} value={form.frequency} onChange={event => setForm({ ...form, frequency: event.target.value })}><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="quarterly">Quarterly</option></select></label><label className="text-xs font-semibold text-ink-muted">First instalment date<input className={inputClass} type="date" value={form.startDate} onChange={event => setForm({ ...form, startDate: event.target.value })} required /></label><label className="text-xs font-semibold text-ink-muted">End date <span className="font-normal text-ink-faint">(optional)</span><input className={inputClass} type="date" value={form.endDate} onChange={event => setForm({ ...form, endDate: event.target.value })} /></label><button type="submit" disabled={saving || !scheme} className="min-h-12 rounded-full bg-ink px-5 text-sm font-semibold text-bg disabled:opacity-50">{saving ? "Submitting SIP…" : "Review and submit SIP"}</button></form></Card>
+      <div className="grid content-start gap-4"><div className="flex items-center justify-between"><div><h2 className="text-lg font-semibold text-ink">Your SIPs</h2><p className="mt-1 text-xs text-ink-faint">Mandate and payment status come from the investment service.</p></div><button type="button" onClick={load} className="min-h-10 rounded-full border border-line px-4 text-xs font-semibold text-ink">Refresh</button></div>{loading ? <div className="grid gap-3" role="status" aria-label="Loading SIPs" aria-busy="true"><div className="skeleton h-32 rounded-[1.5rem]" /><div className="skeleton h-32 rounded-[1.5rem]" /></div> : sips.length === 0 ? <Card className="grid min-h-64 place-items-center p-7 text-center"><div><div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent/10 text-xl text-accent" aria-hidden="true">⌁</div><h2 className="mt-5 text-lg font-semibold text-ink">No SIPs yet</h2><p className="mt-2 max-w-md text-sm leading-6 text-ink-muted">A SIP will appear here after the server accepts the setup request. It is not active until the mandate provider confirms it.</p></div></Card> : <div className="grid gap-3">{sips.map(sip => <Card key={sip.id} className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="break-words font-semibold text-ink">{sip.scheme_name || sip.schemeName || "Scheme name unavailable"}</h3><p className="mt-1 text-xs capitalize text-ink-faint">{sip.frequency} · starts {date(sip.start_date)}{sip.plan || sip.option ? ` · ${sip.plan || "Plan unavailable"} · ${sip.option || "Option unavailable"}` : ""}</p></div><StatusPill status={sip.mandate_status || "pending"} /></div><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5"><div><div className="text-ink-faint">Installment</div><div className="mt-1 font-semibold text-ink">{money(sip.amount)}</div></div><div><div className="text-ink-faint">Next debit</div><div className="mt-1 font-semibold text-ink">{date(sip.next_debit_date)}</div></div><div><div className="text-ink-faint">Mandate</div><div className="mt-1 break-words font-semibold text-ink">{sip.provider_mandate_id || "Pending"}</div></div><div><div className="text-ink-faint">Payment</div><div className="mt-1 break-words font-semibold text-ink">{sip.payment_status || "Not supplied"}</div></div><div><div className="text-ink-faint">End date</div><div className="mt-1 font-semibold text-ink">{date(sip.end_date)}</div></div></div>{sip.provider_error_code && <p className="mt-4 rounded-2xl bg-neg/10 p-3 text-xs leading-5 text-neg">Provider code: {sip.provider_error_code}</p>}<div className="mt-4 rounded-2xl bg-surface-2 p-3 text-xs leading-5 text-ink-muted">Pause, modify and cancel actions will appear when the corresponding provider contract is available.</div></Card>)}</div>}</div>
     </div>
   </InvestShell>;
 }

@@ -93,6 +93,10 @@ export const investApi = {
   retryOrder: async (orderId) => { const value = await requestJson(`/api/v1/invest/orders/${orderId}/retry`, { method: "POST", body: "{}" }); return { ...value, order: order(value.order) }; },
 };
 
+export const fundsApi = {
+  search: (query) => requestJson(`/api/search?q=${encodeURIComponent(query)}`),
+};
+
 export const redemptionApi = {
   eligibility: async (schemeCode) => {
     const value = await requestJson(`/api/v1/invest/redemption/${encodeURIComponent(schemeCode)}/eligibility`);

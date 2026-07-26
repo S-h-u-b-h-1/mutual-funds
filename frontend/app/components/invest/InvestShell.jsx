@@ -20,6 +20,7 @@ export default function InvestShell({ eyebrow = "Suasion Invest", title, descrip
   const path = usePathname();
   const { data: session } = useSession();
   const firstName = session?.user?.name?.split(" ")?.[0] || "Investor";
+  const back = path === "/invest" ? null : path === "/invest/transactions" ? ["Back to orders", "/invest/orders"] : path === "/invest/redeem" || path === "/invest/switch" ? ["Back to portfolio", "/invest/portfolio"] : ["Back to overview", "/invest"];
   setInvestSessionKey(session?.user?.id || session?.user?.email || null);
   return (
     <main className="min-h-screen bg-bg pb-28 pt-5 lg:pb-12 lg:pt-8">
@@ -47,6 +48,7 @@ export default function InvestShell({ eyebrow = "Suasion Invest", title, descrip
         <section className="min-w-0">
           <header className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
+              {back && <Link href={back[1]} className="mb-4 inline-flex min-h-9 items-center gap-2 rounded-full border border-line bg-surface px-3.5 text-xs font-semibold text-ink-muted transition hover:border-accent/40 hover:text-ink"><span aria-hidden="true">←</span>{back[0]}</Link>}
               <div className="text-[10px] font-bold uppercase tracking-[.19em] text-accent">{eyebrow}</div>
               <h1 className="mt-2 text-[clamp(2rem,4vw,3.35rem)] font-semibold leading-[.98] tracking-[-.055em] text-ink">{title}</h1>
               {description && <p className="mt-3 max-w-2xl text-sm leading-6 text-ink-muted">{description}</p>}
