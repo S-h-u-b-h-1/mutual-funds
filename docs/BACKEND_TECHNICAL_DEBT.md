@@ -15,8 +15,8 @@ primitive or design decision before work can start).
 
 | # | Item | Location | Effort | Status |
 |---|---|---|---|---|
-| C1 | `orderService.transition()` unconditional UPDATE — no compare-and-swap anywhere in the order lifecycle; double-click or concurrent poll can double-charge/double-place an order and double-credit a portfolio | `frontend/app/lib/invest/orderService.js` (`transition`, `submitOrder`) | L | 🔴 |
-| C2 | Redemption/switch eligibility check is a pure TOCTOU race with zero DB backstop — two concurrent requests on the same folio can both pass the balance check | `frontend/app/lib/invest/redemptionService.js`, `switchService.js` | L | 🔴 |
+| C1 | `orderService.transition()` unconditional UPDATE — no compare-and-swap anywhere in the order lifecycle; double-click or concurrent poll can double-charge/double-place an order and double-credit a portfolio | `frontend/app/lib/invest/orderService.js` (`transition`, `submitOrder`) | L | 🟡 written, not yet merged |
+| C2 | Redemption/switch eligibility check is a pure TOCTOU race with zero DB backstop — two concurrent requests on the same folio can both pass the balance check | `frontend/app/lib/invest/redemptionService.js`, `switchService.js` | L | ✅ fixed |
 | C3 | Zero server-side logging or error tracking anywhere in the API/service request path — a failed order today leaves no trace anywhere | every `app/api/v1/invest/**/route.js`, all invest services | M | 🔴 |
 | C4 | CI never runs the 69-file test suite or lint; Vercel deploys independently of CI's result either way | `.github/workflows/ci.yml` | S | ✅ fixed |
 | C5 | Compliance-gate does 11 sequential DB round trips on every order/redemption/switch/SIP-creating action, unconditionally | `frontend/app/lib/invest/complianceService.js` (`ensureApplication`, `getApplication`) | S | ✅ fixed |
@@ -32,6 +32,29 @@ rather than running against an empty database. Separately, verified (not assumed
 production deploys do **not** wait on CI either way — see `TEST_DATABASE_AND_CI.md`'s "Deploy
 gating" section for the two commits that prove it and the ready-to-activate `Ignored Build Step`
 script that closes that gap once someone with dashboard access wires it in.
+
+**C2 resolution (2026-07-27)**: `withTransaction()` + a per-(user, folio) `pg_advisory_xact_lock`
+in both `createRedemptionOrder` and `createSwitchOrder` (same lock key namespace for both, so a
+redemption and a switch racing the same folio also serialize against each other). No migration —
+pure runtime primitive. Verified with three real `Promise.allSettled` concurrency tests, which
+also surfaced and fixed a genuine pre-existing bug: `getRedemptionEligibility`'s pending-units
+query never counted `switch_out` orders, so a switch could silently over-commit a folio's units
+even without any concurrency involved. Merged to `main` directly (`10c69bf`).
+
+**C1 status (2026-07-27)**: implemented and passing (19 tests incl. 3 real concurrency tests
+against the isolated test branch) on branch `hardening/c1-order-idempotency`, **not yet merged to
+`main`**. `createOrder`/`createSipMandate` gained the same `withTransaction`-based advisory-lock
+dedupe C2 uses (an optional caller-supplied `idempotencyKey` plus a backend-native backstop for
+callers that never send one); `submitOrder`/`retryOrder` gained an atomic pre-provider-call claim
+(`submission_claimed_at`, a 30s soft lease); `order.id` now reaches both provider calls as an
+idempotency key. Blocked on `sql/neon/022_order_idempotency.sql` (two new nullable columns, one
+partial unique index) — applying it to the **test** branch succeeded, but applying it to
+**production** was denied by this session's tooling (the same class of block that stopped the
+`TEST_DATABASE_URL` secret). Pushing the code to `main` before that migration is live in
+production would break every order create/submit call (missing columns) the moment Vercel
+deployed it, so it's parked on its own branch rather than merged. Someone with production DB
+access needs to run that migration file against production; the branch can be merged the moment
+that's confirmed done.
 
 ---
 
@@ -104,8 +127,10 @@ script that closes that gap once someone with dashboard access wires it in.
 ## Summary
 
 - **5 Critical, 11 High, 20 Medium, 13 Low** (plus 1 explicitly accepted tradeoff).
-- Current status (2026-07-27): Critical **2/5 fixed** (C4, C5 — C1/C2/C3 still open, all three
-  launch-blocking). High **5/11 fixed** (H2, H3, H7, H10, H11 — H1/H4/H5/H6/H8/H9 still open).
+- Current status (2026-07-27): Critical **3/5 fixed and live** (C2, C4, C5). C1 is written, tested,
+  and verified but **not yet merged** — blocked on a production migration this session's tooling
+  can't apply (see C1's own status note above). C3 (observability) is still fully open. High
+  **5/11 fixed** (H2, H3, H7, H10, H11 — H1/H4/H5/H6/H8/H9 still open).
 - Total XS/S items (cheap, low-risk, shippable immediately): **~24** — the bulk of Medium/Low.
 - Items needing a genuine design decision before work starts (XL-adjacent): H6 (retention vs.
   deletion policy), M4 (which notification-preference system wins), C1/C2 (need a real
