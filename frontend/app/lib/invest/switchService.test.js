@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { query } from "../db.js";
 import * as orderService from "./orderService.js";
+import * as redemptionService from "./redemptionService.js";
 import * as switchService from "./switchService.js";
 import { makeInvestmentReadyUser, deleteTestUser } from "./testHelpers.js";
 
@@ -126,5 +127,54 @@ describe("createSwitchOrder", () => {
     expect(["submitted", "failed"]).toContain(switchIn.status);
     expect(switchOut.distributor_arn).toBe("289322");
     expect(switchIn.distributor_arn).toBe("289322");
+  });
+
+  // C2 — real concurrency (Promise.allSettled), same reasoning as redemptionService's own race
+  // test: each 60-unit request is individually valid against the PRE-race 100-unit balance, so
+  // only true concurrency can expose the TOCTOU window.
+  it("two concurrent switch requests on the same folio cannot both succeed past the held balance", async () => {
+    await insertHolding(userId, SOURCE_SCHEME, { folioNumber: "FOLIO-SWITCH-RACE", units: 100, avgCost: 100 });
+
+    const results = await Promise.allSettled([
+      switchService.createSwitchOrder(userId, { sourceSchemeCode: SOURCE_SCHEME, destinationSchemeCode: SAME_AMC_DESTINATION, folioNumber: "FOLIO-SWITCH-RACE", units: 60, draft: true }),
+      switchService.createSwitchOrder(userId, { sourceSchemeCode: SOURCE_SCHEME, destinationSchemeCode: SAME_AMC_DESTINATION, folioNumber: "FOLIO-SWITCH-RACE", units: 60, draft: true }),
+    ]);
+
+    const fulfilled = results.filter((r) => r.status === "fulfilled");
+    const rejected = results.filter((r) => r.status === "rejected");
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].reason.message).toMatch(/exceeds the redeemable balance/);
+
+    const pending = await query(
+      `select coalesce(sum(units), 0)::float as total from investment_orders where user_id = $1 and folio_number = $2 and order_type = 'switch_out'`,
+      [userId, "FOLIO-SWITCH-RACE"]
+    );
+    expect(Number(pending.rows[0].total)).toBe(60);
+  });
+
+  // Proves the two services actually share one lock namespace (see createSwitchOrder's and
+  // createRedemptionOrder's matching "redemption:userId:folioNumber" key) rather than each only
+  // guarding against races with itself — a plain redemption and a switch racing on the very same
+  // folio must serialize against EACH OTHER too, since both draw from the same unit balance.
+  it("a redemption and a switch racing on the same folio also cannot both succeed past the held balance", async () => {
+    await insertHolding(userId, SOURCE_SCHEME, { folioNumber: "FOLIO-CROSS-RACE", units: 100, avgCost: 100 });
+
+    const results = await Promise.allSettled([
+      redemptionService.createRedemptionOrder(userId, { schemeCode: SOURCE_SCHEME, folioNumber: "FOLIO-CROSS-RACE", units: 60, draft: true }),
+      switchService.createSwitchOrder(userId, { sourceSchemeCode: SOURCE_SCHEME, destinationSchemeCode: SAME_AMC_DESTINATION, folioNumber: "FOLIO-CROSS-RACE", units: 60, draft: true }),
+    ]);
+
+    const fulfilled = results.filter((r) => r.status === "fulfilled");
+    const rejected = results.filter((r) => r.status === "rejected");
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].reason.message).toMatch(/exceeds the redeemable balance/);
+
+    const pending = await query(
+      `select coalesce(sum(units), 0)::float as total from investment_orders where user_id = $1 and folio_number = $2 and order_type in ('redemption', 'switch_out')`,
+      [userId, "FOLIO-CROSS-RACE"]
+    );
+    expect(Number(pending.rows[0].total)).toBe(60);
   });
 });

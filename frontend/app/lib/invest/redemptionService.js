@@ -11,7 +11,7 @@
 // ONLY path that can create a redemption order; it does its own insert, then hands off to
 // orderService's already-generic submitOrder()/transition() for everything after that (provider
 // submission, status polling, settlement, payout).
-import { query } from "../db.js";
+import { query, withTransaction } from "../db.js";
 import { getFund } from "../funds.js";
 import { classifyFundTaxTreatment, EXIT_LOAD_GENERAL_GUIDANCE } from "../portfolioIntelligence/taxEngine.js";
 import { assertInvestmentReady, submitOrder } from "./orderService.js";
@@ -40,29 +40,48 @@ function estimateExitLoad(treatment, holdingPeriodDays) {
   return holdingPeriodDays < 365 ? 1 : 0;
 }
 
-export async function getRedemptionEligibility(userId, schemeCode) {
+// queryFn defaults to the module-level pool query, but createRedemptionOrder/createSwitchOrder
+// pass a transaction client's bound query instead (see C2, docs/BACKEND_AUDIT_REPORT.md) so this
+// read participates in their advisory-locked transaction — a caller waiting on that lock is
+// guaranteed to see every previously-committed redemption/switch against the same folio by the
+// time ITS OWN call to this function runs, closing the TOCTOU window a separate, unlocked read
+// would leave open. The GET /eligibility preview endpoint has no such lock (a preview is
+// advisory, never mutates anything), so it keeps using the plain pool query via the default.
+export async function getRedemptionEligibility(userId, schemeCode, queryFn = query) {
   const fund = getFund(schemeCode);
   if (!fund) throw new Error(`Unknown scheme code '${schemeCode}': cannot resolve fund/NAV data.`);
   const taxTreatment = classifyFundTaxTreatment(fund.category);
 
-  const [holdingsResult, pendingResult, earliestResult, payoutBank] = await Promise.all([
-    query(`select source, folio_number, units, avg_cost from portfolio_holdings where user_id = $1 and scheme_code = $2 and units > 0`, [userId, schemeCode]),
-    query(
-      `select folio_number, coalesce(sum(units), 0) as pending_units
-       from investment_orders
-       where user_id = $1 and scheme_code = $2 and order_type = 'redemption' and status != all($3)
-       group by folio_number`,
-      [userId, schemeCode, RESOLVED_STATUSES]
-    ),
-    query(
-      `select folio_number, min(transaction_date) as earliest_purchase
-       from portfolio_transactions
-       where user_id = $1 and scheme_code = $2 and transaction_type = 'purchase'
-       group by folio_number`,
-      [userId, schemeCode]
-    ),
+  // Sequential, not Promise.all: queryFn is sometimes a single transaction client's bound query
+  // (see this function's own comment above), and a single pg Client can only run one query at a
+  // time on its one underlying connection — firing three at once on it works by accident (pg
+  // queues them) but logs a deprecation warning pg says will become a hard error in pg@9.0.
+  // getVerifiedBankAccount is independent of queryFn (it opens its own pool connection) and IS
+  // still run concurrently with the others below.
+  const [holdingsResult, payoutBank] = await Promise.all([
+    queryFn(`select source, folio_number, units, avg_cost from portfolio_holdings where user_id = $1 and scheme_code = $2 and units > 0`, [userId, schemeCode]),
     getVerifiedBankAccount(userId),
   ]);
+  const pendingResult = await queryFn(
+    // switch_out counts here too, not just 'redemption': a switch's source leg consumes units
+    // from this exact folio exactly like a redemption does (see this file's own header comment
+    // and switchService.js's) — a pending switch_out that this query ignored would let a
+    // subsequent redemption (or another switch) on the same folio over-commit units a switch has
+    // already claimed. switch_in is correctly excluded by construction, not just by this filter:
+    // it targets the DESTINATION folio and is inserted with no folio_number on the source side.
+    `select folio_number, coalesce(sum(units), 0) as pending_units
+     from investment_orders
+     where user_id = $1 and scheme_code = $2 and order_type in ('redemption', 'switch_out') and status != all($3)
+     group by folio_number`,
+    [userId, schemeCode, RESOLVED_STATUSES]
+  );
+  const earliestResult = await queryFn(
+    `select folio_number, min(transaction_date) as earliest_purchase
+     from portfolio_transactions
+     where user_id = $1 and scheme_code = $2 and transaction_type = 'purchase'
+     group by folio_number`,
+    [userId, schemeCode]
+  );
 
   const pendingByFolio = new Map(pendingResult.rows.map((r) => [r.folio_number, Number(r.pending_units)]));
   const earliestByFolio = new Map(earliestResult.rows.map((r) => [r.folio_number, r.earliest_purchase]));
@@ -139,45 +158,59 @@ export async function createRedemptionOrder(userId, { schemeCode, folioNumber, a
   if (amount != null && !(amount > 0)) throw new Error("amount must be greater than 0.");
   if (units != null && !(units > 0)) throw new Error("units must be greater than 0.");
 
-  const eligibility = await getRedemptionEligibility(userId, schemeCode);
-  const folio = eligibility.folios.find((f) => f.folioNumber === folioNumber);
-  if (!folio) throw new Error(`No holding found for scheme '${schemeCode}' under folio '${folioNumber}'.`);
-  // Portfolio-level blockers (no verified payout bank, no live NAV) apply regardless of which
-  // folio was requested — checked generally, not just the payout-bank case, so a future new
-  // portfolio-level blocker can't silently slip past this gate the way missing-NAV almost did.
-  // Checked after the folio lookup so "you don't hold this folio" stays the more specific,
-  // actionable error when both are true.
-  if (eligibility.blockers.length > 0) throw new Error(`Not eligible for redemption: ${eligibility.blockers.join(" ")}`);
-  if (!folio.eligible) throw new Error(`Folio is not eligible for redemption: ${folio.blockers.join(" ")}`);
+  // C2 (docs/BACKEND_AUDIT_REPORT.md, docs/BACKEND_TECHNICAL_DEBT.md): getRedemptionEligibility's
+  // read of "units held minus units already pending redemption" and this function's insert used
+  // to be two separate round trips with nothing between them — a pure TOCTOU race. Two concurrent
+  // redemption requests on the same folio could both read "500 units available" and both insert
+  // an order for 500 units before either write landed, double-spending the same units. The
+  // advisory lock below, scoped per (user, folio), serializes concurrent redemptions AND switches
+  // on the same folio (switchService's source leg shares this exact lock key — see there); the
+  // eligibility re-check inside this transaction is guaranteed to see every previously-committed
+  // redemption/switch against this folio before this request's own insert can proceed.
+  const { order, eligibility, requestedUnits, exitLoadPct, exitLoadAmount, netSettlementAmount, distributor } = await withTransaction(async (client) => {
+    await client.query(`select pg_advisory_xact_lock(hashtext($1))`, [`redemption:${userId}:${folioNumber}`]);
 
-  const requestedUnits = units != null ? Number(units) : +(Number(amount) / eligibility.nav).toFixed(4);
-  if (requestedUnits > folio.unitsRedeemable + 1e-6) {
-    throw new Error(`Requested ${requestedUnits} units exceeds the redeemable balance of ${folio.unitsRedeemable} units for folio '${folioNumber}'.`);
-  }
+    const eligibility = await getRedemptionEligibility(userId, schemeCode, client.query.bind(client));
+    const folio = eligibility.folios.find((f) => f.folioNumber === folioNumber);
+    if (!folio) throw new Error(`No holding found for scheme '${schemeCode}' under folio '${folioNumber}'.`);
+    // Portfolio-level blockers (no verified payout bank, no live NAV) apply regardless of which
+    // folio was requested — checked generally, not just the payout-bank case, so a future new
+    // portfolio-level blocker can't silently slip past this gate the way missing-NAV almost did.
+    // Checked after the folio lookup so "you don't hold this folio" stays the more specific,
+    // actionable error when both are true.
+    if (eligibility.blockers.length > 0) throw new Error(`Not eligible for redemption: ${eligibility.blockers.join(" ")}`);
+    if (!folio.eligible) throw new Error(`Folio is not eligible for redemption: ${folio.blockers.join(" ")}`);
 
-  // Frozen at this moment, from the SAME eligibility computation just used to validate the
-  // request — never recomputed later. Same snapshot principle as distributor attribution
-  // (sql/neon/017) and for the same reason: what the investor was quoted must not silently
-  // drift as NAV/holding-period keep moving after they've acted.
-  const exitLoadPct = folio.exitLoad.estimatedPct;
-  const grossAmount = amount != null ? Number(amount) : +(requestedUnits * eligibility.nav).toFixed(2);
-  const exitLoadAmount = exitLoadPct != null ? +(grossAmount * exitLoadPct / 100).toFixed(2) : null;
-  const netSettlementAmount = exitLoadAmount != null ? +(grossAmount - exitLoadAmount).toFixed(2) : null;
+    const requestedUnits = units != null ? Number(units) : +(Number(amount) / eligibility.nav).toFixed(4);
+    if (requestedUnits > folio.unitsRedeemable + 1e-6) {
+      throw new Error(`Requested ${requestedUnits} units exceeds the redeemable balance of ${folio.unitsRedeemable} units for folio '${folioNumber}'.`);
+    }
 
-  const distributor = await getDefaultDistributorAttribution();
+    // Frozen at this moment, from the SAME eligibility computation just used to validate the
+    // request — never recomputed later. Same snapshot principle as distributor attribution
+    // (sql/neon/017) and for the same reason: what the investor was quoted must not silently
+    // drift as NAV/holding-period keep moving after they've acted.
+    const exitLoadPct = folio.exitLoad.estimatedPct;
+    const grossAmount = amount != null ? Number(amount) : +(requestedUnits * eligibility.nav).toFixed(2);
+    const exitLoadAmount = exitLoadPct != null ? +(grossAmount * exitLoadPct / 100).toFixed(2) : null;
+    const netSettlementAmount = exitLoadAmount != null ? +(grossAmount - exitLoadAmount).toFixed(2) : null;
 
-  const r = await query(
-    `insert into investment_orders (
-       user_id, scheme_code, order_type, amount, units, status,
-       distributor_arn, distributor_euin, folio_number,
-       exit_load_pct, exit_load_amount, net_settlement_amount,
-       payout_bank_account_id, payout_status
-     )
-     values ($1, $2, 'redemption', $3, $4, 'draft', $5, $6, $7, $8, $9, $10, $11, 'pending')
-     returning *`,
-    [userId, schemeCode, amount, units, distributor.arn, distributor.euin, folioNumber, exitLoadPct, exitLoadAmount, netSettlementAmount, eligibility.payoutBank.id]
-  );
-  const order = r.rows[0];
+    const distributor = await getDefaultDistributorAttribution();
+
+    const inserted = await client.query(
+      `insert into investment_orders (
+         user_id, scheme_code, order_type, amount, units, status,
+         distributor_arn, distributor_euin, folio_number,
+         exit_load_pct, exit_load_amount, net_settlement_amount,
+         payout_bank_account_id, payout_status
+       )
+       values ($1, $2, 'redemption', $3, $4, 'draft', $5, $6, $7, $8, $9, $10, $11, 'pending')
+       returning *`,
+      [userId, schemeCode, amount, units, distributor.arn, distributor.euin, folioNumber, exitLoadPct, exitLoadAmount, netSettlementAmount, eligibility.payoutBank.id]
+    );
+    return { order: inserted.rows[0], eligibility, folio, requestedUnits, exitLoadPct, exitLoadAmount, netSettlementAmount, distributor };
+  });
+
   await logAudit(userId, "redemption_order_created", {
     orderId: order.id, schemeCode, folioNumber, requestedUnits,
     exitLoadPct, exitLoadAmount, netSettlementAmount,
