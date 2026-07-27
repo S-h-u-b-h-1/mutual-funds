@@ -74,6 +74,7 @@ that's confirmed done.
 | H1 | No idempotency key passed to the payment provider (`submitOrder`'s purchase leg, `createSipMandate`); SIP mandate creation has no draft/pending gate at all | `orderService.js` (`submitOrder`, `createSipMandate`) | M | 🔴 |
 | H2 | Job platform `completeJob`/`failJob` lack worker-ownership fencing — combined with lease-reclaim, permits real handler double-execution | `frontend/app/lib/platform/jobs/core.js` | S | ✅ fixed |
 | H3 | `deliverNotification()` has no "already delivered" guard — a lease timeout can cause a real duplicate send once a real channel adapter exists | `frontend/app/lib/platform/notifications/core.js` | XS | ✅ fixed |
+<!-- H3 fully closed 2026-07-27, see resolution note after the High table below — the 2026-07-24 fix only caught status='delivered'; a status='processing' row from a crash-mid-send was still unguarded. -->
 | H4 | No rate limiting anywhere — login, register, and forgot-password are exploitable today with a plain unauthenticated script | `lib/auth.js`, `api/auth/*` | M (auth endpoints only) / L (app-wide) | ✅ fixed |
 | H5 | `investment_orders.placed_by_user_id` has no `ON DELETE` behavior — will hard-fail account deletion once advisor-assisted ordering ships | new migration | XS | 🔴 |
 | H6 | `bank_accounts`/`documents`/order history fully hard-cascade-delete on user deletion, via a live (if UI-unwired) `DELETE /api/v1/account` — incompatible with brokerage record-retention obligations given the real, registered distributor ARN/EUIN | schema design decision + migration | L | 🔴 |
@@ -110,6 +111,17 @@ exception still propagates so a real bug can't hide behind a normal-looking decl
 per-provider breaker independence) plus the full 106-test real-integration suite across every
 touched service file, zero regressions. No migration — the breaker is deliberately in-memory per
 its own documented design. Merged to `main` directly (`f1551cf`).
+
+**H3 fully closed (2026-07-27)**: the 2026-07-24 fix only guarded `status === 'delivered'` — it
+missed a narrower, more realistic window where a worker calls `provider.send()` (the real
+user-visible side effect) and crashes before writing `'delivered'`, leaving the row stuck at
+`status === 'processing'`. A second worker picking up the job after lease-reclaim would previously
+re-run from the top and send a real duplicate. `deliverNotification()` now treats a `'processing'`
+row it encounters on entry as ambiguous (the prior attempt might already have reached the
+provider) and dead-letters it instead of retrying — sends are not naturally idempotent, so this
+prefers under-delivery over risking a duplicate. Verified with 3 new tests against the real job
+platform (`runWorkerTick`, not just a direct call), asserting against a real send-call counter on
+the test channel, not just the DB status field. Merged to `main` directly (`cde778e`).
 
 ---
 
