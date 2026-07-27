@@ -77,7 +77,7 @@ that's confirmed done.
 <!-- H3 fully closed 2026-07-27, see resolution note after the High table below — the 2026-07-24 fix only caught status='delivered'; a status='processing' row from a crash-mid-send was still unguarded. -->
 | H4 | No rate limiting anywhere — login, register, and forgot-password are exploitable today with a plain unauthenticated script | `lib/auth.js`, `api/auth/*` | M (auth endpoints only) / L (app-wide) | ✅ fixed |
 | H5 | `investment_orders.placed_by_user_id` has no `ON DELETE` behavior — will hard-fail account deletion once advisor-assisted ordering ships | new migration | XS | 🔴 |
-| H6 | `bank_accounts`/`documents`/order history fully hard-cascade-delete on user deletion, via a live (if UI-unwired) `DELETE /api/v1/account` — incompatible with brokerage record-retention obligations given the real, registered distributor ARN/EUIN | schema design decision + migration | L | 🔴 |
+| H6 | `bank_accounts`/`documents`/order history fully hard-cascade-delete on user deletion, via a live (if UI-unwired) `DELETE /api/v1/account` — incompatible with brokerage record-retention obligations given the real, registered distributor ARN/EUIN | schema design decision + migration | L | 🟡 written, blocked on migration |
 | H7 | `identityService.ensureAccount`/`portfolioService.connectMockPortfolio` call sites sit behind routes with **no** try/catch at all | `api/v1/invest/account/route.js`, `api/v1/invest/portfolio/connect/route.js` | XS | ✅ fixed |
 | H8 | `jobs-worker.yml` (the Invest platform's execution engine) has no failure alerting and is excluded from the one health dashboard | `.github/workflows/jobs-worker.yml`, `lib/pipelineHealth.js` | S | 🔴 |
 | H9 | Ad hoc migration process, no tracking table; already caused one real production incident (005/006); 15 newer migrations (007-021, the entire Invest backend) have zero regression-test coverage | `sql/neon/*`, `tests/test_migrations.py` | M (extend existing test pattern) | 🔴 |
@@ -122,6 +122,23 @@ provider) and dead-letters it instead of retrying — sends are not naturally id
 prefers under-delivery over risking a duplicate. Verified with 3 new tests against the real job
 platform (`runWorkerTick`, not just a direct call), asserting against a real send-call counter on
 the test channel, not just the DB status field. Merged to `main` directly (`cde778e`).
+
+**H6 status (2026-07-27, written and tested, NOT merged)**: `DELETE /api/v1/account` no longer
+hard-deletes the `users` row (which cascaded through ~35 tables, wiping every financial/compliance
+record). It now anonymizes identifying fields in place (`app/lib/accountLifecycle.js`) — the row
+never disappears, so none of those cascades ever fire; every order, mandate, compliance decision,
+document, and audit entry survives fully intact. A new, separate, fully reversible
+`deactivateAccount()`/`reactivateAccount()` pair (blocks/restores login, deletes-then-implicitly-
+requires-relogin for sessions) now exists for "log me out everywhere" as distinct from "destroy my
+history." No regulatory retention *period* is invented anywhere — the default is retain-
+indefinitely-anonymized, with explicit open policy questions flagged in the new
+`docs/ACCOUNT_LIFECYCLE_AND_RETENTION.md` for legal/compliance to actually answer. Verified with 7
+tests including one that creates a full real compliance/order history via `makeInvestmentReadyUser()`,
+deletes the account, and asserts the exact same record counts survive. **Blocked on
+`sql/neon/024_account_lifecycle.sql`** (two nullable columns on `users`, one new audit table) being
+denied against production by this session's tooling — same pattern as C1. Parked on
+`hardening/h6-account-lifecycle` rather than merged, since the code requires these columns to exist
+in production (login and account deletion would otherwise break the moment it deployed).
 
 ---
 
@@ -180,8 +197,15 @@ the test channel, not just the DB status field. Merged to `main` directly (`cde7
   originally broken out as its own High item.
 - Current status (2026-07-27): Critical **4/5 fixed and live** (C2, C3, C4, C5). C1 is written,
   tested, and verified but **not yet merged** — blocked on a production migration this session's
-  tooling can't apply (see C1's own status note above). High **7/12 fixed** (H2, H3, H4, H7, H10,
-  H11, H12 — H1/H5/H6/H8/H9 still open).
+  tooling can't apply (see C1's own status note above). High **7/12 fixed and live** (H2, H3, H4,
+  H7, H10, H11, H12); H6 is written and tested but likewise not yet merged, same production-
+  migration blocker as C1 (see H6's own status note above) — H1/H5/H8/H9 still open.
+- **Two items are parked on their own branches, blocked on the exact same class of issue**:
+  `hardening/c1-order-idempotency` (needs `sql/neon/022_order_idempotency.sql` applied to
+  production) and `hardening/h6-account-lifecycle` (needs `sql/neon/024_account_lifecycle.sql`).
+  Both need someone with production DB access to run one migration file each; both branches merge
+  the moment that's done. This is the single largest concrete blocker to a READY (vs CONDITIONALLY
+  READY) release verdict.
 - Total XS/S items (cheap, low-risk, shippable immediately): **~24** — the bulk of Medium/Low.
 - Items needing a genuine design decision before work starts (XL-adjacent): H6 (retention vs.
   deletion policy), M4 (which notification-preference system wins), C1/C2 (need a real
