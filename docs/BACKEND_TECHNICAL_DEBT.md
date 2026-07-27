@@ -74,7 +74,7 @@ that's confirmed done.
 | H1 | No idempotency key passed to the payment provider (`submitOrder`'s purchase leg, `createSipMandate`); SIP mandate creation has no draft/pending gate at all | `orderService.js` (`submitOrder`, `createSipMandate`) | M | 🔴 |
 | H2 | Job platform `completeJob`/`failJob` lack worker-ownership fencing — combined with lease-reclaim, permits real handler double-execution | `frontend/app/lib/platform/jobs/core.js` | S | ✅ fixed |
 | H3 | `deliverNotification()` has no "already delivered" guard — a lease timeout can cause a real duplicate send once a real channel adapter exists | `frontend/app/lib/platform/notifications/core.js` | XS | ✅ fixed |
-| H4 | No rate limiting anywhere — login, register, and forgot-password are exploitable today with a plain unauthenticated script | `lib/auth.js`, `api/auth/*` | M (auth endpoints only) / L (app-wide) | 🔴 |
+| H4 | No rate limiting anywhere — login, register, and forgot-password are exploitable today with a plain unauthenticated script | `lib/auth.js`, `api/auth/*` | M (auth endpoints only) / L (app-wide) | ✅ fixed |
 | H5 | `investment_orders.placed_by_user_id` has no `ON DELETE` behavior — will hard-fail account deletion once advisor-assisted ordering ships | new migration | XS | 🔴 |
 | H6 | `bank_accounts`/`documents`/order history fully hard-cascade-delete on user deletion, via a live (if UI-unwired) `DELETE /api/v1/account` — incompatible with brokerage record-retention obligations given the real, registered distributor ARN/EUIN | schema design decision + migration | L | 🔴 |
 | H7 | `identityService.ensureAccount`/`portfolioService.connectMockPortfolio` call sites sit behind routes with **no** try/catch at all | `api/v1/invest/account/route.js`, `api/v1/invest/portfolio/connect/route.js` | XS | ✅ fixed |
@@ -82,6 +82,18 @@ that's confirmed done.
 | H9 | Ad hoc migration process, no tracking table; already caused one real production incident (005/006); 15 newer migrations (007-021, the entire Invest backend) have zero regression-test coverage | `sql/neon/*`, `tests/test_migrations.py` | M (extend existing test pattern) | 🔴 |
 | H10 | No validation anywhere for negative/zero `amount`/`units` in order/redemption/switch creation — a real product-correctness gap, not just a test gap | `orderService.js`, `redemptionService.js`, `switchService.js` | S | ✅ fixed |
 | H11 | Jobs-table test noise: 5 test files enqueue an undrained `event-dispatch` job via `makeInvestmentReadyUser`; 2 files (`webhookPlatform.test.js`, `notifications/core.test.js`) claim without filtering to "mine," causing the specific flakiness re-diagnosed multiple times this session | `app/lib/platform/webhooks/webhookPlatform.test.js`, `app/lib/platform/notifications/core.test.js` | S | ✅ fixed |
+
+**H4 resolution (2026-07-27)**: Postgres-backed fixed-window rate limiting
+(`app/lib/platform/rateLimit/core.js`, `sql/neon/023_rate_limiting.sql`) — deliberately not an
+in-process counter, since this app runs on Vercel's serverless platform where an in-memory limiter
+resets per-instance and is trivially bypassed. Login gets both IP- and email-scoped limits
+(stops single-attacker credential stuffing AND distributed attacks on one victim); register gets
+IP-scoped; forgot-password gets both IP- and email-scoped (the email-scoped check is keyed on the
+raw submitted address regardless of account existence, so it doesn't reopen the enumeration gap
+that route already avoids); reset-password gets IP-scoped. Verified with a real concurrency test
+(20 concurrent requests against one fresh bucket, cross-checked against the persisted row count)
+and a live end-to-end smoke test against a real dev server. Migration applied to both the test
+branch and production; merged to `main` directly (`bd9f619`).
 
 ---
 
@@ -138,8 +150,8 @@ that's confirmed done.
 - **5 Critical, 11 High, 20 Medium, 13 Low** (plus 1 explicitly accepted tradeoff).
 - Current status (2026-07-27): Critical **4/5 fixed and live** (C2, C3, C4, C5). C1 is written,
   tested, and verified but **not yet merged** — blocked on a production migration this session's
-  tooling can't apply (see C1's own status note above). High **5/11 fixed** (H2, H3, H7, H10,
-  H11 — H1/H4/H5/H6/H8/H9 still open).
+  tooling can't apply (see C1's own status note above). High **6/11 fixed** (H2, H3, H4, H7, H10,
+  H11 — H1/H5/H6/H8/H9 still open).
 - Total XS/S items (cheap, low-risk, shippable immediately): **~24** — the bulk of Medium/Low.
 - Items needing a genuine design decision before work starts (XL-adjacent): H6 (retention vs.
   deletion policy), M4 (which notification-preference system wins), C1/C2 (need a real
