@@ -181,6 +181,28 @@ export async function deliverNotification({ notificationId }) {
   // 'delivered' write below. Without this guard, deliverNotification would re-run from the top
   // and send a real duplicate the moment a real (non-mock) channel provider replaces the mock.
   if (notification.status === "delivered") return { skipped: true, reason: "already_delivered" };
+  // Backend Hardening (2026-07-27, notification exactly-once): the guard above only catches a
+  // worker that got ALL the way to 'delivered' before crashing. A worker that crashes in the
+  // narrower window AFTER provider.send() succeeds but BEFORE the 'delivered' write just below
+  // leaves the row stuck at 'processing' — NOT caught by that guard. claimJobs()'s FOR UPDATE
+  // SKIP LOCKED guarantees only one worker ever holds this notification's job lease at a time, so
+  // the only way deliverNotification runs again while status is still 'processing' is after that
+  // job's full lease expired and reclaimExpiredLeases() presumed the prior worker dead — meaning
+  // the prior attempt genuinely might already have reached the provider. Unlike enqueue's own
+  // idempotency key (which only dedupes the JOB row, not the underlying send), a real SMS/email/
+  // push send is not naturally idempotent — sending it twice is a real, user-visible duplicate.
+  // So this deliberately does NOT retry: it dead-letters the row to surface the ambiguity for
+  // manual follow-up, rather than either silently risking a duplicate send or silently leaving
+  // the row stuck at 'processing' forever with no signal and no further retries.
+  if (notification.status === "processing") {
+    const message = "Ambiguous delivery state: a prior attempt reached 'processing' but never confirmed completion (worker likely crashed mid-send). Not retried automatically to avoid a duplicate delivery — needs manual verification.";
+    await query(`update notifications set status = 'dead_letter', last_error = $2, updated_at = now() where id = $1`, [notification.id, message]);
+    await recordEvent(notification.id, "dead_lettered", { reason: "ambiguous_processing_state" });
+    return { skipped: true, reason: "ambiguous_processing_state" };
+  }
+  // A prior invocation already dead-lettered this notification (via the branch above, or via
+  // max_attempts exhaustion below) — never a fresh 'processing' claim, so nothing left to do here.
+  if (notification.status === "dead_letter") return { skipped: true, reason: "already_dead_lettered" };
   if (notification.expires_at && new Date(notification.expires_at) < new Date()) {
     await query(`update notifications set status = 'failed', last_error = 'expired before delivery', updated_at = now() where id = $1`, [notification.id]);
     await recordEvent(notification.id, "failed", { reason: "expired" });

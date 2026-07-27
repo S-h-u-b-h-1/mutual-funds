@@ -12,6 +12,7 @@ import {
   dismissNotification,
   archiveNotification,
   cancelNotification,
+  deliverNotification,
 } from "./core.js";
 import { registerChannelProvider } from "./registry.js";
 import { registerTemplate } from "../templates/core.js";
@@ -26,6 +27,8 @@ const T = (name) => `test-${RUN}-${name}`;
 let userId;
 const testChannel = T("channel"); // a throwaway async channel, registered once for this whole file
 let deliveryOutcomes = []; // controls what testChannel.send() does per call, consumed in order
+let sendCallCount = 0; // real proof a duplicate-delivery guard actually prevented a second send —
+// not just that the DB status disagreed with itself
 const createdJobIds = []; // every notification-deliver job this file itself enqueued — the shared
 // jobs table can hold unrelated due rows from other concurrently-running test files (see
 // jobs/testClaimLock.js), so every runWorkerTick() call below passes idIn scoped to these ids.
@@ -36,6 +39,7 @@ beforeAll(async () => {
 
   registerChannelProvider(testChannel, {
     async send() {
+      sendCallCount += 1;
       const outcome = deliveryOutcomes.shift() ?? "succeed";
       if (outcome === "fail") throw new Error("mock channel delivery failed");
       return { delivered: true };
@@ -151,6 +155,66 @@ describe("sendNotification — async channel (queued -> job -> delivered)", () =
     const events = await query(`select event from notification_events where notification_id = $1 order by created_at`, [result.notification.id]);
     expect(events.rows.map((r) => r.event)).toEqual(["created", "queued", "processing", "retry_scheduled", "processing", "dead_lettered"]);
   }, 120000);
+
+  // Backend Hardening (notification exactly-once): the H3 guard (`status === 'delivered'`) only
+  // catches a worker that got ALL the way to writing 'delivered' before crashing. The genuinely
+  // dangerous window is narrower and more realistic for a lease-expiry retry: a worker that calls
+  // provider.send() — which, for a real (non-mock) channel, is the actual user-visible side
+  // effect — and crashes in the gap between that call succeeding and this function's own
+  // 'delivered' write landing. That leaves the row stuck at status='processing', which the old
+  // guard did not catch. These two tests simulate exactly that stuck state directly (a real
+  // worker crash isn't practically triggerable through the public API) and prove the SECOND
+  // delivery attempt neither calls the channel's send() again nor leaves the row silently
+  // wedged forever.
+  it("a notification stuck at 'processing' from a presumed-crashed prior attempt is dead-lettered, NOT re-sent", async () => {
+    const { notification } = await sendNotification(userId, { type: T("stuck-processing"), title: "Stuck", channel: testChannel });
+    createdJobIds.push(notification.job_id);
+
+    // Simulates the state a real worker crash would leave behind: send() had already been
+    // reached (attempts bumped, status set to 'processing') by SOME prior attempt, but that
+    // attempt never reached deliverNotification's own trailing 'delivered' write.
+    await query(`update notifications set status = 'processing', attempts = 1, updated_at = now() where id = $1`, [notification.id]);
+
+    const beforeCount = sendCallCount;
+    const result = await deliverNotification({ notificationId: notification.id });
+    expect(result).toEqual({ skipped: true, reason: "ambiguous_processing_state" });
+    expect(sendCallCount).toBe(beforeCount); // the channel's send() was never called a second time
+
+    const after = await query(`select status, last_error from notifications where id = $1`, [notification.id]);
+    expect(after.rows[0].status).toBe("dead_letter");
+    expect(after.rows[0].last_error).toMatch(/Ambiguous delivery state/);
+
+    const events = await query(`select event from notification_events where notification_id = $1 order by created_at`, [notification.id]);
+    expect(events.rows.map((r) => r.event)).toEqual(["created", "queued", "dead_lettered"]);
+  });
+
+  it("a job that reclaims a lease-expired notification-deliver job for a stuck-processing row does not double-send via runWorkerTick either", async () => {
+    // Same scenario as above, but driven through the REAL job-claim path (runWorkerTick), not a
+    // direct deliverNotification() call — proves the guard holds for the actual production
+    // entry point, not just the unit-level function call.
+    deliveryOutcomes = ["succeed"]; // only consumed if send() is (wrongly) called again
+    const { notification } = await sendNotification(userId, { type: T("stuck-processing-tick"), title: "Stuck via tick", channel: testChannel });
+    createdJobIds.push(notification.job_id);
+    await query(`update notifications set status = 'processing', attempts = 1, updated_at = now() where id = $1`, [notification.id]);
+
+    const beforeCount = sendCallCount;
+    await runWorkerTick({ workerId: `test-notif-core-${RUN}-stuck`, maxJobs: 1, idIn: [notification.job_id] });
+    expect(sendCallCount).toBe(beforeCount);
+
+    const after = await query(`select status from notifications where id = $1`, [notification.id]);
+    expect(after.rows[0].status).toBe("dead_letter");
+  }, 60000);
+
+  it("re-delivering an already-dead-lettered notification is a clean no-op, not a second send attempt", async () => {
+    const { notification } = await sendNotification(userId, { type: T("already-dead"), title: "x", channel: testChannel });
+    createdJobIds.push(notification.job_id);
+    await query(`update notifications set status = 'dead_letter', last_error = 'prior failure' where id = $1`, [notification.id]);
+
+    const beforeCount = sendCallCount;
+    const result = await deliverNotification({ notificationId: notification.id });
+    expect(result).toEqual({ skipped: true, reason: "already_dead_lettered" });
+    expect(sendCallCount).toBe(beforeCount);
+  });
 });
 
 describe("user-facing state transitions", () => {
