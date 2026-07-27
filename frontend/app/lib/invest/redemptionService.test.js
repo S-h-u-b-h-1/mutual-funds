@@ -215,6 +215,34 @@ describe("createRedemptionOrder", () => {
     expect(order.distributor_euin).toBe("E544323");
   });
 
+  // C2 (docs/BACKEND_AUDIT_REPORT.md, docs/BACKEND_TECHNICAL_DEBT.md) — races two REAL concurrent
+  // requests with Promise.allSettled, not two sequential calls. A folio with 100 units and two
+  // simultaneous 60-unit redemption requests: each individually looks valid against the
+  // PRE-race balance (100 >= 60), so a sequential test could never expose the TOCTOU window this
+  // is actually testing — only true concurrency can.
+  it("two concurrent redemption requests on the same folio cannot both succeed past the held balance", async () => {
+    await insertHolding(userId, DEBT_SCHEME, { folioNumber: "FOLIO-RACE-1", units: 100, avgCost: 100 });
+
+    const results = await Promise.allSettled([
+      redemptionService.createRedemptionOrder(userId, { schemeCode: DEBT_SCHEME, folioNumber: "FOLIO-RACE-1", units: 60, draft: true }),
+      redemptionService.createRedemptionOrder(userId, { schemeCode: DEBT_SCHEME, folioNumber: "FOLIO-RACE-1", units: 60, draft: true }),
+    ]);
+
+    const fulfilled = results.filter((r) => r.status === "fulfilled");
+    const rejected = results.filter((r) => r.status === "rejected");
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].reason.message).toMatch(/exceeds the redeemable balance/);
+
+    // The real financial claim: total units actually committed to a redemption order for this
+    // folio never exceeds what was held, not just "the two calls disagreed with each other."
+    const pending = await query(
+      `select coalesce(sum(units), 0)::float as total from investment_orders where user_id = $1 and folio_number = $2 and order_type = 'redemption'`,
+      [userId, "FOLIO-RACE-1"]
+    );
+    expect(Number(pending.rows[0].total)).toBe(60);
+  });
+
   it("settlement lifecycle: a redemption reaching 'completed' initiates payout with a provider reference", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0.1); // keeps placeOrder accepted AND decideNextStatus on 'completed'
     await insertHolding(userId, DEBT_SCHEME, { folioNumber: "FOLIO-SETTLE-1", units: 40, avgCost: 100 });

@@ -7,21 +7,24 @@
 // computation (eligible folios, redeemable units, exit-load estimate, tax context, ELSS lock-in)
 // rather than reimplementing it — a switch's source leg realizes gains/pays exit load exactly
 // like a redemption does; see docs/SWITCH_CONTRACT.md §1.
-import { query } from "../db.js";
+import { query, withTransaction } from "../db.js";
 import { getFund } from "../funds.js";
 import { assertInvestmentReady, submitOrder } from "./orderService.js";
 import { getRedemptionEligibility } from "./redemptionService.js";
 import { logAudit } from "./audit.js";
 import { getDefaultDistributorAttribution } from "../platform/distributor/core.js";
 
-export async function getSwitchEligibility(userId, sourceSchemeCode, destinationSchemeCode) {
+// queryFn threads through to getRedemptionEligibility — see that function's own comment. Only
+// matters when createSwitchOrder calls this from inside its advisory-locked transaction; the
+// GET /eligibility preview endpoint keeps using the plain pool query via the default.
+export async function getSwitchEligibility(userId, sourceSchemeCode, destinationSchemeCode, queryFn = query) {
   if (sourceSchemeCode === destinationSchemeCode) {
     throw new Error("Source and destination scheme codes must differ — a fund cannot be switched into itself.");
   }
   const destinationFund = getFund(destinationSchemeCode);
   if (!destinationFund) throw new Error(`Unknown destination scheme code '${destinationSchemeCode}': cannot resolve fund data.`);
 
-  const source = await getRedemptionEligibility(userId, sourceSchemeCode);
+  const source = await getRedemptionEligibility(userId, sourceSchemeCode, queryFn);
   const sameAmc = source.fundAmc != null && destinationFund.amc != null
     ? source.fundAmc === destinationFund.amc
     : false;
@@ -56,50 +59,62 @@ export async function createSwitchOrder(userId, { sourceSchemeCode, destinationS
   if (amount != null && !(amount > 0)) throw new Error("amount must be greater than 0.");
   if (units != null && !(units > 0)) throw new Error("units must be greater than 0.");
 
-  const eligibility = await getSwitchEligibility(userId, sourceSchemeCode, destinationSchemeCode);
-  const folio = eligibility.source.folios.find((f) => f.folioNumber === folioNumber);
-  if (!folio) throw new Error(`No holding found for scheme '${sourceSchemeCode}' under folio '${folioNumber}'.`);
-  if (!eligibility.sameAmc || !eligibility.destinationActive) throw new Error(`Not eligible for switch: ${eligibility.blockers.join(" ")}`);
-  if (!folio.eligible) throw new Error(`Source folio is not eligible for switch: ${folio.blockers.join(" ")}`);
+  // C2 (docs/BACKEND_AUDIT_REPORT.md, docs/BACKEND_TECHNICAL_DEBT.md): a switch's source leg is a
+  // redemption of that folio, tax- and eligibility-wise (see this file's own header comment) —
+  // it needs the identical TOCTOU fix. Same advisory lock KEY as redemptionService's own
+  // ("redemption:userId:folioNumber", not "switch:...") so a plain redemption and a switch
+  // racing on the same folio also correctly serialize against each other, not just switch-vs-
+  // switch or redemption-vs-redemption.
+  const { switchOut, switchIn, requestedUnits, exitLoadPct, exitLoadAmount, netAmount, distributor } = await withTransaction(async (client) => {
+    await client.query(`select pg_advisory_xact_lock(hashtext($1))`, [`redemption:${userId}:${folioNumber}`]);
 
-  const requestedUnits = units != null ? Number(units) : +(Number(amount) / eligibility.source.nav).toFixed(4);
-  if (requestedUnits > folio.unitsRedeemable + 1e-6) {
-    throw new Error(`Requested ${requestedUnits} units exceeds the redeemable balance of ${folio.unitsRedeemable} units for folio '${folioNumber}'.`);
-  }
+    const eligibility = await getSwitchEligibility(userId, sourceSchemeCode, destinationSchemeCode, client.query.bind(client));
+    const folio = eligibility.source.folios.find((f) => f.folioNumber === folioNumber);
+    if (!folio) throw new Error(`No holding found for scheme '${sourceSchemeCode}' under folio '${folioNumber}'.`);
+    if (!eligibility.sameAmc || !eligibility.destinationActive) throw new Error(`Not eligible for switch: ${eligibility.blockers.join(" ")}`);
+    if (!folio.eligible) throw new Error(`Source folio is not eligible for switch: ${folio.blockers.join(" ")}`);
 
-  // Frozen at this moment, same snapshot principle as redemption/distributor attribution.
-  const exitLoadPct = folio.exitLoad.estimatedPct;
-  const grossAmount = amount != null ? Number(amount) : +(requestedUnits * eligibility.source.nav).toFixed(2);
-  const exitLoadAmount = exitLoadPct != null ? +(grossAmount * exitLoadPct / 100).toFixed(2) : null;
-  // What actually reaches the destination purchase — net of the source-side exit load, since no
-  // cash changes hands outside the platform on a switch (see sql/neon/019's own comment).
-  const netAmount = exitLoadAmount != null ? +(grossAmount - exitLoadAmount).toFixed(2) : grossAmount;
+    const requestedUnits = units != null ? Number(units) : +(Number(amount) / eligibility.source.nav).toFixed(4);
+    if (requestedUnits > folio.unitsRedeemable + 1e-6) {
+      throw new Error(`Requested ${requestedUnits} units exceeds the redeemable balance of ${folio.unitsRedeemable} units for folio '${folioNumber}'.`);
+    }
 
-  const distributor = await getDefaultDistributorAttribution();
+    // Frozen at this moment, same snapshot principle as redemption/distributor attribution.
+    const exitLoadPct = folio.exitLoad.estimatedPct;
+    const grossAmount = amount != null ? Number(amount) : +(requestedUnits * eligibility.source.nav).toFixed(2);
+    const exitLoadAmount = exitLoadPct != null ? +(grossAmount * exitLoadPct / 100).toFixed(2) : null;
+    // What actually reaches the destination purchase — net of the source-side exit load, since no
+    // cash changes hands outside the platform on a switch (see sql/neon/019's own comment).
+    const netAmount = exitLoadAmount != null ? +(grossAmount - exitLoadAmount).toFixed(2) : grossAmount;
 
-  const outResult = await query(
-    `insert into investment_orders (
-       user_id, scheme_code, related_scheme_code, order_type, amount, units, status,
-       distributor_arn, distributor_euin, folio_number, exit_load_pct, exit_load_amount
-     )
-     values ($1, $2, $3, 'switch_out', $4, $5, 'draft', $6, $7, $8, $9, $10)
-     returning *`,
-    [userId, sourceSchemeCode, destinationSchemeCode, amount, units, distributor.arn, distributor.euin, folioNumber, exitLoadPct, exitLoadAmount]
-  );
-  const switchOut = outResult.rows[0];
+    const distributor = await getDefaultDistributorAttribution();
 
-  const inResult = await query(
-    `insert into investment_orders (
-       user_id, scheme_code, related_scheme_code, order_type, amount, status,
-       distributor_arn, distributor_euin, switch_order_id
-     )
-     values ($1, $2, $3, 'switch_in', $4, 'draft', $5, $6, $7)
-     returning *`,
-    [userId, destinationSchemeCode, sourceSchemeCode, netAmount, distributor.arn, distributor.euin, switchOut.id]
-  );
-  const switchIn = inResult.rows[0];
+    const outResult = await client.query(
+      `insert into investment_orders (
+         user_id, scheme_code, related_scheme_code, order_type, amount, units, status,
+         distributor_arn, distributor_euin, folio_number, exit_load_pct, exit_load_amount
+       )
+       values ($1, $2, $3, 'switch_out', $4, $5, 'draft', $6, $7, $8, $9, $10)
+       returning *`,
+      [userId, sourceSchemeCode, destinationSchemeCode, amount, units, distributor.arn, distributor.euin, folioNumber, exitLoadPct, exitLoadAmount]
+    );
+    const switchOut = outResult.rows[0];
 
-  const linkedOut = await query(`update investment_orders set switch_order_id = $2 where id = $1 returning *`, [switchOut.id, switchIn.id]);
+    const inResult = await client.query(
+      `insert into investment_orders (
+         user_id, scheme_code, related_scheme_code, order_type, amount, status,
+         distributor_arn, distributor_euin, switch_order_id
+       )
+       values ($1, $2, $3, 'switch_in', $4, 'draft', $5, $6, $7)
+       returning *`,
+      [userId, destinationSchemeCode, sourceSchemeCode, netAmount, distributor.arn, distributor.euin, switchOut.id]
+    );
+    const switchIn = inResult.rows[0];
+
+    const linkedOut = await client.query(`update investment_orders set switch_order_id = $2 where id = $1 returning *`, [switchOut.id, switchIn.id]);
+
+    return { switchOut: linkedOut.rows[0], switchIn, requestedUnits, exitLoadPct, exitLoadAmount, netAmount, distributor };
+  });
 
   await logAudit(userId, "switch_order_created", {
     switchOutId: switchOut.id, switchInId: switchIn.id, sourceSchemeCode, destinationSchemeCode, folioNumber,
@@ -107,7 +122,7 @@ export async function createSwitchOrder(userId, { sourceSchemeCode, destinationS
     distributorArn: distributor.arn, distributorEuin: distributor.euin,
   });
 
-  if (draft) return { switchOut: linkedOut.rows[0], switchIn };
+  if (draft) return { switchOut, switchIn };
   // Both legs progress independently through the existing generic order engine once submitted —
   // documented limitation, not an oversight; see docs/SWITCH_CONTRACT.md §3.
   const [submittedOut, submittedIn] = await Promise.all([
