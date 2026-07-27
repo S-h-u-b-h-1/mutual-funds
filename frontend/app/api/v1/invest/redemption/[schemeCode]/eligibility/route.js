@@ -2,8 +2,9 @@
 // amount, exit-load estimate, tax context, payout bank. Never persisted (see redemptionService.js).
 import { requireUser, unauthorized } from "../../../../../../lib/apiAuth";
 import { getRedemptionEligibility } from "../../../../../../lib/invest/redemptionService";
+import { withObservability } from "../../../../../../lib/platform/observability/core";
 
-export async function GET(request, { params }) {
+async function handleGET(request, { params }) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -15,3 +16,5 @@ export async function GET(request, { params }) {
     return Response.json({ error: e.message }, { status: 400 });
   }
 }
+
+export const GET = withObservability("GET /api/v1/invest/redemption/[schemeCode]/eligibility", handleGET);

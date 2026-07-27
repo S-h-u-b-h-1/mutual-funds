@@ -3,8 +3,9 @@
 // these together (see docs/INVEST_API_CONTRACTS.md for the full response shape).
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
 import * as identityService from "../../../../lib/invest/identityService";
+import { withObservability } from "../../../../lib/platform/observability/core";
 
-export async function GET() {
+async function handleGET() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -19,7 +20,7 @@ export async function GET() {
   return Response.json({ profile, account, preferences, rmAssignment, onboarding });
 }
 
-export async function PUT(request) {
+async function handlePUT(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -33,3 +34,6 @@ export async function PUT(request) {
   const profile = await identityService.upsertProfile(user.id, body);
   return Response.json({ profile });
 }
+
+export const GET = withObservability("GET /api/v1/invest/profile", handleGET);
+export const PUT = withObservability("PUT /api/v1/invest/profile", handlePUT);

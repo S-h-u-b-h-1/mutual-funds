@@ -3,8 +3,9 @@
 // idempotently — calling it twice returns the same account, never opens a second one.
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
 import * as identityService from "../../../../lib/invest/identityService";
+import { withObservability } from "../../../../lib/platform/observability/core";
 
-export async function GET() {
+async function handleGET() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -12,7 +13,7 @@ export async function GET() {
   return Response.json({ account });
 }
 
-export async function POST() {
+async function handlePOST() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -23,3 +24,6 @@ export async function POST() {
     return Response.json({ error: e.message }, { status: 400 });
   }
 }
+
+export const GET = withObservability("GET /api/v1/invest/account", handleGET);
+export const POST = withObservability("POST /api/v1/invest/account", handlePOST);

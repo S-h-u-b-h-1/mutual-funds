@@ -4,8 +4,9 @@
 // needs two scheme codes at once: ?source=<code>&destination=<code>.
 import { requireUser, unauthorized } from "../../../../../lib/apiAuth";
 import { getSwitchEligibility } from "../../../../../lib/invest/switchService";
+import { withObservability } from "../../../../../lib/platform/observability/core";
 
-export async function GET(request) {
+async function handleGET(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -23,3 +24,5 @@ export async function GET(request) {
     return Response.json({ error: e.message }, { status: 400 });
   }
 }
+
+export const GET = withObservability("GET /api/v1/invest/switch/eligibility", handleGET);

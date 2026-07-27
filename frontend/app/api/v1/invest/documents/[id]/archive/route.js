@@ -1,7 +1,8 @@
 import { requireUser, unauthorized } from "../../../../../../lib/apiAuth";
 import { archiveDocument } from "../../../../../../lib/invest/documentService";
+import { withObservability } from "../../../../../../lib/platform/observability/core";
 
-export async function POST(request, { params }) {
+async function handlePOST(request, { params }) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -14,3 +15,5 @@ export async function POST(request, { params }) {
     return Response.json({ error: e.message }, { status: 400 });
   }
 }
+
+export const POST = withObservability("POST /api/v1/invest/documents/[id]/archive", handlePOST);

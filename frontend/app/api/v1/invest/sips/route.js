@@ -1,7 +1,8 @@
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
 import { createSipMandate, listSipMandates } from "../../../../lib/invest/orderService";
+import { withObservability } from "../../../../lib/platform/observability/core";
 
-export async function GET() {
+async function handleGET() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -9,7 +10,7 @@ export async function GET() {
   return Response.json({ sips });
 }
 
-export async function POST(request) {
+async function handlePOST(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -27,3 +28,6 @@ export async function POST(request) {
     return Response.json({ error: e.message }, { status: 400 });
   }
 }
+
+export const GET = withObservability("GET /api/v1/invest/sips", handleGET);
+export const POST = withObservability("POST /api/v1/invest/sips", handlePOST);

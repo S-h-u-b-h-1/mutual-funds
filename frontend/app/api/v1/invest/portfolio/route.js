@@ -4,11 +4,14 @@
 // shape is identical regardless (see docs/INVEST_API_CONTRACTS.md's Journey 3 section).
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
 import { getPortfolio } from "../../../../lib/invest/portfolioService";
+import { withObservability } from "../../../../lib/platform/observability/core";
 
-export async function GET() {
+async function handleGET() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
   const portfolio = await getPortfolio(user.id);
   return Response.json(portfolio);
 }
+
+export const GET = withObservability("GET /api/v1/invest/portfolio", handleGET);

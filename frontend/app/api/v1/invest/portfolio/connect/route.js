@@ -4,8 +4,9 @@
 // mock-connected portfolio unchanged (alreadyConnected: true), not a fresh/different one.
 import { requireUser, unauthorized } from "../../../../../lib/apiAuth";
 import { connectMockPortfolio } from "../../../../../lib/invest/portfolioService";
+import { withObservability } from "../../../../../lib/platform/observability/core";
 
-export async function POST() {
+async function handlePOST() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -16,3 +17,5 @@ export async function POST() {
     return Response.json({ error: e.message }, { status: 400 });
   }
 }
+
+export const POST = withObservability("POST /api/v1/invest/portfolio/connect", handlePOST);

@@ -3,8 +3,9 @@
 // (only the keys sent are validated/changed; anything omitted keeps its current value).
 import { requireUser, unauthorized } from "../../../../../lib/apiAuth";
 import { getPreferences, upsertPreferences, KNOWN_CHANNELS, SUGGESTED_CATEGORIES } from "../../../../../lib/platform/notifications/preferences";
+import { withObservability } from "../../../../../lib/platform/observability/core";
 
-export async function GET() {
+async function handleGET() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -12,7 +13,7 @@ export async function GET() {
   return Response.json({ preferences, knownChannels: KNOWN_CHANNELS, suggestedCategories: SUGGESTED_CATEGORIES });
 }
 
-export async function PUT(request) {
+async function handlePUT(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -32,3 +33,6 @@ export async function PUT(request) {
 
   return Response.json({ preferences });
 }
+
+export const GET = withObservability("GET /api/v1/invest/notifications/preferences", handleGET);
+export const PUT = withObservability("PUT /api/v1/invest/notifications/preferences", handlePUT);

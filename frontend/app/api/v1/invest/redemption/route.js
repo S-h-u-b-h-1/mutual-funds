@@ -3,8 +3,9 @@
 // validateOrderInput). Body: {schemeCode, folioNumber, amount?, units?}.
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
 import { createRedemptionOrder } from "../../../../lib/invest/redemptionService";
+import { withObservability } from "../../../../lib/platform/observability/core";
 
-export async function POST(request) {
+async function handlePOST(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -22,3 +23,5 @@ export async function POST(request) {
     return Response.json({ error: e.message }, { status: 400 });
   }
 }
+
+export const POST = withObservability("POST /api/v1/invest/redemption", handlePOST);

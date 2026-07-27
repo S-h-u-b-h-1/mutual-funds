@@ -4,8 +4,9 @@
 // linked legs: {switchOut, switchIn}.
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
 import { createSwitchOrder } from "../../../../lib/invest/switchService";
+import { withObservability } from "../../../../lib/platform/observability/core";
 
-export async function POST(request) {
+async function handlePOST(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -23,3 +24,5 @@ export async function POST(request) {
     return Response.json({ error: e.message }, { status: 400 });
   }
 }
+
+export const POST = withObservability("POST /api/v1/invest/switch", handlePOST);

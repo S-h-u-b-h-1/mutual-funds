@@ -4,8 +4,9 @@
 // the response is a synthetic reference from documentProvider.storeUpload(), not a real file URL.
 import { requireUser, unauthorized } from "../../../../../lib/apiAuth";
 import { uploadDocument } from "../../../../../lib/invest/documentService";
+import { withObservability } from "../../../../../lib/platform/observability/core";
 
-export async function POST(request) {
+async function handlePOST(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -23,3 +24,5 @@ export async function POST(request) {
     return Response.json({ error: e.message }, { status: 400 });
   }
 }
+
+export const POST = withObservability("POST /api/v1/invest/documents/upload", handlePOST);

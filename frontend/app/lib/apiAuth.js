@@ -5,10 +5,15 @@
 // sql/neon/002_auth_and_user_data.sql's no-RLS rationale).
 import { auth } from "./auth";
 import { query } from "./db";
+import { setRequestUserId } from "./platform/observability/core";
 
 export async function requireUser() {
   const session = await auth();
   if (!session?.user?.id) return null;
+  // C3 (server-side observability): every route already calls this first, so it's the one place
+  // to attach userId to the ambient request context (see observability/core.js) without every
+  // route having to do it themselves.
+  setRequestUserId(session.user.id);
   return session.user;
 }
 

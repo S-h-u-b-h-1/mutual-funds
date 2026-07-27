@@ -3,8 +3,9 @@
 // current as the mock progression allows without a background worker.
 import { requireUser, unauthorized } from "../../../../../lib/apiAuth";
 import { getOrderWithTimeline } from "../../../../../lib/invest/orderService";
+import { withObservability } from "../../../../../lib/platform/observability/core";
 
-export async function GET(request, { params }) {
+async function handleGET(request, { params }) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -13,3 +14,5 @@ export async function GET(request, { params }) {
   if (!result) return Response.json({ error: "Order not found" }, { status: 404 });
   return Response.json(result);
 }
+
+export const GET = withObservability("GET /api/v1/invest/orders/[orderId]", handleGET);

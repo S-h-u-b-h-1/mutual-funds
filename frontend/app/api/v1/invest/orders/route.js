@@ -2,8 +2,9 @@
 // {"draft": true} is in the body, otherwise created and immediately submitted in one call).
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
 import { createOrder, listOrders } from "../../../../lib/invest/orderService";
+import { withObservability } from "../../../../lib/platform/observability/core";
 
-export async function GET() {
+async function handleGET() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -11,7 +12,7 @@ export async function GET() {
   return Response.json({ orders });
 }
 
-export async function POST(request) {
+async function handlePOST(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -29,3 +30,6 @@ export async function POST(request) {
     return Response.json({ error: e.message }, { status: 400 });
   }
 }
+
+export const GET = withObservability("GET /api/v1/invest/orders", handleGET);
+export const POST = withObservability("POST /api/v1/invest/orders", handlePOST);

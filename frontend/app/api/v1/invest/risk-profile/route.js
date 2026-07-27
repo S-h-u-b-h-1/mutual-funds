@@ -3,8 +3,9 @@
 // identityService derives the score/category, never trusts a client-supplied score directly.
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
 import * as identityService from "../../../../lib/invest/identityService";
+import { withObservability } from "../../../../lib/platform/observability/core";
 
-export async function GET() {
+async function handleGET() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -12,7 +13,7 @@ export async function GET() {
   return Response.json({ riskProfile });
 }
 
-export async function PUT(request) {
+async function handlePUT(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -30,3 +31,6 @@ export async function PUT(request) {
     return Response.json({ error: e.message }, { status: 400 });
   }
 }
+
+export const GET = withObservability("GET /api/v1/invest/risk-profile", handleGET);
+export const PUT = withObservability("PUT /api/v1/invest/risk-profile", handlePUT);

@@ -2,8 +2,9 @@
 // polls more often than the inbox itself is open). Optional ?category= to scope it.
 import { requireUser, unauthorized } from "../../../../../lib/apiAuth";
 import { getUnreadCount } from "../../../../../lib/platform/notifications/inbox";
+import { withObservability } from "../../../../../lib/platform/observability/core";
 
-export async function GET(request) {
+async function handleGET(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -11,3 +12,5 @@ export async function GET(request) {
   const count = await getUnreadCount(user.id, { category: searchParams.get("category") });
   return Response.json({ count });
 }
+
+export const GET = withObservability("GET /api/v1/invest/notifications/unread-count", handleGET);

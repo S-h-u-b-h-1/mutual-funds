@@ -2,8 +2,9 @@
 // status, category, type, unreadOnly, includeArchived, includeDismissed, limit, offset.
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
 import { listNotifications } from "../../../../lib/platform/notifications/inbox";
+import { withObservability } from "../../../../lib/platform/observability/core";
 
-export async function GET(request) {
+async function handleGET(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -24,3 +25,5 @@ export async function GET(request) {
     return Response.json({ error: e.message }, { status: 400 });
   }
 }
+
+export const GET = withObservability("GET /api/v1/invest/notifications", handleGET);

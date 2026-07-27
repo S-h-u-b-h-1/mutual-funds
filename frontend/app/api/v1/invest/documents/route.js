@@ -2,8 +2,9 @@
 // limit. For keyword/tag/date-range search, see GET /documents/search.
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
 import { listDocuments } from "../../../../lib/invest/documentService";
+import { withObservability } from "../../../../lib/platform/observability/core";
 
-export async function GET(request) {
+async function handleGET(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
 
@@ -16,3 +17,5 @@ export async function GET(request) {
   const documents = await listDocuments(user.id, { category, status, limit });
   return Response.json({ documents });
 }
+
+export const GET = withObservability("GET /api/v1/invest/documents", handleGET);
