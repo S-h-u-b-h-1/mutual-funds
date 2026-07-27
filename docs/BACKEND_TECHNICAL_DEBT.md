@@ -123,6 +123,20 @@ prefers under-delivery over risking a duplicate. Verified with 3 new tests again
 platform (`runWorkerTick`, not just a direct call), asserting against a real send-call counter on
 the test channel, not just the DB status field. Merged to `main` directly (`cde778e`).
 
+**M10 resolution (2026-07-28)**: `app/lib/internalAuth.js` extracts the timing-safe shared-secret
+check `alerts/run` already used (`crypto.timingSafeEqual`) into a single reusable
+`checkInternalSecret(request, envVarName)`. All 5 status routes (events/jobs/providers/
+reconciliation/webhooks) now call it against a new `INTERNAL_STATUS_SECRET` env var before doing
+any work; `alerts/run` was refactored to call the same helper against its existing
+`ALERTS_INTERNAL_SECRET`, rather than leaving two copies of the same crypto logic. Fails closed:
+returns 503 if the env var isn't set at all (not silently open), 401 on a missing/wrong header.
+Catch blocks across all 5 routes now log the real error server-side via C3's `logError()` and
+return a generic message instead of interpolating `err.message` into the response. Verified with
+5 unit tests plus a live dev-server smoke test (no header → 401, wrong secret → 401, correct
+secret → 200). No migration — pure application code. Merged to `main` directly (`a6a7d45`).
+**Operator action needed**: `INTERNAL_STATUS_SECRET` must be set in production (Vercel) for these
+5 endpoints to function; until then they correctly return 503 rather than opening up.
+
 **H6 status (2026-07-27, written and tested, NOT merged)**: `DELETE /api/v1/account` no longer
 hard-deletes the `users` row (which cascaded through ~35 tables, wiping every financial/compliance
 record). It now anonymizes identifying fields in place (`app/lib/accountLifecycle.js`) — the row
@@ -155,7 +169,7 @@ in production (login and account deletion would otherwise break the moment it de
 | M7 | Missing indexes: `investment_orders.scheme_code`, `portfolio_transactions.scheme_code`, `(user_id, created_at)` on orders/mandates | new migration | S |
 | M8 | `listOrders`/`listSipMandates` have no `LIMIT`; `getPortfolioTimeline` fetches unbounded then slices in JS instead of a real SQL `LIMIT`/`OFFSET` | `orderService.js`, `portfolioService.js` | S |
 | M9 | Reconciliation `holdings-vs-provider` comparator has a genuine N+1 over users; sibling comparators already use the correct JOIN pattern | `lib/platform/reconciliation/comparators/holdingsVsProvider.js` | S |
-| M10 | 5 `/api/internal/*/status` endpoints unauthenticated — reuse the existing shared-secret pattern from `alerts/run` | 5 route files | S |
+| M10 | ~~5 `/api/internal/*/status` endpoints unauthenticated — reuse the existing shared-secret pattern from `alerts/run`~~ **✅ fixed** — all 5 gated behind a new shared `checkInternalSecret()` helper (`INTERNAL_STATUS_SECRET`); `alerts/run` itself refactored onto the same helper; error responses no longer leak `err.message`. | 5 route files | S |
 | M11 | Generic `catch(e) → e.message` error handlers can leak raw exceptions (DB errors, etc.) — concretely demonstrated via a malformed SIP date | 17+ route files | S-M (systematic sweep) |
 | M12 | No consolidated Invest-platform health view; no Notifications metrics endpoint at all | new `/internal/*` page + `getNotificationMetrics()` | M |
 | M13 | ~~Correlation IDs fragment per-hop; `emitEvent()` → `enqueueJob()` drops `correlationId` entirely (concrete one-line bug)~~ **The one-line bug is ✅ fixed** — `event-dispatch` jobs now carry the originating event's `correlationId`. Broader per-hop fragmentation (order → event → job → notification each minting its own ID) is unchanged, real, and still open. | `lib/platform/events/core.js` | ~~XS (the bug)~~ done / M (full propagation, open) |
@@ -195,11 +209,12 @@ in production (login and account deletion would otherwise break the moment it de
 - **5 Critical, 12 High, 20 Medium, 13 Low** (plus 1 explicitly accepted tradeoff) — H12 (provider
   resilience) added 2026-07-27, called out explicitly in the RC hardening directive but not
   originally broken out as its own High item.
-- Current status (2026-07-27): Critical **4/5 fixed and live** (C2, C3, C4, C5). C1 is written,
+- Current status (2026-07-28): Critical **4/5 fixed and live** (C2, C3, C4, C5). C1 is written,
   tested, and verified but **not yet merged** — blocked on a production migration this session's
   tooling can't apply (see C1's own status note above). High **7/12 fixed and live** (H2, H3, H4,
   H7, H10, H11, H12); H6 is written and tested but likewise not yet merged, same production-
-  migration blocker as C1 (see H6's own status note above) — H1/H5/H8/H9 still open.
+  migration blocker as C1 (see H6's own status note above) — H1/H5/H8/H9 still open. Medium: M10,
+  M13 (partial), and M16 fixed and live; the rest are open but genuinely non-urgent (see table).
 - **Two items are parked on their own branches, blocked on the exact same class of issue**:
   `hardening/c1-order-idempotency` (needs `sql/neon/022_order_idempotency.sql` applied to
   production) and `hardening/h6-account-lifecycle` (needs `sql/neon/024_account_lifecycle.sql`).
