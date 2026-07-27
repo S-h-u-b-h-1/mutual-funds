@@ -136,11 +136,15 @@ unauthenticated GitHub API rate limit (60 req/hr) ever becomes a problem in prac
 Because the two branches are independent after the fork, a migration applied to `production` is
 **not** automatically applied to `test`. Every `sql/neon/0XX_*.sql` file applied to production going
 forward must also be applied to the `test` branch, or the test branch's schema will drift stale
-relative to what the code (and tests) expect. This is a manual step today; formalizing it is folded
-into H9 (migration tracking/tooling — see `BACKEND_TECHNICAL_DEBT.md`), which should produce a
-single script that applies pending migrations to a given target rather than two ad hoc processes.
-Until then: **when you apply a migration to production as part of this hardening work, apply the
-same file to the `test` branch (`br-weathered-star-atigraez`) in the same change.**
+relative to what the code (and tests) expect. **H9 closed the tooling gap this section used to flag**
+— `scripts/apply_migrations.py` plus `schema_migrations` (`sql/neon/025_migration_ledger.sql`) now
+give a single command (`--status`/`--apply`/`--verify`) to apply and track pending migrations
+against whichever branch `DATABASE_URL` points at, rather than two ad hoc processes. See
+`docs/MIGRATION_RUNBOOK.md` for the full process and the current per-branch inventory. The
+underlying manual step remains the same as before: **when you apply a migration to production,
+apply the same file to the `test` branch (`br-weathered-star-atigraez`) too** — the tooling makes
+each half of that easy to do and easy to verify after the fact, it doesn't apply to both branches
+in one call.
 
 ## What this does not solve
 

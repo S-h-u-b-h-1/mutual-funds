@@ -80,7 +80,7 @@ that's confirmed done.
 | H6 | `bank_accounts`/`documents`/order history fully hard-cascade-delete on user deletion, via a live (if UI-unwired) `DELETE /api/v1/account` — incompatible with brokerage record-retention obligations given the real, registered distributor ARN/EUIN | schema design decision + migration | L | 🟡 written, blocked on migration |
 | H7 | `identityService.ensureAccount`/`portfolioService.connectMockPortfolio` call sites sit behind routes with **no** try/catch at all | `api/v1/invest/account/route.js`, `api/v1/invest/portfolio/connect/route.js` | XS | ✅ fixed |
 | H8 | `jobs-worker.yml` (the Invest platform's execution engine) has no failure alerting and is excluded from the one health dashboard | `.github/workflows/jobs-worker.yml`, `lib/pipelineHealth.js` | S | 🔴 |
-| H9 | Ad hoc migration process, no tracking table; already caused one real production incident (005/006); 15 newer migrations (007-021, the entire Invest backend) have zero regression-test coverage | `sql/neon/*`, `tests/test_migrations.py` | M (extend existing test pattern) | 🔴 |
+| H9 | ~~Ad hoc migration process, no tracking table; already caused one real production incident (005/006); 15 newer migrations (007-021, the entire Invest backend) have zero regression-test coverage~~ **✅ fixed (process + tracking)** — see resolution note below. Extending `test_migrations.py`'s per-table schema-contract pattern to migrations 007-021 is explicitly NOT done by this fix (real effort, flagged as a follow-up in `MIGRATION_RUNBOOK.md`). | `sql/neon/*`, `tests/test_migrations.py` | M (extend existing test pattern) | 🟡 process fixed, test coverage extension still open |
 | H10 | No validation anywhere for negative/zero `amount`/`units` in order/redemption/switch creation — a real product-correctness gap, not just a test gap | `orderService.js`, `redemptionService.js`, `switchService.js` | S | ✅ fixed |
 | H11 | Jobs-table test noise: 5 test files enqueue an undrained `event-dispatch` job via `makeInvestmentReadyUser`; 2 files (`webhookPlatform.test.js`, `notifications/core.test.js`) claim without filtering to "mine," causing the specific flakiness re-diagnosed multiple times this session | `app/lib/platform/webhooks/webhookPlatform.test.js`, `app/lib/platform/notifications/core.test.js` | S | ✅ fixed |
 | H12 | None of the 5 invest providers (KYC/Document/Investment/Payment/Portfolio) had timeout, retry, or circuit-breaker protection on any call — a hung mock call hangs the whole request until Vercel's own function timeout, and a struggling provider gets hammered by every concurrent request | `frontend/app/lib/invest/providers/*`, `identityService.js`, `complianceService.js`, `orderService.js`, `documentService.js`, `portfolioService.js` | M | ✅ fixed |
@@ -137,6 +137,30 @@ secret → 200). No migration — pure application code. Merged to `main` direct
 **Operator action needed**: `INTERNAL_STATUS_SECRET` must be set in production (Vercel) for these
 5 endpoints to function; until then they correctly return 503 rather than opening up.
 
+**H9 resolution (2026-07-28)**: full account and current per-branch inventory in the new
+`docs/MIGRATION_RUNBOOK.md`. `sql/neon/025_migration_ledger.sql` adds `schema_migrations` — a
+branch-local, database-native record of which migrations have actually run, with a checksum so
+`scripts/apply_migrations.py --verify` can detect a migration file that changed on disk after it
+was applied (the exact class of drift 005/006 exemplified). The script also replaces "someone runs
+`psql -f` by hand, nothing records it" with `--status`/`--apply`/`--verify`/`--backfill` against
+whichever branch `DATABASE_URL` points at. Applied to and backfilled on both branches for real:
+production and `test` both now have an accurate, empirically-verified (not assumed) ledger.
+Process-only, additive, applied directly (no PR needed for the tracking table itself) — `025` is
+`create table if not exists`, succeeded against production immediately. Also wired
+`tests/test_migrations.py` (the schema-regression suite the 005/006 incident itself produced) into
+CI for the first time — `backend-tests` previously ran with no `DATABASE_URL` at all, so that
+suite's own skip guard silently no-op'd on every run; it's now pointed at the same
+`TEST_DATABASE_URL` secret `frontend-tests` uses (still not created as a repo secret — same
+pre-existing gap flagged for C4 — so it continues to skip until that secret exists, but will start
+running for free the moment it does). **Not done**: extending per-table schema-contract tests
+(`test_migrations.py`'s own pattern) to the 19 migrations since 006 — real effort, correctly out
+of scope for this pass, flagged as the natural next step in the runbook. One real mistake happened
+during this work and is documented, not hidden: a smoke test of `--apply` unintentionally applied
+`008_persistent_portfolio.sql` to the `test` branch (it was legitimately pending at the same time
+as a scratch file being tested) — confirmed harmless (additive, reviewed, zero code references
+yet) and left in place by explicit choice rather than reverted; see the runbook's inventory and
+M20's updated row for the full story.
+
 **H6 status (2026-07-27, written and tested, NOT merged)**: `DELETE /api/v1/account` no longer
 hard-deletes the `users` row (which cascaded through ~35 tables, wiping every financial/compliance
 record). It now anonymizes identifying fields in place (`app/lib/accountLifecycle.js`) — the row
@@ -179,7 +203,7 @@ in production (login and account deletion would otherwise break the moment it de
 | M17 | `Document`/`Portfolio` provider calls sit mid-`transition()`/mid-flow with no compensating logic if they fail after an order is already marked completed | `orderService.js`, `portfolioService.js` | M |
 | M18 | `Math.random` mock-leak risk in 3 test files (no file-level `afterEach(vi.restoreAllMocks)`) | `documentService.test.js`, `portfolioService.test.js`, `mockProviders.test.js` | XS |
 | M19 | Only 2 of 5 providers use standardized `PROVIDER_ERROR_CODES`; KYC has real failures with no code to map to | `providers/types.js`, `MockKYCProvider.js` | S |
-| M20 | Migration 008 (Persistent Portfolio) designed but never applied to production — confirmed dead, self-documented | `sql/neon/008_persistent_portfolio.sql` | XS (decision: apply or formally retire) |
+| M20 | Migration 008 (Persistent Portfolio) designed, reviewed, additive-only, but not yet applied to production — associated with the still-open Persistent Portfolio Mission (Phase 2 domain model done, Phase 3+ not yet built), correctly not "dead" so much as not yet needed. **Now applied to the `test` branch** (2026-07-28, during H9's tooling verification — see `MIGRATION_RUNBOOK.md`'s inventory for the full story), still deliberately not applied to production — that's a product-scope call (resume the mission, or formally retire 008), not a hardening-pass decision. | `sql/neon/008_persistent_portfolio.sql` | XS (decision: apply to prod, or formally retire) |
 
 ---
 
@@ -211,10 +235,14 @@ in production (login and account deletion would otherwise break the moment it de
   originally broken out as its own High item.
 - Current status (2026-07-28): Critical **4/5 fixed and live** (C2, C3, C4, C5). C1 is written,
   tested, and verified but **not yet merged** — blocked on a production migration this session's
-  tooling can't apply (see C1's own status note above). High **7/12 fixed and live** (H2, H3, H4,
-  H7, H10, H11, H12); H6 is written and tested but likewise not yet merged, same production-
-  migration blocker as C1 (see H6's own status note above) — H1/H5/H8/H9 still open. Medium: M10,
-  M13 (partial), and M16 fixed and live; the rest are open but genuinely non-urgent (see table).
+  tooling can't apply (see C1's own status note above). High **8/12 fixed and live** (H2, H3, H4,
+  H7, H9 process, H10, H11, H12); H6 is written and tested but not yet merged, same production-
+  migration blocker as C1 (see H6's own status note above) — H1/H5/H8 still open, H9's own test-
+  coverage-extension half is explicitly still open too (see H9's row). Medium: M10, M13 (partial),
+  and M16 fixed and live; the rest are open but genuinely non-urgent (see table).
+- **Migration process itself is now tracked, not ad hoc** — see `docs/MIGRATION_RUNBOOK.md` (new,
+  H9). Every migration through 025 is now recorded in a real `schema_migrations` ledger on both
+  branches, empirically verified against live schema rather than assumed.
 - **Two items are parked on their own branches, blocked on the exact same class of issue**:
   `hardening/c1-order-idempotency` (needs `sql/neon/022_order_idempotency.sql` applied to
   production) and `hardening/h6-account-lifecycle` (needs `sql/neon/024_account_lifecycle.sql`).

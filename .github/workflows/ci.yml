@@ -25,8 +25,16 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      # -m adds the repo root to sys.path so `ingestion` imports cleanly
+      # -m adds the repo root to sys.path so `ingestion` imports cleanly.
+      # DATABASE_URL here is the TEST branch (same secret frontend-tests uses) — tests/test_migrations.py
+      # is the ONLY file in tests/ that touches it (confirmed: it's read-only, information_schema/
+      # pg_constraint/pg_indexes queries plus a couple of `select count(*)`), so this can't change any
+      # other test's behavior. If the secret isn't set yet (see docs/TEST_DATABASE_AND_CI.md), that one
+      # file's own pytest.mark.skipif no-ops gracefully — this job doesn't hard-fail on a missing
+      # secret the way frontend-tests does, since every OTHER file in this job needs no database at all.
       - run: python -m pytest tests/ -q
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
 
   frontend-build:
     name: Next.js build
