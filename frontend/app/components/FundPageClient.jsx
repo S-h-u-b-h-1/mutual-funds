@@ -556,7 +556,7 @@ export default function FundPageClient({
                 ) : (
                   <p className="text-[12.5px] text-ink-faint leading-relaxed">
                     MF Pulse has verified factsheet coverage for {metadataStatus.populated.toLocaleString("en-IN")} schemes across three AMC pipelines
-                    (SBI, HDFC, ICICI Prudential) as of {fieldCoverage?.factsheetLastUpdated || "today"}. <strong className="text-ink-muted">{fund.amc}</strong> isn’t
+                    (SBI, HDFC, ICICI Prudential) as of {fieldCoverage?.factsheetLastUpdated || "date unavailable"}. <strong className="text-ink-muted">{fund.amc}</strong> isn’t
                     in that set yet, so benchmark, AUM, expense ratio, exit load, and the other fields normally shown here aren’t fabricated or estimated —
                     they simply aren’t acquired for this fund. Everything above the fold (NAV, returns, category) still comes from AMFI’s official daily feed
                     and is unaffected by this.
