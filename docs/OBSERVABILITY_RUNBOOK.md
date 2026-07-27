@@ -97,10 +97,13 @@ the same class of blocker as the `TEST_DATABASE_URL` secret and the C1 productio
 ## What this does not solve
 
 - **Scope is the invest API surface only** (`app/api/v1/invest/**`, 39 route files, matching C3's
-  own scoping in `BACKEND_TECHNICAL_DEBT.md`) — the other ~37 routes (auth, cloud-sync, alerts,
-  internal status endpoints) are NOT wrapped. Extend the same `withObservability()` pattern to
-  them in a future pass if they need the same coverage; nothing about the mechanism is
-  invest-specific.
+  own scoping in `BACKEND_TECHNICAL_DEBT.md`) — the other routes (auth, cloud-sync, alerts) are
+  NOT wrapped in `withObservability()`. Extend the same pattern to them in a future pass if they
+  need the same coverage; nothing about the mechanism is invest-specific. **Partial exception
+  (M10, 2026-07-28)**: the 5 `/api/internal/*/status` routes now call `logError()` directly in
+  their own catch blocks (structured, correlationId-less since there's no per-request end user to
+  attach one to) — real error visibility for those routes, just not the full request-completion
+  logging / correlationId propagation `withObservability()` gives invest routes.
 - **No metrics/dashboards** — this is logs only. Aggregating error rates, latency percentiles, or
   building an actual dashboard on top of these structured lines is a real next step, not done here.
 - **No log retention/alerting policy** — Vercel's own log retention window applies; no alerting
