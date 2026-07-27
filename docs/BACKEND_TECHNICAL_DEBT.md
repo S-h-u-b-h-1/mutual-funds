@@ -76,7 +76,7 @@ that's confirmed done.
 | H3 | `deliverNotification()` has no "already delivered" guard — a lease timeout can cause a real duplicate send once a real channel adapter exists | `frontend/app/lib/platform/notifications/core.js` | XS | ✅ fixed |
 <!-- H3 fully closed 2026-07-27, see resolution note after the High table below — the 2026-07-24 fix only caught status='delivered'; a status='processing' row from a crash-mid-send was still unguarded. -->
 | H4 | No rate limiting anywhere — login, register, and forgot-password are exploitable today with a plain unauthenticated script | `lib/auth.js`, `api/auth/*` | M (auth endpoints only) / L (app-wide) | ✅ fixed |
-| H5 | `investment_orders.placed_by_user_id` has no `ON DELETE` behavior — will hard-fail account deletion once advisor-assisted ordering ships | new migration | XS | 🔴 |
+| H5 | `investment_orders.placed_by_user_id` has no `ON DELETE` behavior — will hard-fail account deletion once advisor-assisted ordering ships | `sql/neon/028_placed_by_user_fk_fix.sql` | XS | 🟡 written, denied by tooling on both branches — see `MIGRATION_RUNBOOK.md` |
 | H6 | `bank_accounts`/`documents`/order history fully hard-cascade-delete on user deletion, via a live (if UI-unwired) `DELETE /api/v1/account` — incompatible with brokerage record-retention obligations given the real, registered distributor ARN/EUIN | schema design decision + migration | L | 🟡 written, blocked on migration |
 | H7 | `identityService.ensureAccount`/`portfolioService.connectMockPortfolio` call sites sit behind routes with **no** try/catch at all | `api/v1/invest/account/route.js`, `api/v1/invest/portfolio/connect/route.js` | XS | ✅ fixed |
 | H8 | `jobs-worker.yml` (the Invest platform's execution engine) has no failure alerting and is excluded from the one health dashboard | `.github/workflows/jobs-worker.yml`, `lib/pipelineHealth.js` | S | 🔴 |
@@ -161,6 +161,20 @@ as a scratch file being tested) — confirmed harmless (additive, reviewed, zero
 yet) and left in place by explicit choice rather than reverted; see the runbook's inventory and
 M20's updated row for the full story.
 
+**M6/M7/L5/H5 status (2026-07-28, written, `test`-verified, NOT applied to production)**:
+`sql/neon/026_index_cleanup.sql` (M6 + M7), `027_drop_dead_tables.sql` (L5), and
+`028_placed_by_user_fk_fix.sql` (H5) are all merged to `main` — pure SQL, no application code
+depends on any of them, so merging the files themselves carries no risk. All three were applied to
+the `test` branch first: 026 and 027 succeeded and are verified live there (confirmed via
+`scripts/apply_migrations.py --status`); 028 was denied by this session's tooling on `test` too.
+Attempting 026 and 027 against production was then also denied, a broader block than earlier in
+this session (which allowed `create table` for brand-new objects against production). Per the
+tooling's own explicit instruction on denial (stop and surface it, don't retry or route around
+it), none of the three were forced. Full detail, including exactly which catalog queries proved
+M6's redundant indexes and L5's dead tables, is in `docs/MIGRATION_RUNBOOK.md`'s inventory. All
+three are safe, reviewed, and ready — they just need a human with direct database access to run
+`psql "$DATABASE_URL" -f sql/neon/0NN_*.sql` against production (and, for 028, against `test` too).
+
 **H6 status (2026-07-27, written and tested, NOT merged)**: `DELETE /api/v1/account` no longer
 hard-deletes the `users` row (which cascaded through ~35 tables, wiping every financial/compliance
 record). It now anonymizes identifying fields in place (`app/lib/accountLifecycle.js`) — the row
@@ -189,8 +203,8 @@ in production (login and account deletion would otherwise break the moment it de
 | M3 | Duplicated exit-load/net-amount math between redemption and switch | same two files | S |
 | M4 | Two parallel, non-integrated notification-preference systems (`user_notification_settings` vs `notification_preferences`) — both live | product decision + consolidation | L |
 | M5 | No CHECK constraints on any enum-shaped column added from migration 010 onward (`order_type`, `status` columns, `mandate_status`, etc.) | new migration | M |
-| M6 | 7 duplicate/redundant indexes across 6 tables | new migration (`DROP INDEX`) | XS |
-| M7 | Missing indexes: `investment_orders.scheme_code`, `portfolio_transactions.scheme_code`, `(user_id, created_at)` on orders/mandates | new migration | S |
+| M6 | ~~7 duplicate/redundant indexes across 6 tables~~ **🟡 written, `test`-verified, blocked on production** — `sql/neon/026_index_cleanup.sql`. All 7 found by a catalog query (pg_index prefix/predicate match, not the eyeballing the original audit implies), confirmed none unique, confirmed zero code references by name. Applied cleanly to `test`; denied against production by this session's tooling. | `sql/neon/026_index_cleanup.sql` | XS |
+| M7 | ~~Missing indexes: `investment_orders.scheme_code`, `portfolio_transactions.scheme_code`, `(user_id, created_at)` on orders/mandates~~ **🟡 written, `test`-verified, blocked on production** — same file as M6. Confirmed against the real query shapes in `redemptionService.js`/`orderService.js`; `EXPLAIN ANALYZE` against production today shows plain Seq Scans regardless (near-zero row counts), so this is structural insurance, not a currently-measurable speedup — see the migration's own header. | `sql/neon/026_index_cleanup.sql` | S |
 | M8 | `listOrders`/`listSipMandates` have no `LIMIT`; `getPortfolioTimeline` fetches unbounded then slices in JS instead of a real SQL `LIMIT`/`OFFSET` | `orderService.js`, `portfolioService.js` | S |
 | M9 | Reconciliation `holdings-vs-provider` comparator has a genuine N+1 over users; sibling comparators already use the correct JOIN pattern | `lib/platform/reconciliation/comparators/holdingsVsProvider.js` | S |
 | M10 | ~~5 `/api/internal/*/status` endpoints unauthenticated — reuse the existing shared-secret pattern from `alerts/run`~~ **✅ fixed** — all 5 gated behind a new shared `checkInternalSecret()` helper (`INTERNAL_STATUS_SECRET`); `alerts/run` itself refactored onto the same helper; error responses no longer leak `err.message`. | 5 route files | S |
@@ -215,7 +229,7 @@ in production (login and account deletion would otherwise break the moment it de
 | L2 | "Notifications" has no single owning module — read/manage routes skip `lib/invest/*Service.js` entirely, unlike every other capability | route layer | M |
 | L3 | Stale doc comment in `notifications.js` claiming false things about pre-M5 call sites | `notifications.js` | XS |
 | L4 | 5 near-identical mock notification-channel provider files — collapse to one factory | `platform/notifications/channels/mock/*.js` | S |
-| L5 | 2 fully dead tables (`investor_profile` singular, `portfolio_sips`), 0 rows, 0 code references | new migration (`DROP TABLE`) | XS |
+| L5 | ~~2 fully dead tables (`investor_profile` singular, `portfolio_sips`), 0 rows, 0 code references~~ **🟡 written, `test`-verified, blocked on production** — `sql/neon/027_drop_dead_tables.sql`. Re-confirmed immediately before writing the file: 0 rows, 0 code references, 0 incoming FKs (queried `pg_constraint`). Applied cleanly to `test`; denied against production by this session's tooling. | `sql/neon/027_drop_dead_tables.sql` | XS |
 | L6 | Account enumeration on `/api/auth/register` (inconsistent with the deliberate anti-enumeration design on `forgot-password`) | `api/auth/register/route.js` | S |
 | L7 | `trustHost: true` with no Host-header hardening (not practically reachable on Vercel; the codebase already has the right pattern one file over) | `lib/auth.js` | S |
 | L8 | No security headers configured (CSP, HSTS, X-Frame-Options, etc.) | `next.config.mjs` | S |
@@ -236,19 +250,26 @@ in production (login and account deletion would otherwise break the moment it de
 - Current status (2026-07-28): Critical **4/5 fixed and live** (C2, C3, C4, C5). C1 is written,
   tested, and verified but **not yet merged** — blocked on a production migration this session's
   tooling can't apply (see C1's own status note above). High **8/12 fixed and live** (H2, H3, H4,
-  H7, H9 process, H10, H11, H12); H6 is written and tested but not yet merged, same production-
-  migration blocker as C1 (see H6's own status note above) — H1/H5/H8 still open, H9's own test-
-  coverage-extension half is explicitly still open too (see H9's row). Medium: M10, M13 (partial),
-  and M16 fixed and live; the rest are open but genuinely non-urgent (see table).
+  H7, H9 process, H10, H11, H12); H5, H6 are written and verified on `test` but not applied to
+  production (see their own status notes) — H1/H8 still open, H9's own test-coverage-extension
+  half is explicitly still open too (see H9's row). Medium: M6, M7, M10, M13 (partial), and M16
+  fixed (M6/M7 on `test` only, blocked on production — see their rows); the rest are open but
+  genuinely non-urgent (see table). Low: L5 written and `test`-verified, blocked on production.
 - **Migration process itself is now tracked, not ad hoc** — see `docs/MIGRATION_RUNBOOK.md` (new,
-  H9). Every migration through 025 is now recorded in a real `schema_migrations` ledger on both
-  branches, empirically verified against live schema rather than assumed.
-- **Two items are parked on their own branches, blocked on the exact same class of issue**:
-  `hardening/c1-order-idempotency` (needs `sql/neon/022_order_idempotency.sql` applied to
-  production) and `hardening/h6-account-lifecycle` (needs `sql/neon/024_account_lifecycle.sql`).
-  Both need someone with production DB access to run one migration file each; both branches merge
-  the moment that's done. This is the single largest concrete blocker to a READY (vs CONDITIONALLY
-  READY) release verdict.
+  H9). Every migration through 028 is now recorded in a real `schema_migrations` ledger on the
+  `test` branch (026/027 fully, 028 denied even there), and through 025 on production, empirically
+  verified against live schema rather than assumed.
+- **Five items are now parked, blocked on production/tooling DB access**: `hardening/
+  c1-order-idempotency` (022), `hardening/h6-account-lifecycle` (024) on their own branches, plus
+  `026_index_cleanup.sql`, `027_drop_dead_tables.sql`, and `028_placed_by_user_fk_fix.sql` — all
+  three already merged to `main` as pure SQL files, verified safe and (for 026/027) proven working
+  against `test`, but not yet run against production. **The blocking pattern widened over the
+  course of this session**: early on, `create table` succeeded against production for brand-new
+  objects while only `alter table` on live central tables was denied; by 026-028, `drop index`/
+  `create index`/`drop table` were denied against production too, and 028's `alter table` was
+  denied even against `test` — see `MIGRATION_RUNBOOK.md`'s inventory for the full, current
+  picture. All five need a human with direct database access to run one file each; this is now the
+  single largest concrete blocker to a READY (vs CONDITIONALLY READY) release verdict.
 - Total XS/S items (cheap, low-risk, shippable immediately): **~24** — the bulk of Medium/Low.
 - Items needing a genuine design decision before work starts (XL-adjacent): H6 (retention vs.
   deletion policy), M4 (which notification-preference system wins), C1/C2 (need a real

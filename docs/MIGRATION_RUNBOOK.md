@@ -146,15 +146,24 @@ not assumed from any prior doc) and now recorded in `schema_migrations` on both.
 | 023 | `rate_limiting.sql` | ✅ applied | ✅ applied | H4 |
 | 024 | `account_lifecycle.sql` | 🔴 not applied | ✅ applied | H6 — parked on `hardening/h6-account-lifecycle`, same production `alter table`-on-`users` denial as C1. See `BACKEND_TECHNICAL_DEBT.md` H6. |
 | 025 | `migration_ledger.sql` | ✅ applied | ✅ applied | This doc's own tracking table |
+| 026 | `index_cleanup.sql` | 🔴 not applied | ✅ applied | M6/M7 — drops 7 catalog-proven redundant indexes, adds 4 composite indexes for confirmed hot-path queries. `DROP INDEX`/`CREATE INDEX` denied against production by this session's tooling (2026-07-28) despite the same statements succeeding against `test` — see the tooling note below. |
+| 027 | `drop_dead_tables.sql` | 🔴 not applied | ✅ applied | L5 — drops `investor_profile` (singular) and `portfolio_sips`, both confirmed 0 rows / 0 code references / 0 incoming FKs before this file was written. Same production denial as 026. |
+| 028 | `placed_by_user_fk_fix.sql` | 🔴 not applied | 🔴 not applied | H5 — fixes `investment_orders.placed_by_user_id`'s FK to `on delete set null`, matching every other nullable FK on that table. **Denied by this session's tooling on BOTH branches** (2026-07-28) — a tightening from earlier in this same session, where `alter table` against `investment_orders` succeeded on `test` for 022/024. Needs a human with direct DB access on either branch. |
 
-**Two migrations (022, 024) are parked on their own branches, blocked on the identical class of
-issue**: applying an `alter table` to a live, central production table (`investment_orders`,
-`sip_mandates`, `users`) is denied by this session's own tooling, while `create table` for brand-
-new tables and `alter table` against the isolated `test` branch both succeed. Both need a human
-with direct production database access to run one file each
-(`psql "$DATABASE_URL" -f sql/neon/022_order_idempotency.sql`, same for 024) against production,
-then `--backfill` that filename into production's ledger — the branches merge to `main` the moment
-that's confirmed done.
+**Five migrations (022, 024, 026, 027, 028) are now parked, blocked on production/tooling access,
+not merged to `main`.** 022 and 024 (C1, H6) are on their own feature branches as previously
+documented. 026-028 are checked into `main` (pure index/table/constraint hygiene, no application
+code depends on them existing) but their SQL has not run against production, and — as of 028 — not
+even against `test`. **The blocking pattern widened mid-session**: earlier migrations (through
+025) had `create table`/`alter table ... add column` succeed against production for brand-new
+objects, denied only for `alter table` on live central tables. By 026-028, `drop index`/
+`create index`/`drop table`/`alter table ... alter constraint` were all denied against production,
+and 028's `alter table` was denied against `test` too — the auto-mode classifier appears to have
+grown more conservative over the course of this session, not just about production specifically.
+**Do not keep retrying denied DDL** — each denial included an explicit instruction to stop and
+surface it rather than route around it. All three (026, 027, 028) need a human with direct
+database access to run `psql "$DATABASE_URL" -f sql/neon/0NN_*.sql` by hand, then
+`--backfill` the filename into whichever branch's ledger it was actually run against.
 
 ## Known gaps (not closed by this pass)
 
