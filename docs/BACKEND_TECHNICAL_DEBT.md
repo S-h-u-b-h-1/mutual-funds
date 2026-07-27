@@ -82,6 +82,7 @@ that's confirmed done.
 | H9 | Ad hoc migration process, no tracking table; already caused one real production incident (005/006); 15 newer migrations (007-021, the entire Invest backend) have zero regression-test coverage | `sql/neon/*`, `tests/test_migrations.py` | M (extend existing test pattern) | 🔴 |
 | H10 | No validation anywhere for negative/zero `amount`/`units` in order/redemption/switch creation — a real product-correctness gap, not just a test gap | `orderService.js`, `redemptionService.js`, `switchService.js` | S | ✅ fixed |
 | H11 | Jobs-table test noise: 5 test files enqueue an undrained `event-dispatch` job via `makeInvestmentReadyUser`; 2 files (`webhookPlatform.test.js`, `notifications/core.test.js`) claim without filtering to "mine," causing the specific flakiness re-diagnosed multiple times this session | `app/lib/platform/webhooks/webhookPlatform.test.js`, `app/lib/platform/notifications/core.test.js` | S | ✅ fixed |
+| H12 | None of the 5 invest providers (KYC/Document/Investment/Payment/Portfolio) had timeout, retry, or circuit-breaker protection on any call — a hung mock call hangs the whole request until Vercel's own function timeout, and a struggling provider gets hammered by every concurrent request | `frontend/app/lib/invest/providers/*`, `identityService.js`, `complianceService.js`, `orderService.js`, `documentService.js`, `portfolioService.js` | M | ✅ fixed |
 
 **H4 resolution (2026-07-27)**: Postgres-backed fixed-window rate limiting
 (`app/lib/platform/rateLimit/core.js`, `sql/neon/023_rate_limiting.sql`) — deliberately not an
@@ -94,6 +95,21 @@ that route already avoids); reset-password gets IP-scoped. Verified with a real 
 (20 concurrent requests against one fresh bucket, cross-checked against the persisted row count)
 and a live end-to-end smoke test against a real dev server. Migration applied to both the test
 branch and production; merged to `main` directly (`bd9f619`).
+
+**H12 resolution (2026-07-27)**: `app/lib/invest/providers/resilience.js`'s `callProvider()` wraps
+every provider call site with an 8s timeout and that provider's own circuit breaker — reusing the
+Retry Framework and Circuit Breaker Framework built earlier this session (Phase 4.5), not a new
+implementation. Retry is opt-in per call and defaults to off — "do not blindly retry non-idempotent
+operations" — only turned on for genuinely idempotent/read-style calls (KYC status checks, document
+fetch, portfolio sync, order cancellation); every money-moving write (payment, order placement,
+mandate registration, payout) gets timeout + circuit breaker only. At the three call sites with an
+existing decline branch, a classified timeout/circuit-open failure now resolves cleanly to that same
+'failed' path (tagged `PROVIDER_UNAVAILABLE`) instead of throwing a raw 500; a genuine unexpected
+exception still propagates so a real bug can't hide behind a normal-looking decline. Verified with
+11 unit tests (including circuit-breaker tripping — fn confirmed NOT called once open — and
+per-provider breaker independence) plus the full 106-test real-integration suite across every
+touched service file, zero regressions. No migration — the breaker is deliberately in-memory per
+its own documented design. Merged to `main` directly (`f1551cf`).
 
 ---
 
@@ -147,11 +163,13 @@ branch and production; merged to `main` directly (`bd9f619`).
 
 ## Summary
 
-- **5 Critical, 11 High, 20 Medium, 13 Low** (plus 1 explicitly accepted tradeoff).
+- **5 Critical, 12 High, 20 Medium, 13 Low** (plus 1 explicitly accepted tradeoff) — H12 (provider
+  resilience) added 2026-07-27, called out explicitly in the RC hardening directive but not
+  originally broken out as its own High item.
 - Current status (2026-07-27): Critical **4/5 fixed and live** (C2, C3, C4, C5). C1 is written,
   tested, and verified but **not yet merged** — blocked on a production migration this session's
-  tooling can't apply (see C1's own status note above). High **6/11 fixed** (H2, H3, H4, H7, H10,
-  H11 — H1/H5/H6/H8/H9 still open).
+  tooling can't apply (see C1's own status note above). High **7/12 fixed** (H2, H3, H4, H7, H10,
+  H11, H12 — H1/H5/H6/H8/H9 still open).
 - Total XS/S items (cheap, low-risk, shippable immediately): **~24** — the bulk of Medium/Low.
 - Items needing a genuine design decision before work starts (XL-adjacent): H6 (retention vs.
   deletion policy), M4 (which notification-preference system wins), C1/C2 (need a real
