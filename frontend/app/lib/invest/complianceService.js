@@ -5,6 +5,7 @@
 // frontend has to handle rejected/needs_review states, not just the happy path.
 import { query } from "../db.js";
 import { kycProvider, documentProvider } from "./providers/index.js";
+import { callProvider } from "./providers/resilience.js";
 import { logAudit } from "./audit.js";
 import { emitEvent } from "../platform/events/core.js";
 
@@ -108,16 +109,19 @@ export async function submitItem(userId, itemKey, payload = {}) {
       break;
 
     case "pan": {
-      const session = await kycProvider.initiateVerification({ userId, pan: payload.pan });
-      const check = await kycProvider.checkStatus(session.sessionId);
+      // initiateVerification is NOT retryable — it starts a new session at the provider, so a
+      // retry could open a duplicate one. checkStatus IS a pure read, safe to retry.
+      const session = await callProvider("mock-kyc", "initiateVerification", () => kycProvider.initiateVerification({ userId, pan: payload.pan }));
+      const check = await callProvider("mock-kyc", "checkStatus", () => kycProvider.checkStatus(session.sessionId), { retryable: true });
       outcome = { status: check.status, provider: "mock-kyc", providerReference: session.sessionId, rejectionReason: check.reason };
       break;
     }
 
     case "identity": {
       if (!payload.consentToken) throw new Error("identity verification requires consentToken (consent must be recorded before any document fetch).");
-      const doc = await documentProvider.fetchDocument(payload.consentToken, "identity");
-      const ckyc = await kycProvider.checkCKYCStatus(payload.pan);
+      // Both retrieval/lookup calls, not writes — retrying either fetches the same answer again.
+      const doc = await callProvider("mock-document", "fetchDocument", () => documentProvider.fetchDocument(payload.consentToken, "identity"), { retryable: true });
+      const ckyc = await callProvider("mock-kyc", "checkCKYCStatus", () => kycProvider.checkCKYCStatus(payload.pan), { retryable: true });
       const status = ckyc.status === "kyc_compliant" ? "verified" : ckyc.status === "on_hold" ? "needs_review" : "rejected";
       outcome = { status, provider: "mock-kyc", providerReference: doc.storageRef, rejectionReason: status === "rejected" ? "CKYC status: not registered" : null };
       break;

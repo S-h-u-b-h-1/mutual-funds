@@ -6,6 +6,7 @@
 // real object-storage/DigiLocker-generation provider later never touches this file.
 import { query } from "../db.js";
 import { documentProvider } from "./providers/index.js";
+import { callProvider } from "./providers/resilience.js";
 import { logAudit } from "./audit.js";
 import { notifyUser } from "./notifications.js";
 import { emitEvent } from "../platform/events/core.js";
@@ -116,7 +117,9 @@ export async function uploadDocument(userId, { category, docType = "user_upload"
   assertDocType(docType);
   if (!title) throw new Error("title is required.");
 
-  const stored = await documentProvider.storeUpload({ mimeType, fileSizeBytes });
+  // Not retryable — creates a new storage reference each call, so a retry after a timeout risks
+  // an orphaned duplicate at the provider even though this row's own INSERT is a single attempt.
+  const stored = await callProvider("mock-document", "storeUpload", () => documentProvider.storeUpload({ mimeType, fileSizeBytes }));
   const r = await query(
     `insert into documents (user_id, category, doc_type, title, description, tags, source, provider, storage_ref, mime_type, file_size_bytes, status)
      values ($1,$2,$3,$4,$5,$6,'user-upload',$7,$8,$9,$10,'uploaded')
@@ -141,7 +144,8 @@ export async function generateDocument(userId, { docType, title = null, descript
   assertCategory(resolvedCategory);
   const resolvedTitle = title || `${DOC_TYPE_DEFAULT_TITLE[docType] || docType} — ${new Date().toISOString().slice(0, 10)}`;
 
-  const generated = await documentProvider.generateDocument(docType, { userId, relatedEntityType, relatedEntityId });
+  // Not retryable — same reasoning as storeUpload above (generates a new document each call).
+  const generated = await callProvider("mock-document", "generateDocument", () => documentProvider.generateDocument(docType, { userId, relatedEntityType, relatedEntityId }));
   const r = await query(
     `insert into documents (user_id, category, doc_type, title, description, tags, source, provider, storage_ref, mime_type, file_size_bytes, status, related_entity_type, related_entity_id, metadata)
      values ($1,$2,$3,$4,$5,$6,'mock-generated',$7,$8,$9,$10,'generated',$11,$12,$13)

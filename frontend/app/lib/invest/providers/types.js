@@ -18,6 +18,10 @@ export const PROVIDER_ERROR_CODES = Object.freeze({
   SCHEME_NOT_OPEN: "SCHEME_NOT_OPEN",
   PAYMENT_DECLINED: "PAYMENT_DECLINED",
   MANDATE_DECLINED: "MANDATE_DECLINED",
+  // Provider Resilience (Backend Hardening Phase 3): a timeout, an open circuit breaker, or an
+  // unexpected exception reaching the provider boundary — distinct from a real business decline
+  // (the provider was never actually asked, or never answered), see providers/resilience.js.
+  PROVIDER_UNAVAILABLE: "PROVIDER_UNAVAILABLE",
 });
 
 export class KYCProvider {

@@ -15,6 +15,7 @@ import { revaluePortfolio } from "../portfolioImport/revaluation.js";
 import { computePerformanceLeaders } from "../portfolioImport/performanceLeaders.js";
 import { buildHealthReport } from "../portfolioIntelligence/healthReport.js";
 import { portfolioProvider } from "./providers/index.js";
+import { callProvider } from "./providers/resilience.js";
 import { logAudit } from "./audit.js";
 import { notifyUser } from "./notifications.js";
 import { emitEvent } from "../platform/events/core.js";
@@ -215,7 +216,9 @@ export async function connectMockPortfolio(userId) {
     return { alreadyConnected: true, ...(await getPortfolio(userId)) };
   }
 
-  const { holdings } = await portfolioProvider.syncHoldings(userId);
+  // A read — fetches the provider's current view of holdings, doesn't create state there. Safe
+  // to retry.
+  const { holdings } = await callProvider("mock-portfolio", "syncHoldings", () => portfolioProvider.syncHoldings(userId), { retryable: true });
   let inserted = 0;
   for (const h of holdings) {
     const fund = getFund(h.schemeCode);

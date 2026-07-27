@@ -4,6 +4,7 @@
 // — never derives it from a request body, matching the rest of this codebase's auth discipline.
 import { query } from "../db.js";
 import { investmentProvider } from "./providers/index.js";
+import { callProvider } from "./providers/resilience.js";
 import { logAudit } from "./audit.js";
 import { emitEvent } from "../platform/events/core.js";
 import { getComplianceProgress } from "./complianceService.js";
@@ -53,7 +54,9 @@ export async function ensureAccount(userId) {
   const existing = await getAccount(userId);
   if (existing) return existing;
 
-  const opened = await investmentProvider.openAccount({ userId });
+  // Not retryable: opening a duplicate account is exactly the failure mode this must avoid, and
+  // this call has no idempotency key reaching the provider. Timeout + circuit breaker still apply.
+  const opened = await callProvider("mock-investment", "openAccount", () => investmentProvider.openAccount({ userId }));
   let r;
   try {
     r = await query(

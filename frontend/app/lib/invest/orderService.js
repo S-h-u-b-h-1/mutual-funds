@@ -4,6 +4,7 @@
 // docs/INVEST_PLATFORM_ARCHITECTURE.md §7 and the Phase 1 brief's Module 6 lifecycle.
 import { query } from "../db.js";
 import { investmentProvider, paymentProvider } from "./providers/index.js";
+import { callProvider, isProviderUnavailable, investmentProviderUnavailableOutcome, paymentProviderUnavailableOutcome } from "./providers/resilience.js";
 import { logAudit } from "./audit.js";
 import { notifyUser } from "./notifications.js";
 import { emitEvent } from "../platform/events/core.js";
@@ -96,7 +97,11 @@ async function transition(order, toStatus, reason = null) {
     // InvestmentProvider.initiatePayout's own comment for why this is 'initiated', not a fake
     // 'credited' state this app has no way to actually confirm.
     if (completedOrder.order_type === "redemption") {
-      const payoutAck = await investmentProvider.initiatePayout(completedOrder);
+      // Not retryable (real payout initiation) and not caught on failure — same M17-tracked
+      // accepted gap as reconcileCompletedOrder/generateDocument above (docs/BACKEND_TECHNICAL_DEBT.md):
+      // a mid-flow provider failure here already had no compensating logic before this change.
+      // Timeout + circuit breaker still bound how long a failure takes to surface.
+      const payoutAck = await callProvider("mock-investment", "initiatePayout", () => investmentProvider.initiatePayout(completedOrder));
       const payoutUpdate = await query(
         `update investment_orders set payout_status = $2, payout_reference = $3, payout_initiated_at = now(), updated_at = now()
          where id = $1 returning *`,
@@ -205,7 +210,17 @@ export async function submitOrder(userId, orderId) {
       await query(`update investment_orders set payment_status = 'failed', updated_at = now() where id = $1`, [order.id]);
       return transition(order, "failed", "No verified payment bank account on file.");
     }
-    const paymentAck = await paymentProvider.initiatePayment({ amount: order.amount, bankAccountId: bank.id, schemeCode: order.scheme_code });
+    // Not retryable — a retried payment call without an idempotency key reaching the provider
+    // risks a real duplicate charge (C1, still unmerged, is what adds that key). A timeout/open
+    // circuit is treated as a decline, not rethrown — the order still resolves cleanly to
+    // 'failed' via the existing decline path below, instead of 500ing the whole submit.
+    let paymentAck;
+    try {
+      paymentAck = await callProvider("mock-payment", "initiatePayment", () => paymentProvider.initiatePayment({ amount: order.amount, bankAccountId: bank.id, schemeCode: order.scheme_code }));
+    } catch (err) {
+      if (!isProviderUnavailable(err)) throw err;
+      paymentAck = paymentProviderUnavailableOutcome();
+    }
     paymentReference = paymentAck.paymentRef;
     paymentStatus = paymentAck.status;
     paymentBankAccountId = bank.id;
@@ -219,13 +234,22 @@ export async function submitOrder(userId, orderId) {
     }
   }
 
-  const ack = await investmentProvider.placeOrder({
-    schemeCode: order.scheme_code, orderType: order.order_type, amount: order.amount, units: order.units,
-    distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin,
-    folioNumber: order.folio_number, exitLoadPct: order.exit_load_pct, exitLoadAmount: order.exit_load_amount,
-    relatedSchemeCode: order.related_scheme_code, switchOrderId: order.switch_order_id,
-    paymentReference,
-  });
+  // Not retryable, same reasoning as initiatePayment above — no idempotency key reaches the
+  // provider on this path today. A timeout/open circuit resolves to 'failed' via the existing
+  // rejection path rather than throwing.
+  let ack;
+  try {
+    ack = await callProvider("mock-investment", "placeOrder", () => investmentProvider.placeOrder({
+      schemeCode: order.scheme_code, orderType: order.order_type, amount: order.amount, units: order.units,
+      distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin,
+      folioNumber: order.folio_number, exitLoadPct: order.exit_load_pct, exitLoadAmount: order.exit_load_amount,
+      relatedSchemeCode: order.related_scheme_code, switchOrderId: order.switch_order_id,
+      paymentReference,
+    }));
+  } catch (err) {
+    if (!isProviderUnavailable(err)) throw err;
+    ack = investmentProviderUnavailableOutcome(err);
+  }
   await query(
     `update investment_orders set provider = $2, provider_order_id = $3, provider_error_code = coalesce($4, provider_error_code), submitted_at = now(), updated_at = now()
      where id = $1`,
@@ -270,7 +294,11 @@ export async function cancelOrder(userId, orderId) {
   if (TERMINAL_STATUSES.has(order.status) || order.status === "units_pending") {
     throw new Error(`Order cannot be cancelled from status: ${order.status}.`);
   }
-  if (order.provider_order_id) await investmentProvider.cancelOrder(order.provider_order_id);
+  // Cancellation is naturally idempotent (cancelling an already-cancelled order is the same end
+  // state), so this is one of the few writes safe to retry automatically.
+  if (order.provider_order_id) {
+    await callProvider("mock-investment", "cancelOrder", () => investmentProvider.cancelOrder(order.provider_order_id), { retryable: true });
+  }
   return transition(order, "cancelled");
 }
 
@@ -278,10 +306,19 @@ export async function retryOrder(userId, orderId) {
   const order = await getOrderRaw(userId, orderId);
   if (!order) throw new Error("Order not found.");
   if (order.status !== "retry_required") throw new Error(`Only an order in retry_required can be retried (current status: ${order.status}).`);
-  const ack = await investmentProvider.placeOrder({
-    schemeCode: order.scheme_code, orderType: order.order_type, amount: order.amount, units: order.units,
-    distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin,
-  });
+  // Not retryable at THIS layer for the same reason as submitOrder's placeOrder call — this IS
+  // already the user-initiated retry action, so a further automatic retry-of-the-retry would only
+  // compound the risk. A timeout/open circuit resolves to the existing 'failed' rejection path.
+  let ack;
+  try {
+    ack = await callProvider("mock-investment", "placeOrder", () => investmentProvider.placeOrder({
+      schemeCode: order.scheme_code, orderType: order.order_type, amount: order.amount, units: order.units,
+      distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin,
+    }));
+  } catch (err) {
+    if (!isProviderUnavailable(err)) throw err;
+    ack = investmentProviderUnavailableOutcome(err);
+  }
   await query(`update investment_orders set provider_order_id = $2, submitted_at = now(), updated_at = now() where id = $1`, [order.id, ack.providerOrderId]);
   return transition(order, ack.status === "accepted" ? "submitted" : "failed", ack.rejectionReason);
 }
@@ -315,15 +352,27 @@ export async function createSipMandate(userId, { schemeCode, amount, frequency, 
   // authorization behind it.
   const bank = await getVerifiedBankAccount(userId);
   if (!bank) throw new Error("No verified payment bank account on file — required before setting up a SIP mandate.");
-  const mandateAck = await paymentProvider.initiateMandate({ amount, frequency, bankAccountId: bank.id, schemeCode });
+  // Not retryable — registers a new standing authorization each call. A timeout/open circuit
+  // resolves to a decline, same as initiatePayment above: the mandate is recorded as
+  // mandate_status='failed' via the existing decline path below, never thrown.
+  let mandateAck;
+  try {
+    mandateAck = await callProvider("mock-payment", "initiateMandate", () => paymentProvider.initiateMandate({ amount, frequency, bankAccountId: bank.id, schemeCode }));
+  } catch (err) {
+    if (!isProviderUnavailable(err)) throw err;
+    mandateAck = paymentProviderUnavailableOutcome();
+  }
 
   let providerAck = { status: "failed", providerMandateId: null, provider: mandateAck.provider };
   if (mandateAck.status === "active") {
-    providerAck = await investmentProvider.createSIPMandate({
+    // Not retryable/not caught: this only runs once the payment-side authorization already
+    // succeeded, so a failure here is the genuine partial-failure gap M17 already tracks
+    // (docs/BACKEND_TECHNICAL_DEBT.md) — not something to newly invent handling for.
+    providerAck = await callProvider("mock-investment", "createSIPMandate", () => investmentProvider.createSIPMandate({
       schemeCode, amount, frequency, startDate,
       distributorArn: distributor.arn, distributorEuin: distributor.euin,
       paymentReference: mandateAck.mandateRef,
-    });
+    }));
   }
 
   const r = await query(
