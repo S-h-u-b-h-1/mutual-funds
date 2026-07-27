@@ -6,6 +6,15 @@ on:
   pull_request:
     branches: [main]
 
+# Scoped per-branch/per-PR (github.ref), not global — a new push to one PR shouldn't cancel a
+# different PR's run. This exists mainly for frontend-tests: it claims real rows in the shared
+# `jobs` table on the isolated Neon test branch via a Postgres advisory lock (see
+# frontend/vitest.config.js, jobs/testClaimLock.js), and two overlapping full-suite runs against
+# that same branch would otherwise contend for it needlessly on every superseded push.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend-tests:
     name: Python data-quality tests
@@ -42,3 +51,38 @@ jobs:
           # was silently building against a dead project this whole time; fixed to the real one.
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://fffxwcpptpyjuifknayj.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmZnh3Y3BwdHB5anVpZmtuYXlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyODY4OTAsImV4cCI6MjA5Nzg2Mjg5MH0.u1_fN5z4T6N8pbbH62y97LnDexYNI3dm1qbNBg4VyvU' }}
+
+  frontend-tests:
+    name: Frontend lint + test suite (isolated Neon test branch)
+    runs-on: ubuntu-latest
+    # Measured: a full local run of all 70 files / 506 tests took ~480s wall-clock (see
+    # docs/TEST_DATABASE_AND_CI.md). This budgets ~3x that for npm ci + lint + a cold/shared
+    # runner + a possible Neon compute cold-start on the test branch after CI-only idle periods.
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - name: Guard — TEST_DATABASE_URL secret present
+        run: |
+          if [ -z "${{ secrets.TEST_DATABASE_URL }}" ]; then
+            echo "::error::Cause: TEST_DATABASE_URL repo secret not set. Location: repo Settings -> Secrets and variables -> Actions. Fix: add TEST_DATABASE_URL pointing at the dedicated Neon 'test' branch (br-weathered-star-atigraez) — the same value already in frontend/.env.local locally. This suite structurally refuses to run without an explicit test-database marker, and never against production. See docs/TEST_DATABASE_AND_CI.md."
+            exit 1
+          fi
+      - name: Run test suite
+        env:
+          # Deliberately the SAME secret for both — app/lib/testDbGuard.js requires
+          # TEST_DATABASE_URL to be byte-for-byte identical to DATABASE_URL as proof this
+          # environment was deliberately configured for tests, not just inheriting a production
+          # DATABASE_URL from somewhere else. See docs/TEST_DATABASE_AND_CI.md.
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+        run: npm test

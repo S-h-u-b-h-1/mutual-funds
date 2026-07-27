@@ -18,12 +18,20 @@ primitive or design decision before work can start).
 | C1 | `orderService.transition()` unconditional UPDATE — no compare-and-swap anywhere in the order lifecycle; double-click or concurrent poll can double-charge/double-place an order and double-credit a portfolio | `frontend/app/lib/invest/orderService.js` (`transition`, `submitOrder`) | L | 🔴 |
 | C2 | Redemption/switch eligibility check is a pure TOCTOU race with zero DB backstop — two concurrent requests on the same folio can both pass the balance check | `frontend/app/lib/invest/redemptionService.js`, `switchService.js` | L | 🔴 |
 | C3 | Zero server-side logging or error tracking anywhere in the API/service request path — a failed order today leaves no trace anywhere | every `app/api/v1/invest/**/route.js`, all invest services | M | 🔴 |
-| C4 | CI never runs the 69-file test suite or lint; Vercel deploys independently of CI's result either way | `.github/workflows/ci.yml` | S | 🔴 |
+| C4 | CI never runs the 69-file test suite or lint; Vercel deploys independently of CI's result either way | `.github/workflows/ci.yml` | S | ✅ fixed |
 | C5 | Compliance-gate does 11 sequential DB round trips on every order/redemption/switch/SIP-creating action, unconditionally | `frontend/app/lib/invest/complianceService.js` (`ensureApplication`, `getApplication`) | S | ✅ fixed |
 
-**Sequencing note**: C4 should land *after* T1 (jobs-table test noise) below, or the newly-enforced
-CI gate will immediately start failing on a known, already-diagnosed flaky-test pattern rather than
-real regressions — that would train the team to distrust exactly the signal C4 is meant to add.
+**C4 resolution (2026-07-27)**: landed *after* test/production DB isolation (`docs/TEST_DATABASE_AND_CI.md`)
+and the H11 root-cause drain fix, per this table's own original sequencing note — the 70-file suite
+was proven deterministic (2 consecutive full runs, 0 failures) before being wired as a merge gate,
+so it enforces real regressions rather than the flaky pattern that predated isolation. `ci.yml` now
+has a `frontend-tests` job (lint + full suite against the isolated Neon `test` branch). One manual
+step remains: the `TEST_DATABASE_URL` GitHub Actions secret has not been created (tooling in this
+session couldn't create repo secrets) — until it is, that job fails fast at an explicit guard step
+rather than running against an empty database. Separately, verified (not assumed) that Vercel
+production deploys do **not** wait on CI either way — see `TEST_DATABASE_AND_CI.md`'s "Deploy
+gating" section for the two commits that prove it and the ready-to-activate `Ignored Build Step`
+script that closes that gap once someone with dashboard access wires it in.
 
 ---
 
@@ -96,6 +104,8 @@ real regressions — that would train the team to distrust exactly the signal C4
 ## Summary
 
 - **5 Critical, 11 High, 20 Medium, 13 Low** (plus 1 explicitly accepted tradeoff).
+- Current status (2026-07-27): Critical **2/5 fixed** (C4, C5 — C1/C2/C3 still open, all three
+  launch-blocking). High **5/11 fixed** (H2, H3, H7, H10, H11 — H1/H4/H5/H6/H8/H9 still open).
 - Total XS/S items (cheap, low-risk, shippable immediately): **~24** — the bulk of Medium/Low.
 - Items needing a genuine design decision before work starts (XL-adjacent): H6 (retention vs.
   deletion policy), M4 (which notification-preference system wins), C1/C2 (need a real

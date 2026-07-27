@@ -81,11 +81,55 @@ guard will refuse to let vitest run in that shell regardless.
 
 ### CI
 
-Not yet wired as of this writing — that's C4, tracked separately in `BACKEND_TECHNICAL_DEBT.md`.
-The plan: a `frontend-tests` CI job sets both `DATABASE_URL` and `TEST_DATABASE_URL` from a new
-`TEST_DATABASE_URL` GitHub Actions secret (pointing at the same `test` branch), so they're equal by
-construction and never equal to the production `DATABASE_URL` secret used by `jobs-worker.yml` and
-the live app's Vercel deployment.
+Wired as of 2026-07-27 (C4, `BACKEND_TECHNICAL_DEBT.md`). `.github/workflows/ci.yml` has a
+`frontend-tests` job: `npm ci`, `npm run lint`, a guard step that fails loudly if the
+`TEST_DATABASE_URL` repo secret is unset, then `npm test` (the full 70-file/506-test vitest suite)
+with both `DATABASE_URL` and `TEST_DATABASE_URL` set from that one secret — equal by construction,
+satisfying `testDbGuard.js`'s explicit-marker requirement, and never equal to the production
+`DATABASE_URL` secret used by `jobs-worker.yml` and the live app's Vercel deployment. A
+workflow-level `concurrency` group (per branch/PR ref, `cancel-in-progress: true`) stops superseded
+pushes from piling up runs that would otherwise contend for `testClaimLock.js`'s advisory lock on
+the same test branch. `timeout-minutes: 25` against a measured ~480s local run, to absorb CI-runner
+variance and possible Neon compute cold-starts between infrequent runs.
+
+**Manual step still required**: the `TEST_DATABASE_URL` GitHub Actions secret itself has not been
+created — `gh secret set` for it was denied by this session's tooling permissions twice. Someone
+with repo admin access needs to add it once: Settings → Secrets and variables → Actions → New
+repository secret → name `TEST_DATABASE_URL`, value = the `test` branch's connection string (the
+same one in `frontend/.env.local` locally). Until that secret exists, `frontend-tests` will fail
+fast at the guard step with a clear message rather than running against an empty/wrong database —
+it will not silently pass or silently touch production.
+
+### Deploy gating: does a red CI run block a Vercel production deploy?
+
+**No, verified, not just assumed.** Two concrete commits prove it: `8e355f2a` and `7355886f` both
+have GitHub Actions `CI` runs that concluded `failure`, and both also have Vercel deployments that
+reached `READY` on `target: production` from that exact commit SHA (checked directly via the Vercel
+API's deployment metadata, cross-referenced against `gh run list` — not inferred from settings that
+merely looked absent). Confirmed contributing causes: no `vercel.json` in the repo (so no
+`ignoreCommand`), and `main` has no GitHub branch protection at all (`gh api
+repos/.../branches/main/protection` → 404 "Branch not protected") — so even a PR merge isn't
+blocked by required status checks, and Vercel's own Git integration deploys on every push
+independent of Actions status regardless.
+
+**What's built, and what it can't do alone.** `scripts/vercel-ignore-build-step.js` implements
+Vercel's actual supported mechanism for conditional deploys (a project's "Ignored Build Step"):
+given `VERCEL_GIT_COMMIT_SHA`, it polls the GitHub Actions API for that commit's `CI` run and exits
+0 (skip the deploy) only on a confirmed `failure` conclusion, exiting 1 (proceed) on success,
+timeout, or any ambiguity — deliberately fail-open, reasoned through in the script's own header
+comment. This is a complete, ready-to-use implementation, but it cannot activate itself: pasting a
+command into a project's Ignored Build Step is a dashboard-only setting with no equivalent in this
+session's available tooling (no project-settings-write capability was reachable), and flipping it
+changes every future deploy's latency (a real CI run now sits in the critical path, up to the
+script's 12-minute poll ceiling) — a live-product tradeoff that deserves a deliberate go-ahead
+rather than a silent activation.
+
+**To activate**: Vercel dashboard → this project → Settings → Git → Ignored Build Step → paste
+`node scripts/vercel-ignore-build-step.js` (if the project's configured Root Directory is
+`frontend`, this step may run from there instead of the repo root — try the plain path first; if
+Vercel reports the file isn't found, use `node ../scripts/vercel-ignore-build-step.js`). No new
+secret is required for the public repo case; set `GITHUB_TOKEN` as a project env var only if the
+unauthenticated GitHub API rate limit (60 req/hr) ever becomes a problem in practice.
 
 ## Operational note: keeping the test branch's schema current
 
