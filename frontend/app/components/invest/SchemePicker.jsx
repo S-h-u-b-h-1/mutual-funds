@@ -3,23 +3,24 @@
 import { useEffect, useState } from "react";
 import { fundsApi } from "../../lib/invest/api";
 
-export default function SchemePicker({ value, onChange, label = "Choose a scheme", required = true, id = "scheme-picker" }) {
+export default function SchemePicker({ value, onChange, label = "Choose a scheme", required = true, id = "scheme-picker", allowedCodes = null }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const allowedCodesKey = allowedCodes?.join(",") || "";
   useEffect(() => { if (value?.name && !query) setQuery(value.name); }, [value, query]);
   useEffect(() => {
     const text = query.trim();
     if (value?.name === text || text.length < 2) { setResults([]); return undefined; }
     const timer = setTimeout(async () => {
       setLoading(true); setError("");
-      try { const response = await fundsApi.search(text); setResults(response.results || []); }
+      try { const response = await fundsApi.search(text); setResults((response.results || []).filter(fund => !allowedCodes || allowedCodes.includes(fund.code))); }
       catch (err) { setResults([]); setError(err.message || "Scheme search is unavailable."); }
       finally { setLoading(false); }
     }, 250);
     return () => clearTimeout(timer);
-  }, [query, value]);
+  }, [query, value, allowedCodesKey]);
   function choose(fund) {
     setQuery(fund.name || ""); setResults([]);
     onChange({ code: fund.code, name: fund.name, amc: fund.amc, category: fund.category, plan: fund.plan, option: fund.isIdcw ? "IDCW" : "Growth", nav: fund.nav, navDate: fund.navDate });

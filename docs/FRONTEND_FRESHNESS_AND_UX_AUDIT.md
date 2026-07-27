@@ -33,10 +33,9 @@ financial data or while authenticated provider-backed journeys remain unverified
   / unavailable using the actual daily snapshot date.
 - Existing fund, portfolio and data-status surfaces continue to preserve source dates instead of page
   load time.
-- Purchase and SIP setup use human-friendly scheme search. Redemption and Switch still depend on the
-  existing backend eligibility inputs and require a follow-up selector slice before those two forms
-  can be called fully name-first; their current backend identifiers remain secondary implementation
-  details, not a freshness claim.
+- Purchase, SIP, redemption and switch now use name-first scheme selection. Redemption is constrained
+  to schemes returned by the investor holdings endpoint; switch source selection is similarly
+  holdings-first, while destination eligibility remains server-authoritative.
 
 ## Layout and routing review
 
@@ -67,6 +66,7 @@ financial data or while authenticated provider-backed journeys remain unverified
 
 Investor financial screens are conditionally ready for contract-backed staging, but not unconditional
 public launch until freshness is verified against production data and authenticated journeys complete.
-Redemption and Switch also remain UX follow-ups for name-first scheme selection.
+The remaining UX risk is authenticated coverage of the holdings-first redemption/switch selectors
+with production-like portfolio fixtures; no scheme-code entry is required as the primary action.
 Advisor, Operations and Management remain shells by design until their permission-scoped contracts
 land. Automatic PAN-based portfolio discovery remains intentionally unavailable.
