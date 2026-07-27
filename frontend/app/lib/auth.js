@@ -12,6 +12,7 @@ import bcrypt from "bcryptjs";
 import { NeonAdapter } from "./authAdapter";
 import { hasDatabaseUrl, query } from "./db";
 import { checkRateLimit, getClientIp } from "./platform/rateLimit/core";
+import { resolveSignInEligibility } from "./accountLifecycle";
 
 const hasGoogle = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 const hasGitHub = Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);
@@ -92,6 +93,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   providers,
   callbacks: {
+    // H6 (account lifecycle): checked for EVERY provider uniformly — Credentials, OAuth, and
+    // magic link alike, not just the password path. Runs after authorize() (Credentials) or
+    // after the adapter resolves the user (OAuth/Resend), so `user.id` is the real DB id here
+    // either way. deleted_at is an unconditional block; deactivated_at is auto-cleared on a
+    // successful sign-in (see accountLifecycle.js's own comment for why — the alternative is a
+    // dead end where deactivation could never be undone). Deliberately generic on rejection
+    // (false, not a specific reason) — same posture as the rate-limit check in authorize() above.
+    async signIn({ user }) {
+      if (!hasDatabaseUrl || !user?.id) return true;
+      return resolveSignInEligibility(user.id);
+    },
     async session({ session, user, token }) {
       if (session.user) {
         session.user.id = user?.id ?? token?.sub ?? session.user.id;

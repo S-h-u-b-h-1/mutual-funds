@@ -1,10 +1,15 @@
 import { requireUser, unauthorized } from "../../../lib/apiAuth";
-import { query } from "../../../lib/db";
+import { requestAccountDeletion } from "../../../lib/accountLifecycle";
 
-// Account deletion — the actual trigger for the cascade deletes 002_auth_and_user_data.sql's
-// header comment justifies on GDPR/privacy grounds. That reasoning is only true in practice if a
-// user can actually invoke it, so this exists even though no UI calls it yet (same "backend
-// capability before frontend" scoping as the rest of this sprint).
+// Account deletion (H6, Backend Hardening Phase 3 — see docs/ACCOUNT_LIFECYCLE_AND_RETENTION.md).
+// Previously ran a single `delete from users where id = $1`, relying entirely on `on delete
+// cascade` to wipe every user-owned row across ~35 tables — bank accounts, KYC documents,
+// completed orders, compliance decisions, the audit trail itself — with no separation between
+// "log me out everywhere" and "destroy my regulated financial history." Now anonymizes the
+// account's identifying fields instead of hard-deleting the row, so every financial/compliance/
+// document/audit record this account's activity created survives fully intact. Still exists even
+// though no UI calls it yet — same "backend capability before frontend" scoping as the rest of
+// this sprint.
 export async function DELETE(request) {
   const user = await requireUser();
   if (!user) return unauthorized();
@@ -17,16 +22,13 @@ export async function DELETE(request) {
   }
 
   // Require typing the account's own email back — cheap, effective protection against a
-  // mis-click or a forged same-origin request triggering an irreversible delete silently.
+  // mis-click or a forged same-origin request triggering an irreversible action silently.
   if (typeof body.confirmEmail !== "string" || body.confirmEmail.trim().toLowerCase() !== String(user.email).toLowerCase()) {
     return Response.json({ error: "confirmEmail must match your account email" }, { status: 400 });
   }
 
-  // Every user-owned table cascades from users(id) — see the schema file's own header comment.
-  // Session revocation is real for "database" strategy (the row is gone). For the "jwt" fallback
-  // (see auth.js), the existing cookie stays cryptographically valid until natural expiry even
-  // though the account is gone — same documented limitation as reset-password's session note.
-  await query(`delete from users where id = $1`, [user.id]);
+  const result = await requestAccountDeletion(user.id);
+  if (!result) return Response.json({ error: "Account already deleted" }, { status: 409 });
 
   return new Response(null, { status: 204 });
 }
