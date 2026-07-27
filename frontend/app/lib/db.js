@@ -35,3 +35,24 @@ function getPool() {
 export async function query(text, params) {
   return getPool().query(text, params);
 }
+
+// A real transaction primitive — nothing in this codebase had one before C1/C2 of the Backend
+// Hardening pass (2026-07-27) needed to make a check-then-write sequence (an idempotency dedupe
+// check, an eligibility check) atomic together with the write that follows it, rather than two
+// separate round trips a concurrent request could interleave between. fn receives a client whose
+// .query(text, params) participates in the transaction — use it, not the module-level query()
+// above, for every statement that must be part of the same atomic unit.
+export async function withTransaction(fn) {
+  const client = await getPool().connect();
+  try {
+    await client.query("begin");
+    const result = await fn(client);
+    await client.query("commit");
+    return result;
+  } catch (err) {
+    await client.query("rollback");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
