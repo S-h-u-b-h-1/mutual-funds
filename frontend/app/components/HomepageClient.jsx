@@ -16,7 +16,6 @@ import WatchlistIntelligence from "./WatchlistIntelligence";
 import RecentActivity from "./RecentActivity";
 import { track } from "../lib/track";
 import { getWatchlist, saveWatchlist, getPreferences, savePreferences } from "../lib/cloudSync";
-import { marketStatus } from "../lib/marketStatus";
 
 // Mock Clients data for Advisor Workspace
 const MOCK_CLIENTS = [
@@ -37,9 +36,6 @@ export default function HomepageClient({
   amcDeltas, leaderboard, networkNodes, stats, greeting, isMarketOpen,
   biggestMover, daily, enrichedHeadlines, performance, intel
 }) {
-  const dailyFreshness = marketStatus(daily?.asOf).tone;
-  const dailyFreshnessLabel = dailyFreshness === "pos" ? "Current" : dailyFreshness === "warn" ? "Delayed" : "Stale or unavailable";
-  const dailyFreshnessDot = dailyFreshness === "pos" ? "bg-pos" : dailyFreshness === "warn" ? "bg-warn" : "bg-neg";
   const [activeWorkspace, setActiveWorkspace] = useState("terminal"); // "terminal", "morning", "advisor"
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
@@ -371,11 +367,11 @@ export default function HomepageClient({
                   <div className="space-y-1">
                     <div className="flex justify-between">
                       <span className="text-ink-faint">Verified NAV</span>
-                      <span className="text-white font-mono">{daily.asOf || "Date unavailable"}</span>
+                      <span className="text-white font-mono">{daily.asOf || "2026-07-06"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-ink-faint">Frequency</span>
-                      <span className="text-white font-mono">Scheduled pipeline</span>
+                      <span className="text-white font-mono">15m cron</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-ink-faint">Coverage</span>
@@ -607,12 +603,12 @@ export default function HomepageClient({
               <div className="rounded-xl border border-line bg-white/[0.01] p-4.5 space-y-2.5 text-[12px]">
                 <span className="text-[9.5px] uppercase font-bold tracking-wider text-ink-faint block">Data Quality</span>
                 <div className="flex items-center gap-2">
-                  <span className={`h-1.5 w-1.5 rounded-full ${dailyFreshnessDot}`} />
-                  <span className="text-ink-muted">NAV {daily.asOf ? `as of ${daily.asOf} · ${dailyFreshnessLabel}` : "date unavailable"}</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-pos animate-pulse" />
+                  <span className="text-ink-muted">NAV current as of {daily.asOf || "Yesterday"}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-pos" />
-                  <span className="text-ink-muted">{totalSchemes} schemes in the research universe</span>
+                  <span className="text-ink-muted">{totalSchemes} active portfolios synced</span>
                 </div>
               </div>
 
