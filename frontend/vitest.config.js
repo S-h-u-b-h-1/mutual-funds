@@ -4,6 +4,9 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["app/**/*.test.js"],
+    // Hard-refuses to run this real-Postgres integration suite against production — see
+    // app/lib/testDbGuard.js and docs/TEST_DATABASE_AND_CI.md. Runs once before any test file.
+    globalSetup: ["./vitest.globalSetup.js"],
     // Integration tests hit real Neon over the network with several sequential round-trips per
     // service call (e.g. one compliance item submission touches 5+ queries) — the 5s default is
     // tuned for pure-logic unit tests and was measured to be too short for these.

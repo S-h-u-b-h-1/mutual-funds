@@ -3,6 +3,7 @@
 // Route Handlers, or scripts that run server-side.
 import { Pool } from "pg";
 import { attachDatabasePool } from "@vercel/functions";
+import { assertSafeTestDatabase } from "./testDbGuard.js";
 
 export const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 
@@ -19,6 +20,12 @@ function getPool() {
     if (!hasDatabaseUrl) {
       throw new Error("DATABASE_URL is not set — Neon connection unavailable.");
     }
+    // Backstop, not the primary check (that's vitest.globalSetup.js, which runs before any test
+    // file and so fails faster) — but process.env.VITEST is set by Vitest itself in every worker
+    // it spawns, so this still catches a real production connection attempt even if the global
+    // setup were ever bypassed or misconfigured. Never runs outside a Vitest process: production
+    // and the cron worker never have VITEST set, so this line does nothing for them.
+    if (process.env.VITEST === "true") assertSafeTestDatabase();
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
     attachDatabasePool(pool);
   }
