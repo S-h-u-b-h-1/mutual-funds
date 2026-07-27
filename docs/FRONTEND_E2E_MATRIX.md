@@ -1,6 +1,6 @@
 # Frontend RC1 end-to-end journey matrix
 
-Updated 26 July 2026. This is a journey-level verification plan, not a list of isolated page
+Updated 27 July 2026. This is a journey-level verification plan, not a list of isolated page
 smoke checks. Destructive transaction cases must use an isolated backend test database/provider
 sandbox; never run them against production Neon.
 
@@ -9,7 +9,7 @@ sandbox; never run them against production Neon.
 | Journey | Prerequisite | Routes / APIs | Happy path | Failure path | Refresh/deep-link/history/mobile | Persisted-state assertion |
 |---|---|---|---|---|---|---|
 | Registration / login | Logged-out browser; isolated auth fixture | `/register`, `/login`, auth routes | Register, sign in, land on intended route | 409 duplicate, invalid credentials, 429 throttling, offline | Refresh keeps auth outcome; back/forward do not resubmit; 375px form remains usable | Session/account exists only after backend success |
-| Onboarding | Authenticated investor | `/invest/onboarding`, profile/compliance/account APIs | Complete steps and return later | 401/403, validation error, account-open failure | `?step=` deep link opens the requested step; refresh reloads server state | Compliance item status and account status match backend |
+| Onboarding | Authenticated investor | `/invest/onboarding`, profile/compliance/account APIs | Complete supported steps and return later | 401/403, validation error, provider rejection, account-open failure | First incomplete backend item resumes automatically; `?step=` remains supported; refresh reloads server state | Compliance item status and account status match backend; save-before-advance prevents false completion |
 | Investment readiness | Authenticated investor | `/invest/compliance`, compliance APIs | Review requirements and submit supported items | Missing data, provider failure, expired session | Retry re-reads state; no completion copy on failed response | Readiness percentage/status is server-derived |
 | Purchase | Investment-ready account, eligible scheme | `/invest/orders`, order APIs | Save draft, review, submit once | Negative/zero amount, provider decline, timeout, 409 conflict, 429 | Refresh shows persisted draft/order; back does not resubmit; mobile fields/buttons remain reachable | One backend order reference; status remains truthful |
 | Order lifecycle | Submitted order fixture | `/invest/orders`, `/invest/transactions`, order detail APIs | Submitted → processing → units pending → completed | Failed, retry required, cancelled, reversed, unknown status | Poll/refresh reflects server; deep-link detail does not duplicate mutation | Timeline/reference/payment metadata match backend |

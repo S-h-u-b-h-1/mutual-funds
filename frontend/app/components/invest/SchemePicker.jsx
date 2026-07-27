@@ -20,7 +20,7 @@ export default function SchemePicker({ value, onChange, label = "Choose a scheme
       finally { setLoading(false); }
     }, 250);
     return () => clearTimeout(timer);
-  }, [query, value, allowedCodesKey]);
+  }, [query, value, allowedCodes, allowedCodesKey]);
   function choose(fund) {
     setQuery(fund.name || ""); setResults([]);
     onChange({ code: fund.code, name: fund.name, amc: fund.amc, category: fund.category, plan: fund.plan, option: fund.isIdcw ? "IDCW" : "Growth", nav: fund.nav, navDate: fund.navDate });

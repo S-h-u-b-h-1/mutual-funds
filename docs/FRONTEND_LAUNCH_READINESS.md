@@ -1,11 +1,13 @@
 # MF Pulse frontend launch readiness
 
-Updated 26 July 2026. This checklist records the current frontend state and the backend
+Updated 27 July 2026. This checklist records the current frontend state and the backend
 dependencies that still prevent a full production launch.
 
 ## Implemented workflows
 
 - Investor onboarding and Investment Readiness, including server-backed compliance progress.
+- Guided onboarding now includes email verification, backend-derived resume behavior, prefilled
+  profile fields, and save-before-advance semantics. See `docs/INVESTOR_ONBOARDING_UX_AUDIT.md`.
 - Purchase order draft, review, submit, cancel, retry and truthful lifecycle tracking.
 - Portfolio summary, holdings, allocation, performance, history and connect flows.
 - SIP creation/listing with provider-backed plan, payment and mandate metadata.

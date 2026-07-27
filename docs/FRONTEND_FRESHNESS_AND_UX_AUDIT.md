@@ -4,6 +4,8 @@ Audit date: 27 July 2026
 
 Verdict: **CONDITIONALLY READY**
 
+The onboarding continuation audit is recorded in `docs/INVESTOR_ONBOARDING_UX_AUDIT.md`.
+
 The frontend now makes source dates and stale states visible where the current contracts provide
 them. It must not be called `RC READY` while the production pipeline is serving materially stale
 financial data or while authenticated provider-backed journeys remain unverified.
