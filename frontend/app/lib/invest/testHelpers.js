@@ -5,6 +5,7 @@
 import { query } from "../db.js";
 import * as identityService from "./identityService.js";
 import * as complianceService from "./complianceService.js";
+import { runWorkerTick } from "../platform/jobs/core.js";
 import crypto from "node:crypto";
 
 export async function createTestUser(label) {
@@ -43,6 +44,26 @@ export async function makeInvestmentReadyUser(label) {
     await complianceService.submitItem(userId, "risk_profile", {});
   } finally {
     Math.random = originalRandom;
+  }
+
+  // ensureAccount() and every submitItem() call above that reaches a DONE status emit a real
+  // domain event (InvestorCreated, ComplianceCompleted xN, InvestmentReady) — all with
+  // correlationId=userId — which enqueues one real event-dispatch job per registered listener.
+  // Undrained, this is exactly the shared jobs-table noise BACKEND_TECHNICAL_DEBT.md's H11
+  // diagnosed: every one of this helper's callers was creating it, and only files that happened
+  // to also call runWorkerTick() with no filter were vulnerable to tripping over the pile-up.
+  // Draining it once, here, for every current and future caller, fixes the actual root cause
+  // instead of requiring each caller to remember to filter around it.
+  const pending = await query(
+    `select id from jobs where type = 'event-dispatch' and correlation_id = $1 and status = 'queued'`,
+    [userId]
+  );
+  if (pending.rows.length > 0) {
+    await runWorkerTick({
+      workerId: `test-mireu-drain-${userId}`,
+      maxJobs: pending.rows.length,
+      idIn: pending.rows.map((r) => r.id),
+    });
   }
 
   return userId;
