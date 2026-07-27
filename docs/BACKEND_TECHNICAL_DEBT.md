@@ -17,7 +17,7 @@ primitive or design decision before work can start).
 |---|---|---|---|---|
 | C1 | `orderService.transition()` unconditional UPDATE — no compare-and-swap anywhere in the order lifecycle; double-click or concurrent poll can double-charge/double-place an order and double-credit a portfolio | `frontend/app/lib/invest/orderService.js` (`transition`, `submitOrder`) | L | 🟡 written, not yet merged |
 | C2 | Redemption/switch eligibility check is a pure TOCTOU race with zero DB backstop — two concurrent requests on the same folio can both pass the balance check | `frontend/app/lib/invest/redemptionService.js`, `switchService.js` | L | ✅ fixed |
-| C3 | Zero server-side logging or error tracking anywhere in the API/service request path — a failed order today leaves no trace anywhere | every `app/api/v1/invest/**/route.js`, all invest services | M | 🔴 |
+| C3 | Zero server-side logging or error tracking anywhere in the API/service request path — a failed order today leaves no trace anywhere | every `app/api/v1/invest/**/route.js`, all invest services | M | ✅ fixed |
 | C4 | CI never runs the 69-file test suite or lint; Vercel deploys independently of CI's result either way | `.github/workflows/ci.yml` | S | ✅ fixed |
 | C5 | Compliance-gate does 11 sequential DB round trips on every order/redemption/switch/SIP-creating action, unconditionally | `frontend/app/lib/invest/complianceService.js` (`ensureApplication`, `getApplication`) | S | ✅ fixed |
 
@@ -40,6 +40,15 @@ pure runtime primitive. Verified with three real `Promise.allSettled` concurrenc
 also surfaced and fixed a genuine pre-existing bug: `getRedemptionEligibility`'s pending-units
 query never counted `switch_out` orders, so a switch could silently over-commit a folio's units
 even without any concurrency involved. Merged to `main` directly (`10c69bf`).
+
+**C3 resolution (2026-07-27)**: `withObservability()` wraps all 39 `app/api/v1/invest/**/route.js`
+handlers — structured JSON request logs (route/method/status/duration/correlationId/userId) to
+stdout, captured by Vercel automatically with no external service; a safety net that logs+returns
+a generic 500 for any exception a route's own try/catch didn't already handle (routes with their
+own error handling are unaffected); optional Sentry forwarding, inert until `SENTRY_DSN` is ever
+set (it isn't anywhere today — see `OBSERVABILITY_RUNBOOK.md`). Verified against a live dev
+server, not just build+lint: real correlation ID on the response header, matching structured log
+line written server-side. Merged to `main` directly (`3dce7f7`) — no migration needed.
 
 **C1 status (2026-07-27)**: implemented and passing (19 tests incl. 3 real concurrency tests
 against the isolated test branch) on branch `hardening/c1-order-idempotency`, **not yet merged to
@@ -127,10 +136,10 @@ that's confirmed done.
 ## Summary
 
 - **5 Critical, 11 High, 20 Medium, 13 Low** (plus 1 explicitly accepted tradeoff).
-- Current status (2026-07-27): Critical **3/5 fixed and live** (C2, C4, C5). C1 is written, tested,
-  and verified but **not yet merged** — blocked on a production migration this session's tooling
-  can't apply (see C1's own status note above). C3 (observability) is still fully open. High
-  **5/11 fixed** (H2, H3, H7, H10, H11 — H1/H4/H5/H6/H8/H9 still open).
+- Current status (2026-07-27): Critical **4/5 fixed and live** (C2, C3, C4, C5). C1 is written,
+  tested, and verified but **not yet merged** — blocked on a production migration this session's
+  tooling can't apply (see C1's own status note above). High **5/11 fixed** (H2, H3, H7, H10,
+  H11 — H1/H4/H5/H6/H8/H9 still open).
 - Total XS/S items (cheap, low-risk, shippable immediately): **~24** — the bulk of Medium/Low.
 - Items needing a genuine design decision before work starts (XL-adjacent): H6 (retention vs.
   deletion policy), M4 (which notification-preference system wins), C1/C2 (need a real
