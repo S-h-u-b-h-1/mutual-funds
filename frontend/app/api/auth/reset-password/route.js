@@ -1,15 +1,25 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { hasDatabaseUrl, query } from "../../../lib/db";
+import { checkRateLimit, rateLimitResponse, getClientIp } from "../../../lib/platform/rateLimit/core";
 
 function hashToken(raw) {
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
+// The token itself is 256 bits of randomness — brute-forcing it directly is computationally
+// infeasible regardless of any rate limit. This is defense-in-depth against sheer request-volume
+// abuse of a public, unauthenticated endpoint, not a brute-force mitigation. See H4.
+const IP_LIMIT = { limit: 10, windowSeconds: 60 * 60 };
+
 export async function POST(request) {
   if (!hasDatabaseUrl) {
     return Response.json({ error: "Password reset unavailable" }, { status: 503 });
   }
+
+  const ip = getClientIp(request);
+  const ipCheck = await checkRateLimit("reset-password-ip", ip, IP_LIMIT);
+  if (!ipCheck.allowed) return rateLimitResponse();
 
   let body;
   try {

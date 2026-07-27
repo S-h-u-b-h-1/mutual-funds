@@ -11,6 +11,7 @@ import Resend from "next-auth/providers/resend";
 import bcrypt from "bcryptjs";
 import { NeonAdapter } from "./authAdapter";
 import { hasDatabaseUrl, query } from "./db";
+import { checkRateLimit, getClientIp } from "./platform/rateLimit/core";
 
 const hasGoogle = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 const hasGitHub = Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);
@@ -25,12 +26,31 @@ const hasResend = Boolean(process.env.RESEND_API_KEY);
 // instead of local CPU; see that route's own comment).
 const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 12);
 
+// H4 (auth rate limiting, docs/BACKEND_TECHNICAL_DEBT.md): two separate limits, both required —
+// IP-scoped stops one attacker credential-stuffing many accounts from one source; email-scoped
+// (keyed on the raw submitted address, real account or not) stops a distributed attack — many
+// IPs, one target — against a single victim. A rate-limited attempt returns null here, exactly
+// like a wrong password: Auth.js's Credentials flow can't distinguish "wrong password" from "any
+// other authorize() failure" without a custom error class, and null is deliberately chosen over
+// one so a rate-limited attempt is indistinguishable from a failed one to the client — not just
+// generic, but identical.
+const LOGIN_IP_LIMIT = { limit: 10, windowSeconds: 5 * 60 };
+const LOGIN_EMAIL_LIMIT = { limit: 5, windowSeconds: 5 * 60 };
+
 const providers = [
   Credentials({
     credentials: { email: { label: "Email" }, password: { label: "Password", type: "password" } },
-    async authorize(credentials) {
+    async authorize(credentials, request) {
       if (!hasDatabaseUrl || !credentials?.email || !credentials?.password) return null;
       const email = String(credentials.email).trim().toLowerCase();
+
+      const ip = getClientIp(request);
+      const [ipCheck, emailCheck] = await Promise.all([
+        checkRateLimit("login-ip", ip, LOGIN_IP_LIMIT),
+        checkRateLimit("login-email", email, LOGIN_EMAIL_LIMIT),
+      ]);
+      if (!ipCheck.allowed || !emailCheck.allowed) return null;
+
       const r = await query(`select * from users where email = $1`, [email]);
       const user = r.rows[0];
       const valid = await bcrypt.compare(String(credentials.password), user?.password_hash || DUMMY_HASH);

@@ -1,12 +1,21 @@
 import bcrypt from "bcryptjs";
 import { hasDatabaseUrl, query } from "../../../lib/db";
+import { checkRateLimit, rateLimitResponse, getClientIp } from "../../../lib/platform/rateLimit/core";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Mass account creation is rare for legitimate use — this is generous enough for shared-IP
+// scenarios (corporate NAT, university networks) but blocks bot/script abuse. See H4,
+// docs/BACKEND_TECHNICAL_DEBT.md.
+const IP_LIMIT = { limit: 5, windowSeconds: 60 * 60 };
 
 export async function POST(request) {
   if (!hasDatabaseUrl) {
     return Response.json({ error: "Registration unavailable" }, { status: 503 });
   }
+
+  const ip = getClientIp(request);
+  const ipCheck = await checkRateLimit("register-ip", ip, IP_LIMIT);
+  if (!ipCheck.allowed) return rateLimitResponse();
 
   let body;
   try {
