@@ -33,6 +33,47 @@ production deploys do **not** wait on CI either way — see `TEST_DATABASE_AND_C
 gating" section for the two commits that prove it and the ready-to-activate `Ignored Build Step`
 script that closes that gap once someone with dashboard access wires it in.
 
+**C4 incident: stale shared test-job backlog causing non-deterministic full-suite failures
+(2026-07-28)**: this pass's own determinism check (2 required consecutive full runs) is what
+surfaced C3's regression above, but the first several full-suite attempts *before* that failed for
+an unrelated reason — `jobPlatform.test.js` and `eventBus.test.js` both make unfiltered
+`runWorkerTick({ maxJobs: 50 })` / `claimJobs(..., { limit: 50 })` calls that claim from the
+**entire shared `jobs` table**, not just the rows the test itself just enqueued. The `test` branch
+had accumulated a 737-row backlog of queued jobs (some dating back to 2026-07-21 — leftover
+`event-dispatch`/`webhook-outbound-deliver` rows from prior runs whose own cleanup never ran, e.g.
+processes killed mid-suite, or — see below — a genuine cleanup bug). A test claiming "up to 50
+jobs" from a table with hundreds of ancient rows ahead of its own fresh ones in claim order can
+exhaust its whole budget without ever reaching the rows it's actually asserting against, producing
+a failure that looks like a real regression but is purely an artifact of shared-table contention.
+This reproduced identically across multiple full runs, ruling out one-off flakiness.
+
+Root cause, once isolated: two independent bugs stacked. (1) The claiming tests never scoped
+themselves to their own rows even though `claimJobs()`/`runWorkerTick()` already expose an `idIn`
+parameter purpose-built for exactly this (disposable-run isolation; real workers never pass it) —
+fixed by scoping every claiming call in both files to the exact job IDs each test created. (2) A
+real orphaned-cleanup bug in `eventBus.test.js`'s outbound-webhook test: its `delete from
+webhook_outbound` cleanup line sat after its own assertions but outside the `finally` block, so any
+assertion failure skipped it and left the row (and its jobs) behind permanently — confirmed via 12
+matching orphaned rows found in the table. Fixed by moving that cleanup into `finally`.
+
+Per explicit instruction, **production queue behavior itself was not touched** — both fixes are
+test-only (`idIn` scoping the tests' own calls, fixing the tests' own cleanup); `claimJobs()` and
+`runWorkerTick()`'s actual claiming semantics are unchanged. Future tests avoid re-accumulating this
+class of backlog two ways: (a) the fixed files now document the `idIn` pattern inline as the
+required approach for any test that claims jobs, so the same mistake is easy to avoid by example;
+(b) a new age-thresholded sweep (`frontend/app/lib/testDataSweep.js`, wired into
+`vitest.globalSetup.js`) now runs once before every suite and clears jobs/users/webhook-listener
+rows older than 2 hours, so even a test that reintroduces an unscoped claim or a missed cleanup
+self-heals on the next run rather than compounding indefinitely. This does not replace per-test
+cleanup — it's a second, coarser safety net, deliberately narrow (exact `@mfpulse.test` email
+suffix, `test-%` webhook-listener name prefix, age-only for jobs since the `test` branch carries no
+real traffic) so it can never touch the real-looking rows the branch inherited from its
+fork-from-production origin (confirmed present: a handful of `@gmail.com`/`@example.com` accounts).
+One manual cleanup was run during this investigation (`DELETE FROM jobs` on the `test` branch only,
+explicit user approval obtained first, plain `DELETE` rather than `TRUNCATE ... CASCADE` since
+several dependent tables use `ON DELETE SET NULL` rather than `CASCADE`) to unblock verification;
+the sweep above is the durable replacement so that manual step doesn't need to become routine.
+
 **C2 resolution (2026-07-27)**: `withTransaction()` + a per-(user, folio) `pg_advisory_xact_lock`
 in both `createRedemptionOrder` and `createSwitchOrder` (same lock key namespace for both, so a
 redemption and a switch racing the same folio also serialize against each other). No migration —
@@ -49,6 +90,28 @@ own error handling are unaffected); optional Sentry forwarding, inert until `SEN
 set (it isn't anywhere today — see `OBSERVABILITY_RUNBOOK.md`). Verified against a live dev
 server, not just build+lint: real correlation ID on the response header, matching structured log
 line written server-side. Merged to `main` directly (`3dce7f7`) — no migration needed.
+
+**C3 regression found and fixed during final RC verification (2026-07-28)**: `withObservability()`
+accessed `request.headers` and `request.method` without guarding against `request` itself being
+undefined — real Next.js always supplies a Request object, so this never manifested in production,
+but it broke an established, legitimate test-writing pattern used throughout this codebase: many
+route unit tests call `GET()`/`POST()` etc. with zero arguments for handlers that don't read
+anything off `request` (session/auth-derived logic only). This went undetected because C4's CI gate
+(`frontend-tests`) has never actually run in GitHub Actions — the `TEST_DATABASE_URL` repo secret
+still doesn't exist, so that job has failed at its own explicit guard step on every push since C4
+merged, and no one ran a genuinely complete, uninterrupted full local suite between C3 landing and
+this RC verification pass. **First caught by this pass's own determinism check** (2 required full
+runs, exactly the control this bug needed to surface) — 50 tests across 21 files failed identically
+on `TypeError: Cannot read properties of undefined (reading 'headers')`. The fix (three added `?.`
+guards: `request?.headers`, `request?.method` ×2) landed independently via a concurrent commit
+(`53ca8e4`, unrelated in stated purpose — a Postgres NAV-history/rate-limiting fix that happened to
+touch the same three lines) before this pass reached the commit step; confirmed byte-identical to
+the fix this pass had already written locally, so nothing further to commit here. No test file
+changed, since the fix targets the wrapper's own defensiveness, not the tests' calling convention.
+This is the concrete
+argument for why `TEST_DATABASE_URL` needs to actually exist as a repo secret: this exact class of
+regression is precisely what C4 was built to catch, and it silently didn't for an entire day of
+further commits (H4 through M6/M7/L5/H5) until a human-equivalent full run finally happened here.
 
 **C1 status (2026-07-27)**: implemented and passing (19 tests incl. 3 real concurrency tests
 against the isolated test branch) on branch `hardening/c1-order-idempotency`, **not yet merged to
