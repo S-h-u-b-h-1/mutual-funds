@@ -97,7 +97,7 @@ export async function captureException(err, extra = {}) {
 // surface to the caller as an opaque platform-level 500 with zero server-side record of why.
 export function withObservability(routeName, handler) {
   return async function observedRouteHandler(request, ctx) {
-    const correlationId = request.headers?.get?.("x-correlation-id") || crypto.randomUUID();
+    const correlationId = request?.headers?.get?.("x-correlation-id") || crypto.randomUUID();
     const start = Date.now();
     return als.run({ correlationId }, async () => {
       try {
@@ -105,14 +105,14 @@ export function withObservability(routeName, handler) {
         logInfo({
           event: "request_completed",
           route: routeName,
-          method: request.method,
+          method: request?.method,
           status: response?.status ?? 200,
           durationMs: Date.now() - start,
         });
         response?.headers?.set?.("x-correlation-id", correlationId);
         return response;
       } catch (err) {
-        await captureException(err, { route: routeName, method: request.method, durationMs: Date.now() - start });
+        await captureException(err, { route: routeName, method: request?.method, durationMs: Date.now() - start });
         return Response.json(
           { error: "Internal server error", correlationId },
           { status: 500, headers: { "x-correlation-id": correlationId } }

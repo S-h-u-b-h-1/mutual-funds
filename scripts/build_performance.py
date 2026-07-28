@@ -18,6 +18,7 @@ these raw metrics, so there is a single source of truth for the model.
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import urllib.request
@@ -91,8 +92,31 @@ def _fetch_window(frm, to):
     return {}
 
 
+def fetch_series_db(start_date, end_date):
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        return {}
+    try:
+        import psycopg2
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT scheme_code, nav_date, nav_value FROM fact_nav_daily WHERE nav_date >= %s AND nav_date <= %s",
+            (start_date, end_date),
+        )
+        series = {}
+        for code, d, nav in cur.fetchall():
+            if nav and float(nav) > 0:
+                series.setdefault(str(code), {})[d] = float(nav)
+        conn.close()
+        return series
+    except Exception as e:
+        print(f"DB NAV fetch error: {e}", file=sys.stderr)
+        return {}
+
+
 def fetch_series(asof, days):
-    """Dense daily NAV series per scheme over the last `days`, fetched in <=45-day chunks."""
+    """Dense daily NAV series per scheme over the last `days`, merging HTTP + DB."""
     series = {}
     start = asof - timedelta(days=days)
     cur = start
@@ -102,12 +126,26 @@ def fetch_series(asof, days):
         for code, m in part.items():
             series.setdefault(code, {}).update(m)
         cur = chunk_to + timedelta(days=1)
+
+    db_series = fetch_series_db(start, asof)
+    if db_series:
+        for code, m in db_series.items():
+            s = series.setdefault(code, {})
+            for d, nav in m.items():
+                s[d] = nav
+
     return series
 
 
 def anchor_nav(asof, days):
     w = _fetch_window(asof - timedelta(days=days + 7), asof - timedelta(days=days))
-    return {c: m[max(m)] for c, m in w.items()}
+    out = {c: m[max(m)] for c, m in w.items()}
+    db_series = fetch_series_db(asof - timedelta(days=days + 7), asof - timedelta(days=days))
+    if db_series:
+        for c, m in db_series.items():
+            if m:
+                out[c] = m[max(m)]
+    return out
 
 
 def risk_from_series(navs_by_date):
