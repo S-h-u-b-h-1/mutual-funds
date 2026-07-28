@@ -109,7 +109,13 @@ describe("emitEvent core mechanics (integration, real Neon)", () => {
     // domain_events row it came from had one — silently breaking cross-table trace lookups.
     expect(job.rows[0].correlation_id).toBe(marker);
 
-    await runWorkerTick({ workerId: `test-events-${RUN}`, maxJobs: 50 });
+    // Backend Hardening (2026-07-28): idIn-scoped to the exact job just confirmed above, not an
+    // unfiltered claim — under the full suite's real concurrency, dozens of other files' own
+    // event-dispatch/webhook-outbound-deliver backlog can otherwise exhaust maxJobs before this
+    // test's own job is ever reached (see MIGRATION_RUNBOOK.md-adjacent incident note in
+    // BACKEND_TECHNICAL_DEBT.md — this exact pattern, applied per the RC directive's own guidance
+    // to prefer idIn/typeLike scoping over growing the shared advisory-lock group further).
+    await runWorkerTick({ workerId: `test-events-${RUN}`, maxJobs: 1, idIn: [job.rows[0].id] });
     expect(received).toEqual({ marker, userId: "u1" });
 
     await query(`delete from domain_events where id = $1`, [result.eventId]);
@@ -127,7 +133,11 @@ describe("emitEvent core mechanics (integration, real Neon)", () => {
       [`event-dispatch:${eventId}:test-listener-${RUN}-b`]
     );
     expect(job.rows[0].c).toBe(0);
-    await runWorkerTick({ workerId: `test-events-${RUN}`, maxJobs: 50 });
+    // No runWorkerTick() here (Backend Hardening, 2026-07-28): with the count above already
+    // proving no event-dispatch job was ever created for listener-b, wronglyCalled structurally
+    // cannot become true regardless of what any tick claims — an unfiltered tick added nothing
+    // this test needed and only exposed it to the same full-suite-contamination timeout every
+    // other unfiltered call in this file was fixed for.
     expect(wronglyCalled).toBe(false);
     await query(`delete from domain_events where id = $1`, [eventId]);
   });
@@ -144,18 +154,28 @@ describe("emitEvent core mechanics (integration, real Neon)", () => {
     });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     const port = server.address().port;
+    let listener;
     try {
-      const listener = await query(
+      listener = await query(
         `insert into webhook_outbound (name, url, event_types) values ($1, $2, $3) returning id`,
         [`test-${RUN}-events-outbound`, `http://127.0.0.1:${port}/hook`, JSON.stringify(["DocumentGenerated"])]
       );
       const marker = `evt-${RUN}-outbound`;
       await emitEvent("DocumentGenerated", { marker }, { source: "test" });
-      await runWorkerTick({ workerId: `test-events-${RUN}`, maxJobs: 50 });
+      // idIn-scoped (Backend Hardening, 2026-07-28) to the exact webhook-outbound-deliver job
+      // emitOutboundEvent() created for THIS listener — it stores job_id on the delivery row
+      // itself (see webhooks/core.js), so no unfiltered claim of the shared jobs table is needed.
+      const delivery = await query(`select job_id from webhook_outbound_deliveries where outbound_id = $1 order by id desc limit 1`, [listener.rows[0].id]);
+      await runWorkerTick({ workerId: `test-events-${RUN}`, maxJobs: 1, idIn: [delivery.rows[0].job_id] });
       expect(received.some((r) => r.payload?.marker === marker)).toBe(true);
       expect(received.find((r) => r.payload?.marker === marker).event).toBe("DocumentGenerated");
-      await query(`delete from webhook_outbound where id = $1`, [listener.rows[0].id]);
     } finally {
+      // Backend Hardening (2026-07-28): moved into finally — this used to sit after the
+      // assertions but still "inside" the happy path, so a FAILING assertion (exactly what
+      // happened repeatedly while diagnosing the stale-jobs-table incident) skipped this delete
+      // and orphaned the webhook_outbound row. Confirmed the real cause: 12 leftover rows found
+      // on the test branch, all matching this exact test's naming pattern.
+      if (listener) await query(`delete from webhook_outbound where id = $1`, [listener.rows[0].id]);
       server.close();
     }
   });
@@ -214,7 +234,15 @@ describe("real wiring (integration, real Neon) — the additive emitEvent() call
     // NotificationSent fires on every notifyUser call this flow makes (order-adjacent
     // notifications aren't part of this flow, but the InvestmentReady listener's own
     // notifyUser call lands async via the job platform — drain it, then check).
-    await runWorkerTick({ workerId: `test-events-${RUN}`, maxJobs: 50 });
+    // idIn-scoped (Backend Hardening, 2026-07-28) to exactly this user's own remaining
+    // event-dispatch jobs (makeInvestmentReadyUser already drained its own setup-time jobs —
+    // see its comment — this is only the second-order job the InvestmentReady listener itself
+    // enqueued), not an unfiltered claim of the shared table.
+    const ownPending = await query(
+      `select id from jobs where type = 'event-dispatch' and correlation_id = $1 and status = 'queued'`,
+      [userId]
+    );
+    await runWorkerTick({ workerId: `test-events-${RUN}`, maxJobs: Math.max(ownPending.rows.length, 1), idIn: ownPending.rows.map((r) => r.id) });
     const notif = await query(
       `select 1 from notifications where user_id = $1 and type = 'investment_ready'`,
       [userId]

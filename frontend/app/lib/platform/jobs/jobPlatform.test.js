@@ -316,13 +316,14 @@ describe("job platform (integration, real Neon)", () => {
 
   describe("runWorkerTick (end-to-end)", () => {
     it("drains the queue: succeeds good jobs, retries a flaky one, dead-letters an unknown type", async () => {
-      // Deliberately calls the real, unfiltered runWorkerTick() (not claimOwn()) — the point of
-      // this test is the real drain behavior, and its assertions already tolerate extra due jobs
-      // succeeding alongside via toBeGreaterThanOrEqual. Under the full suite's true concurrency
-      // that can mean genuinely draining a meaningful amount of other files' foreign due jobs
-      // (e.g. undrained event-dispatch jobs) within maxJobs's budget, which the global 45s
-      // testTimeout isn't sized for — this failed on a timeout, not a wrong assertion, in a real
-      // full-suite run.
+      // idIn-scoped (Backend Hardening, 2026-07-28) to exactly the 4 jobs this test creates below
+      // — previously called the real, unfiltered runWorkerTick(), which under the full suite's
+      // true concurrency could exhaust maxJobs's budget on other files' foreign due jobs (e.g.
+      // undrained event-dispatch/webhook-outbound-deliver backlog) before ever reaching this
+      // test's own jobs, producing either a timeout or a genuine `succeeded: 0` — a real,
+      // reproduced failure, not a hypothetical. idIn removes the dependency on ambient queue
+      // state entirely: this now only ever claims from a fixed 4-job set no other file can touch,
+      // so assertions are exact counts, not toBeGreaterThanOrEqual tolerance for noise.
       let flakyCalls = 0;
       registerHandler(T("ok"), async (payload) => ({ echoed: payload.n }));
       registerHandler(T("flaky"), async () => {
@@ -330,15 +331,16 @@ describe("job platform (integration, real Neon)", () => {
         if (flakyCalls === 1) throw new Error("first attempt fails");
         return { recoveredOnAttempt: flakyCalls };
       });
-      await enqueueJob(T("ok"), { n: 1 });
-      await enqueueJob(T("ok"), { n: 2 });
+      const { job: ok1 } = await enqueueJob(T("ok"), { n: 1 });
+      const { job: ok2 } = await enqueueJob(T("ok"), { n: 2 });
       const { job: flakyJob } = await enqueueJob(T("flaky"), {}, { backoffBaseSeconds: 30 });
       const { job: unknownJob } = await enqueueJob(T("no-handler"), {}, { maxAttempts: 1 });
+      const allIds = [ok1.id, ok2.id, flakyJob.id, unknownJob.id];
 
-      const tick1 = await runWorkerTick({ workerId: W, maxJobs: 50 });
-      expect(tick1.succeeded).toBeGreaterThanOrEqual(2);
-      expect(tick1.retried).toBeGreaterThanOrEqual(1);
-      expect(tick1.deadLettered).toBeGreaterThanOrEqual(1);
+      const tick1 = await runWorkerTick({ workerId: W, maxJobs: allIds.length, idIn: allIds });
+      expect(tick1.succeeded).toBe(2);
+      expect(tick1.retried).toBe(1);
+      expect(tick1.deadLettered).toBe(1);
 
       const unknown = await getJob(unknownJob.id);
       expect(unknown.status).toBe("dead");
@@ -348,8 +350,8 @@ describe("job platform (integration, real Neon)", () => {
       const flakyMid = await getJob(flakyJob.id);
       expect(flakyMid.status).toBe("queued");
       await query(`update jobs set run_at = now() where id = $1`, [flakyJob.id]);
-      const tick2 = await runWorkerTick({ workerId: W, maxJobs: 50 });
-      expect(tick2.succeeded).toBeGreaterThanOrEqual(1);
+      const tick2 = await runWorkerTick({ workerId: W, maxJobs: 1, idIn: [flakyJob.id] });
+      expect(tick2.succeeded).toBe(1);
       const flakyDone = await getJob(flakyJob.id);
       expect(flakyDone.status).toBe("succeeded");
       expect(flakyDone.result.recoveredOnAttempt).toBe(2);
@@ -357,12 +359,19 @@ describe("job platform (integration, real Neon)", () => {
     }, 120000);
 
     it("respects maxJobs as a hard claim ceiling", async () => {
+      // idIn-scoped (Backend Hardening, 2026-07-28) — see the test above for why: an unfiltered
+      // claim here previously timed out under full-suite contention with no test-correctness
+      // benefit (this test cares about the claim COUNT, not which jobs specifically get claimed).
       registerHandler(T("bulk"), async () => ({}));
-      for (let i = 0; i < 5; i += 1) await enqueueJob(T("bulk"), { i });
-      const tick = await runWorkerTick({ workerId: W, maxJobs: 2, batchSize: 2 });
+      const bulkIds = [];
+      for (let i = 0; i < 5; i += 1) {
+        const { job } = await enqueueJob(T("bulk"), { i });
+        bulkIds.push(job.id);
+      }
+      const tick = await runWorkerTick({ workerId: W, maxJobs: 2, batchSize: 2, idIn: bulkIds });
       expect(tick.claimed).toBeLessThanOrEqual(2);
       // drain the rest so cleanup stays simple
-      await runWorkerTick({ workerId: W, maxJobs: 50 });
+      await runWorkerTick({ workerId: W, maxJobs: bulkIds.length, idIn: bulkIds });
     });
   });
 

@@ -15,6 +15,28 @@ export async function createTestUser(label) {
 }
 
 export async function deleteTestUser(userId) {
+  // Drain any event-dispatch jobs this user's activity enqueued (emitEvent() calls from
+  // identityService/complianceService/orderService/etc.) before deleting the user row — the
+  // same drain makeInvestmentReadyUser does after its own setup (see its comment for the full
+  // H11 background), but done here at teardown so it also catches jobs created by whatever the
+  // CALLER did with this user afterward (orders, redemptions, a real end-to-end route flow like
+  // journey1-onboarding.e2e.test.js), not just construction. Undrained, these jobs sit in the
+  // shared `jobs` table indefinitely and get non-deterministically claimed by any other file's
+  // unfiltered runWorkerTick() call — concretely, jobPlatform.test.js's own "drains the queue"
+  // test, whose assertions can come up short if its freshly enqueued jobs lose a claim race
+  // against a pile of foreign event-dispatch jobs nobody drained. Fixed once here so no caller
+  // of the base createTestUser/deleteTestUser pair has to remember it.
+  const pending = await query(
+    `select id from jobs where type = 'event-dispatch' and correlation_id = $1 and status = 'queued'`,
+    [userId]
+  );
+  if (pending.rows.length > 0) {
+    await runWorkerTick({
+      workerId: `test-delete-drain-${userId}`,
+      maxJobs: pending.rows.length,
+      idIn: pending.rows.map((r) => r.id),
+    });
+  }
   await query(`delete from users where id = $1`, [userId]);
 }
 
