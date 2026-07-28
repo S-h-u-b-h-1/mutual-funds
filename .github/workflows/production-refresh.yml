@@ -102,6 +102,8 @@ jobs:
 
       - name: 3. Rebuild static bundles (funds.json, performance.json, daily.json) — critical
         id: bundles
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           # data/NAVAll.txt was downloaded once in step 0 — the same snapshot step 1 ingested.
           python -m scripts.build_performance
