@@ -1,13 +1,27 @@
-"""Regression test for the 2026-07-10 production incident: AMFI's NAV history endpoint
-returned 200 OK — no error banner, no exception — but zero parseable data rows, for all 3
-requests in one Production Refresh run, while the same endpoint/parser succeeded seconds
-later for a different window in the same run (and a manual replay afterwards returned full
-valid data). _fetch_window only retried on exceptions or AMFI's "Please Select Date Range"
-banner, so this silently produced null r1m/r3m for every fund — the data-quality gate
+"""Regression tests for two production incidents on AMFI's NAV history endpoint.
+
+2026-07-10: returned 200 OK — no error banner, no exception — but zero parseable data rows,
+for all 3 requests in one Production Refresh run, while the same endpoint/parser succeeded
+seconds later for a different window in the same run (and a manual replay afterwards returned
+full valid data). _fetch_window only retried on exceptions or AMFI's "Please Select Date
+Range" banner, so this silently produced null r1m/r3m for every fund — the data-quality gate
 correctly caught it (test_scores.py::test_health_in_range_on_real_data), but the pipeline
 should not have needed that gate to survive a transient response in the first place.
 Fix: scripts/build_performance.py's _fetch_window now retries a 200-with-zero-rows response
 the same way it already retried exceptions and rate-limit banners.
+
+2026-07-23 through at least 2026-07-28: production-refresh failed assert_returns_usable on
+every single run for 5+ days straight, always at ~28-30% coverage — not the noisy,
+self-heals-within-24h pattern a real AMFI outage produces, and not the near-0% signature of
+the 2026-07-10 incident either. Root cause, confirmed 2026-07-28 by instrumenting a live run:
+the gate compared with30d against coverage['priced'] — every scheme with a current NAV,
+including IDCW-option schemes (~53% of 'priced' that day), which main() unconditionally nulls
+r1m out for regardless of whether the AMFI fetch succeeded. So with30d could never
+structurally clear a 50%-of-priced floor. The AMFI pipeline itself was never broken: the same
+instrumented run measured 99.1% coverage once scoped to active, non-IDCW schemes (the
+"investable" cohort docs/DATA_COVERAGE_MATRIX.md separately documents at ~99.6%). Fix:
+assert_returns_usable now gates on coverage['activeEligible'] / coverage['activeEligibleWith30d']
+(active AND not IDCW) instead of priced/with30d.
 """
 import time
 import urllib.request
@@ -89,14 +103,27 @@ def test_fetch_window_still_retries_on_rate_limit_banner(monkeypatch):
 
 
 def test_build_aborts_when_returns_pipeline_comes_back_empty():
-    """2026-07-2x: a sustained gap (multiple consecutive chunks each giving up after 4 attempts,
-    per this file's docstring incident class) left r1m null for every fund in one production-
-    refresh run. That should be caught here, at the source, not several steps later as a bare
-    `assert ([])` in test_scores.py."""
+    """2026-07-10-class incident: a sustained gap (multiple consecutive chunks each giving up
+    after 4 attempts) left r1m null for every fund in one production-refresh run. That should
+    be caught here, at the source, not several steps later as a bare `assert ([])` in
+    test_scores.py."""
     with pytest.raises(SystemExit):
-        assert_returns_usable({"priced": 14000, "with30d": 0})
+        assert_returns_usable({"activeEligible": 4000, "activeEligibleWith30d": 0})
+
+
+def test_build_aborts_on_the_2026_07_23_incident_signature():
+    """Reproduces the 2026-07-23..07-28 incident's actual coverage shape: with30d/priced
+    (unscoped) sat at ~28-30% every run purely because IDCW schemes were counted in the
+    denominator — but once scoped to activeEligible (active, non-IDCW) the same run's real
+    coverage was 99.1%, comfortably healthy. This test asserts the *scoped* gate still
+    correctly aborts on a genuine shortfall within that population, so the fix isn't just
+    "always pass"."""
+    with pytest.raises(SystemExit):
+        assert_returns_usable({"activeEligible": 4000, "activeEligibleWith30d": 1200})
 
 
 def test_build_proceeds_on_normal_returns_coverage():
-    """~99% r1m coverage (the documented normal case) must never trip the guard."""
-    assert_returns_usable({"priced": 14000, "with30d": 13900}) is None
+    """A healthy fetch measures ~99% r1m coverage among active, non-IDCW schemes (verified
+    2026-07-28 by instrumenting a live run: 3956/3991 = 99.1%; see assert_returns_usable's
+    docstring) — comfortably above the 50% floor."""
+    assert_returns_usable({"activeEligible": 3991, "activeEligibleWith30d": 3956}) is None

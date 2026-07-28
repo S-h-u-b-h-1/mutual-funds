@@ -184,22 +184,35 @@ def assert_returns_usable(coverage):
     """Fail fast and loudly, right at the source, if the AMFI historical-fetch pipeline came
     back so empty that funds.json would ship with r1m nulled out fleet-wide — the exact failure
     mode tests/test_amfi_retry.py documents (2026-07-10 incident) and test_scores.py's
-    zero-tolerance test_health_in_range_on_real_data exists to catch as a last resort. A 50%
-    floor never trips on normal operation (~99% coverage per docs/DATA_COVERAGE_MATRIX.md) — it
-    only trips on a real, near-total outage of the history endpoint, and previously that only
-    surfaced several steps later as a cryptic `assert ([])` in pytest instead of here.
+    zero-tolerance test_health_in_range_on_real_data exists to catch as a last resort.
+
+    The 2026-07-23..07-28 incident: this gate failed on every single production-refresh run for
+    5+ days straight, always at ~28-30% — not the noisy, self-heals-within-24h pattern a real
+    AMFI outage produces, and not the near-0% signature of the 2026-07-10 incident either. Root
+    cause, confirmed 2026-07-28 by instrumenting a live run: the 50% floor was originally checked
+    as coverage['with30d'] / coverage['priced'] — every scheme with a current NAV, including
+    IDCW-option schemes (~53% of 'priced' that day), which main() unconditionally nulls r1m out
+    for a few lines after `funds[code] = rec` (the `if idcw:` block), regardless of whether the
+    AMFI fetch succeeded. So with30d could never structurally exceed roughly (priced - idcw) —
+    already under 50% before accounting for any real data gap. The AMFI pipeline itself was
+    never broken: the same instrumented run measured 3956/3991 = 99.1% coverage once scoped to
+    coverage['activeEligible'] (active AND not IDCW — the "investable" cohort
+    docs/DATA_COVERAGE_MATRIX.md separately documents at ~99.6%), matching a live fetch verified
+    independently the same day. Fixed by gating on activeEligible/activeEligibleWith30d instead
+    of priced/with30d — the population r1m can actually be non-null for. The 50% floor stays:
+    comfortably below a healthy ~99%, comfortably above a real near-total outage.
     """
-    priced = coverage["priced"]
-    r1m_pct = 100 * coverage["with30d"] / max(1, priced)
+    eligible = coverage["activeEligible"]
+    r1m_pct = 100 * coverage["activeEligibleWith30d"] / max(1, eligible)
     if r1m_pct < 50:
         print(f"::error::Cause: AMFI's NAV history endpoint (DownloadNAVHistoryReport_Po.aspx) "
-              f"returned unusable/empty data for this run — only {coverage['with30d']}/{priced} priced "
-              f"schemes ({r1m_pct:.1f}%) got a 1-month return, far below the normal ~99%. This "
-              f"funds.json would fail test_scores.py::test_health_in_range_on_real_data and must not "
-              f"be committed or deployed. Location: scripts/build_performance.py fetch_series()/"
-              f"_fetch_window(). Fix: usually a transient AMFI outage (see tests/test_amfi_retry.py) — "
-              f"production-refresh.yml runs again within 24h and should self-heal; only investigate "
-              f"the endpoint directly if this repeats across runs.", file=sys.stderr)
+              f"returned unusable/empty data for this run — only {coverage['activeEligibleWith30d']}/"
+              f"{eligible} active non-IDCW schemes ({r1m_pct:.1f}%) got a 1-month return, far below "
+              f"the normal ~99%. This funds.json would fail test_scores.py::test_health_in_range_on_"
+              f"real_data and must not be committed or deployed. Location: scripts/build_performance.py "
+              f"fetch_series()/_fetch_window(). Fix: usually a transient AMFI outage (see "
+              f"tests/test_amfi_retry.py) — production-refresh.yml runs again within 24h and should "
+              f"self-heal; only investigate the endpoint directly if this repeats across runs.", file=sys.stderr)
         sys.exit(1)
 
 
@@ -341,6 +354,13 @@ def main():
         "growth": sum(1 for f in vals if f["isGrowth"]), "idcw": sum(1 for f in vals if f["isIdcw"]),
         "direct": sum(1 for f in vals if f["isDirect"]), "noCategory": sum(1 for f in vals if f["category"] == "Other"),
         "coveragePct": round(100 * sum(1 for f in vals if f["r3m"] is not None) / max(1, len(vals))),
+        # The "investable" cohort per docs/DATA_COVERAGE_MATRIX.md: active (fresh within
+        # FRESH_MAX_DAYS) and not IDCW (IDCW returns are unconditionally nulled a few lines up,
+        # regardless of fetch success — see the `if idcw:` block above). assert_returns_usable
+        # gates on this pair, not on the full 'priced' universe, which includes thousands of
+        # matured/legacy/IDCW schemes that were never going to get a fresh r1m either way.
+        "activeEligible": sum(1 for f in vals if f["active"] and not f["isIdcw"]),
+        "activeEligibleWith30d": sum(1 for f in vals if f["active"] and not f["isIdcw"] and f["r1m"] is not None),
     }
     assert_returns_usable(coverage)
 
