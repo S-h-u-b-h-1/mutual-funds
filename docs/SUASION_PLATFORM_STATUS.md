@@ -239,9 +239,10 @@ left open**:
   extraction is worse than an honest gap. This stays open until a real CAMS/KFintech/MFCentral
   sample statement is available to verify against, not because it's low-value.
 
-Full suite re-run after every fix above: **77 files / 554 tests, all passing** — including the live
+Full suite re-run after every fix above: **77 files / 555 tests, all passing** — including the live
 `portfolioService.test.js` integration tests against real Neon, confirming no regression in the
-Invest platform's own portfolio valuation path.
+Invest platform's own portfolio valuation path. (The 555th test is the Section 5 holdings-
+consolidation fix below.)
 
 **FIXED this pass — statement valuation is now preserved separately from MF Pulse's own live
 valuation (Phase 3).** Directive: "Do not confuse statement market value with latest MF Pulse
@@ -324,38 +325,37 @@ Payment Attempt as a first-class entity separate from Order does not exist (conf
 `payment_status` etc. are flat columns on `investment_orders`, no separate attempt-history table) —
 this is real, unclosed Phase 9 work.
 
-**FINDING, needs a product decision (surfaced while investigating the Multibagg study's own
-cross-source-reconciliation question, §3 of `docs/MULTIBAGG_BACKEND_PRODUCT_STUDY.md`)**:
-`portfolioService.js`'s `reconcileCompletedOrder()` — the function that settles a completed Suasion
-order into `portfolio_holdings`/`portfolio_transactions` — writes with
-`folio_number = "order-${order.id}"`, a synthetic value unique to that specific order (confirmed by
-reading the code directly, not assumed). Because the `ON CONFLICT (user_id, scheme_code, source,
-folio_number)` upsert target includes `folio_number`, and `order.id` differs for every order, **two
-separate Suasion orders for the same scheme can never collide on this constraint** — each becomes
-its own row in `portfolio_holdings`, not an accumulating position. This is a real, verified fact
-about the current code, not a hypothesis.
+**FIXED — resolved by an explicit product decision, then implemented (surfaced while investigating
+the Multibagg study's own cross-source-reconciliation question, §3 of
+`docs/MULTIBAGG_BACKEND_PRODUCT_STUDY.md`)**: `portfolioService.js`'s `reconcileCompletedOrder()`
+— the function that settles a completed Suasion order — previously wrote
+`portfolio_holdings.folio_number = "order-${order.id}"`, a synthetic value unique to that specific
+order. Because the `ON CONFLICT (user_id, scheme_code, source, folio_number)` upsert target
+included `folio_number`, and `order.id` differs for every order, two separate Suasion orders for
+the same scheme could never collide on this constraint — each became its own row, not an
+accumulating position (a real, verified fact about the code, confirmed by reading it directly, not
+a hypothesis).
 
-Whether this is a bug or intentional is genuinely ambiguous, and this document will not guess:
-- **If unintentional**: a repeat SIP-style Suasion purchase of the same scheme would show as
-  multiple near-duplicate "holdings" rows in the customer-facing table rather than one accumulating
-  position — a real display/clarity defect, though the aggregate portfolio totals (which the
-  read path's own comment confirms are computed from "the consolidated report," separately from the
-  raw per-row table) are likely still numerically correct.
-- **If intentional**: this may be deliberately modeling one row per purchase LOT for FIFO capital-
-  gains cost-basis tracking (a genuine Indian tax requirement — STCG/LTCG is computed per lot, by
-  purchase date), in which case "never collapsing repeat purchases" is closer to correct than
-  consolidating them, and the real gap is only that the field is labeled `folio_number` (implying a
-  real RTA folio) rather than something like `lot_id`.
+Two readings were possible — an unintentional fragmentation bug, or a deliberate one-row-per-
+purchase-lot design for FIFO capital-gains cost-basis tracking — and this was explicitly put to the
+user rather than guessed at, per this mission's own stop condition for "a genuine product decision
+I must make." **Decision: consolidate.** Holdings now write with a stable `folio_number = ''`
+(no real folio exists yet — no live provider is connected), so repeat Suasion purchases of the same
+scheme accumulate into ONE holding row, matching how multi-installment CAS-imported holdings
+already behave. `portfolio_transactions` deliberately keeps its OWN per-order `folio_number`
+(`order-${order.id}`) unchanged — each transaction must remain its own distinct historical event
+regardless of how the resulting holding consolidates, and both XIRR paths
+(`computePortfolioXirr`/`revaluePortfolio`) already join holdings to transactions by `scheme_code`
+alone, never by `folio_number`, so this split doesn't affect any existing consumer. If per-lot cost-
+basis tracking is needed later (per the "if intentional" reading above), it should be derived from
+the transaction ledger's own dated records, not modeled via holdings-row fragmentation.
 
-The customer-facing read path's own existing comment (`portfolioService.js`, `getPortfolio()`)
-confirms the "never hide a real second folio" design is deliberate for the CAS multi-folio case
-specifically (verified — matches this session's own `casNormalizer.test.js` finding that
-same-scheme-different-folio must stay distinct) — the open question is narrower than "is
-consolidation broken," it's specifically "does the Suasion-order synthetic folio_number correctly
-model either a real folio or a real tax lot, and is either consistently true across the whole
-transaction core." **Not fixed this pass** — this needs the actual product/tax-accounting intent
-confirmed before any code changes, per this mission's own explicit stop condition for "a genuine
-product decision I must make."
+Verified via a new test (`portfolioService.test.js`): two separate purchase orders for the same
+scheme now produce exactly one `portfolio_holdings` row with accumulated units, while both orders
+remain independently visible in `portfolio_transactions`. The two pre-existing tests that asserted
+the old per-order folio behavior on holdings were updated to match the new, correct behavior (not
+weakened — same rigor, updated expectation). Full suite re-run: **77 files / 555 tests, all
+passing.**
 
 ---
 

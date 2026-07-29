@@ -319,6 +319,22 @@ export async function connectMockPortfolio(userId) {
 // specified units directly; otherwise amount / current NAV (a real simplification — real
 // allotment uses the NAV on the actual allotment date, which this mock timeline doesn't track;
 // documented, not hidden).
+//
+// Holdings consolidate on a STABLE folio_number ("" — no real folio exists yet, no live provider
+// is connected), deliberately NOT unique per order: repeat Suasion purchases of the same scheme
+// (e.g. separate SIP installments placed as separate orders) accumulate into ONE holding row, the
+// same way multi-installment CAS-imported holdings already do. This was a real, previously-
+// unverified question (an earlier per-order-unique folio_number meant the ON CONFLICT target could
+// never collide across orders, so repeat purchases silently fragmented into separate rows instead
+// of one growing position) — resolved as a deliberate product decision, not guessed at; see
+// docs/SUASION_PLATFORM_STATUS.md Section 5 for the full finding and the alternative reading
+// (per-purchase-lot tracking for FIFO capital-gains cost basis) that was considered and rejected
+// in favor of this simpler model. If lot-level cost-basis tracking is needed later, derive it from
+// portfolio_transactions (below) — which correctly keeps ITS OWN per-order identity via
+// folio_number, since each transaction must remain its own distinct historical event regardless of
+// how the resulting holding consolidates, and both XIRR paths (computePortfolioXirr,
+// revaluePortfolio) already join holdings to transactions by scheme_code alone, never by
+// folio_number, so this split is safe for every existing consumer.
 export async function reconcileCompletedOrder(order) {
   const fund = getFund(order.scheme_code);
   if (!fund || fund.nav == null) return; // can't reconcile a scheme with no resolvable live NAV
@@ -330,11 +346,11 @@ export async function reconcileCompletedOrder(order) {
 
   await query(
     `insert into portfolio_holdings (user_id, scheme_code, units, avg_cost, source, folio_number, imported_at)
-     values ($1, $2, $3, $4, 'invest-order', $5, now())
+     values ($1, $2, $3, $4, 'invest-order', '', now())
      on conflict (user_id, scheme_code, source, folio_number) do update set
        units = portfolio_holdings.units + excluded.units,
        imported_at = now()`,
-    [order.user_id, order.scheme_code, deltaUnits, nav, `order-${order.id}`]
+    [order.user_id, order.scheme_code, deltaUnits, nav]
   );
   await query(
     `insert into portfolio_transactions (user_id, scheme_code, transaction_type, units, nav_value, amount, transaction_date, source, folio_number)

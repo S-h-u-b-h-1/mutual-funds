@@ -5,6 +5,13 @@ import { makeInvestmentReadyUser, createTestUser, deleteTestUser } from "./testH
 import * as orderService from "./orderService.js";
 
 const REAL_SCHEME_CODE = "119551"; // reused from orderService.test.js — already established as a resolvable fixture
+// Two more real, active, resolvable schemes, kept distinct from REAL_SCHEME_CODE and from each
+// other — the reconcileCompletedOrder tests below all share one reconcileUserId and now correctly
+// accumulate units across multiple reconciliations for the SAME scheme (that's the point of the
+// fix being tested), so any test asserting an exact row count or an absolute unit-count sign needs
+// its own scheme to avoid depending on what earlier tests in the same file already wrote.
+const REAL_SCHEME_CODE_2 = "103052";
+const REAL_SCHEME_CODE_3 = "112278";
 
 describe("portfolioService (integration, real Neon, disposable investment-ready users)", () => {
   let emptyUserId; // stays holding-free for the life of the suite — empty-state + timeline-with-no-events checks
@@ -165,12 +172,17 @@ describe("portfolioService (integration, real Neon, disposable investment-ready 
       expect(completed.status).toBe("completed");
       vi.restoreAllMocks();
 
+      // Holdings consolidate on a stable folio_number ('') — deliberately NOT the per-order id, so
+      // a second order for the same scheme accumulates into this same row rather than fragmenting
+      // (see reconcileCompletedOrder's own comment for the full rationale). The transaction ledger
+      // still keys its own row by the real order id, since each order must remain its own distinct
+      // historical event regardless of how the resulting holding consolidates.
       const holding = await query(
         `select units, source, folio_number from portfolio_holdings where user_id = $1 and scheme_code = $2 and source = 'invest-order'`,
         [reconcileUserId, REAL_SCHEME_CODE]
       );
       expect(holding.rows.length).toBe(1);
-      expect(holding.rows[0].folio_number).toBe(`order-${order.id}`);
+      expect(holding.rows[0].folio_number).toBe("");
       expect(Number(holding.rows[0].units)).toBeGreaterThan(0);
 
       const txn = await query(
@@ -182,15 +194,52 @@ describe("portfolioService (integration, real Neon, disposable investment-ready 
       expect(txn.rows[0].source).toBe("invest-order");
     });
 
+    it("a second purchase order for the SAME scheme accumulates into the same holding row, not a fragmented second row", async () => {
+      // Uses REAL_SCHEME_CODE_2, not REAL_SCHEME_CODE — this test reconciles multiple orders for
+      // one scheme and asserts an exact row count, so it must not share accumulated state with the
+      // other tests in this block, which all use REAL_SCHEME_CODE against the same reconcileUserId.
+      const orderA = "00000000-0000-0000-0000-0000000000a1";
+      const orderB = "00000000-0000-0000-0000-0000000000a2";
+      await portfolioService.reconcileCompletedOrder({
+        id: orderA, user_id: reconcileUserId, scheme_code: REAL_SCHEME_CODE_2, order_type: "purchase", amount: 5000, units: null,
+      });
+      const afterFirst = await query(
+        `select units from portfolio_holdings where user_id = $1 and scheme_code = $2 and source = 'invest-order' and folio_number = ''`,
+        [reconcileUserId, REAL_SCHEME_CODE_2]
+      );
+      const unitsAfterFirst = Number(afterFirst.rows[0].units);
+
+      await portfolioService.reconcileCompletedOrder({
+        id: orderB, user_id: reconcileUserId, scheme_code: REAL_SCHEME_CODE_2, order_type: "purchase", amount: 3000, units: null,
+      });
+
+      const allRows = await query(
+        `select units from portfolio_holdings where user_id = $1 and scheme_code = $2 and source = 'invest-order'`,
+        [reconcileUserId, REAL_SCHEME_CODE_2]
+      );
+      expect(allRows.rows).toHaveLength(1); // still ONE row, not two — the second order accumulated rather than fragmenting
+      expect(Number(allRows.rows[0].units)).toBeGreaterThan(unitsAfterFirst);
+
+      // Both orders remain independently visible in the transaction ledger, keyed by their own real order id.
+      const txns = await query(
+        `select folio_number from portfolio_transactions where user_id = $1 and scheme_code = $2 and source = 'invest-order' and folio_number in ($3, $4)`,
+        [reconcileUserId, REAL_SCHEME_CODE_2, `order-${orderA}`, `order-${orderB}`]
+      );
+      expect(txns.rows).toHaveLength(2);
+    });
+
     it("a redemption order produces a negative unit delta (called directly, since the mock provider doesn't track redeemable balances)", async () => {
+      // Uses REAL_SCHEME_CODE_3, untouched by any other test in this block — this scheme's first
+      // (and only) reconciliation here is the redemption itself, so the resulting row's sign is
+      // unambiguous regardless of what other tests already wrote for reconcileUserId elsewhere.
       const fakeOrderId = "00000000-0000-0000-0000-000000000001";
       await portfolioService.reconcileCompletedOrder({
-        id: fakeOrderId, user_id: reconcileUserId, scheme_code: REAL_SCHEME_CODE,
+        id: fakeOrderId, user_id: reconcileUserId, scheme_code: REAL_SCHEME_CODE_3,
         order_type: "redemption", amount: 1000, units: null,
       });
       const holding = await query(
-        `select units from portfolio_holdings where user_id = $1 and folio_number = $2`,
-        [reconcileUserId, `order-${fakeOrderId}`]
+        `select units from portfolio_holdings where user_id = $1 and scheme_code = $2 and source = 'invest-order' and folio_number = ''`,
+        [reconcileUserId, REAL_SCHEME_CODE_3]
       );
       expect(Number(holding.rows[0].units)).toBeLessThan(0);
     });
