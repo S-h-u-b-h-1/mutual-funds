@@ -116,33 +116,53 @@ def fetch_series_db(start_date, end_date):
 
 
 def fetch_series(asof, days):
-    """Dense daily NAV series per scheme over the last `days`, merging HTTP + DB."""
-    series = {}
+    """Dense daily NAV series per scheme over the last `days`. DB-first, HTTP only for the gap
+    (2026-07-29): the original order tried AMFI's HTTP history endpoint for the ENTIRE window
+    first, merging in fact_nav_daily's own (fast, reliable) coverage only afterward. That meant a
+    GH-Actions-specific problem with the HTTP endpoint blocked every run for 4+ days straight
+    (2026-07-25..29) even though the DB already held the data needed -- confirmed live: the same
+    endpoint returns real, well-formed data in seconds when called from outside GH Actions'
+    runners, and every GH Actions attempt in that window either timed out or came back as a
+    fixed-size (13694-byte) unparseable response, the signature of a block/rate-limit response
+    page rather than a genuine multi-day AMFI outage (which would vary in size and self-heal
+    within hours, not persist for days). Root cause is network-path/IP-range specific, not fixable
+    from this script -- but daily ingestion (cloud_pipeline, a separate step that has kept
+    succeeding throughout this incident) already deposits fresh rows into fact_nav_daily every
+    run, so the DB alone is fully sufficient for any chunk it already covers. Only genuinely
+    uncovered chunks (older than this platform's own ingestion history, e.g. real 6mo/1y/3y/5y
+    anchors) still need the HTTP path -- and if THAT also fails, the resulting nulls only degrade
+    long-window returns, not the r1m/r1w/r1d metrics assert_returns_usable gates on."""
     start = asof - timedelta(days=days)
+    series = fetch_series_db(start, asof)
+    covered_dates = {d for m in series.values() for d in m.keys()}
+
     cur = start
     while cur <= asof:
         chunk_to = min(cur + timedelta(days=44), asof)
-        part = _fetch_window(cur, chunk_to)
-        for code, m in part.items():
-            series.setdefault(code, {}).update(m)
+        # "Any" coverage, not "full" coverage: cloud_pipeline ingests one shared NAVAll.txt
+        # snapshot per run covering every scheme at once, so one scheme having a date inside this
+        # chunk is a reliable proxy for "ingestion reached this chunk" -- no need for a slower
+        # per-scheme/per-day completeness check to get the benefit of skipping a doomed HTTP call.
+        if not any(cur <= d <= chunk_to for d in covered_dates):
+            part = _fetch_window(cur, chunk_to)
+            for code, m in part.items():
+                series.setdefault(code, {}).update(m)
         cur = chunk_to + timedelta(days=1)
-
-    db_series = fetch_series_db(start, asof)
-    if db_series:
-        for code, m in db_series.items():
-            s = series.setdefault(code, {})
-            for d, nav in m.items():
-                s[d] = nav
 
     return series
 
 
 def anchor_nav(asof, days):
-    w = _fetch_window(asof - timedelta(days=days + 7), asof - timedelta(days=days))
-    out = {c: m[max(m)] for c, m in w.items()}
-    db_series = fetch_series_db(asof - timedelta(days=days + 7), asof - timedelta(days=days))
-    if db_series:
-        for c, m in db_series.items():
+    window_start, window_end = asof - timedelta(days=days + 7), asof - timedelta(days=days)
+    db_series = fetch_series_db(window_start, window_end)
+    out = {c: m[max(m)] for c, m in db_series.items() if m}
+    if not out:
+        # No DB coverage at all in this window -- expected for anchors older than this platform's
+        # own ingestion history (see fetch_series' docstring above for the full incident context).
+        # HTTP is the only possible source here; if it also fails, this anchor stays null rather
+        # than blocking the run, same tradeoff as fetch_series' per-chunk skip.
+        w = _fetch_window(window_start, window_end)
+        for c, m in w.items():
             if m:
                 out[c] = m[max(m)]
     return out
