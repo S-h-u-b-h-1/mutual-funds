@@ -130,14 +130,37 @@ export function normalizeCasImport(parsed) {
 const OUTFLOW_TYPES = new Set(["purchase", "sip", "switch_in"]);
 const INFLOW_TYPES = new Set(["redemption", "switch_out", "dividend_payout"]);
 
+// Explains WHY an xirr value is null — never let the caller guess (the governing directive is
+// explicit: "Do not return 0. Do not let the frontend guess why it is unavailable."). Two
+// deliberately coarse buckets, not a full enumeration of computeXirr()'s internal failure modes:
+// "no_transaction_history" covers both a genuinely empty flow list (e.g. a summary-only CAS import
+// with no transaction ledger at all) and a one-directional flow list (transactions exist but
+// there's no NAV to close the series with a terminal inflow, so there's nothing to compute a RATE
+// of return over); "insufficient_cashflow_data" covers every other reason computeXirr() itself
+// returned null (fewer than 2 flows after filtering, the solver didn't converge, or the converged
+// rate was outside a plausible range) — real reasons, just not ones worth a customer-facing label.
+function explainXirrUnavailability(flows, value) {
+  if (value != null) return null;
+  const hasOutflow = flows.some((f) => f.amount < 0);
+  const hasInflow = flows.some((f) => f.amount > 0);
+  if (flows.length === 0 || !hasOutflow || !hasInflow) return "no_transaction_history";
+  return "insufficient_cashflow_data";
+}
+
 /**
  * @param {object[]} transactions same shape as normalizeCasImport's transactions output
  * @param {{schemeCode: string, currentValue: number|null}[]} holdings
- * @returns {{ portfolio: number|null, byScheme: Record<string, number|null> }}
+ * @returns {{
+ *   portfolio: number|null, byScheme: Record<string, number|null>,
+ *   portfolioStatus: {available: boolean, value: number|null, reason: string|null},
+ *   byStatus: Record<string, {available: boolean, value: number|null, reason: string|null}>
+ * }} `portfolio`/`byScheme` are unchanged from before (bare number|null, existing callers keep
+ * working) — `portfolioStatus`/`byStatus` are additive, for callers that need the reason.
  */
 export function computePortfolioXirr(transactions, holdings) {
   const today = new Date().toISOString().slice(0, 10);
   const byScheme = {};
+  const byStatus = {};
   const portfolioFlows = [];
 
   const byCode = new Map();
@@ -155,8 +178,16 @@ export function computePortfolioXirr(transactions, holdings) {
       flows.push({ date: today, amount: holding.currentValue });
       portfolioFlows.push({ date: today, amount: holding.currentValue });
     }
-    byScheme[holding.schemeCode] = computeXirr(flows);
+    const value = computeXirr(flows);
+    byScheme[holding.schemeCode] = value;
+    byStatus[holding.schemeCode] = { available: value != null, value, reason: explainXirrUnavailability(flows, value) };
   }
 
-  return { portfolio: computeXirr(portfolioFlows), byScheme };
+  const portfolioValue = computeXirr(portfolioFlows);
+  return {
+    portfolio: portfolioValue,
+    byScheme,
+    portfolioStatus: { available: portfolioValue != null, value: portfolioValue, reason: explainXirrUnavailability(portfolioFlows, portfolioValue) },
+    byStatus,
+  };
 }

@@ -239,9 +239,25 @@ left open**:
   extraction is worse than an honest gap. This stays open until a real CAMS/KFintech/MFCentral
   sample statement is available to verify against, not because it's low-value.
 
-Full suite re-run after every fix above: **77 files / 549 tests, all passing** — including the live
+Full suite re-run after every fix above: **77 files / 552 tests, all passing** — including the live
 `portfolioService.test.js` integration tests against real Neon, confirming no regression in the
 Invest platform's own portfolio valuation path.
+
+**FIXED this pass — XIRR unavailability now carries a reason, additive (no existing consumer
+broken).** The directive is explicit: "If insufficient transaction history exists: return a
+structured unavailable state and reason... Do not return 0. Do not let the frontend guess why it is
+unavailable." `xirr.js`'s `computeXirr()` was already correct at the primitive level (returns `null`,
+never `0`, on any of: fewer than 2 flows, no sign change, non-convergence, implausible rate) — but
+its caller, `casNormalizer.js`'s `computePortfolioXirr()`, only ever surfaced a bare `null` with no
+explanation. Added `portfolioStatus`/`byStatus` (each `{available, value, reason}`,
+`reason` ∈ {`no_transaction_history`, `insufficient_cashflow_data`}) alongside the *existing*
+`portfolio`/`byScheme` fields, which keep their exact original shape and values — this is additive,
+not a breaking contract change, so nothing already reading the old fields needed to change. `xirr`
+is spread directly into `casUpload.js`'s response, so the new fields reach the API automatically. 3
+new tests cover: zero-transaction holdings, transactions-but-no-current-NAV, and the real-value case
+(confirms `byScheme`/`byStatus.value` still agree). `revaluation.js`'s independent XIRR call site
+(live, used by the Invest platform's `portfolioService.js`) does **not** yet have this same
+enrichment — noted as an open follow-up, not silently left inconsistent.
 
 **Not yet done this pass**: the directive's full field-by-field coverage report (available in
 document? parsed? normalized? stored? shown in UI? used in analytics?) across every named field,

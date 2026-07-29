@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseCasText } from "./casParser";
-import { normalizeCasImport } from "./casNormalizer";
+import { normalizeCasImport, computePortfolioXirr } from "./casNormalizer";
 
 // Real, active scheme identities pulled from the live fund universe (funds.json) — needed because
 // normalizeCasImport() runs real canonical scheme resolution (schemeResolver.js), which only
@@ -74,5 +74,36 @@ describe("normalizeCasImport on a merged multi-statement CAS summary (full backe
 
     const totalCost = normalized.holdings.reduce((sum, h) => sum + h.purchaseValue, 0);
     expect(totalCost).toBe(100000 + 500 * 100 + 200000 + 150000 + 80000); // 580,000 — the duplicate is not double-counted
+  });
+});
+
+describe("computePortfolioXirr — unavailable states carry a reason, never a fabricated 0", () => {
+  it("reports no_transaction_history for a holding with zero transactions (e.g. summary-only CAS import)", () => {
+    const holdings = [{ schemeCode: "100064", currentValue: 50000 }];
+    const result = computePortfolioXirr([], holdings);
+
+    expect(result.byScheme["100064"]).toBeNull(); // unchanged existing shape — still bare null
+    expect(result.byStatus["100064"]).toEqual({ available: false, value: null, reason: "no_transaction_history" });
+    expect(result.portfolio).toBeNull();
+    expect(result.portfolioStatus).toEqual({ available: false, value: null, reason: "no_transaction_history" });
+  });
+
+  it("reports no_transaction_history when a holding has transactions but no current NAV to close the series", () => {
+    const transactions = [{ schemeCode: "100064", transactionType: "purchase", transactionDate: "2026-01-01", amount: 10000 }];
+    const holdings = [{ schemeCode: "100064", currentValue: null }]; // NAV unavailable — no terminal inflow pushed
+    const result = computePortfolioXirr(transactions, holdings);
+
+    expect(result.byStatus["100064"]).toEqual({ available: false, value: null, reason: "no_transaction_history" });
+  });
+
+  it("computes a real value (not a reason) when real dated cash flows exist both ways", () => {
+    const transactions = [{ schemeCode: "100064", transactionType: "purchase", transactionDate: "2025-01-01", amount: 10000 }];
+    const holdings = [{ schemeCode: "100064", currentValue: 12000 }];
+    const result = computePortfolioXirr(transactions, holdings);
+
+    expect(result.byStatus["100064"].available).toBe(true);
+    expect(result.byStatus["100064"].reason).toBeNull();
+    expect(typeof result.byStatus["100064"].value).toBe("number");
+    expect(result.byScheme["100064"]).toBe(result.byStatus["100064"].value); // both fields agree
   });
 });
