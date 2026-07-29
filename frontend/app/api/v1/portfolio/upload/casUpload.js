@@ -21,6 +21,40 @@ function buildIdentityCheckNote(investorEmail, accountEmail) {
     : "Email on statement does not match your account email — this may be a family member's or joint-holder's statement.";
 }
 
+// Unresolved/ambiguous holdings are persisted as their own standing record, not just reported in
+// one upload's own response — "persist it as unresolved... never map to a random 'closest' fund
+// merely to obtain NAV" (see casNormalizer.js's normalizeCasImport() for exactly which
+// resolution_status values exist and why). A row stays 'open' until a LATER upload actually
+// resolves the same folio+ISIN (resolveStaleUnresolvedHoldings, below) or an operator dismisses
+// it — it is not re-derived from scratch on every upload, so it survives even if the investor
+// never re-uploads. Exported (not just called inline) so it's directly testable without needing
+// to construct a full PDF buffer through the whole route.
+export async function persistUnresolvedHoldings(query, userId, uploadId, errors) {
+  for (const e of errors) {
+    await query(
+      `insert into portfolio_unresolved_holdings
+         (user_id, upload_id, raw_scheme_name, isin, folio_number, units, purchase_value, market_value_reported, resolution_status, resolution_reason, ambiguity_candidates, source)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'cas')`,
+      [userId, uploadId, e.schemeName ?? null, e.isin ?? null, e.folioNumber ?? null, e.units ?? null, e.purchaseValue ?? null, e.marketValueReported ?? null, e.status ?? "unresolved", e.reason ?? null, e.ambiguityCandidates ? JSON.stringify(e.ambiguityCandidates) : null]
+    );
+  }
+}
+
+// Matched on (user_id, folio_number, isin) only — the strongest identifier available, and the one
+// virtually every real CAS row carries. A prior unresolved row with no ISIN on record (rare —
+// casParser.js only omits it when the source text itself had none) isn't auto-resolved this way;
+// it stays open until an operator or a future name-based pass closes it.
+export async function resolveStaleUnresolvedHoldings(query, userId, holdings) {
+  for (const h of holdings) {
+    if (!h.isin || !h.folioNumber) continue;
+    await query(
+      `update portfolio_unresolved_holdings set status = 'resolved', resolved_at = now()
+       where user_id = $1 and folio_number = $2 and isin = $3 and status = 'open'`,
+      [userId, h.folioNumber, h.isin]
+    );
+  }
+}
+
 async function insertUploadRow(query, { userId, filename, status, rowsParsed, rowsImported, rowsSkipped, errors, warnings, checksum, fileSize, provider, identityNote }) {
   const r = await query(
     `insert into portfolio_uploads (user_id, source, filename, status, rows_parsed, rows_imported, rows_skipped, errors, content_sha256, file_size_bytes, provider, identity_check_note)
@@ -114,6 +148,9 @@ export async function handleCasUpload({ user, filename, buffer, selectedStatemen
         [user.id, t.schemeCode, t.transactionType, t.description ?? null, t.units, t.navValue, t.unitBalance ?? null, t.amount, t.transactionDate, t.folioNumber ?? ""]
       );
     }
+
+    await persistUnresolvedHoldings(query, user.id, uploadRow.id, errors);
+    await resolveStaleUnresolvedHoldings(query, user.id, holdings);
 
     const xirr = computePortfolioXirr(transactions, holdings);
 

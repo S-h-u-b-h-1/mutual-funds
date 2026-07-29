@@ -45,20 +45,32 @@ export function normalizeCasImport(parsed) {
   for (const row of rows) {
     const resolution = resolveSchemeIdentity({ schemeName: row.schemeName, isin: row.isin });
 
+    // Every branch below carries units/purchaseValue/marketValueReported alongside the identity
+    // fields — not just an explanatory reason — so the caller (casUpload.js) can persist the raw
+    // holding as a real, queryable "unresolved" record instead of a fact that only ever existed
+    // inside one upload's own errors blob. Never mapped to a random "closest" fund merely to
+    // obtain a NAV: an unresolved holding stays unresolved, on the record, until a real match exists.
     if (!ACCEPTABLE_STATUSES.has(resolution.status)) {
       errors.push({
         schemeName: row.schemeName,
         isin: row.isin,
         folioNumber: row.folioNumber,
+        units: row.units,
+        purchaseValue: row.purchaseValue,
+        marketValueReported: row.marketValueReported,
         reason: resolution.warning || `Could not confidently resolve "${row.schemeName}" to a known scheme.`,
-        status: resolution.status,
+        status: resolution.status, // "needs_review" (ambiguous) | "unresolved"
         ambiguityCandidates: resolution.ambiguityCandidates,
       });
       continue;
     }
 
     if (row.units == null || row.units <= 0) {
-      errors.push({ schemeName: row.schemeName, isin: row.isin, folioNumber: row.folioNumber, reason: `Invalid or missing closing unit balance (${row.units}).` });
+      errors.push({
+        schemeName: row.schemeName, isin: row.isin, folioNumber: row.folioNumber,
+        units: row.units, purchaseValue: row.purchaseValue, marketValueReported: row.marketValueReported,
+        reason: `Invalid or missing closing unit balance (${row.units}).`, status: "invalid_units",
+      });
       continue;
     }
 
@@ -67,7 +79,12 @@ export function normalizeCasImport(parsed) {
       // Resolver returned a scheme code that funds.js doesn't recognize — an internal consistency
       // gap between the two data sources, not a bad input file. Reported distinctly so it doesn't
       // read as "your statement has an unknown fund" when the fault is on this side.
-      errors.push({ schemeName: row.schemeName, isin: row.isin, folioNumber: row.folioNumber, reason: `Resolved to scheme code ${resolution.schemeCode}, which isn't in the current fund universe — this is a platform data gap, not an issue with your statement.` });
+      errors.push({
+        schemeName: row.schemeName, isin: row.isin, folioNumber: row.folioNumber,
+        units: row.units, purchaseValue: row.purchaseValue, marketValueReported: row.marketValueReported,
+        reason: `Resolved to scheme code ${resolution.schemeCode}, which isn't in the current fund universe — this is a platform data gap, not an issue with your statement.`,
+        status: "platform_gap",
+      });
       continue;
     }
 

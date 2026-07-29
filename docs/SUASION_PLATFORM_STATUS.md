@@ -171,6 +171,23 @@ upload detection by content checksum (not filename). An identity check flags whe
 email doesn't match the logged-in account. This is a materially more complete pipeline than a
 one-file test-coverage check alone would suggest.
 
+**FIXED this pass — unresolved/ambiguous holdings are now standing, queryable records, not just an
+upload-response fact.** Before this pass, an unresolved holding existed only inside one upload's own
+`portfolio_uploads.errors` JSON blob — real at the moment of upload, gone from any queryable state
+the instant that response was gone. `portfolio_holdings.scheme_code` is `not null` by design (a
+holding IS a resolved position), so an unresolved row structurally cannot live there without
+inventing a placeholder scheme_code — exactly the "map to a random closest fund" anti-pattern this
+directive forbids. New migration `sql/neon/030_unresolved_holdings.sql` adds
+`portfolio_unresolved_holdings` (raw scheme name/ISIN/folio/units/values, `resolution_status` ∈
+{`unresolved`, `needs_review` (ambiguous), `platform_gap`, `invalid_units`}, `status` ∈ {`open`,
+`resolved`}). A row stays `open` until a *later* upload actually resolves the same folio+ISIN
+(matched in `resolveStaleUnresolvedHoldings`) — real reconciliation over time, not a fact frozen at
+upload time. Applied to the `test` branch this pass; **production application remains a manual
+step**, same as `028`/`029`. New integration test (`casUpload.test.js`, real Neon, disposable user)
+proves both the initial persistence (two distinct unresolved/ambiguous rows, correct fields
+including `ambiguity_candidates`) and the resolve-on-later-upload path (only the matching folio+ISIN
+flips to `resolved`; an unrelated still-unresolved row stays `open`).
+
 **Real gaps found this pass — fixed, tested, and independently verified, except one deliberately
 left open**:
 - **FIXED — SIP is now a distinct transaction type**, checked *before* the generic purchase pattern
@@ -222,7 +239,7 @@ left open**:
   extraction is worse than an honest gap. This stays open until a real CAMS/KFintech/MFCentral
   sample statement is available to verify against, not because it's low-value.
 
-Full suite re-run after every fix above: **76 files / 548 tests, all passing** — including the live
+Full suite re-run after every fix above: **77 files / 549 tests, all passing** — including the live
 `portfolioService.test.js` integration tests against real Neon, confirming no regression in the
 Invest platform's own portfolio valuation path.
 
