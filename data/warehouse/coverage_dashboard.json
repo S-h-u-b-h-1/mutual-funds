@@ -1,86 +1,55 @@
 {
- "asOf": "2026-07-16",
+ "asOf": "2026-07-28",
  "live_amfi_fetched": true,
- "live_amfi_schemes": 14227,
- "mfpulse_schemes": 14224,
- "covered": 14224,
- "coverage_pct": 99.98,
- "missing_count": 3,
+ "live_amfi_schemes": 14213,
+ "mfpulse_schemes": 14213,
+ "covered": 14213,
+ "coverage_pct": 100.0,
+ "missing_count": 0,
  "delisted_count": 0,
  "universe": {
   "asset_class": {
-   "Equity": 2928,
-   "Debt": 7991,
-   "Other": 2341,
-   "Hybrid": 822,
+   "Debt": 7953,
+   "Other": 2350,
+   "Equity": 2933,
+   "Hybrid": 832,
    "Solution": 145
   },
   "scheme_type": {
-   "Open Ended Schemes": 9427,
-   "Close Ended Schemes": 4759,
+   "Close Ended Schemes": 4711,
+   "Open Ended Schemes": 9461,
    "Interval Fund Schemes": 41
   },
   "fund_type": {
-   "Active/Other": 11934,
-   "Index Fund": 1278,
-   "Fund of Fund": 677,
-   "ETF": 338
+   "Active/Other": 11903,
+   "Fund of Fund": 681,
+   "ETF": 345,
+   "Index Fund": 1284
   },
   "international": 177,
   "commodity": 209
  },
- "missing_schemes": [
-  {
-   "scheme_code": "154471",
-   "scheme_name": "Mirae Asset BSE Midcap 150 Momentum 30 ETF",
-   "amc": "Mirae Asset Mutual Fund",
-   "asset_class": "Equity",
-   "expected_source": "AMFI:NAVAll",
-   "reason_missing": "NFO since snapshot \u2014 re-ingest",
-   "priority": "P0",
-   "acquisition_status": "pending"
-  },
-  {
-   "scheme_code": "154507",
-   "scheme_name": "Kotak Money Market Fund - Direct - IDCW Weekly",
-   "amc": "Kotak Mahindra Mutual Fund",
-   "asset_class": "Debt",
-   "expected_source": "AMFI:NAVAll",
-   "reason_missing": "NFO since snapshot \u2014 re-ingest",
-   "priority": "P0",
-   "acquisition_status": "pending"
-  },
-  {
-   "scheme_code": "154510",
-   "scheme_name": "Kotak Bond Short Term Fund - Direct - IDCW Weekly",
-   "amc": "Kotak Mahindra Mutual Fund",
-   "asset_class": "Debt",
-   "expected_source": "AMFI:NAVAll",
-   "reason_missing": "NFO since snapshot \u2014 re-ingest",
-   "priority": "P0",
-   "acquisition_status": "pending"
-  }
- ],
+ "missing_schemes": [],
  "delisted_schemes": [],
  "kpis": {
-  "scheme_coverage_pct": 99.98,
+  "scheme_coverage_pct": 100.0,
   "nav_coverage_pct": 98.29,
-  "historical_coverage_pct": 90.07,
-  "returns_coverage_pct": 99.48,
-  "risk_coverage_pct": 99.62,
-  "benchmark_coverage_pct": 85.91,
+  "historical_coverage_pct": 90.43,
+  "returns_coverage_pct": 99.22,
+  "risk_coverage_pct": 99.34,
+  "benchmark_coverage_pct": 85.74,
   "category_coverage_pct": 100.0,
-  "metadata_coverage_pct": 6.84,
-  "aum_coverage_pct": 6.84,
-  "expense_ratio_coverage_pct": 1.69,
-  "manager_coverage_pct": 5.78,
+  "metadata_coverage_pct": 6.85,
+  "aum_coverage_pct": 6.85,
+  "expense_ratio_coverage_pct": 1.7,
+  "manager_coverage_pct": 5.79,
   "holdings_coverage_pct": 1.72,
   "portfolio_coverage_pct": 1.27,
-  "document_coverage_pct": 6.84,
-  "isin_coverage_pct": 98.82,
+  "document_coverage_pct": 6.85,
+  "isin_coverage_pct": 98.8,
   "structure_coverage_pct": 100.0,
-  "performance_completeness_avg_investable": 92.9,
-  "fund_completeness_avg_investable": 57.9,
-  "research_readiness_avg_investable": 54.8
+  "performance_completeness_avg_investable": 85.9,
+  "fund_completeness_avg_investable": 55.7,
+  "research_readiness_avg_investable": 54.6
  }
 }

@@ -1,19 +1,19 @@
 {
- "asOf": "2026-07-16",
+ "asOf": "2026-07-28",
  "checks": [
   {
    "check": "Every live AMFI scheme covered",
-   "pass": false,
-   "detail": "3 missing"
+   "pass": true,
+   "detail": "0 missing"
   },
   {
    "check": "Every scheme routable (funds.json == our universe)",
-   "pass": false,
-   "detail": "14227 vs 14224"
+   "pass": true,
+   "detail": "14213 vs 14213"
   },
   {
    "check": "No orphan funds outside source",
-   "pass": false,
+   "pass": true,
    "detail": ""
   },
   {
@@ -38,8 +38,8 @@
   },
   {
    "check": "Universe is a superset of live AMFI (no scheme missing)",
-   "pass": false,
-   "detail": "3 missing"
+   "pass": true,
+   "detail": "0 missing"
   },
   {
    "check": "Daily NAV refresh automated (cron scheduled)",
@@ -47,11 +47,11 @@
    "detail": "production-refresh.yml"
   }
  ],
- "passing": 5,
+ "passing": 9,
  "total": 9,
- "production_ready_pct": 55.56,
+ "production_ready_pct": 100.0,
  "observations": {
-  "local_snapshot_age_days": 3,
+  "local_snapshot_age_days": 1,
   "note": "prod NAV refreshed daily by cron; local bundle may lag a few days"
  }
 }
