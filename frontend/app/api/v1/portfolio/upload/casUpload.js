@@ -55,6 +55,24 @@ export async function resolveStaleUnresolvedHoldings(query, userId, holdings) {
   }
 }
 
+// First-ever writer to portfolio_transactions (schema existed since 002_auth_and_user_data.sql but
+// no code had ever populated it) — this is what makes real XIRR possible, not just a point-in-time
+// cost/value comparison. ON CONFLICT DO NOTHING against the fingerprint unique constraint
+// (031_transaction_idempotency.sql) is a DB-level idempotency backstop beyond the app-level
+// checksum gate in handleCasUpload — the checksum gate is what actually stops a normal duplicate
+// re-upload; this is what stops a duplicate ROW surviving any path that reaches this insert
+// without going through that gate (a retry, a race, a future import source).
+export async function persistTransactions(query, userId, transactions) {
+  for (const t of transactions) {
+    await query(
+      `insert into portfolio_transactions (user_id, scheme_code, transaction_type, description, units, nav_value, unit_balance, amount, transaction_date, source, folio_number)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'cas', $10)
+       on conflict (user_id, scheme_code, folio_number, transaction_date, transaction_type, amount, units, nav_value) do nothing`,
+      [userId, t.schemeCode, t.transactionType, t.description ?? null, t.units, t.navValue, t.unitBalance ?? null, t.amount, t.transactionDate, t.folioNumber ?? ""]
+    );
+  }
+}
+
 async function insertUploadRow(query, { userId, filename, status, rowsParsed, rowsImported, rowsSkipped, errors, warnings, checksum, fileSize, provider, identityNote }) {
   const r = await query(
     `insert into portfolio_uploads (user_id, source, filename, status, rows_parsed, rows_imported, rows_skipped, errors, content_sha256, file_size_bytes, provider, identity_check_note)
@@ -138,17 +156,7 @@ export async function handleCasUpload({ user, filename, buffer, selectedStatemen
       );
     }
 
-    // First-ever writer to portfolio_transactions (schema existed since 002_auth_and_user_data.sql
-    // but no code had ever populated it) — this is what makes real XIRR possible, not just a
-    // point-in-time cost/value comparison.
-    for (const t of transactions) {
-      await query(
-        `insert into portfolio_transactions (user_id, scheme_code, transaction_type, description, units, nav_value, unit_balance, amount, transaction_date, source, folio_number)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'cas', $10)`,
-        [user.id, t.schemeCode, t.transactionType, t.description ?? null, t.units, t.navValue, t.unitBalance ?? null, t.amount, t.transactionDate, t.folioNumber ?? ""]
-      );
-    }
-
+    await persistTransactions(query, user.id, transactions);
     await persistUnresolvedHoldings(query, user.id, uploadRow.id, errors);
     await resolveStaleUnresolvedHoldings(query, user.id, holdings);
 

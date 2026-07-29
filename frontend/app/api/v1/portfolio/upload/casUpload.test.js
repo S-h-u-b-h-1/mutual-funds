@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { query } from "../../../../lib/db.js";
 import { createTestUser, deleteTestUser } from "../../../../lib/invest/testHelpers.js";
-import { persistUnresolvedHoldings, resolveStaleUnresolvedHoldings } from "./casUpload.js";
+import { persistUnresolvedHoldings, resolveStaleUnresolvedHoldings, persistTransactions } from "./casUpload.js";
 
 describe("unresolved/ambiguous holdings persistence (integration, real Neon, disposable user)", () => {
   let userId;
@@ -81,5 +81,41 @@ describe("unresolved/ambiguous holdings persistence (integration, real Neon, dis
     const resolved = after.rows.find((r) => r.folio_number === "99002");
     expect(resolved.status).toBe("resolved");
     expect(resolved.resolved_at).not.toBeNull();
+  });
+});
+
+describe("transaction idempotency (integration, real Neon, disposable user)", () => {
+  let userId;
+
+  beforeAll(async () => {
+    userId = await createTestUser("cas-txn-idempotency");
+  });
+
+  afterAll(async () => {
+    await deleteTestUser(userId);
+  });
+
+  it("re-persisting the exact same transaction is a no-op, not a duplicate row — the DB-level backstop beyond the app-level checksum gate", async () => {
+    const transactions = [
+      { schemeCode: "100064", transactionType: "purchase", description: "Purchase", transactionDate: "2026-01-15", amount: 10000, units: 316.4, navValue: 31.6, unitBalance: 316.4, folioNumber: "77001" },
+      { schemeCode: "100064", transactionType: "sip", description: "Purchase - SIP Installment", transactionDate: "2026-02-15", amount: 5000, units: 155.3, navValue: 32.2, unitBalance: 471.7, folioNumber: "77001" },
+    ];
+
+    await persistTransactions(query, userId, transactions);
+    const firstPass = await query(`select count(*)::int as n from portfolio_transactions where user_id = $1`, [userId]);
+    expect(firstPass.rows[0].n).toBe(2);
+
+    // Simulate a retry/race replaying the exact same rows — same fingerprint, must not duplicate.
+    await persistTransactions(query, userId, transactions);
+    const secondPass = await query(`select count(*)::int as n from portfolio_transactions where user_id = $1`, [userId]);
+    expect(secondPass.rows[0].n).toBe(2); // unchanged — ON CONFLICT DO NOTHING held
+
+    // A genuinely different transaction (different date) for the same scheme/folio is NOT
+    // suppressed — the fingerprint correctly distinguishes it from the two above.
+    await persistTransactions(query, userId, [
+      { schemeCode: "100064", transactionType: "purchase", description: "Purchase", transactionDate: "2026-03-15", amount: 10000, units: 300, navValue: 33.3, unitBalance: 771.7, folioNumber: "77001" },
+    ]);
+    const thirdPass = await query(`select count(*)::int as n from portfolio_transactions where user_id = $1`, [userId]);
+    expect(thirdPass.rows[0].n).toBe(3);
   });
 });

@@ -1,0 +1,25 @@
+-- MF Pulse — Suasion Securities system-of-record directive, Phase 1D (deduplication).
+-- "Transactions should use a deterministic fingerprint... Repeated import of the same document
+-- must be idempotent." Before this migration, the ONLY protection against duplicate transaction
+-- rows was an application-level check in casUpload.js (reject a re-upload of a file with an
+-- already-seen content_sha256 when it has a transaction ledger) — real, but a pre-check outside
+-- the write itself, not a DB-level guarantee. A future code path that writes transactions without
+-- going through that exact gate (a retry, a race between two concurrent uploads racing the
+-- checksum lookup, a different import source) would have nothing stopping a duplicate row.
+--
+-- Fingerprint: the natural key of "this specific transaction" given what casParser.js actually
+-- extracts — same investor, same scheme, same folio, same date, same classified type, and the
+-- three numeric fields that together make two DIFFERENT real transactions on the same day
+-- coincidentally sharing all of amount/units/nav_value astronomically unlikely. Verified empirically
+-- against the test branch's real data before writing this migration: zero existing rows collide on
+-- this key (a fresh table — see casUpload.js's own comment: "First-ever writer to
+-- portfolio_transactions... no code had ever populated it").
+--
+-- Run: psql "$DATABASE_URL" -f sql/neon/031_transaction_idempotency.sql
+-- Apply to BOTH the production branch and the dedicated "test" branch (br-weathered-star-
+-- atigraez) — see docs/TEST_DATABASE_AND_CI.md's schema-drift note. If production application is
+-- blocked by this session's own tooling (same pattern as 022/024/028/029/030), apply to test only,
+-- record that honestly in docs/MIGRATION_RUNBOOK.md's inventory, and leave production application
+-- for someone with direct DB access.
+alter table portfolio_transactions add constraint portfolio_transactions_fingerprint_unique
+  unique (user_id, scheme_code, folio_number, transaction_date, transaction_type, amount, units, nav_value);

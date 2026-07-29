@@ -239,9 +239,25 @@ left open**:
   extraction is worse than an honest gap. This stays open until a real CAMS/KFintech/MFCentral
   sample statement is available to verify against, not because it's low-value.
 
-Full suite re-run after every fix above: **77 files / 552 tests, all passing** — including the live
+Full suite re-run after every fix above: **77 files / 553 tests, all passing** — including the live
 `portfolioService.test.js` integration tests against real Neon, confirming no regression in the
 Invest platform's own portfolio valuation path.
+
+**FIXED this pass — transaction-level idempotency is now a DB-level guarantee, not just an
+app-level pre-check (Phase 1D).** Directive: "Transactions should use a deterministic
+fingerprint... Repeated import of the same document must be idempotent." Before this pass, the
+*only* protection against a duplicate `portfolio_transactions` row was `casUpload.js`'s
+content-checksum gate — real, but a pre-check outside the write itself, with nothing stopping a
+duplicate row from a retry, a race between two concurrent uploads, or a future code path that
+writes transactions without going through that exact gate. New migration
+`sql/neon/031_transaction_idempotency.sql` adds a unique constraint on `portfolio_transactions`
+over `(user_id, scheme_code, folio_number, transaction_date, transaction_type, amount, units,
+nav_value)` — verified empirically against the test branch first (zero existing rows collide on
+this key, expected since this table had no writer at all until this session). The insert now uses
+`ON CONFLICT DO NOTHING` against it. New test (`casUpload.test.js`) proves: persisting the same two
+transactions twice leaves the row count unchanged, while a genuinely different transaction (same
+scheme/folio, different date) is correctly NOT suppressed. Applied to the `test` branch; production
+application remains manual, same as `028`/`029`/`030`.
 
 **FIXED this pass — XIRR unavailability now carries a reason, additive (no existing consumer
 broken).** The directive is explicit: "If insufficient transaction history exists: return a
