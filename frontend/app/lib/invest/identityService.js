@@ -168,3 +168,74 @@ export async function assignRm(userId, advisorId) {
 export async function getOnboardingProgress(userId) {
   return getComplianceProgress(userId);
 }
+
+// Suasion mission Section A (2026-07-28): a richer, presentation-ready onboarding contract on
+// top of the SAME underlying compliance_items data getOnboardingProgress already exposes — this
+// does not change what determines investment_ready (complianceService remains the sole
+// authority), it only adds human-readable labels/ordering/next-action guidance so the frontend
+// stops having to reconstruct that logic itself from a raw item-key list. Deliberately additive:
+// getOnboardingProgress/GET /api/v1/invest/profile are unchanged, so nothing already consuming
+// that shape (Codex) needs to change. See docs/INVEST_API_CONTRACTS.md's Module 1 section.
+const STEP_METADATA = {
+  mobile: { label: "Verify mobile number", category: "contact_verification", required: true },
+  email: { label: "Verify email address", category: "contact_verification", required: true },
+  pan: { label: "Verify PAN", category: "kyc", required: true },
+  identity: { label: "Complete identity verification", category: "kyc", required: true },
+  nominee: { label: "Add a nominee", category: "declarations", required: true },
+  bank: { label: "Verify bank account", category: "banking", required: true },
+  fatca: { label: "FATCA/CRS declaration", category: "declarations", required: true },
+  risk_profile: { label: "Complete risk questionnaire", category: "risk_assessment", required: true },
+};
+// Matches the order journey1-onboarding.e2e.test.js already exercises end-to-end — a fresh
+// investor following nextAction in sequence walks the exact path that fixture proves works.
+const STEP_ORDER = Object.keys(STEP_METADATA);
+
+export async function getOnboardingContract(userId) {
+  const progress = await getComplianceProgress(userId);
+  const byKey = Object.fromEntries(progress.items.map((i) => [i.item_key, i]));
+
+  const steps = STEP_ORDER.map((key, index) => {
+    const item = byKey[key];
+    return {
+      key,
+      order: index + 1,
+      label: STEP_METADATA[key].label,
+      category: STEP_METADATA[key].category,
+      required: STEP_METADATA[key].required,
+      status: item?.status ?? "pending",
+      completedAt: item?.completed_at ?? null,
+      rejectionReason: item?.rejection_reason ?? null,
+    };
+  });
+
+  // Priority: a rejected step needs the user's attention before anything else (they already
+  // tried and it failed) — checked as its own pass rather than relying on STEP_ORDER position,
+  // so a late-sequence rejection surfaces even if earlier steps happen to still be pending.
+  const rejected = steps.find((s) => s.status === "rejected");
+  const notStarted = steps.find((s) => s.status === "pending" || s.status === "in_progress");
+  const actionable = rejected ?? notStarted;
+  const needsReviewCount = steps.filter((s) => s.status === "needs_review").length;
+
+  let nextAction;
+  if (actionable) {
+    nextAction = { key: actionable.key, label: actionable.label, reason: actionable.status === "rejected" ? "rejected" : actionable.status };
+  } else if (needsReviewCount > 0) {
+    // Nothing left the user can submit — remaining items are with us, not them.
+    nextAction = { key: null, label: "Your submission is under review — no action needed right now.", reason: "waiting_on_review" };
+  } else {
+    nextAction = null; // every required step is done
+  }
+
+  const investmentReadyItem = byKey.investment_ready;
+  // percent/status reuse getComplianceProgress's own numbers rather than recomputing from
+  // `steps` — that array deliberately excludes the derived investment_ready item (it's not a
+  // user-facing step), and DONE_STATUSES's exact verified/completed definition lives in
+  // complianceService, not duplicated here.
+  const readiness = {
+    status: progress.overallStatus,
+    percent: progress.percent,
+    investmentReady: investmentReadyItem?.status === "completed",
+  };
+
+  return { readiness, steps, nextAction };
+}

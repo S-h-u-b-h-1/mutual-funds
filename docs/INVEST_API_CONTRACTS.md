@@ -85,6 +85,54 @@ The server derives `score` (0-100) and `risk_category` (`conservative` \| `moder
 
 `preferredPlan` is `"direct"` or `"regular"`; `sipDay` is 1-28.
 
+### `GET /api/v1/invest/onboarding`
+
+Suasion mission Section A (2026-07-28) — a richer, presentation-ready onboarding/readiness
+contract, additive alongside `GET /api/v1/invest/profile`'s existing `onboarding` field (which is
+unchanged and still returns the raw compliance-items list — nothing already consuming that shape
+needs to change). Use this endpoint when building onboarding UX that needs human-readable step
+labels and "what do I do next" guidance without reconstructing that logic client-side.
+
+```json
+{
+  "investor": { "id": "...", "name": "Jane Investor", "email": "jane@example.com" },
+  "readiness": { "status": "in_progress", "percent": 44, "investmentReady": false },
+  "steps": [
+    {
+      "key": "mobile", "order": 1, "label": "Verify mobile number", "category": "contact_verification",
+      "required": true, "status": "completed", "completedAt": "2026-07-28T...", "rejectionReason": null
+    },
+    { "key": "email", "order": 2, "...": "same shape" },
+    { "key": "pan", "order": 3, "category": "kyc", "...": "..." },
+    { "key": "identity", "order": 4, "category": "kyc", "...": "..." },
+    { "key": "nominee", "order": 5, "category": "declarations", "...": "..." },
+    { "key": "bank", "order": 6, "category": "banking", "...": "..." },
+    { "key": "fatca", "order": 7, "category": "declarations", "...": "..." },
+    { "key": "risk_profile", "order": 8, "category": "risk_assessment", "...": "..." }
+  ],
+  "nextAction": { "key": "pan", "label": "Verify PAN", "reason": "pending" }
+}
+```
+
+`steps[].status` is one of `pending` \| `in_progress` \| `verified` \| `completed` \|
+`needs_review` \| `rejected` (identical vocabulary to `GET /compliance`'s items — this is a
+relabeled view of the same underlying rows, not a new state machine).
+`investment_ready` itself is intentionally excluded from `steps[]` — it's the derived gate
+(`readiness.investmentReady`), not a step the investor submits.
+
+`nextAction` priority: a `rejected` step (the investor already tried and it failed) always wins
+over an untouched `pending`/`in_progress` step, regardless of ordering — fixing a failure is more
+actionable than starting something new. If nothing is rejected/pending/in_progress but one or more
+steps are `needs_review`, `nextAction` is `{ "key": null, "label": "Your submission is under
+review — no action needed right now.", "reason": "waiting_on_review" }` (not tied to one specific
+key — there's nothing left for the investor to submit). `nextAction` is `null` once every required
+step is done.
+
+`readiness.percent`/`readiness.status` are the exact same numbers `GET /compliance` and the
+existing `onboarding` field on `GET /profile` already return — this endpoint doesn't introduce a
+second, potentially-diverging readiness calculation, only a richer presentation of the one that
+already exists in `complianceService.js`.
+
 ---
 
 ## Module 2 — Compliance Engine
