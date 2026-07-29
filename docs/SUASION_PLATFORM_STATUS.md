@@ -317,11 +317,45 @@ directive's more detailed compliance model (Phase 7 of the governing directive).
 
 ## 5. Transaction core (Purchase/SIP/Redemption/Switch)
 
-**Status: NOT YET AUDITED THIS PASS.** Redemption and Switch contracts were built and tested in an
-earlier mission (see `docs/REDEMPTION_CONTRACT.md`, `docs/SWITCH_CONTRACT.md`). Payment Attempt as
-a first-class entity separate from Order does not exist (confirmed: `payment_status` etc. are flat
-columns on `investment_orders`, no separate attempt-history table) — this is real, unclosed
-Phase 9 work.
+**Status: PARTIAL — not fully audited this pass, but one real, load-bearing finding surfaced and
+needs a product decision, not a unilateral code change.** Redemption and Switch contracts were
+built and tested in an earlier mission (see `docs/REDEMPTION_CONTRACT.md`, `docs/SWITCH_CONTRACT.md`).
+Payment Attempt as a first-class entity separate from Order does not exist (confirmed:
+`payment_status` etc. are flat columns on `investment_orders`, no separate attempt-history table) —
+this is real, unclosed Phase 9 work.
+
+**FINDING, needs a product decision (surfaced while investigating the Multibagg study's own
+cross-source-reconciliation question, §3 of `docs/MULTIBAGG_BACKEND_PRODUCT_STUDY.md`)**:
+`portfolioService.js`'s `reconcileCompletedOrder()` — the function that settles a completed Suasion
+order into `portfolio_holdings`/`portfolio_transactions` — writes with
+`folio_number = "order-${order.id}"`, a synthetic value unique to that specific order (confirmed by
+reading the code directly, not assumed). Because the `ON CONFLICT (user_id, scheme_code, source,
+folio_number)` upsert target includes `folio_number`, and `order.id` differs for every order, **two
+separate Suasion orders for the same scheme can never collide on this constraint** — each becomes
+its own row in `portfolio_holdings`, not an accumulating position. This is a real, verified fact
+about the current code, not a hypothesis.
+
+Whether this is a bug or intentional is genuinely ambiguous, and this document will not guess:
+- **If unintentional**: a repeat SIP-style Suasion purchase of the same scheme would show as
+  multiple near-duplicate "holdings" rows in the customer-facing table rather than one accumulating
+  position — a real display/clarity defect, though the aggregate portfolio totals (which the
+  read path's own comment confirms are computed from "the consolidated report," separately from the
+  raw per-row table) are likely still numerically correct.
+- **If intentional**: this may be deliberately modeling one row per purchase LOT for FIFO capital-
+  gains cost-basis tracking (a genuine Indian tax requirement — STCG/LTCG is computed per lot, by
+  purchase date), in which case "never collapsing repeat purchases" is closer to correct than
+  consolidating them, and the real gap is only that the field is labeled `folio_number` (implying a
+  real RTA folio) rather than something like `lot_id`.
+
+The customer-facing read path's own existing comment (`portfolioService.js`, `getPortfolio()`)
+confirms the "never hide a real second folio" design is deliberate for the CAS multi-folio case
+specifically (verified — matches this session's own `casNormalizer.test.js` finding that
+same-scheme-different-folio must stay distinct) — the open question is narrower than "is
+consolidation broken," it's specifically "does the Suasion-order synthetic folio_number correctly
+model either a real folio or a real tax lot, and is either consistently true across the whole
+transaction core." **Not fixed this pass** — this needs the actual product/tax-accounting intent
+confirmed before any code changes, per this mission's own explicit stop condition for "a genuine
+product decision I must make."
 
 ---
 

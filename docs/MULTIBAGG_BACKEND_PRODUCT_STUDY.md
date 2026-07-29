@@ -139,18 +139,20 @@ actually "two separate portfolios" today — they already share one physical mod
 design, not by accident. Mode B does not exist (no provider is connected yet — correctly not faked,
 per this mission's own explicit constraint against building live provider integrations).
 
-**What's still a real gap**: nothing currently *reconciles conflicting facts* across sources for the
-same economic position. Example: if a CAS import reports 1000 units of a scheme in folio X, and a
-Suasion-executed purchase later adds units to the same folio/scheme, does the next CAS re-import
-correctly recognize "this folio now also reflects a Suasion-originated purchase" rather than
-silently overwriting Suasion's own more-authoritative running balance? **Not yet verified — flagged
-as the concrete next audit for Phase 2's accounting-reconciliation work already in progress this
-session**, not answered by this document. The `ON CONFLICT ... DO UPDATE SET units = excluded.units`
-upsert in `casUpload.js` (this session, unchanged) means a re-import currently **overwrites** the
-unit count unconditionally — correct for "CAS is the fresher source of truth for a manually-tracked
-folio," but not yet proven correct for "this folio also has Suasion activity," because that
-cross-source precedence rule has never been explicitly decided or tested. This is the single most
-important open question this study surfaces.
+**Update, verified after this document's first draft**: chased this precedence question directly by
+reading `reconcileCompletedOrder()` (`portfolioService.js`), the function that settles a completed
+Suasion order. It never collides with a CAS-imported row at all in practice — it writes with
+`folio_number = "order-${order.id}"`, a value synthetic and unique to that one order, so it can
+never share a composite key with a CAS row's real folio number. This resolves the original
+question ("does a CAS re-import silently overwrite Suasion activity on the same folio") in the
+sense that **it structurally cannot happen with a real folio today** — but it surfaces a different,
+arguably more important one: since `order.id` is also unique per ORDER, two separate Suasion
+purchases of the *same scheme* also never collide with each other, so repeat purchases (e.g. SIP
+installments placed as separate orders) each become their own row rather than accumulating into one
+position. Whether that's a defect or an intentional per-purchase-lot design for FIFO capital-gains
+cost-basis tracking is genuinely ambiguous from the code alone and is not this document's call to
+make — written up precisely, with both readings, in `docs/SUASION_PLATFORM_STATUS.md` §5, flagged
+for an explicit product decision rather than a guessed fix.
 
 ---
 
@@ -368,9 +370,11 @@ consistent with the directive's own explicit constraint.
 Per the directive's own instruction, this study does not interrupt the in-progress P0 accounting
 work. It does sharpen what comes right after it:
 
-1. **Finish the current Phase 2 accounting-reconciliation audit** (already in progress) — §3 above
-   found the precedence question it needs to answer explicitly (CAS re-import vs. Suasion-originated
-   activity on the same folio).
+1. **Get a product decision on the per-order synthetic-folio question** (§3, §5 of
+   `docs/SUASION_PLATFORM_STATUS.md`) before the current Phase 2 accounting-reconciliation audit
+   goes further — whether repeat Suasion purchases of the same scheme should consolidate into one
+   holding or intentionally stay separate (FIFO tax-lot tracking) changes what "correct" even means
+   for the rest of that audit.
 2. **Canonical Dashboard/Portfolio API** (§10) is the highest-leverage next P0-adjacent piece — most
    of its underlying data is now correct, it just isn't exposed as one read.
 3. **Event bus catalog extension** (§7) and **notification trigger catalog** (§8) are real, bounded,
