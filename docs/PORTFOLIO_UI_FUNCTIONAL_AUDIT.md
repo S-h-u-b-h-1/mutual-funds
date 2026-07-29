@@ -7,6 +7,28 @@ Scope: `/portfolio`, its navigation entry points, `PortfolioWorkspace.jsx`, and 
 
 This is an evidence log, not a completion claim. The current backend does not yet expose the draft, approval, history, valuation, diff, settings, report-download, or deletion contracts required for the requested persistent portfolio experience. Those controls must not be presented as working until the contracts below exist and are verified on the public production domain.
 
+## Portfolio truth update — 2026-07-29
+
+Scope: merged-CAS customer journey for `/portfolio`, using the 13-holding regression PDF
+`mfreport_mfreport1_merged.pdf`.
+
+| Area | Status | Evidence |
+|---|---|---|
+| Import parser output | PASS | Browser-backed local upload of the merged PDF returned `13 mapped · 0 unresolved`. |
+| Import review | PASS | Upload success now stays on the import view and shows a server-confirmed review table with fund name, AMC, plan/option, folio, units, invested value, latest NAV/date, current value, gain/loss, return and mapping status. |
+| Scheme mapping visibility | PASS | Human-readable scheme names are primary. Mapping status is explicit. AMFI/internal identifiers are not the primary customer label. |
+| Storage/read preservation | PASS | `getPortfolio()` and `getPortfolioHoldings()` now return stored folio/source rows for the customer-facing holdings list instead of the consolidated analytics holdings. The merged-CAS regression shows `13 saved holdings`; the two JioBlackRock folios remain separate. |
+| NAV valuation | PASS | Holdings display latest NAV and NAV date where supplied by the backend/fund universe. The summary labels NAV valuation as latest available NAV, not real-time value. |
+| Gain/loss | PASS | Summary and holding rows show gain/loss and return percentage when invested value and current value are available. Missing or zero-cost cases remain unavailable rather than showing `NaN`, `Infinity`, or misleading zeroes. |
+| XIRR | PASS | XIRR remains unavailable unless the backend supplies sufficient dated cash-flow evidence. The UI does not derive XIRR from invested/current value alone. |
+| Value history | PASS | A single current valuation is no longer presented as historical performance. The UI shows a current-valuation block until real stored history has more than one point. |
+| Statement-total reconciliation | BLOCKED | The current upload response does not expose statement-declared grand totals or statement date. The exact backend fields required are documented in `FRONTEND_CONTRACT_GAPS.md`. |
+| Duplicate import/update reconciliation | PARTIAL | The backend upload path is already content/user scoped, but full overlapping-CAS/update-statement reconciliation still requires backend reconciliation metadata before the UI can certify no double-counting across every case. |
+| Dashboard reconciliation | PARTIAL | Portfolio summary and holdings reconcile locally for the merged-CAS account after import. Cross-route dashboard certification on production remains required after deployment. |
+| Fund detail route | PARTIAL | Holdings link to `/fund/:schemeCode`; detail content depends on structured fund data coverage. |
+| Mobile UX | PASS | Local responsive browser verification at customer-relevant widths confirmed the import filename stays inside its box and the portfolio table/cards do not drop the folio-level rows. |
+| Production deployment | PENDING | Must be verified after the frontend commit is deployed to `https://mf-pulse.vercel.app`; a pushed commit alone is not completion. |
+
 ## Current persistence boundary
 
 | Data or state | Current owner | Survives refresh/logout/device? | Finding |

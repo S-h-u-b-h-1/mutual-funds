@@ -63,6 +63,27 @@ function valueTone(value) {
   return "text-ink";
 }
 
+function gainPctFrom(gain, invested) {
+  const cost = Number(invested);
+  if (gain == null || !Number.isFinite(cost) || cost <= 0) return null;
+  return +((Number(gain) / cost) * 100).toFixed(2);
+}
+
+function planOptionLabel(holding) {
+  const plan = holding?.planType || holding?.plan || (holding?.isDirect === true ? "Direct" : holding?.isDirect === false ? "Regular" : null);
+  const option = holding?.optionType || holding?.option || (holding?.isGrowth === true ? "Growth" : holding?.isIdcw === true ? "IDCW" : null);
+  if (plan && option) return `${plan} · ${option}`;
+  return plan || option || "Plan/option unavailable";
+}
+
+function dataStatus(holding) {
+  if (holding?.dataStatus) return holding.dataStatus;
+  if (!holding?.schemeCode) return "Unresolved";
+  if (holding.nav == null) return "Missing NAV";
+  if (holding.purchaseValue == null) return "Missing cost";
+  return "Mapped and valued";
+}
+
 function FileIcon() {
   return (
     <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -167,6 +188,87 @@ function UploadStatus({ phase, error, onCancel }) {
   );
 }
 
+function ImportResultReview({ result, onViewPortfolio, onUploadAnother }) {
+  if (!result) return null;
+  const importedHoldings = Array.isArray(result.holdings) ? result.holdings : [];
+  const issues = Array.isArray(result.errors) ? result.errors : [];
+  const warnings = Array.isArray(result.warnings) ? result.warnings : [];
+  const totalInvested = importedHoldings.reduce((sum, holding) => sum + (Number.isFinite(Number(holding.purchaseValue)) ? Number(holding.purchaseValue) : 0), 0);
+  const totalCurrent = importedHoldings.reduce((sum, holding) => sum + (Number.isFinite(Number(holding.currentValue)) ? Number(holding.currentValue) : 0), 0);
+  const gain = importedHoldings.length ? +(totalCurrent - totalInvested).toFixed(2) : null;
+  const gainPct = gainPctFrom(gain, totalInvested);
+
+  return (
+    <section className="portfolio-card-outlined border-accent/25 bg-accent/5" aria-labelledby="portfolio-import-result-title">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="eyebrow text-accent">Import result</div>
+          <h2 id="portfolio-import-result-title" className="section-title mt-2">Server-confirmed portfolio review</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">The current endpoint saves immediately after parsing. This review shows what the server accepted, what it could not map, and the values now available to the portfolio.</p>
+        </div>
+        <StatusPill tone={issues.length ? "warning" : "positive"}>{importedHoldings.length} mapped · {issues.length} unresolved</StatusPill>
+      </div>
+
+      <div className="mt-5 grid portfolio-grid-gap sm:grid-cols-2 xl:grid-cols-4">
+        <MetricTile label="Holdings found" value={decimal(importedHoldings.length)} detail={`${result.imported ?? importedHoldings.length} persisted by the server`} source={result.upload?.id ? `Upload ${result.upload.id}` : "Upload response"} />
+        <MetricTile label="Total invested" value={money(totalInvested)} unavailable={!importedHoldings.length} detail="Cost value from accepted rows" source="Statement-derived cost evidence" />
+        <MetricTile label="Latest MF Pulse value" value={money(totalCurrent)} unavailable={!importedHoldings.length} detail="Accepted rows revalued with latest NAV" source="AMFI NAV universe" />
+        <MetricTile label="Gain / loss" value={`${money(gain)} · ${decimal(gainPct, "%")}`} unavailable={gain == null} tone={valueTone(gain)} detail="Current value minus invested value" source="Display derivation from accepted rows" />
+      </div>
+
+      <div className="mt-5 rounded-xl border border-warn/25 bg-warn/10 p-4">
+        <div className="eyebrow text-warn">Statement reconciliation</div>
+        <p className="mt-2 text-sm leading-6 text-ink-muted">The upload response does not yet expose the statement-declared grand totals, so the frontend cannot compare source-document total versus MF Pulse total on this screen. That remains a backend contract dependency, not a hidden calculation.</p>
+      </div>
+
+      {!!warnings.length && <div className="mt-5 rounded-xl bg-surface p-4">
+        <h3 className="text-sm font-semibold text-ink">Warnings</h3>
+        <ul className="mt-3 space-y-2 text-sm leading-6 text-ink-muted">{warnings.slice(0, 5).map((warning, index) => <li key={`warning-${index}`}>• {warning}</li>)}</ul>
+      </div>}
+
+      <div className="mt-5 overflow-x-auto">
+        <table className="w-full min-w-[1120px] text-sm">
+          <caption className="sr-only">Imported holdings review with mapping state, values, NAV evidence and gain or loss.</caption>
+          <thead className="border-y border-line bg-surface text-left text-[11px] uppercase tracking-[0.08em] text-ink-faint"><tr><th scope="col" className="portfolio-table-cell w-[300px]">Fund</th><th scope="col" className="portfolio-table-cell">Folio</th><th scope="col" className="portfolio-table-cell text-right">Units</th><th scope="col" className="portfolio-table-cell text-right">Invested</th><th scope="col" className="portfolio-table-cell text-right">Latest NAV</th><th scope="col" className="portfolio-table-cell text-right">Current value</th><th scope="col" className="portfolio-table-cell text-right">Gain / loss</th><th scope="col" className="portfolio-table-cell text-right">Return</th><th scope="col" className="portfolio-table-cell">Mapping</th></tr></thead>
+          <tbody>
+            {importedHoldings.map((holding, index) => {
+              const rowGain = holding.absoluteGain ?? holding.gainLoss ?? (holding.currentValue != null && holding.purchaseValue != null ? +(Number(holding.currentValue) - Number(holding.purchaseValue)).toFixed(2) : null);
+              const rowGainPct = holding.returnPct ?? holding.gainLossPct ?? gainPctFrom(rowGain, holding.purchaseValue);
+              return (
+                <tr key={`${holding.schemeCode || "mapped"}-${holding.folioNumber || "folio"}-${index}`} className="border-b border-line/70">
+                  <th scope="row" className="portfolio-table-cell text-left"><span className="block break-words font-semibold leading-5 text-ink">{holding.schemeName || holding.name || holding.schemeCode || "Mapped holding"}</span><span className="mt-1 block break-words text-xs font-normal text-ink-faint">{holding.amc || "AMC unavailable"} · {planOptionLabel(holding)}</span></th>
+                  <td className="portfolio-table-cell break-all">{holding.folioNumber || "Not supplied"}</td>
+                  <td className="portfolio-table-cell financial-number text-right">{decimal(holding.units)}</td>
+                  <td className="portfolio-table-cell financial-number text-right">{money(holding.purchaseValue)}</td>
+                  <td className="portfolio-table-cell text-right"><span className="financial-number">{money(holding.nav)}</span><span className="mt-1 block text-[10px] text-ink-faint">{shortDate(holding.navDate)}</span></td>
+                  <td className="portfolio-table-cell financial-number text-right font-semibold">{money(holding.currentValue)}</td>
+                  <td className={`portfolio-table-cell financial-number text-right ${valueTone(rowGain)}`}>{money(rowGain)}</td>
+                  <td className={`portfolio-table-cell financial-number text-right ${valueTone(rowGainPct)}`}>{decimal(rowGainPct, "%")}</td>
+                  <td className="portfolio-table-cell"><StatusPill tone={holding.resolutionWarning ? "warning" : "positive"}>{holding.resolutionWarning ? "Mapped with note" : "Mapped"}</StatusPill></td>
+                </tr>
+              );
+            })}
+            {issues.map((issue, index) => (
+              <tr key={`issue-${issue.schemeName || index}`} className="border-b border-line/70 bg-warn/5">
+                <th scope="row" className="portfolio-table-cell text-left"><span className="block break-words font-semibold leading-5 text-ink">{issue.schemeName || "Unresolved source row"}</span><span className="mt-1 block text-xs font-normal text-ink-faint">{issue.reason || "Mapping failed"}</span></th>
+                <td className="portfolio-table-cell break-all">{issue.folioNumber || "Not supplied"}</td>
+                <td className="portfolio-table-cell text-right" colSpan="6">{issue.ambiguityCandidates?.length ? `${issue.ambiguityCandidates.length} possible matches require confirmation` : "No safe unique mapping was available"}</td>
+                <td className="portfolio-table-cell"><StatusPill tone="warning">{issue.status === "needs_review" ? "Ambiguous" : "Unresolved"}</StatusPill></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button type="button" onClick={onViewPortfolio} className="inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-semibold text-white">View portfolio</button>
+        <a href="/invest" className="inline-flex min-h-11 items-center rounded-full border border-line px-5 text-sm font-semibold text-ink">Go to dashboard</a>
+        <button type="button" onClick={onUploadAnother} className="inline-flex min-h-11 items-center rounded-full border border-line px-5 text-sm font-semibold text-ink-muted">Upload another statement</button>
+      </div>
+    </section>
+  );
+}
+
 function PortfolioHeader({ holdings, summary, computedAt, latestImportedAt, onUpload }) {
   const saved = holdings.length > 0;
   const portfolioName = summary?.portfolioName || summary?.name || "My mutual fund portfolio";
@@ -218,7 +320,15 @@ function ExecutiveSummary({ summary, computedAt }) {
           <MetricTile label="Invested value" value={money(invested)} unavailable={invested == null} detail="Purchase or cost value supplied by the API" source={invested == null ? "Cost basis not supplied" : `Calculated by portfolio API · ${shortDate(navDate)}`} help="Cost basis must come from the stored statement or transaction ledger." />
           <MetricTile label="Absolute gain / loss" value={money(gain)} unavailable={gain == null} tone={valueTone(gain)} detail={gain == null ? "Requires API cost basis" : Number(gain) >= 0 ? "Gain versus invested value" : "Loss versus invested value"} source={`Valuation: ${dateTime(computedAt)}`} help="Current value minus invested value, computed by the portfolio service." />
           <MetricTile label="Percentage gain / loss" value={decimal(gainPct, "%")} unavailable={gainPct == null} tone={valueTone(gainPct)} detail={gainPct == null ? "Requires API cost basis" : "Absolute return percentage"} source={`Valuation: ${dateTime(computedAt)}`} help="Absolute gain or loss divided by invested value, computed by the portfolio service." />
-          <MetricTile label="Latest NAV-day change" value={dailyValue == null ? "Not available" : `${money(dailyValue)} · ${decimal(dailyPct, "%")}`} unavailable={dailyValue == null} tone={valueTone(dailyValue)} detail="Change from the previous stored official NAV valuation" source={dailyValue == null ? "Daily valuation contract not supplied" : `Official NAV: ${shortDate(navDate)}`} help="Requires two persisted valuation points with unchanged position units." />
+          <MetricTile
+            label="Latest NAV-day change"
+            value={dailyValue == null ? "Not available" : `${money(dailyValue)} · ${decimal(dailyPct, "%")}`}
+            unavailable={dailyValue == null}
+            tone={valueTone(dailyValue)}
+            detail={dailyValue == null ? "Requires fund-level NAV-day movement" : "Derived from latest fund NAV-day movement"}
+            source={dailyValue == null ? "Daily NAV movement unavailable" : `Official NAV: ${shortDate(navDate)}`}
+            help="Uses each holding's latest one-day NAV movement where the fund dataset supplies it. This is not stored portfolio value history."
+          />
           <MetricTile label="XIRR" value={decimal(xirr, "%")} unavailable={xirr == null} tone={valueTone(xirr)} detail="Shown only with a sufficient transaction ledger" source={xirr == null ? "Transaction evidence unavailable" : "Portfolio API transaction cash flows"} help="Extended internal rate of return computed from dated cash flows by the portfolio service." />
           <MetricTile label="Research score" value={summary?.healthScore == null ? "Not available" : `${decimal(summary.healthScore)}/100`} unavailable={summary?.healthScore == null} tone={scoreTone(summary?.healthScore)} detail="Deterministic portfolio research score" source={`Report: ${dateTime(computedAt)}`} help="A research-priority indicator, not a suitability or recommendation score." />
           <MetricTile label="Valuation confidence" value={confidence || "Not available"} unavailable={!confidence} detail="Coverage, reconciliation and NAV freshness" source={confidence ? `API status · ${shortDate(navDate)}` : "Confidence contract not supplied"} help="Must be supplied with coverage and reconciliation evidence by the portfolio service." />
@@ -248,6 +358,7 @@ function ValueHistory({ history = [], ranges = [] }) {
   const enabled = new Set(ranges);
   const defaultRange = ranges.includes("since_import") ? "since_import" : ranges[0] || "since_import";
   const [activeRange, setActiveRange] = useState(defaultRange);
+  const hasActualHistory = history.length > 1;
   const visibleHistory = useMemo(() => {
     if (!history.length || activeRange === "all" || activeRange === "since_import") return history;
     const monthCount = { "1m": 1, "3m": 3, "6m": 6, "1y": 12 }[activeRange];
@@ -261,21 +372,32 @@ function ValueHistory({ history = [], ranges = [] }) {
   }, [activeRange, history]);
   return (
     <section id="value-history" className="portfolio-section" aria-labelledby="value-history-title">
-      <SectionHeader eyebrow="Value history" title="Portfolio value, invested value and gain over time" detail="Only stored valuation points are eligible. Date ranges stay disabled until the API confirms real coverage." />
+      <SectionHeader
+        eyebrow={hasActualHistory ? "Value history" : "Current valuation"}
+        title={hasActualHistory ? "Portfolio value, invested value and gain over time" : "Current portfolio value from latest available NAV"}
+        detail={hasActualHistory ? "Only stored valuation points are eligible. Date ranges stay disabled until the API confirms real coverage." : "MF Pulse is showing the current valuation only. This is not presented as historical performance until real valuation history exists."}
+      />
       <div className="portfolio-card-outlined">
         <h2 id="value-history-title" className="sr-only">Portfolio value history</h2>
-        <div className="flex flex-wrap gap-2" aria-label="Value history range">
+        {hasActualHistory && <div className="flex flex-wrap gap-2" aria-label="Value history range">
           {[["since_import", "Since import"], ["1m", "1M"], ["3m", "3M"], ["6m", "6M"], ["1y", "1Y"], ["all", "All"]].map(([key, label]) => (
             <button key={key} type="button" disabled={!enabled.has(key)} aria-pressed={activeRange === key} onClick={() => setActiveRange(key)} className="min-h-10 rounded-full border border-line px-3 text-xs font-semibold text-ink-muted aria-pressed:border-accent aria-pressed:text-accent disabled:cursor-not-allowed disabled:opacity-40">{label}</button>
           ))}
-        </div>
-        {history.length ? (
+        </div>}
+        {hasActualHistory ? (
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[620px] text-sm">
               <caption className="sr-only">Stored portfolio valuation history with market value, invested value, gain and NAV coverage.</caption>
               <thead className="text-left text-xs text-ink-faint"><tr><th className="portfolio-table-cell">Date</th><th className="portfolio-table-cell text-right">Market value</th><th className="portfolio-table-cell text-right">Invested</th><th className="portfolio-table-cell text-right">Gain / loss</th><th className="portfolio-table-cell text-right">NAV coverage</th></tr></thead>
               <tbody>{visibleHistory.map((point) => <tr key={point.id || point.date} className="border-t border-line"><td className="portfolio-table-cell">{shortDate(point.date)}</td><td className="portfolio-table-cell financial-number text-right">{money(point.marketValue)}</td><td className="portfolio-table-cell financial-number text-right">{money(point.investedValue)}</td><td className={`portfolio-table-cell financial-number text-right ${valueTone(point.gainLoss)}`}>{money(point.gainLoss)}</td><td className="portfolio-table-cell financial-number text-right">{decimal(point.navCoveragePct, "%")}</td></tr>)}</tbody>
             </table>
+          </div>
+        ) : history.length === 1 ? (
+          <div className="mt-5 grid portfolio-grid-gap sm:grid-cols-2 lg:grid-cols-4">
+            <MetricTile label="Latest MF Pulse value" value={money(history[0].marketValue)} detail={`NAV as of ${shortDate(history[0].date)}`} source="Current valuation point" />
+            <MetricTile label="Invested value" value={money(history[0].investedValue)} unavailable={history[0].investedValue == null} detail="Cost basis from stored holdings" source="Statement/API evidence" />
+            <MetricTile label="Gain / loss" value={money(history[0].gainLoss)} unavailable={history[0].gainLoss == null} tone={valueTone(history[0].gainLoss)} detail="Current value minus invested value" source="Display derivation from current valuation" />
+            <MetricTile label="NAV coverage" value={decimal(history[0].navCoveragePct, "%")} unavailable={history[0].navCoveragePct == null} detail="Holdings with latest NAV evidence" source="Portfolio metadata" />
           </div>
         ) : (
           <div className="mt-5 rounded-xl bg-surface-2 p-5">
@@ -307,7 +429,9 @@ function HoldingEvidence({ holding }) {
       <div><dt className="text-ink-faint">Imported</dt><dd className="mt-1 text-ink">{dateTime(holding.importedAt)}</dd></div>
       <div><dt className="text-ink-faint">Benchmark</dt><dd className="mt-1 break-words text-ink">{holding.benchmark || "Not available"}</dd></div>
       <div><dt className="text-ink-faint">Expense ratio</dt><dd className="financial-number mt-1 text-ink">{decimal(holding.expenseRatio, "%")}</dd></div>
-      <div><dt className="text-ink-faint">Data status</dt><dd className="mt-1 text-ink">{holding.dataStatus || (holding.nav == null ? "Missing NAV" : "NAV supplied")}</dd></div>
+      <div><dt className="text-ink-faint">Data status</dt><dd className="mt-1 text-ink">{dataStatus(holding)}</dd></div>
+      <div><dt className="text-ink-faint">Plan / option</dt><dd className="mt-1 text-ink">{planOptionLabel(holding)}</dd></div>
+      <div><dt className="text-ink-faint">NAV date</dt><dd className="mt-1 text-ink">{shortDate(holding.navDate)}</dd></div>
     </dl>
   );
 }
@@ -376,24 +500,26 @@ function HoldingsSection({ holdings }) {
         <div className="mt-5 hidden overflow-x-auto lg:block">
           <table className="w-full min-w-[1180px] text-sm">
             <caption className="sr-only">Portfolio holdings. Use each row’s evidence button for source, folio and data status.</caption>
-            <thead className="border-y border-line bg-surface-2 text-left text-[11px] uppercase tracking-[0.08em] text-ink-faint"><tr><th scope="col" className="portfolio-table-cell w-[280px]">Fund</th><th scope="col" className="portfolio-table-cell">Units</th><th scope="col" className="portfolio-table-cell text-right">Purchase value</th><th scope="col" className="portfolio-table-cell text-right">Latest NAV</th><th scope="col" className="portfolio-table-cell text-right">Current value</th><th scope="col" className="portfolio-table-cell text-right">Gain / loss</th><th scope="col" className="portfolio-table-cell text-right">Allocation</th><th scope="col" className="portfolio-table-cell">Actions</th></tr></thead>
+            <thead className="border-y border-line bg-surface-2 text-left text-[11px] uppercase tracking-[0.08em] text-ink-faint"><tr><th scope="col" className="portfolio-table-cell w-[300px]">Fund</th><th scope="col" className="portfolio-table-cell">Units</th><th scope="col" className="portfolio-table-cell text-right">Invested</th><th scope="col" className="portfolio-table-cell text-right">Latest NAV</th><th scope="col" className="portfolio-table-cell text-right">Current value</th><th scope="col" className="portfolio-table-cell text-right">Gain / loss</th><th scope="col" className="portfolio-table-cell text-right">Return</th><th scope="col" className="portfolio-table-cell">Data status</th><th scope="col" className="portfolio-table-cell">Actions</th></tr></thead>
             <tbody>
               {rows.map((holding, index) => {
                 const key = rowKey(holding, index);
                 const gain = holding.absoluteGain ?? holding.gainLoss;
+                const gainPct = holding.returnPct ?? holding.gainLossPct ?? gainPctFrom(gain, holding.purchaseValue);
                 return (
                   <FragmentRow key={key} groupLabel={group !== "none" && (index === 0 || rows[index - 1]?.[group] !== holding[group]) ? (holding[group] || "Unknown") : null}>
                     <tr className="border-b border-line/80">
-                      <th scope="row" className="portfolio-table-cell text-left"><a href={`/fund/${holding.schemeCode}`} className="block break-words font-semibold leading-5 text-ink hover:text-accent">{holding.schemeName || holding.name || holding.schemeCode}</a><span className="mt-1 block break-words text-xs font-normal text-ink-faint">{holding.category || "Category unavailable"} · {holding.amc || "AMC unavailable"}</span></th>
+                      <th scope="row" className="portfolio-table-cell text-left"><a href={`/fund/${holding.schemeCode}`} className="block break-words font-semibold leading-5 text-ink hover:text-accent">{holding.schemeName || holding.name || holding.schemeCode}</a><span className="mt-1 block break-words text-xs font-normal text-ink-faint">{holding.amc || "AMC unavailable"} · {planOptionLabel(holding)}</span><span className="mt-1 block break-all text-[11px] font-normal text-ink-faint">Folio {holding.folioNumber || "not supplied"}</span></th>
                       <td className="portfolio-table-cell financial-number">{decimal(holding.units)}</td>
                       <td className="portfolio-table-cell financial-number text-right">{money(holding.purchaseValue)}</td>
                       <td className="portfolio-table-cell text-right"><span className="financial-number">{money(holding.nav)}</span><span className="mt-1 block text-[10px] text-ink-faint">{shortDate(holding.navDate)}</span></td>
                       <td className="portfolio-table-cell financial-number text-right font-semibold">{money(holding.currentValue)}</td>
                       <td className={`portfolio-table-cell financial-number text-right ${valueTone(gain)}`}>{money(gain)}</td>
-                      <td className="portfolio-table-cell financial-number text-right">{decimal(holding.weight, "%")}</td>
+                      <td className={`portfolio-table-cell financial-number text-right ${valueTone(gainPct)}`}>{decimal(gainPct, "%")}</td>
+                      <td className="portfolio-table-cell"><StatusPill tone={holding.nav == null || holding.purchaseValue == null ? "warning" : "positive"}>{dataStatus(holding)}</StatusPill></td>
                       <td className="portfolio-table-cell"><button type="button" onClick={() => toggleExpanded(key)} aria-expanded={expanded.has(key)} className="inline-flex min-h-10 items-center rounded-full border border-line px-3 text-xs font-semibold text-ink-muted hover:text-ink">{expanded.has(key) ? "Hide evidence" : "Evidence"}</button></td>
                     </tr>
-                    {expanded.has(key) && <tr className="border-b border-line"><td colSpan="8" className="p-3"><HoldingEvidence holding={holding} /><div className="mt-3"><HoldingActions holding={holding} watched={watched.has(holding.schemeCode)} onWatch={addWatch} /></div></td></tr>}
+                    {expanded.has(key) && <tr className="border-b border-line"><td colSpan="9" className="p-3"><HoldingEvidence holding={holding} /><div className="mt-3"><HoldingActions holding={holding} watched={watched.has(holding.schemeCode)} onWatch={addWatch} /></div></td></tr>}
                   </FragmentRow>
                 );
               })}
@@ -405,13 +531,14 @@ function HoldingsSection({ holdings }) {
           {rows.map((holding, index) => {
             const key = rowKey(holding, index);
             const gain = holding.absoluteGain ?? holding.gainLoss;
+            const gainPct = holding.returnPct ?? holding.gainLossPct ?? gainPctFrom(gain, holding.purchaseValue);
             const groupLabel = group !== "none" && (index === 0 || rows[index - 1]?.[group] !== holding[group]) ? (holding[group] || "Unknown") : null;
             return (
               <div key={key}>
                 {groupLabel && <div className="mb-2 mt-3 text-xs font-semibold uppercase tracking-[0.1em] text-accent">{groupLabel}</div>}
                 <article className="rounded-[1.2rem] bg-surface-2 p-4">
-                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><a href={`/fund/${holding.schemeCode}`} className="break-words text-sm font-semibold leading-5 text-ink">{holding.schemeName || holding.name || holding.schemeCode}</a><p className="mt-1 break-words text-xs text-ink-faint">{holding.category || "Category unavailable"} · {holding.amc || "AMC unavailable"}</p></div><StatusPill tone={holding.nav == null ? "warning" : "positive"}>{holding.nav == null ? "Missing NAV" : "Valued"}</StatusPill></div>
-                  <dl className="mt-4 grid grid-cols-2 gap-3 text-xs"><div><dt className="text-ink-faint">Current value</dt><dd className="financial-number mt-1 font-semibold text-ink">{money(holding.currentValue)}</dd></div><div><dt className="text-ink-faint">Allocation</dt><dd className="financial-number mt-1 text-ink">{decimal(holding.weight, "%")}</dd></div><div><dt className="text-ink-faint">Purchase value</dt><dd className="financial-number mt-1 text-ink">{money(holding.purchaseValue)}</dd></div><div><dt className="text-ink-faint">Gain / loss</dt><dd className={`financial-number mt-1 ${valueTone(gain)}`}>{money(gain)}</dd></div><div><dt className="text-ink-faint">Units</dt><dd className="financial-number mt-1 text-ink">{decimal(holding.units)}</dd></div><div><dt className="text-ink-faint">Latest NAV</dt><dd className="financial-number mt-1 text-ink">{money(holding.nav)}</dd></div></dl>
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><a href={`/fund/${holding.schemeCode}`} className="break-words text-sm font-semibold leading-5 text-ink">{holding.schemeName || holding.name || holding.schemeCode}</a><p className="mt-1 break-words text-xs text-ink-faint">{holding.amc || "AMC unavailable"} · {planOptionLabel(holding)}</p><p className="mt-1 break-all text-[11px] text-ink-faint">Folio {holding.folioNumber || "not supplied"}</p></div><StatusPill tone={holding.nav == null || holding.purchaseValue == null ? "warning" : "positive"}>{dataStatus(holding)}</StatusPill></div>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 text-xs"><div><dt className="text-ink-faint">Current value</dt><dd className="financial-number mt-1 font-semibold text-ink">{money(holding.currentValue)}</dd></div><div><dt className="text-ink-faint">Return</dt><dd className={`financial-number mt-1 ${valueTone(gainPct)}`}>{decimal(gainPct, "%")}</dd></div><div><dt className="text-ink-faint">Invested</dt><dd className="financial-number mt-1 text-ink">{money(holding.purchaseValue)}</dd></div><div><dt className="text-ink-faint">Gain / loss</dt><dd className={`financial-number mt-1 ${valueTone(gain)}`}>{money(gain)}</dd></div><div><dt className="text-ink-faint">Units</dt><dd className="financial-number mt-1 text-ink">{decimal(holding.units)}</dd></div><div><dt className="text-ink-faint">Latest NAV</dt><dd className="financial-number mt-1 text-ink">{money(holding.nav)}<span className="mt-1 block font-sans text-[10px] text-ink-faint">{shortDate(holding.navDate)}</span></dd></div></dl>
                   <div className="mt-4"><button type="button" onClick={() => toggleExpanded(key)} aria-expanded={expanded.has(key)} className="inline-flex min-h-10 items-center rounded-full border border-line px-3 text-xs font-semibold text-ink-muted">{expanded.has(key) ? "Hide folio evidence" : "Show folio evidence"}</button></div>
                   {expanded.has(key) && <div className="mt-3"><HoldingEvidence holding={holding} /><div className="mt-3"><HoldingActions holding={holding} watched={watched.has(holding.schemeCode)} onWatch={addWatch} /></div></div>}
                 </article>
@@ -431,7 +558,7 @@ function HoldingsSection({ holdings }) {
 }
 
 function FragmentRow({ groupLabel, children }) {
-  return <>{groupLabel && <tr><th colSpan="8" scope="rowgroup" className="bg-accent/5 px-3 py-2 text-left text-xs font-semibold uppercase tracking-[0.1em] text-accent">{groupLabel}</th></tr>}{children}</>;
+  return <>{groupLabel && <tr><th colSpan="9" scope="rowgroup" className="bg-accent/5 px-3 py-2 text-left text-xs font-semibold uppercase tracking-[0.1em] text-accent">{groupLabel}</th></tr>}{children}</>;
 }
 
 function AllocationSection({ allocations }) {
@@ -508,10 +635,11 @@ function ProvenanceSection({ summary, computedAt, unresolved }) {
   );
 }
 
-function ImportWorkspace({ file, fileUrl, statementType, setStatementType, dragging, setDragging, selectFile, uploadInputRef, processStatement, busy, uploadPhase, error, message, noticeRef, onDrop, cancelUpload }) {
+function ImportWorkspace({ file, fileUrl, statementType, setStatementType, dragging, setDragging, selectFile, uploadInputRef, processStatement, busy, uploadPhase, error, message, importResult, noticeRef, onDrop, cancelUpload, onViewPortfolio, onUploadAnother }) {
   return (
     <section id="portfolio-import" className="portfolio-section" aria-labelledby="portfolio-import-title">
       <SectionHeader eyebrow="Import statement" title="Upload a supported PDF with truthful persistence state" detail="The current endpoint parses and saves in one transaction. Parsed-holding review and approval cannot be added safely until the server exposes an import draft." />
+      {importResult && <ImportResultReview result={importResult} onViewPortfolio={onViewPortfolio} onUploadAnother={onUploadAnother} />}
       <div className="grid min-w-0 portfolio-grid-gap lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="portfolio-card-outlined">
           <h2 id="portfolio-import-title" className="sr-only">Portfolio statement import</h2>
@@ -545,6 +673,7 @@ export default function PortfolioWorkspace() {
   const [computedAt, setComputedAt] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [importResult, setImportResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [loadingPortfolio, setLoadingPortfolio] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -607,7 +736,7 @@ export default function PortfolioWorkspace() {
   }, [sessionKey]);
 
   function selectFile(nextFile) {
-    setError(""); setMessage(""); setUploadPhase("idle");
+    setError(""); setMessage(""); setImportResult(null); setUploadPhase("idle");
     if (!nextFile) { setFile(null); return; }
     if ((nextFile.type && nextFile.type !== "application/pdf") || !/\.pdf$/i.test(nextFile.name)) {
       setError("Upload a supported PDF statement only."); setFile(null); return;
@@ -634,9 +763,10 @@ export default function PortfolioWorkspace() {
       setUploadPhase("processing");
       const data = await portfolioApi.uploadStatement(form, controller.signal);
       await loadHoldings(); await computeReport();
+      setImportResult(data);
       setUploadPhase("complete");
-      setMessage(`Portfolio saved and synced. ${data.imported} holding${data.imported === 1 ? "" : "s"} imported by the server.`);
-      setView("dashboard"); setFile(null);
+      setMessage(`Portfolio saved and synced. ${data.imported} holding${data.imported === 1 ? "" : "s"} imported by the server. Review the accepted rows below.`);
+      setView("import"); setFile(null);
       window.requestAnimationFrame(() => noticeRef.current?.focus());
     } catch (err) {
       const text = err.name === "AbortError" ? "Upload cancelled. Portfolio was not saved by this request." : `${uploadErrorMessage(err.body, err.status) || err.message || "Statement processing failed."} Portfolio was not shown as saved.`;
@@ -659,6 +789,15 @@ export default function PortfolioWorkspace() {
     window.requestAnimationFrame(() => document.getElementById("portfolio-import")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
+  function uploadAnotherStatement() {
+    setImportResult(null);
+    setMessage("");
+    setError("");
+    setUploadPhase("idle");
+    setFile(null);
+    window.requestAnimationFrame(() => uploadInputRef.current?.focus());
+  }
+
   if (authStatus === "loading") return <div className="portfolio-shell" aria-label="Loading portfolio workspace"><div className="skeleton h-64 rounded-[1.75rem]" /><div className="grid portfolio-grid-gap sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, index) => <div key={index} className="skeleton h-36 rounded-[1.15rem]" />)}</div></div>;
   if (!session) return <section className="portfolio-card-outlined mx-auto max-w-3xl p-6 shadow-float sm:p-8"><div className="eyebrow">Private workspace</div><h1 className="page-title mt-3">Sign in to view a persistent portfolio.</h1><p className="mt-4 max-w-xl text-sm leading-6 text-ink-muted">Portfolio records are user-scoped and are never accepted into an anonymous browser session.</p><a href="/login?callbackUrl=/portfolio" className="mt-6 inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-semibold text-white">Sign in securely</a></section>;
 
@@ -673,7 +812,7 @@ export default function PortfolioWorkspace() {
 
           <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex rounded-full border border-line bg-surface p-1"><button type="button" onClick={() => setView("dashboard")} aria-pressed={view === "dashboard"} className={`min-h-10 rounded-full px-4 text-sm font-semibold ${view === "dashboard" ? "bg-ink text-bg" : "text-ink-muted"}`}>Dashboard</button><button type="button" onClick={openImport} aria-pressed={view === "import"} className={`min-h-10 rounded-full px-4 text-sm font-semibold ${view === "import" ? "bg-ink text-bg" : "text-ink-muted"}`}>Statement import</button></div>{holdings.length > 0 && <StatusPill tone="positive">{holdings.length} saved holding{holdings.length === 1 ? "" : "s"}</StatusPill>}</div>
 
-          {view === "import" && <ImportWorkspace file={file} fileUrl={fileUrl} statementType={statementType} setStatementType={setStatementType} dragging={dragging} setDragging={setDragging} selectFile={selectFile} uploadInputRef={uploadInputRef} processStatement={processStatement} busy={busy} uploadPhase={uploadPhase} error={error} message={message} noticeRef={noticeRef} onDrop={onDrop} cancelUpload={cancelUpload} />}
+          {view === "import" && <ImportWorkspace file={file} fileUrl={fileUrl} statementType={statementType} setStatementType={setStatementType} dragging={dragging} setDragging={setDragging} selectFile={selectFile} uploadInputRef={uploadInputRef} processStatement={processStatement} busy={busy} uploadPhase={uploadPhase} error={error} message={message} importResult={importResult} noticeRef={noticeRef} onDrop={onDrop} cancelUpload={cancelUpload} onViewPortfolio={() => setView("dashboard")} onUploadAnother={uploadAnotherStatement} />}
 
           {view === "dashboard" && !holdings.length && <section className="portfolio-card-outlined p-8 text-center"><div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent/12 text-accent"><FileIcon /></div><h2 className="section-title mt-5">No saved portfolio yet.</h2><p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-ink-muted">Upload a supported statement to create user-scoped server holdings, or connect the clearly labelled demo portfolio for an interactive preview. Nothing is connected automatically.</p><div className="mt-6 flex flex-wrap justify-center gap-3"><button type="button" onClick={openImport} className="inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-semibold text-white">Upload statement</button><button type="button" onClick={connectDemoPortfolio} disabled={connecting} className="inline-flex min-h-11 items-center rounded-full border border-line px-5 text-sm font-semibold text-ink disabled:opacity-50">{connecting ? "Connecting…" : "Connect demo portfolio"}</button></div></section>}
 

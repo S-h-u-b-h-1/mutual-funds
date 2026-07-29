@@ -99,6 +99,9 @@ Remaining backend requirements before this can be described as end-to-end portfo
   RTA/provider feeds and Suasion orders without double counting;
 - deterministic match confidence, ambiguity-resolution and unresolved-record actions that preserve the
   original source row;
+- upload/import response fields for statement-declared totals and reconciliation: statement date,
+  declared cost total, declared statement market value, MF Pulse revalued current total,
+  per-total status (`matched`, `rounding`, `discrepancy`, `not_applicable`), delta and delta percentage;
 - servicing eligibility per holding before enabling redemption, switch, STP or SWP;
 - report-generation contracts with explicit transaction-history and tax-lot coverage.
 

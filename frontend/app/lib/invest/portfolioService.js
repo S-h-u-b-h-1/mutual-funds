@@ -24,7 +24,7 @@ function toValuationHolding(h) {
   return { id: h.schemeCode, schemeCode: h.schemeCode, unitBalance: h.units, investedValue: h.purchaseValue };
 }
 function toLeaderHolding(h) {
-  return { schemeCode: h.schemeCode, schemeName: h.schemeName, folioNumber: h.folioNumber, investedValue: h.purchaseValue, marketValue: h.currentValue, weight: h.weight };
+  return { schemeCode: h.schemeCode, schemeName: h.schemeName, folioNumber: h.folioNumber, investedValue: h.purchaseValue, marketValue: h.currentValue, weight: h.weight, navDate: h.navDate, staleDays: h.staleDays };
 }
 
 const EMPTY_SUMMARY = {
@@ -58,9 +58,12 @@ export async function getPortfolio(userId) {
   }
   const a = report._analytics;
   const dataQuality = buildDataQuality(rawHoldings, unresolved, valuation);
-  const summary = buildSummary(a, valuation, dataQuality, unresolved);
+  const summary = buildSummary(a, valuation, dataQuality, unresolved, rawHoldings.length);
   return {
-    holdings: a.holdings,
+    // Customer-facing holdings must preserve every stored folio/source row. Analytics below can
+    // still use the consolidated report, but the table must not hide a second folio of the same
+    // scheme (e.g. the merged-CAS regression imports 13 rows, with two folios in one scheme).
+    holdings: rawHoldings,
     unresolved,
     summary,
     allocation: report.allocations,
@@ -124,7 +127,7 @@ function buildCurrentValueHistory(summary, dataQuality) {
   }];
 }
 
-function buildSummary(a, valuation, dataQuality = null, unresolved = []) {
+function buildSummary(a, valuation, dataQuality = null, unresolved = [], storedHoldingsCount = a.holdingsCount) {
   const latestOfficialNavDate = latestNavDateFromValuation(valuation) || dataQuality?.navDateRange?.newest || null;
   return {
     totalValue: a.totalValue,
@@ -132,7 +135,7 @@ function buildSummary(a, valuation, dataQuality = null, unresolved = []) {
     gainLoss: valuation.absoluteGain,
     gainLossPct: valuation.absoluteReturnPct,
     xirr: valuation.xirr,
-    holdingsCount: a.holdingsCount,
+    holdingsCount: storedHoldingsCount,
     healthScore: a.healthScore,
     qualityScore: a.qualityScore,
     effectiveHoldings: a.effectiveHoldings,
@@ -191,13 +194,13 @@ export async function getPortfolioDataQuality(userId) {
 export async function getPortfolioSummary(userId) {
   const { rawHoldings, unresolved, report, valuation } = await loadHoldingsAndReport(userId);
   if (!report) return EMPTY_SUMMARY;
-  return buildSummary(report._analytics, valuation, buildDataQuality(rawHoldings, unresolved, valuation), unresolved);
+  return buildSummary(report._analytics, valuation, buildDataQuality(rawHoldings, unresolved, valuation), unresolved, rawHoldings.length);
 }
 
 export async function getPortfolioHoldings(userId) {
-  const { rawHoldings, unresolved, report } = await loadHoldingsAndReport(userId);
+  const { rawHoldings, unresolved } = await loadHoldingsAndReport(userId);
   if (rawHoldings.length === 0) return { holdings: [], unresolved };
-  return { holdings: report._analytics.holdings, unresolved }; // consolidated + weighted, matches getPortfolio's shape
+  return { holdings: rawHoldings, unresolved }; // folio-level stored holdings; analytics endpoints own consolidation
 }
 
 export async function getPortfolioAllocation(userId) {
