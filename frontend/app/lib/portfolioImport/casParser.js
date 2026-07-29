@@ -52,12 +52,22 @@ function derivePlanOption(schemeName) {
 // thousands-grouping) since this footer used Western grouping despite Indian grouping in the
 // per-row data above it.
 const DECLARED_TOTAL_RE = /\btotal\s*([\d,]+\.\d{2})([\d,]+\.\d{2})?/i;
+const roundCurrency = (n) => (n == null ? null : Math.round(n * 100) / 100);
 function extractStatementDeclaredTotal(text) {
-  const m = text.match(DECLARED_TOTAL_RE);
-  if (!m) return { marketValueTotal: null, costValueTotal: null };
+  const matches = [...text.matchAll(new RegExp(DECLARED_TOTAL_RE.source, "gi"))];
+  if (matches.length === 0) return { marketValueTotal: null, costValueTotal: null };
+  if (matches.length === 1) {
+    const m = matches[0];
+    return {
+      marketValueTotal: parseFlexibleNumber(m[1]),
+      costValueTotal: m[2] ? parseFlexibleNumber(m[2]) : null,
+    };
+  }
   return {
-    marketValueTotal: parseFlexibleNumber(m[1]),
-    costValueTotal: m[2] ? parseFlexibleNumber(m[2]) : null,
+    marketValueTotal: roundCurrency(matches.reduce((sum, m) => sum + (parseFlexibleNumber(m[1]) || 0), 0)),
+    costValueTotal: matches.some((m) => m[2])
+      ? roundCurrency(matches.reduce((sum, m) => sum + (parseFlexibleNumber(m[2]) || 0), 0))
+      : null,
   };
 }
 
@@ -212,6 +222,9 @@ const SUMMARY_ROW_RE = new RegExp(
   `([\\d,]+\\.\\d{3,4})(\\d{1,2}-[A-Za-z]{3}-\\d{4})([\\d,]+\\.\\d{3,4})(${REGISTRAR_NAMES})([A-Z]{2}[A-Z0-9]{10})([\\d,]+\\.\\d{2})`,
   "g"
 );
+const SUMMARY_FOLIO_MARKET_RE = /^\s*(\d{5,12})\s*\/\s*([\d,]+\.\d{2,3})\s*$/;
+const SUMMARY_DATA_DATE_RE = /\d{1,2}-[A-Za-z]{3}-\d{4}/;
+const SUMMARY_DATA_REGISTRAR_RE = /(CAMS|KFINTECH)/;
 // A folio-and-value line, per the observed header order "Market Value | Folio No.": mostly digits
 // and punctuation, with a "/" marking the folio's own sub-account suffix (e.g. "1234567/0") — the
 // one part of this glued line that's unambiguous, since it's the only "/"-delimited digit token.
@@ -262,7 +275,118 @@ function cleanSchemeNameLines(lines) {
   return { name, demat };
 }
 
+function parseSummaryDataLine(line) {
+  const normalized = String(line || "").trim();
+  const dateMatch = normalized.match(SUMMARY_DATA_DATE_RE);
+  if (!dateMatch) return null;
+
+  const units = normalized.slice(0, dateMatch.index);
+  const afterDate = normalized.slice(dateMatch.index + dateMatch[0].length);
+  const registrarMatch = afterDate.match(SUMMARY_DATA_REGISTRAR_RE);
+  if (!registrarMatch) return null;
+
+  const nav = afterDate.slice(0, registrarMatch.index);
+  const registrar = registrarMatch[1];
+  const afterRegistrar = afterDate.slice(registrarMatch.index + registrar.length);
+  const isin = afterRegistrar.slice(0, 12);
+  const costValue = afterRegistrar.slice(12);
+  if (!ISIN_RE.test(isin)) return null;
+
+  return {
+    units: parseFlexibleNumber(units),
+    navDate: parseFlexibleDate(dateMatch[0]),
+    nav: parseFlexibleNumber(nav),
+    registrar: registrar.toUpperCase(),
+    isin,
+    purchaseValue: parseFlexibleNumber(costValue),
+  };
+}
+
+function parseSummaryFolioMarketLine(line) {
+  const match = String(line || "").match(SUMMARY_FOLIO_MARKET_RE);
+  if (!match) return null;
+
+  const [, folioBase, gluedSuffixAndMarket] = match;
+  const commaAt = gluedSuffixAndMarket.indexOf(",");
+  if (commaAt < 0) return null;
+
+  const firstMarketGroupWithSuffix = gluedSuffixAndMarket.slice(0, commaAt);
+  const marketRest = gluedSuffixAndMarket.slice(commaAt);
+  const suffixLength = firstMarketGroupWithSuffix.startsWith("0") && firstMarketGroupWithSuffix.length <= 4
+    ? 1
+    : Math.max(1, firstMarketGroupWithSuffix.length - 3);
+  const firstMarketGroup = firstMarketGroupWithSuffix.slice(suffixLength).replace(/^0+(?=\d)/, "");
+  if (!firstMarketGroup) return null;
+
+  return {
+    folioNumber: folioBase,
+    marketValueReported: parseFlexibleNumber(`${firstMarketGroup}${marketRest}`),
+  };
+}
+
+function extractLineSummaryHoldings(text) {
+  const rows = [];
+  const warnings = [];
+  const lines = text.split("\n");
+
+  for (let i = 0; i < lines.length; i++) {
+    const folioMarket = parseSummaryFolioMarketLine(lines[i]);
+    if (!folioMarket) continue;
+
+    const schemeLines = [];
+    let data = null;
+    let j = i + 1;
+    for (; j < lines.length; j++) {
+      const line = lines[j].trim();
+      if (!line) continue;
+      if (/^(total|loads and fees|camscasws-|consolidated account summary|page \d+ of \d+)/i.test(line)) break;
+      if (parseSummaryFolioMarketLine(line)) break;
+
+      data = parseSummaryDataLine(line);
+      if (data) break;
+      schemeLines.push(line);
+    }
+
+    if (!data) {
+      warnings.push(`Could not extract units/NAV/ISIN data after folio ${folioMarket.folioNumber} — this holding was skipped.`);
+      continue;
+    }
+
+    const cleaned = cleanSchemeNameLines(schemeLines);
+    if (!cleaned) {
+      warnings.push(`Could not extract a scheme name for ISIN ${data.isin} — this holding was skipped.`);
+      i = j;
+      continue;
+    }
+
+    const { plan, option } = derivePlanOption(cleaned.name);
+    rows.push({
+      schemeName: cleaned.name,
+      isin: data.isin,
+      folioNumber: folioMarket.folioNumber,
+      units: data.units,
+      navDate: data.navDate,
+      nav: data.nav,
+      registrar: data.registrar,
+      purchaseValue: data.purchaseValue,
+      marketValueReported: data.units != null && data.nav != null
+        ? roundCurrency(data.units * data.nav)
+        : folioMarket.marketValueReported,
+      plan,
+      option,
+      demat: cleaned.demat,
+    });
+    i = j;
+  }
+
+  if (warnings.length > 0) rows._warnings = warnings;
+  return rows;
+}
+
 function extractSummaryHoldings(text) {
+  const lineRows = extractLineSummaryHoldings(text);
+  if (lineRows.length > 0) return lineRows;
+
   const rows = [];
   const lines = text.split("\n");
   // Map each line's index to its starting character offset, so a regex match's character
