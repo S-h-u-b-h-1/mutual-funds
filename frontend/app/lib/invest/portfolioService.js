@@ -219,7 +219,7 @@ export async function getPortfolioPerformance(userId) {
     return { valuation: null, performanceLeaders: [], history: snapshots.rows, historyNote: "No holdings yet." };
   }
   return {
-    valuation: { investedValue: valuation.totalInvestedValue, currentValue: valuation.totalCurrentValue, gainLoss: valuation.absoluteGain, gainLossPct: valuation.absoluteReturnPct, xirr: valuation.xirr },
+    valuation: { investedValue: valuation.totalInvestedValue, currentValue: valuation.totalMarketValue, gainLoss: valuation.absoluteGain, gainLossPct: valuation.absoluteReturnPct, xirr: valuation.xirr },
     performanceLeaders: leaders,
     history: snapshots.rows,
     historyNote: snapshots.rows.length < 3
@@ -344,10 +344,27 @@ export async function reconcileCompletedOrder(order) {
   const deltaUnits = isInflow ? units : -units;
   const transactionType = order.order_type; // enum values match portfolio_transactions.transaction_type exactly
 
+  // avg_cost is the position's weighted-average cost basis, not "this order's NAV" — on a second
+  // (and every subsequent) inflow for an already-consolidated holding, it must blend with the
+  // existing units at their existing cost, or investedValue/gainLoss silently drifts wrong the
+  // moment two purchases land at different NAVs (verified: buildHolding() derives
+  // purchaseValue = avg_cost * units, so a stale avg_cost directly corrupts every downstream
+  // valuation figure, not just a display label). A redemption/switch_out leaves the remaining
+  // units' avg_cost unchanged — selling part of a position doesn't change what the REMAINING
+  // units cost, only an inflow does. excluded.units/excluded.avg_cost below are this call's
+  // signed delta and current NAV; portfolio_holdings.units/.avg_cost are the pre-update row —
+  // Postgres evaluates every SET expression in an UPDATE against the pre-update row, so this is
+  // safe even though units is set in the same statement.
   await query(
     `insert into portfolio_holdings (user_id, scheme_code, units, avg_cost, source, folio_number, imported_at)
      values ($1, $2, $3, $4, 'invest-order', '', now())
      on conflict (user_id, scheme_code, source, folio_number) do update set
+       avg_cost = case
+         when excluded.units > 0 then
+           (portfolio_holdings.units * portfolio_holdings.avg_cost + excluded.units * excluded.avg_cost)
+           / nullif(portfolio_holdings.units + excluded.units, 0)
+         else portfolio_holdings.avg_cost
+       end,
        units = portfolio_holdings.units + excluded.units,
        imported_at = now()`,
     [order.user_id, order.scheme_code, deltaUnits, nav]

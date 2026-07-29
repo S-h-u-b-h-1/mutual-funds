@@ -239,10 +239,10 @@ left open**:
   extraction is worse than an honest gap. This stays open until a real CAMS/KFintech/MFCentral
   sample statement is available to verify against, not because it's low-value.
 
-Full suite re-run after every fix above: **77 files / 555 tests, all passing** — including the live
+Full suite re-run after every fix above: **77 files / 557 tests, all passing** — including the live
 `portfolioService.test.js` integration tests against real Neon, confirming no regression in the
-Invest platform's own portfolio valuation path. (The 555th test is the Section 5 holdings-
-consolidation fix below.)
+Invest platform's own portfolio valuation path. (The last 3 of the 557 are the Section 5 holdings-
+consolidation and valuation-engine fixes below.)
 
 **FIXED this pass — statement valuation is now preserved separately from MF Pulse's own live
 valuation (Phase 3).** Directive: "Do not confuse statement market value with latest MF Pulse
@@ -318,12 +318,13 @@ directive's more detailed compliance model (Phase 7 of the governing directive).
 
 ## 5. Transaction core (Purchase/SIP/Redemption/Switch)
 
-**Status: PARTIAL — not fully audited this pass, but one real, load-bearing finding surfaced and
-needs a product decision, not a unilateral code change.** Redemption and Switch contracts were
-built and tested in an earlier mission (see `docs/REDEMPTION_CONTRACT.md`, `docs/SWITCH_CONTRACT.md`).
-Payment Attempt as a first-class entity separate from Order does not exist (confirmed:
-`payment_status` etc. are flat columns on `investment_orders`, no separate attempt-history table) —
-this is real, unclosed Phase 9 work.
+**Status: PARTIAL — not fully audited this pass; one holdings-consolidation finding resolved by
+product decision and fixed, which in turn surfaced a second, more serious valuation-correctness bug
+in the same function, also fixed.** Redemption and Switch contracts were built and tested in an
+earlier mission (see `docs/REDEMPTION_CONTRACT.md`, `docs/SWITCH_CONTRACT.md`). Payment Attempt as a
+first-class entity separate from Order does not exist (confirmed: `payment_status` etc. are flat
+columns on `investment_orders`, no separate attempt-history table) — this is real, unclosed Phase 9
+work.
 
 **FIXED — resolved by an explicit product decision, then implemented (surfaced while investigating
 the Multibagg study's own cross-source-reconciliation question, §3 of
@@ -354,8 +355,40 @@ Verified via a new test (`portfolioService.test.js`): two separate purchase orde
 scheme now produce exactly one `portfolio_holdings` row with accumulated units, while both orders
 remain independently visible in `portfolio_transactions`. The two pre-existing tests that asserted
 the old per-order folio behavior on holdings were updated to match the new, correct behavior (not
-weakened — same rigor, updated expectation). Full suite re-run: **77 files / 555 tests, all
-passing.**
+weakened — same rigor, updated expectation).
+
+**FIXED — a real financial-accuracy bug in `avg_cost`, found by auditing the consequences of the
+consolidation fix above (Phase 4: Portfolio valuation engine correctness).** Consolidating repeat
+orders into one holding row means `avg_cost` (the position's weighted-average cost basis, from
+which `buildHolding()` derives `purchaseValue = avg_cost * units` for every downstream
+investedValue/gainLoss/gainLossPercent figure) now has to survive multiple accumulations correctly.
+It didn't: the `ON CONFLICT ... DO UPDATE` clause updated `units` and `imported_at` but never
+`avg_cost`, so a holding's cost basis silently froze at whatever NAV the *first* order happened to
+settle at — every subsequent purchase at a different NAV grew `units` correctly but left `avg_cost`
+untouched, understating (or overstating) `investedValue` and therefore misstating `gainLoss`/
+`gainLossPercent` for any customer who buys the same scheme more than once (a repeat SIP-style
+purchase being the obvious real-world case this consolidation fix was specifically built for —
+verified by reading the code and the DB write path directly, not assumed). Fixed by computing the
+weighted average in the SQL itself: on an inflow (`excluded.units > 0`), `avg_cost = (old_units *
+old_avg_cost + new_units * new_nav) / (old_units + new_units)`; on an outflow (a redemption or
+switch-out), `avg_cost` is left unchanged, since selling part of a position doesn't change what the
+*remaining* units cost. Verified with a dedicated test that seeds a synthetic prior position at a
+deliberately different cost basis (live NAV can't be forced to change mid-test-run), reconciles a
+real purchase at the live NAV, and asserts the exact blended result — plus a same-test check that a
+subsequent redemption leaves that blended `avg_cost` untouched. Confirmed the test has real
+detection power by temporarily reverting the SQL fix and watching the test fail with the expected
+frozen-price value before restoring it.
+
+Separately, `getPortfolioPerformance()` (backing the live `/api/v1/invest/portfolio/performance`
+route) read `valuation.totalCurrentValue` — a field `revaluePortfolio()` has never returned; the
+real field is `totalMarketValue`. Every non-empty portfolio's `valuation.currentValue` in that API's
+JSON response was silently `undefined` (dropped entirely by `JSON.stringify`, not merely wrong) —
+present, verified via `grep`, unfixed until now: the one existing test for this function only
+covered the empty-portfolio path, so it never exercised the field. Fixed the field-name mismatch
+and added a regression test against a real, non-empty portfolio asserting `currentValue` is a real
+number, not `undefined`.
+
+Full suite re-run after both fixes: **77 files / 557 tests, all passing.** Lint clean.
 
 ---
 

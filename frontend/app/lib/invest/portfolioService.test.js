@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import { query } from "../db.js";
+import { getFund } from "../funds.js";
 import * as portfolioService from "./portfolioService.js";
 import { makeInvestmentReadyUser, createTestUser, deleteTestUser } from "./testHelpers.js";
 import * as orderService from "./orderService.js";
@@ -12,6 +13,7 @@ const REAL_SCHEME_CODE = "119551"; // reused from orderService.test.js — alrea
 // its own scheme to avoid depending on what earlier tests in the same file already wrote.
 const REAL_SCHEME_CODE_2 = "103052";
 const REAL_SCHEME_CODE_3 = "112278";
+const REAL_SCHEME_CODE_4 = "100064"; // isolated for the avg_cost weighted-average test below
 
 describe("portfolioService (integration, real Neon, disposable investment-ready users)", () => {
   let emptyUserId; // stays holding-free for the life of the suite — empty-state + timeline-with-no-events checks
@@ -256,6 +258,66 @@ describe("portfolioService (integration, real Neon, disposable investment-ready 
         [`order-${fakeOrderId}`]
       );
       expect(holding.rows.length).toBe(0);
+    });
+
+    it("getPortfolioPerformance returns a real numeric currentValue for a non-empty portfolio, not undefined", async () => {
+      // Regression test: getPortfolioPerformance() previously read valuation.totalCurrentValue, a
+      // field revaluePortfolio() has never returned (the real field is totalMarketValue) — so this
+      // API's valuation.currentValue silently serialized as undefined (JSON.stringify drops it
+      // entirely) for every user with real holdings. reconcileUserId has real holdings by this
+      // point in the describe block (from the REAL_SCHEME_CODE/_2/_3 tests above), so this exercises
+      // the actual non-empty-portfolio path the empty-state test above can't reach.
+      const perf = await portfolioService.getPortfolioPerformance(reconcileUserId);
+      expect(perf.valuation).not.toBeNull();
+      expect(typeof perf.valuation.currentValue).toBe("number");
+      expect(perf.valuation.currentValue).toBeGreaterThan(0);
+    });
+
+    it("avg_cost blends as a weighted average across purchases at different NAVs, not frozen at the first order's price", async () => {
+      // The consolidation fix above means repeat purchases now land in ONE row, so avg_cost must
+      // be recomputed on every inflow or investedValue/gainLoss silently drifts wrong (buildHolding()
+      // derives purchaseValue = avg_cost * units, so this isn't cosmetic). Live NAV can't be forced
+      // to change mid-test-run, so this seeds a synthetic prior position at a KNOWN, deliberately
+      // different cost basis, then reconciles a real purchase at the live NAV and checks the exact
+      // blended result — proving the CASE expression actually recomputes rather than freezing.
+      const fund = getFund(REAL_SCHEME_CODE_4);
+      expect(fund).toBeTruthy();
+      const liveNav = fund.nav;
+      const priorUnits = 40;
+      const priorAvgCost = +(liveNav * 0.6).toFixed(4); // deliberately far from liveNav
+
+      await query(
+        `insert into portfolio_holdings (user_id, scheme_code, units, avg_cost, source, folio_number, imported_at)
+         values ($1, $2, $3, $4, 'invest-order', '', now())`,
+        [reconcileUserId, REAL_SCHEME_CODE_4, priorUnits, priorAvgCost]
+      );
+
+      const newUnits = 10;
+      await portfolioService.reconcileCompletedOrder({
+        id: "00000000-0000-0000-0000-0000000000a3", user_id: reconcileUserId, scheme_code: REAL_SCHEME_CODE_4,
+        order_type: "purchase", amount: null, units: newUnits,
+      });
+
+      const expectedAvgCost = (priorUnits * priorAvgCost + newUnits * liveNav) / (priorUnits + newUnits);
+      const row = await query(
+        `select units, avg_cost from portfolio_holdings where user_id = $1 and scheme_code = $2 and source = 'invest-order' and folio_number = ''`,
+        [reconcileUserId, REAL_SCHEME_CODE_4]
+      );
+      expect(Number(row.rows[0].units)).toBeCloseTo(priorUnits + newUnits, 4);
+      expect(Number(row.rows[0].avg_cost)).toBeCloseTo(expectedAvgCost, 4);
+      expect(Number(row.rows[0].avg_cost)).not.toBeCloseTo(priorAvgCost, 2); // proves it moved, not frozen at the prior price
+
+      // A subsequent redemption must NOT change the (now-blended) avg_cost of the remaining units.
+      await portfolioService.reconcileCompletedOrder({
+        id: "00000000-0000-0000-0000-0000000000a4", user_id: reconcileUserId, scheme_code: REAL_SCHEME_CODE_4,
+        order_type: "redemption", amount: null, units: 5,
+      });
+      const afterRedemption = await query(
+        `select units, avg_cost from portfolio_holdings where user_id = $1 and scheme_code = $2 and source = 'invest-order' and folio_number = ''`,
+        [reconcileUserId, REAL_SCHEME_CODE_4]
+      );
+      expect(Number(afterRedemption.rows[0].units)).toBeCloseTo(priorUnits + newUnits - 5, 4);
+      expect(Number(afterRedemption.rows[0].avg_cost)).toBeCloseTo(expectedAvgCost, 4);
     });
   });
 
