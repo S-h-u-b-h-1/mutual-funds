@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useEffect } from "react";
 import { setInvestSessionKey } from "../../lib/invest/api";
 
 const links = [
@@ -20,10 +21,14 @@ export default function InvestShell({ eyebrow = "Suasion Invest", title, descrip
   const path = usePathname();
   const { data: session } = useSession();
   const firstName = session?.user?.name?.split(" ")?.[0] || "Investor";
-  const back = path === "/invest" ? null : path === "/invest/transactions" ? ["Back to orders", "/invest/orders"] : path === "/invest/redeem" || path === "/invest/switch" ? ["Back to portfolio", "/invest/portfolio"] : ["Back to overview", "/invest"];
-  setInvestSessionKey(session?.user?.id || session?.user?.email || null);
+  const back = path === "/invest" ? ["Back to MF Pulse", "/"] : path === "/invest/transactions" ? ["Back to orders", "/invest/orders"] : path === "/invest/redeem" || path === "/invest/switch" ? ["Back to portfolio", "/invest/portfolio"] : ["Back to overview", "/invest"];
+  useEffect(() => { setInvestSessionKey(session?.user?.id || session?.user?.email || null); }, [session?.user?.id, session?.user?.email]);
   return (
     <main className="min-h-screen bg-bg pb-28 pt-5 lg:pb-12 lg:pt-8">
+      <div className="container-px mx-auto mb-4 flex max-w-[1500px] items-center justify-between gap-3">
+        <Link href="/" className="inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold text-ink-muted transition hover:bg-surface-2 hover:text-ink"><span aria-hidden="true">←</span><span>MF Pulse</span></Link>
+        <Link href="/profile" className="inline-flex min-h-10 items-center gap-2 rounded-full border border-line bg-surface px-3.5 text-xs font-semibold text-ink-muted transition hover:border-accent/40 hover:text-ink"><span className="grid h-6 w-6 place-items-center rounded-full bg-accent/10 text-accent" aria-hidden="true">{firstName.slice(0, 1).toUpperCase()}</span><span className="hidden sm:inline">{firstName} · Account</span><span className="sm:hidden">Account</span></Link>
+      </div>
       <div className="container-px mx-auto grid max-w-[1500px] gap-6 lg:grid-cols-[238px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
           <div className="sticky top-28 rounded-[1.8rem] border border-line bg-surface p-3 shadow-sm">
