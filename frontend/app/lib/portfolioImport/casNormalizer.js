@@ -96,6 +96,13 @@ export function normalizeCasImport(parsed) {
       folioNumber: row.folioNumber,
       source: "cas",
       isin: row.isin,
+      // The statement's own reported valuation, preserved separately from currentValue (which
+      // buildHolding always computes from MF Pulse's own live NAV) — see buildHolding's own
+      // comment. row.nav/row.navDate are summary-format-only (the ledger format's closing section
+      // has no per-row NAV, only a units/cost/market-value trio); null there is correct, not a bug.
+      statementValue: row.marketValueReported,
+      statementNav: row.nav ?? null,
+      statementNavDate: row.navDate ?? null,
     });
     if (resolution.confidence !== "high") {
       holding.resolutionWarning = resolution.warning; // surfaced to the UI, never silently dropped

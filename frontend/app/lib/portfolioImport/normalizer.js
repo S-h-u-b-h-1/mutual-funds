@@ -6,7 +6,14 @@ import { parseFlexibleDate, parseFlexibleNumber } from "./fieldAliases";
 // (units/cost/date/folio/source). Shared by the import path (normalizeHoldings, below — fund
 // resolved by ISIN/name match) and the read path (holdingsRead.js — fund resolved directly by
 // stored scheme_code), so enrichment logic exists in exactly one place regardless of caller.
-export function buildHolding(fund, { units, avgCost, purchaseValue, purchaseDate, folioNumber, source, isin, importedAt }) {
+//
+// statementValue/statementNav/statementNavDate are the SOURCE STATEMENT's own reported valuation
+// — deliberately kept separate from currentValue/nav/navDate (MF Pulse's own live valuation using
+// the latest available NAV). Per the governing directive: "Do not confuse statement market value
+// with latest MF Pulse valuation... this distinction matters because a CAS may already be several
+// days old." currentValue always uses live NAV, never the statement's own figure — statementValue
+// exists purely for reconciliation (comparing what the statement said against what we compute).
+export function buildHolding(fund, { units, avgCost, purchaseValue, purchaseDate, folioNumber, source, isin, importedAt, statementValue, statementNav, statementNavDate }) {
   if (avgCost == null && purchaseValue != null && units > 0) avgCost = +(purchaseValue / units).toFixed(4);
   if (purchaseValue == null && avgCost != null) purchaseValue = +(avgCost * units).toFixed(2);
 
@@ -28,6 +35,9 @@ export function buildHolding(fund, { units, avgCost, purchaseValue, purchaseDate
     absoluteGain: gainLoss,
     gainLossPct,
     returnPct: gainLossPct,
+    statementValue: statementValue ?? null,
+    statementNav: statementNav ?? null,
+    statementNavDate: statementNavDate ?? null,
     purchaseDate: purchaseDate ?? null,
     amc: fund.amc || null,
     category: fund.category || null,

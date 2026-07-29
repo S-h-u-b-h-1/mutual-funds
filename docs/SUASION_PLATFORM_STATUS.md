@@ -239,9 +239,29 @@ left open**:
   extraction is worse than an honest gap. This stays open until a real CAMS/KFintech/MFCentral
   sample statement is available to verify against, not because it's low-value.
 
-Full suite re-run after every fix above: **77 files / 553 tests, all passing** — including the live
+Full suite re-run after every fix above: **77 files / 554 tests, all passing** — including the live
 `portfolioService.test.js` integration tests against real Neon, confirming no regression in the
 Invest platform's own portfolio valuation path.
+
+**FIXED this pass — statement valuation is now preserved separately from MF Pulse's own live
+valuation (Phase 3).** Directive: "Do not confuse statement market value with latest MF Pulse
+valuation... preserve both when available... this distinction matters because a CAS may already be
+several days old." The underlying formulas in `normalizer.js`'s `buildHolding()` were already
+exactly correct — `currentValue = units × latest valid NAV`, `gainLoss = currentValue −
+investedValue`, `gainLossPct = gainLoss / investedValue × 100` — verified by reading the code
+directly, no fix needed there. But the statement's own reported market value (and, for the
+summary CAS format, its own per-row NAV/NAV date) was extracted by `casParser.js` and then silently
+discarded at the `casNormalizer.js` call site — never reached the holding object, let alone the DB.
+New migration `sql/neon/032_holdings_statement_valuation.sql` adds
+`statement_value`/`statement_nav`/`statement_nav_date` to `portfolio_holdings` (nullable, additive).
+`buildHolding()` now accepts and returns these as fields deliberately distinct from
+`currentValue`/`nav`/`navDate` — `currentValue` always derives from live NAV, never from
+`statementValue`. New test proves the two are genuinely independent (a deliberately implausible
+statement NAV of 999.9999 stays exactly as reported, while `currentValue` is independently computed
+from the real live NAV). Applied to the `test` branch; production application remains manual, same
+as `028`–`031`. Scoped to the CAS import path only — the CSV/manual import path
+(`normalizeHoldings()` in the same file) doesn't currently extract an equivalent statement-value
+field from Groww/Coin/Kuvera/ET Money exports; not audited this pass, noted as open.
 
 **FIXED this pass — transaction-level idempotency is now a DB-level guarantee, not just an
 app-level pre-check (Phase 1D).** Directive: "Transactions should use a deterministic

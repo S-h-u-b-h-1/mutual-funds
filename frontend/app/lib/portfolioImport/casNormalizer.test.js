@@ -107,3 +107,39 @@ describe("computePortfolioXirr — unavailable states carry a reason, never a fa
     expect(result.byScheme["100064"]).toBe(result.byStatus["100064"].value); // both fields agree
   });
 });
+
+describe("statement valuation is preserved separately from MF Pulse's own live valuation", () => {
+  // Per the governing directive (Phase 3): "Do not confuse statement market value with latest MF
+  // Pulse valuation... preserve both." Uses a deliberately implausible statement NAV (999.9999,
+  // far from any real fund's live NAV) specifically so this test proves the two are genuinely
+  // independent fields, not the same value read twice under different names.
+  it("keeps statementValue/statementNav/statementNavDate distinct from currentValue/nav/navDate", () => {
+    const text = [
+      "CAMSCASWS-TEST-Z Version:V3.5 Live-1017", "Consolidated Account Summary", "As on 20-Jul-2026", "Page 1 of 1",
+      "Email Id: investor.stmt@example.test", "TEST INVESTOR", "Mobile: +919999999999",
+      "Market ValueFolio No.", "(INR)", "Scheme NameUnit Balance", "NAV DateNAVRegistrar", "(INR)", "ISINCost Value", "(INR)",
+      row({ folio: "88001", market: "/0199,999.90", units: "1,000.000", navDate: "20-Jul-2026", nav: "999.9999", registrar: "CAMS", isin: A.isin, cost: "90,000.000", nameLines: [A.name] }),
+      "Total99,999.9090,000.00",
+    ].join("\n");
+
+    const parsed = parseCasText(text);
+    const normalized = normalizeCasImport(parsed);
+
+    expect(normalized.errors).toEqual([]);
+    expect(normalized.holdings).toHaveLength(1);
+    const holding = normalized.holdings[0];
+
+    // The statement's own figures, exactly as the (synthetic) statement declared them.
+    // marketValueReported is units x statement-nav (1000 x 999.9999) when both are present —
+    // see extractLineSummaryHoldings — not the folio/market line's own glued figure.
+    expect(holding.statementValue).toBe(999999.9);
+    expect(holding.statementNav).toBe(999.9999);
+    expect(holding.statementNavDate).toBe("2026-07-20");
+
+    // MF Pulse's own live valuation is a completely different, independently-computed figure —
+    // proves these are two genuinely separate data paths, not the same value under two names.
+    expect(holding.nav).not.toBe(holding.statementNav);
+    expect(holding.currentValue).not.toBe(holding.statementValue);
+    expect(holding.currentValue).toBe(+(holding.units * holding.nav).toFixed(2)); // currentValue always derives from live nav, never from statementValue
+  });
+});

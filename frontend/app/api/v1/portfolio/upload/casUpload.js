@@ -148,11 +148,12 @@ export async function handleCasUpload({ user, filename, buffer, selectedStatemen
 
     for (const h of holdings) {
       await query(
-        `insert into portfolio_holdings (user_id, scheme_code, units, avg_cost, source, folio_number, imported_at)
-         values ($1, $2, $3, $4, 'cas', $5, now())
+        `insert into portfolio_holdings (user_id, scheme_code, units, avg_cost, source, folio_number, imported_at, statement_value, statement_nav, statement_nav_date)
+         values ($1, $2, $3, $4, 'cas', $5, now(), $6, $7, $8)
          on conflict (user_id, scheme_code, source, folio_number)
-         do update set units = excluded.units, avg_cost = excluded.avg_cost, imported_at = excluded.imported_at`,
-        [user.id, h.schemeCode, h.units, h.avgCost, h.folioNumber ?? ""]
+         do update set units = excluded.units, avg_cost = excluded.avg_cost, imported_at = excluded.imported_at,
+           statement_value = excluded.statement_value, statement_nav = excluded.statement_nav, statement_nav_date = excluded.statement_nav_date`,
+        [user.id, h.schemeCode, h.units, h.avgCost, h.folioNumber ?? "", h.statementValue ?? null, h.statementNav ?? null, h.statementNavDate ?? null]
       );
     }
 
