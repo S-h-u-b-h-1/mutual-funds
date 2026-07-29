@@ -37,6 +37,7 @@ import urllib.error
 from datetime import date, datetime, timezone
 
 from ingestion import db as neon_db
+from ingestion.db import connect
 from scripts.build_performance import _fetch_window
 
 SUPABASE_AVAILABLE = bool(os.environ.get("SUPABASE_URL")) and bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY"))
@@ -56,6 +57,21 @@ def _post_with_diagnostics(table, rows, on_conflict=None):
         raise
 
 
+def _known_scheme_codes() -> set[str]:
+    # fact_nav_daily.scheme_code has a foreign key into dim_scheme (found live: a 100-day backfill
+    # 409'd with "Key (scheme_code)=(150562) is not present in table dim_scheme" -- historical AMFI
+    # data includes codes for schemes since merged/renamed/delisted that no longer exist in
+    # dim_scheme, which cloud_pipeline.py only ever populates from the CURRENT day's NAVAll.txt).
+    # Filtering to what's currently known is correct, not just constraint-satisfying:
+    # build_performance.py's own main() only ever processes scheme codes present in TODAY's dim
+    # (`if code not in now_nav: continue`), so historical facts for long-gone codes would be dead
+    # weight even if the write succeeded.
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("select scheme_code from dim_scheme")
+            return {row[0] for row in cur.fetchall()}
+
+
 def backfill(asof: date, days: int, chunk_days: int = 44) -> dict:
     if not SUPABASE_AVAILABLE:
         print("::warning::SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set -- writing to Neon "
@@ -63,6 +79,8 @@ def backfill(asof: date, days: int, chunk_days: int = 44) -> dict:
               "reads exclusively from DATABASE_URL, so this still fixes the active pipeline "
               "incident; re-run with Supabase credentials later to keep both stores in sync.",
               file=sys.stderr)
+    known_codes = _known_scheme_codes()
+    print(f"-- {len(known_codes)} scheme codes currently in dim_scheme", file=sys.stderr)
     started = datetime.now(timezone.utc).isoformat()
     start = date.fromordinal(asof.toordinal() - days)
     total_rows = 0
@@ -71,12 +89,15 @@ def backfill(asof: date, days: int, chunk_days: int = 44) -> dict:
         chunk_to = min(date.fromordinal(cur.toordinal() + chunk_days), asof)
         print(f"-- fetching {cur} to {chunk_to}...", file=sys.stderr)
         window = _fetch_window(cur, chunk_to)
+        skipped = sum(1 for code in window if code not in known_codes)
         navs = [
             {"scheme_code": code, "nav_date": d.isoformat(), "nav_value": nav,
              "source": "AMFI:DownloadNAVHistoryReport_Po", "ingested_at": started}
-            for code, series in window.items()
+            for code, series in window.items() if code in known_codes
             for d, nav in series.items()
         ]
+        if skipped:
+            print(f"   skipping {skipped} scheme(s) not in dim_scheme (merged/renamed/delisted since this historical window)", file=sys.stderr)
         if navs:
             if SUPABASE_AVAILABLE:
                 _post_with_diagnostics("fact_nav_daily", navs, "scheme_code,nav_date")
