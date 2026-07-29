@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import urllib.error
 from datetime import date, datetime, timezone
 
 from ingestion import db as neon_db
@@ -41,6 +42,18 @@ from scripts.build_performance import _fetch_window
 SUPABASE_AVAILABLE = bool(os.environ.get("SUPABASE_URL")) and bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY"))
 if SUPABASE_AVAILABLE:
     from scripts.cloud_pipeline import _post
+
+
+def _post_with_diagnostics(table, rows, on_conflict=None):
+    # cloud_pipeline._post() doesn't surface the response body on a non-2xx status (urlopen raises
+    # before its own assert can run) -- this wrapper exists ONLY to print that body for diagnosis;
+    # it does not change the write itself, still delegates to the exact same shared function.
+    try:
+        _post(table, rows, on_conflict)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")[:2000]
+        print(f"::error::Supabase _post({table}) failed: HTTP {e.code} {e.reason}. Body: {body}", file=sys.stderr)
+        raise
 
 
 def backfill(asof: date, days: int, chunk_days: int = 44) -> dict:
@@ -66,7 +79,7 @@ def backfill(asof: date, days: int, chunk_days: int = 44) -> dict:
         ]
         if navs:
             if SUPABASE_AVAILABLE:
-                _post("fact_nav_daily", navs, "scheme_code,nav_date")
+                _post_with_diagnostics("fact_nav_daily", navs, "scheme_code,nav_date")
             neon_db.dual_write(lambda conn, rows=navs: neon_db.upsert(conn, "fact_nav_daily", rows, ["scheme_code", "nav_date"]))
             print(f"   upserted {len(navs)} rows ({len(window)} schemes) for {cur}..{chunk_to}", file=sys.stderr)
             total_rows += len(navs)
