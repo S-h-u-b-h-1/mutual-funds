@@ -58,7 +58,7 @@ export function revaluePortfolio(holdings, getFund, transactions = []) {
   const absoluteGain = totalInvestedValue != null ? +(totalMarketValue - totalInvestedValue).toFixed(2) : null;
   const absoluteReturnPct = absoluteGain != null && totalInvestedValue > 0 ? +((absoluteGain / totalInvestedValue) * 100).toFixed(2) : null;
 
-  const OUTFLOW = new Set(["purchase", "switch_in"]);
+  const OUTFLOW = new Set(["purchase", "sip", "switch_in"]);
   const INFLOW = new Set(["redemption", "switch_out", "dividend_payout"]);
   const flows = transactions
     .filter((t) => OUTFLOW.has(t.transactionType) || INFLOW.has(t.transactionType))

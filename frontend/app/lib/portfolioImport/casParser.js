@@ -91,17 +91,32 @@ const MOBILE_RE = /Mobile\s*(?:No)?\s*[:.]?\s*(?:\+?91[-\s]?)?(\d{10})\b/i;
 // (date, free-text description, four decimal numbers) rather than fixed column positions.
 const TXN_ROW_RE = /^(\d{2}[-/][A-Za-z]{3}[-/]\d{4}|\d{2}[-/]\d{2}[-/]\d{4})\s+(.+?)\s+(-?[\d,]+\.\d{2})\s+(-?[\d,]+\.\d{3,4})\s+([\d,]+\.\d{4})\s+(-?[\d,]+\.\d{3,4})\s*$/;
 
+// SIP's own check must precede the generic purchase check: a real SIP installment's description
+// (e.g. "Purchase - SIP Installment") also contains "purchase", so checking generic purchase
+// first would swallow every SIP row before this branch ever ran. Split out so SIP installments
+// are distinguishable downstream from a lump-sum purchase, not silently merged into one bucket.
+//
+// STP/SWP: an STP leg is mechanically a switch and an SWP leg is mechanically a redemption, so a
+// registrar that describes either using ordinary "switch in/out"/"redemption" wording (the common
+// case) already classifies correctly with no STP/SWP-specific pattern at all. These extra
+// alternatives exist only to also catch a registrar that uses the standardized STP/SWP acronym
+// (or "systematic transfer"/"systematic withdrawal") WITHOUT that wording. SWP is unambiguous
+// (money only ever leaves the fund), so a bare "SWP" is safe to classify as redemption directly.
+// STP is NOT: "Systematic Transfer" alone doesn't say which leg this is, and guessing a direction
+// would corrupt XIRR's sign — so only the directional STP forms are matched; a bare, undirected
+// "STP" intentionally falls through to "unknown" rather than being guessed (see classifyTransaction).
 const TXN_TYPE_MAP = [
-  [/switch\s*-?\s*in/i, "switch_in"],
-  [/switch\s*-?\s*out/i, "switch_out"],
+  [/switch\s*-?\s*in|stp\s*-?\s*in|systematic\s*transfer(?:\s*plan)?\s*-?\s*in/i, "switch_in"],
+  [/switch\s*-?\s*out|stp\s*-?\s*out|systematic\s*transfer(?:\s*plan)?\s*-?\s*out/i, "switch_out"],
   [/dividend.*reinvest|idcw.*reinvest/i, "dividend_reinvest"],
   [/dividend|idcw/i, "dividend_payout"],
-  [/redemption|repurchase/i, "redemption"],
-  [/purchase|subscription|\bsip\b|systematic investment/i, "purchase"],
+  [/redemption|repurchase|\bswp\b|systematic\s*withdrawal/i, "redemption"],
+  [/\bsip\b|systematic investment/i, "sip"],
+  [/purchase|subscription/i, "purchase"],
 ];
 function classifyTransaction(desc) {
   for (const [re, type] of TXN_TYPE_MAP) if (re.test(desc)) return type;
-  return null; // unrecognized line — never guessed; caller reports it as a warning and excludes it
+  return null; // unrecognized/undirected line — never guessed; caller stores it as "unknown", not dropped
 }
 
 function extractInvestor(text) {
@@ -164,26 +179,36 @@ function extractTransactions(blockText, folioNumber, isin, schemeName) {
   for (const line of blockText.split("\n")) {
     const m = line.match(TXN_ROW_RE);
     if (!m) continue;
-    const [, rawDate, desc, amount, units, nav] = m;
-    const transactionType = classifyTransaction(desc);
-    if (!transactionType) {
-      warnings.push(`Unrecognized transaction line for "${schemeName || isin}", excluded: "${desc.trim()}"`);
-      continue;
-    }
+    const [, rawDate, desc, amount, units, nav, balance] = m;
+    // Date is checked first and still excludes the row outright: a transaction with no reliable
+    // date isn't a meaningful record to keep (nothing downstream — XIRR, timeline, history — can
+    // place it). This is a different, much rarer failure than not recognizing the transaction
+    // TYPE (a shape-valid-but-calendrically-invalid date, e.g. "32-Feb-2026"), which is why it's
+    // still excluded rather than stored as unknown the way an unrecognized type is below.
     const transactionDate = parseFlexibleDate(rawDate.replace(/\//g, "-"));
     if (!transactionDate) {
       warnings.push(`Unparseable transaction date "${rawDate}" for "${schemeName || isin}", excluded.`);
       continue;
     }
+    const transactionType = classifyTransaction(desc);
+    if (!transactionType) {
+      // Never guessed into a known type (purchase/redemption/switch/etc) — stored as "unknown"
+      // rather than dropped, so the raw row stays visible/auditable instead of silently vanishing.
+      // casNormalizer.js's/revaluation.js's OUTFLOW/INFLOW sets correctly exclude "unknown" from
+      // XIRR — guessing a cash-flow direction here would be worse than omitting it.
+      warnings.push(`Unrecognized transaction type for "${schemeName || isin}", stored as unknown: "${desc.trim()}"`);
+    }
     transactions.push({
       schemeName,
       isin,
       folioNumber,
-      transactionType,
+      transactionType: transactionType || "unknown",
+      description: desc.trim(), // raw source text, preserved regardless of classification outcome
       transactionDate,
       amount: parseFlexibleNumber(amount),
       units: parseFlexibleNumber(units),
       navValue: parseFlexibleNumber(nav),
+      unitBalance: parseFlexibleNumber(balance), // the statement's own running balance after this row
     });
   }
   return { transactions, warnings };

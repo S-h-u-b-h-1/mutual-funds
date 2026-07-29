@@ -130,11 +130,28 @@ and verified.
 
 ## 2. Portfolio parsing/valuation correctness
 
-**Status: PARTIAL — audit started this pass, real gaps found; not yet fixed.** Per the governing
-directive's own instruction not to trust prior claims without re-verifying, the CAS engine
+**Status: PARTIAL — real gaps found this pass; the highest-value ones fixed and independently
+verified through the full backend path, not just the parser.** Per the governing directive's own
+instruction not to trust prior claims without re-verifying, the CAS engine
 (`frontend/app/lib/portfolioImport/`, ~2,079 lines across parser/normalizer/scheme-resolver/
 reconciliation/revaluation/XIRR/decimal-math modules) was read directly rather than assumed
 working from earlier session history.
+
+**Codex's concurrent frontend work, checked rather than assumed correct**: commit `21bad84`
+("parse merged CAS summaries") landed on `main` before this pass started and fixes a real bug in
+`extractSummaryHoldings()`/`extractLineSummaryHoldings()` — a PDF containing more than one
+Consolidated Account Summary glued together (the "merged CAS" scenario) previously lost rows at
+the document boundary; its own test proves the parser layer now extracts all rows correctly. Per
+this directive's explicit instruction not to assume a parser fix proves backend correctness, this
+pass built an independent, additional test (`casNormalizer.test.js`, new) that pushes a
+purpose-built merged-two-statement fixture (built from real, active scheme ISINs, not fabricated
+ones) all the way through `normalizeCasImport()` — canonical scheme resolution and duplicate
+handling, not just extraction. Result: 6 raw parsed rows → correctly resolves to 5 real holdings
+(the one genuine same-folio/same-ISIN duplicate collapses with a warning; a same-scheme
+different-folio row correctly stays distinct; both merged statements' holdings survive), 0
+resolution errors, no double-counting. This directly answers the directive's own success test
+("N distinct legitimate holdings must not become N-1 or N+1 after normalization") for this scenario
+class — full backend path, not just the frontend/parser layer.
 
 **What's genuinely real, confirmed by reading the actual persistence path
 (`app/api/v1/portfolio/upload/casUpload.js`)**: PDF text extraction → `parseCasText()` (handles
@@ -154,26 +171,66 @@ upload detection by content checksum (not filename). An identity check flags whe
 email doesn't match the logged-in account. This is a materially more complete pipeline than a
 one-file test-coverage check alone would suggest.
 
-**Real gaps found, evidence-based**:
-- **Test coverage is thin relative to the engine's size**: exactly one test file
-  (`casParser.test.js`, 91 lines) covers the entire ~2,079-line multi-module engine, and that file
-  only exercises the "summary" format. The "detailed" transaction-ledger format's classification
-  regex (`TXN_TYPE_MAP`, `casParser.js:94-101`) — the logic that decides purchase vs. redemption
-  vs. switch vs. dividend for every transaction line — has zero test coverage.
-- **SIP is not a distinct transaction type**: `casParser.js:100` maps
-  `/purchase|subscription|\bsip\b|systematic investment/i` all to the single type `"purchase"` —
-  SIP installments ARE captured and persisted, but not distinguishable from a lump-sum purchase
-  anywhere downstream. The governing directive explicitly asks for "SIP transactions where
-  detectable" as their own category — confirmed not met.
-- **Charges (STT, stamp duty) are not extracted**: `grep` for stt/stamp-duty/charges across
-  `casParser.js`/`casNormalizer.js` returns nothing. Real CAMS/KFintech statements sometimes
-  disclose these as identifiable amounts; this parser has no path to surface them separately, only
-  whatever net `amount` the statement's own transaction row shows.
+**Real gaps found this pass — fixed, tested, and independently verified, except one deliberately
+left open**:
+- **FIXED — SIP is now a distinct transaction type**, checked *before* the generic purchase pattern
+  (a real SIP installment description like "Purchase - SIP Installment" also contains the word
+  "purchase", so order matters — verified this doesn't fall through to the wrong branch). Also
+  covers the "Systematic Investment" phrasing variant with no literal "SIP" in it.
+- **FIXED — STP/SWP are now detected where the direction is safely inferable.** SWP is unambiguous
+  (money only ever leaves the fund via an SWP) so a bare "SWP"/"Systematic Withdrawal" classifies
+  directly as `redemption`. STP is two legs, and guessing the wrong direction would corrupt XIRR's
+  sign — so only *directional* STP wording ("STP In"/"STP Out"/"Systematic Transfer... In/Out")
+  classifies (as `switch_in`/`switch_out`); a bare, undirected "Systematic Transfer Plan" is
+  deliberately left as `unknown` rather than guessed, per the directive's own "unknown is better
+  than wrong."
+- **FIXED — an unrecognized transaction line is now stored, not dropped.** Previously excluded
+  entirely (only a text warning survived); now stored as `transactionType: "unknown"` with its raw
+  description and all other fields intact, so the row is auditable rather than silently lost.
+  `"unknown"` is correctly excluded from XIRR cash-flow direction (never guessed) but visible in the
+  data.
+- **FIXED — every transaction now preserves its raw source description and the statement's own
+  running unit balance.** Both were parsed by the existing row regex and previously discarded before
+  reaching the caller. New migration `sql/neon/029_cas_transaction_description.sql` adds
+  `portfolio_transactions.description`/`.unit_balance` (both nullable, purely additive, zero
+  existing rows touched); `casUpload.js`'s insert now writes them. **Applied to the `test` branch
+  this pass** (`scripts/apply_migrations.py --apply`, alongside the pre-existing pending `028` FK
+  fix); **production application is a remaining manual step** — same established pattern as `028`'s
+  own header comment documents, not attempted against production from this session per standing
+  practice around schema changes to shared infrastructure.
+- Every consumer of the `transactionType` string literal was traced before any of the above shipped,
+  not assumed safe: `casNormalizer.js`'s `computePortfolioXirr` and `revaluation.js`'s
+  `revaluePortfolio` each have their own independent `OUTFLOW`/`INFLOW` set (a real duplication, not
+  fixed this pass — out of scope for a classification bug fix) — `revaluation.js`'s is live,
+  called directly by `frontend/app/lib/invest/portfolioService.js` for the Invest platform's own
+  Journey 3 Portfolio. Missing `"sip"` in either would have silently dropped SIP installments out of
+  XIRR.
+- **FIXED — zero test coverage of the transaction-ledger format is now closed.** Four new tests in
+  `casParser.test.js` cover the "detailed" ledger format end to end (previously only the "summary"
+  format had any coverage): all 7 base transaction types in one statement including SIP staying
+  distinct from purchase; the "Systematic Investment" phrasing variant; directional STP/SWP
+  classification plus the deliberately-unclassified bare-STP case; and the unknown-line-is-preserved
+  behavior with its description/balance intact.
+- **FIXED — the merged-CAS-summary scenario verified through the full backend path, not just the
+  parser** (`casNormalizer.test.js`, new file — see above).
+- **STILL OPEN — charges (STT, stamp duty) are not extracted.** Deliberately not fixed this pass:
+  `casParser.js`'s own header comment already discloses the ledger-format extractor "was built
+  against the well-documented, industry-standard CAS layout... NOT verified against a real sample
+  PDF." Writing a regex to pull a charges figure out of an unverified real-world text format would
+  be exactly the kind of guess this engine's own design explicitly refuses to make elsewhere
+  ("never silently guesses... reject ambiguous mappings") — a plausible-looking but unverified
+  extraction is worse than an honest gap. This stays open until a real CAMS/KFintech/MFCentral
+  sample statement is available to verify against, not because it's low-value.
+
+Full suite re-run after every fix above: **76 files / 548 tests, all passing** — including the live
+`portfolioService.test.js` integration tests against real Neon, confirming no regression in the
+Invest platform's own portfolio valuation path.
 
 **Not yet done this pass**: the directive's full field-by-field coverage report (available in
 document? parsed? normalized? stored? shown in UI? used in analytics?) across every named field,
-and safe-fixture testing against real-shaped CAMS/KFintech/MFCentral samples. The findings above
-are real but partial — treat this section as PARTIAL, not a complete audit.
+and safe-fixture testing against real-shaped CAMS/KFintech/MFCentral samples. Section stays PARTIAL
+— two real gaps closed and verified, one honestly still open, and the full-engine coverage report
+still not done.
 
 ## 3. Authentication + onboarding truth
 

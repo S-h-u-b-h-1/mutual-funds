@@ -93,10 +93,12 @@ export function normalizeCasImport(parsed) {
     transactions.push({
       schemeCode,
       transactionType: t.transactionType,
+      description: t.description ?? null,
       transactionDate: t.transactionDate,
       amount: t.amount,
       units: t.units,
       navValue: t.navValue,
+      unitBalance: t.unitBalance ?? null,
       folioNumber: t.folioNumber,
     });
   }
@@ -108,7 +110,7 @@ export function normalizeCasImport(parsed) {
 // dividend payouts are inflows; dividend reinvestment is a unit conversion, not a cash flow, and
 // is deliberately excluded. The terminal inflow (today, at currentValue) closes the series so
 // XIRR measures the full return to date, not just realized flows.
-const OUTFLOW_TYPES = new Set(["purchase", "switch_in"]);
+const OUTFLOW_TYPES = new Set(["purchase", "sip", "switch_in"]);
 const INFLOW_TYPES = new Set(["redemption", "switch_out", "dividend_payout"]);
 
 /**

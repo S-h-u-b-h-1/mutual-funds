@@ -109,9 +109,9 @@ export async function handleCasUpload({ user, filename, buffer, selectedStatemen
     // point-in-time cost/value comparison.
     for (const t of transactions) {
       await query(
-        `insert into portfolio_transactions (user_id, scheme_code, transaction_type, units, nav_value, amount, transaction_date, source, folio_number)
-         values ($1, $2, $3, $4, $5, $6, $7, 'cas', $8)`,
-        [user.id, t.schemeCode, t.transactionType, t.units, t.navValue, t.amount, t.transactionDate, t.folioNumber ?? ""]
+        `insert into portfolio_transactions (user_id, scheme_code, transaction_type, description, units, nav_value, unit_balance, amount, transaction_date, source, folio_number)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'cas', $10)`,
+        [user.id, t.schemeCode, t.transactionType, t.description ?? null, t.units, t.navValue, t.unitBalance ?? null, t.amount, t.transactionDate, t.folioNumber ?? ""]
       );
     }
 

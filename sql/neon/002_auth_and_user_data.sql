@@ -228,7 +228,7 @@ create table if not exists portfolio_transactions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
   scheme_code text not null,
-  transaction_type text not null,        -- 'purchase' | 'redemption' | 'switch_in' | 'switch_out' | 'dividend_payout' | 'dividend_reinvest'
+  transaction_type text not null,        -- 'purchase' | 'sip' | 'redemption' | 'switch_in' | 'switch_out' | 'dividend_payout' | 'dividend_reinvest' | 'unknown'
   units numeric,
   nav_value numeric,
   amount numeric,
