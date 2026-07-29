@@ -34,6 +34,8 @@ describe("portfolioService (integration, real Neon, disposable investment-ready 
         totalValue: 0, investedValue: 0, gainLoss: 0, gainLossPct: null, xirr: null,
         holdingsCount: 0, healthScore: null, qualityScore: null,
         effectiveHoldings: 0, effectiveAmcs: 0, effectiveCategories: 0,
+        latestOfficialNavDate: null, valuationDate: null, valuationConfidence: null,
+        latestNavCoveragePct: null, staleHoldingCount: 0, latestNavDayChange: null,
       });
       // Portfolio Metadata: dataQuality is always a fully-shaped object, never null — an empty
       // portfolio has a real "calculated at this instant, zero holdings to describe" state, same

@@ -19,6 +19,10 @@ export function consolidateByScheme(holdings) {
   for (const h of consolidated) {
     h.weight = totalValue > 0 && h.currentValue != null ? +((h.currentValue / totalValue) * 100).toFixed(2) : null;
     h.avgCost = h.units > 0 ? +(h.purchaseValue / h.units).toFixed(4) : null;
+    h.gainLoss = h.currentValue != null && h.purchaseValue != null ? +(h.currentValue - h.purchaseValue).toFixed(2) : null;
+    h.absoluteGain = h.gainLoss;
+    h.gainLossPct = h.gainLoss != null && h.purchaseValue > 0 ? +((h.gainLoss / h.purchaseValue) * 100).toFixed(2) : null;
+    h.returnPct = h.gainLossPct;
   }
   return consolidated.sort((a, b) => (b.weight || 0) - (a.weight || 0));
 }

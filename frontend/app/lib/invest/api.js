@@ -168,8 +168,10 @@ export const portfolioApi = {
         strengths: value.strengths || [],
         weaknesses: value.weaknesses || [],
         bottomLine: value.bottomLine || null,
+        valueHistory: value.valueHistory || [],
+        valueHistoryRanges: value.valueHistoryRanges || [],
       },
-      computedAt: value.summary?.computedAt || null,
+      computedAt: value.summary?.computedAt || value.dataQuality?.calculatedAt || null,
     };
   },
   uploadStatement,

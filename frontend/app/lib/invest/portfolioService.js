@@ -31,6 +31,8 @@ const EMPTY_SUMMARY = {
   totalValue: 0, investedValue: 0, gainLoss: 0, gainLossPct: null, xirr: null,
   holdingsCount: 0, healthScore: null, qualityScore: null,
   effectiveHoldings: 0, effectiveAmcs: 0, effectiveCategories: 0,
+  latestOfficialNavDate: null, valuationDate: null, valuationConfidence: null,
+  latestNavCoveragePct: null, staleHoldingCount: 0, latestNavDayChange: null,
 };
 
 async function loadHoldingsAndReport(userId) {
@@ -50,25 +52,80 @@ export async function getPortfolio(userId) {
   if (!report) {
     return {
       holdings: [], unresolved, summary: EMPTY_SUMMARY, allocation: null, topHoldings: [], performanceLeaders: [],
+      valueHistory: [], valueHistoryRanges: [],
       dataQuality: buildDataQuality(rawHoldings, unresolved, valuation),
     };
   }
   const a = report._analytics;
+  const dataQuality = buildDataQuality(rawHoldings, unresolved, valuation);
+  const summary = buildSummary(a, valuation, dataQuality, unresolved);
   return {
     holdings: a.holdings,
     unresolved,
-    summary: buildSummary(a, valuation),
+    summary,
     allocation: report.allocations,
     topHoldings: report.topHoldings,
     performanceLeaders: leaders,
     strengths: report.strengths,
     weaknesses: report.weaknesses,
     bottomLine: report.bottomLine,
-    dataQuality: buildDataQuality(rawHoldings, unresolved, valuation),
+    valueHistory: buildCurrentValueHistory(summary, dataQuality),
+    valueHistoryRanges: summary.totalValue > 0 ? ["since_import"] : [],
+    dataQuality,
   };
 }
 
-function buildSummary(a, valuation) {
+function latestNavDateFromValuation(valuation) {
+  return (valuation?.holdingValuations || []).reduce(
+    (latest, v) => (v.navDate && (!latest || v.navDate > latest) ? v.navDate : latest),
+    null
+  );
+}
+
+function buildValuationConfidence(valuation, unresolved) {
+  if (!valuation || valuation.latestNavCoveragePct == null) return null;
+  if (unresolved.length > 0) return "Review required";
+  if (valuation.latestNavCoveragePct === 100 && valuation.staleHoldingCount === 0) return "High";
+  if (valuation.latestNavCoveragePct >= 80) return "Partial";
+  return "Low";
+}
+
+function buildLatestNavDayChange(rawHoldings) {
+  let previousValue = 0;
+  let currentValue = 0;
+  let covered = 0;
+  for (const holding of rawHoldings) {
+    if (holding.currentValue == null || holding.nav == null || holding.units == null || holding.r1d == null) continue;
+    const pct = Number(holding.r1d);
+    if (!Number.isFinite(pct) || pct <= -100) continue;
+    currentValue += Number(holding.currentValue);
+    previousValue += Number(holding.currentValue) / (1 + pct / 100);
+    covered += 1;
+  }
+  if (covered === 0 || previousValue <= 0) return null;
+  const value = +(currentValue - previousValue).toFixed(2);
+  return {
+    value,
+    percentage: +((value / previousValue) * 100).toFixed(2),
+    coveragePct: +((covered / rawHoldings.length) * 100).toFixed(1),
+  };
+}
+
+function buildCurrentValueHistory(summary, dataQuality) {
+  if (!summary || summary.totalValue == null || summary.totalValue <= 0) return [];
+  const date = summary.latestOfficialNavDate || dataQuality?.navDateRange?.newest || new Date().toISOString().slice(0, 10);
+  return [{
+    id: `current-${date}`,
+    date,
+    marketValue: summary.totalValue,
+    investedValue: summary.investedValue,
+    gainLoss: summary.gainLoss,
+    navCoveragePct: summary.latestNavCoveragePct,
+  }];
+}
+
+function buildSummary(a, valuation, dataQuality = null, unresolved = []) {
+  const latestOfficialNavDate = latestNavDateFromValuation(valuation) || dataQuality?.navDateRange?.newest || null;
   return {
     totalValue: a.totalValue,
     investedValue: valuation.totalInvestedValue,
@@ -83,6 +140,11 @@ function buildSummary(a, valuation) {
     effectiveCategories: a.effectiveCategories,
     staleHoldingCount: valuation.staleHoldingCount,
     latestNavCoveragePct: valuation.latestNavCoveragePct,
+    latestOfficialNavDate,
+    valuationDate: latestOfficialNavDate,
+    computedAt: dataQuality?.calculatedAt || new Date().toISOString(),
+    valuationConfidence: buildValuationConfidence(valuation, unresolved),
+    latestNavDayChange: buildLatestNavDayChange(a.holdings || []),
   };
 }
 
@@ -127,9 +189,9 @@ export async function getPortfolioDataQuality(userId) {
 }
 
 export async function getPortfolioSummary(userId) {
-  const { report, valuation } = await loadHoldingsAndReport(userId);
+  const { rawHoldings, unresolved, report, valuation } = await loadHoldingsAndReport(userId);
   if (!report) return EMPTY_SUMMARY;
-  return buildSummary(report._analytics, valuation);
+  return buildSummary(report._analytics, valuation, buildDataQuality(rawHoldings, unresolved, valuation), unresolved);
 }
 
 export async function getPortfolioHoldings(userId) {

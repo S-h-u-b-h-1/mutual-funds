@@ -12,6 +12,8 @@ export function buildHolding(fund, { units, avgCost, purchaseValue, purchaseDate
 
   const nav = fund.nav ?? null;
   const currentValue = nav != null ? +(units * nav).toFixed(2) : null;
+  const gainLoss = currentValue != null && purchaseValue != null ? +(currentValue - purchaseValue).toFixed(2) : null;
+  const gainLossPct = gainLoss != null && purchaseValue > 0 ? +((gainLoss / purchaseValue) * 100).toFixed(2) : null;
   const meta = getMetadata(fund.code);
 
   return {
@@ -22,12 +24,17 @@ export function buildHolding(fund, { units, avgCost, purchaseValue, purchaseDate
     avgCost: avgCost ?? null,
     purchaseValue: purchaseValue ?? null,
     currentValue,
+    gainLoss,
+    absoluteGain: gainLoss,
+    gainLossPct,
+    returnPct: gainLossPct,
     purchaseDate: purchaseDate ?? null,
     amc: fund.amc || null,
     category: fund.category || null,
     benchmark: fund.benchmark || null,
     expenseRatio: meta?.expense_ratio ?? meta?.direct_expense_ratio ?? meta?.regular_expense_ratio ?? null,
     nav,
+    r1d: fund.r1d ?? null,
     // Portfolio Metadata: the date this specific nav value is from, and how many trading days old
     // it is — same fields revaluation.js's own (separately re-fetched) getFund() call already
     // relies on, now carried on the holding itself so callers of getPortfolio()/getPortfolioHoldings()
