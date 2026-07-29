@@ -27,7 +27,7 @@ Scope: merged-CAS customer journey for `/portfolio`, using the 13-holding regres
 | Dashboard reconciliation | PARTIAL | Portfolio summary and holdings reconcile locally for the merged-CAS account after import. Cross-route dashboard certification on production remains required after deployment. |
 | Fund detail route | PARTIAL | Holdings link to `/fund/:schemeCode`; detail content depends on structured fund data coverage. |
 | Mobile UX | PASS | Local responsive browser verification at customer-relevant widths confirmed the import filename stays inside its box and the portfolio table/cards do not drop the folio-level rows. |
-| Production deployment | PENDING | Must be verified after the frontend commit is deployed to `https://mf-pulse.vercel.app`; a pushed commit alone is not completion. |
+| Production deployment | PASS | Commit `e166e6a` deployed as Vercel deployment `dpl_Axtcd7rwc5kwkV7xq7ZUfZ75ZHZp`; `https://mf-pulse.vercel.app` was explicitly re-aliased and verified against that deployment. Production browser verification created a disposable account, uploaded the merged PDF, observed `13 mapped · 0 unresolved`, verified `13 saved holdings`, paginated to `Showing 13–13 of 13`, and deleted the disposable account with HTTP 204. |
 
 ## Current persistence boundary
 
