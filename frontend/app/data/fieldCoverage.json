@@ -1,6 +1,6 @@
 {
- "asOf": "2026-07-29",
- "amfiLastUpdated": "2026-07-29",
+ "asOf": "2026-07-30",
+ "amfiLastUpdated": "2026-07-30",
  "factsheetLastUpdated": "2026-07-19",
  "denominators": {
   "universe": 14217,
@@ -54,8 +54,8 @@
     "investable_n": 3448
    },
    "1M": {
-    "universe_pct": 28.12,
-    "universe_n": 3998,
+    "universe_pct": 28.14,
+    "universe_n": 4001,
     "investable_pct": 99.16,
     "investable_n": 3443
    },
@@ -66,16 +66,16 @@
     "investable_n": 3418
    },
    "6M": {
-    "universe_pct": 26.61,
-    "universe_n": 3783,
-    "investable_pct": 95.33,
-    "investable_n": 3310
+    "universe_pct": 0.0,
+    "universe_n": 0,
+    "investable_pct": 0.0,
+    "investable_n": 0
    },
    "1Y": {
-    "universe_pct": 25.09,
-    "universe_n": 3567,
-    "investable_pct": 90.38,
-    "investable_n": 3138
+    "universe_pct": 25.12,
+    "universe_n": 3571,
+    "investable_pct": 90.5,
+    "investable_n": 3142
    },
    "3Y": {
     "universe_pct": 0.0,

@@ -1,5 +1,5 @@
 {
- "asOf": "2026-07-29",
+ "asOf": "2026-07-30",
  "live_amfi_fetched": true,
  "live_amfi_schemes": 14217,
  "mfpulse_schemes": 14217,
@@ -12,8 +12,8 @@
    "Other": 2350,
    "Debt": 7953,
    "Equity": 2937,
-   "Solution": 145,
-   "Hybrid": 832
+   "Hybrid": 832,
+   "Solution": 145
   },
   "scheme_type": {
    "Open Ended Schemes": 9465,
@@ -21,10 +21,10 @@
    "Interval Fund Schemes": 41
   },
   "fund_type": {
-   "ETF": 345,
-   "Active/Other": 11903,
    "Fund of Fund": 681,
-   "Index Fund": 1288
+   "Active/Other": 11903,
+   "Index Fund": 1288,
+   "ETF": 345
   },
   "international": 177,
   "commodity": 209
@@ -34,7 +34,7 @@
  "kpis": {
   "scheme_coverage_pct": 100.0,
   "nav_coverage_pct": 98.29,
-  "historical_coverage_pct": 90.38,
+  "historical_coverage_pct": 90.5,
   "returns_coverage_pct": 99.16,
   "risk_coverage_pct": 99.31,
   "benchmark_coverage_pct": 85.74,
