@@ -39,17 +39,27 @@ export async function extractCasText(buffer) {
 
   let result;
   try {
-    result = await pdfParse(buffer);
+    // pdf-parse defaults to its oldest bundled PDF.js (v1.10.100, ~2018). Real CAS PDFs from
+    // CAMS/KFin/MF Central are routinely produced by modern PDF generators using embedded subset
+    // fonts and CID/ToUnicode encodings that the 2018 parser frequently fails to decode into text
+    // at all (the document loads fine — no exception — but getTextContent() returns empty/near-empty
+    // strings per glyph). That surfaces here as a false "scanned_or_unsupported" rejection of a
+    // statement that is not actually scanned. v2.0.550 is the newest version pdf-parse bundles and
+    // has materially better font/encoding fallback handling for exactly this case, with the same
+    // getDocument()/getTextContent() API render_page() above already relies on.
+    result = await pdfParse(buffer, { version: "v2.0.550" });
   } catch (error) {
     const msg = String(error?.message || error);
     if (/password|encrypt/i.test(msg)) {
       return { rejected: "encrypted", reason: "This PDF is password-protected. Please remove the password (most CAS emails use your PAN or date of birth) and re-upload." };
     }
+    console.error("[casPdf] extraction threw", { checksum, message: msg });
     return { rejected: "corrupted", reason: `This PDF could not be read: ${msg}` };
   }
 
   const text = (result?.text || "").trim();
   if (text.length < MIN_EXTRACTABLE_CHARS) {
+    console.error("[casPdf] extracted text below threshold", { checksum, extractedChars: text.length, numpages: result?.numpages ?? null });
     return {
       rejected: "scanned_or_unsupported",
       reason: "No readable text could be extracted from this PDF. If it's a scanned copy or a photo of a statement, that format isn't supported yet — please upload the original CAS PDF from CAMS, KFin, or MF Central.",
