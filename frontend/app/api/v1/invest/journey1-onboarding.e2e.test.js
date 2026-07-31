@@ -72,12 +72,12 @@ describe("Journey 1 — Investment Readiness, end-to-end through real routes + r
     expect(body.riskProfile.risk_category).toBe("moderate");
   });
 
-  it("clears every compliance item through the real route, mobile through FATCA", async () => {
+  it("clears every compliance item through the real route, mobile through PEP", async () => {
     async function submit(itemKey, payload) {
       return complianceItemRoute.POST(jsonRequest(payload), { params: Promise.resolve({ itemKey }) });
     }
 
-    let res = await submit("mobile", { otp: "123456" });
+    let res = await submit("mobile", { otp: "123456", phoneNumber: "9876543210" });
     expect((await res.json()).item.status).toBe("completed");
 
     res = await submit("email", { otp: "123456" });
@@ -104,12 +104,15 @@ describe("Journey 1 — Investment Readiness, end-to-end through real routes + r
     expect((await res.json()).item.status).toBe("completed");
     randomSpy.mockRestore();
 
-    res = await submit("fatca", { declared: true });
+    res = await submit("fatca", { declared: true, taxResidencyCountry: "IN" });
+    expect((await res.json()).item.status).toBe("completed");
+
+    res = await submit("pep", { declared: false });
     expect((await res.json()).item.status).toBe("completed");
 
     res = await submit("risk_profile", {});
     expect((await res.json()).item.status).toBe("completed");
-    // 8 sequential real route-handler calls, each now also writing a domain_events row + job
+    // 9 sequential real route-handler calls, each now also writing a domain_events row + job
     // enqueue via M4's emitEvent() wiring in complianceService.js — more DB round-trips than
     // when 90s was chosen, and reproducibly insufficient under full-suite contention (timed out
     // twice in a row on a DNS-healthy run). 180s matches the established ceiling for this same

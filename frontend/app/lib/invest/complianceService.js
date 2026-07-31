@@ -11,8 +11,43 @@ import { emitEvent } from "../platform/events/core.js";
 
 // 'investment_ready' is last on purpose — it's a derived gate, never directly submitted by the
 // user, only auto-completed once every other item is done (see maybeCompleteInvestmentReady).
-export const ITEM_KEYS = ["mobile", "email", "pan", "identity", "nominee", "bank", "fatca", "risk_profile", "investment_ready"];
-const DONE_STATUSES = new Set(["verified", "completed"]);
+export const ITEM_KEYS = ["mobile", "email", "pan", "identity", "nominee", "bank", "fatca", "pep", "risk_profile", "investment_ready"];
+// Exported so evaluateInvestmentReadiness (identityService.js) can classify items as done/pending
+// using the exact same definition submitItem/refreshOverallStatus use here — a second, drifted
+// copy of "what counts as done" would be exactly the kind of second-source-of-truth bug this
+// audit keeps finding and fixing elsewhere.
+export const DONE_STATUSES = new Set(["verified", "completed"]);
+
+// Auth+Onboarding truth audit, Phase 11 (consent ledger). A thin, deliberately non-fatal wrapper —
+// a failed consent write must never block the compliance item it's attached to (the item's own
+// status is already correct at the point this is called; losing the audit trail of WHEN consent
+// was captured is bad, but blocking a real compliance action because of it would be worse), so
+// this only logs rather than throws.
+async function recordConsent(userId, { consentType, version, source, documentRef = null, correlationId = null }) {
+  try {
+    await query(
+      `insert into consent_records (user_id, consent_type, version, source, document_ref, correlation_id)
+       values ($1, $2, $3, $4, $5, $6)`,
+      [userId, consentType, version, source, documentRef, correlationId]
+    );
+  } catch (err) {
+    logAudit(userId, "consent_record_write_failed", { consentType, error: String(err?.message || err) }).catch(() => {});
+  }
+}
+
+// Simple E.164-ish digit-count check (7-15 digits after stripping spaces/dashes/parens/leading
+// +) — deliberately not India-specific, since NRI investors are a real segment. This is an
+// engineering-level format check, not a regulatory determination.
+function isPlausiblePhoneNumber(raw) {
+  const digits = String(raw || "").replace(/[\s\-()]/g, "").replace(/^\+/, "");
+  return /^\d{7,15}$/.test(digits);
+}
+
+// ISO 3166-1 alpha-2 format check only (e.g. "IN", "US") — not validated against a real country
+// list. See migration 034's header: REGULATORY FIELD SET REQUIRES CONFIRMATION.
+function isPlausibleCountryCode(raw) {
+  return /^[A-Za-z]{2}$/.test(String(raw || "").trim());
+}
 
 export async function ensureApplication(userId) {
   const app = await query(
@@ -103,10 +138,31 @@ export async function submitItem(userId, itemKey, payload = {}) {
 
   let outcome;
   switch (itemKey) {
-    case "mobile":
     case "email":
       outcome = verifyMockOtp(payload.otp);
       break;
+
+    case "mobile": {
+      // Auth+Onboarding truth audit, Phase 4/9: previously this checked the mock OTP against no
+      // phone number at all — "mobile verified" had structurally nothing behind it. Now a real
+      // number must be submitted and stored before the OTP check even runs; only a genuinely
+      // implausible number is rejected here (invalid format), same posture as bank's
+      // accountNumber/ifsc presence check below.
+      if (!isPlausiblePhoneNumber(payload.phoneNumber)) {
+        outcome = { status: "rejected", rejectionReason: "A valid phone number is required to verify your mobile." };
+        break;
+      }
+      // Upsert, not update — the profile step and the mobile step can be completed in either
+      // order, so investor_profiles may not have a row yet (a plain UPDATE would silently
+      // affect zero rows and lose the number).
+      await query(
+        `insert into investor_profiles (user_id, phone_number) values ($1, $2)
+         on conflict (user_id) do update set phone_number = excluded.phone_number, updated_at = now()`,
+        [userId, payload.phoneNumber]
+      );
+      outcome = verifyMockOtp(payload.otp);
+      break;
+    }
 
     case "pan": {
       // initiateVerification is NOT retryable — it starts a new session at the provider, so a
@@ -114,11 +170,29 @@ export async function submitItem(userId, itemKey, payload = {}) {
       const session = await callProvider("mock-kyc", "initiateVerification", () => kycProvider.initiateVerification({ userId, pan: payload.pan }));
       const check = await callProvider("mock-kyc", "checkStatus", () => kycProvider.checkStatus(session.sessionId), { retryable: true });
       outcome = { status: check.status, provider: "mock-kyc", providerReference: session.sessionId, rejectionReason: check.reason };
+      // Auth+Onboarding truth audit, Phase 4/5: investor_profiles.pan_masked existed but nothing
+      // ever wrote to it — a completed PAN check had no durable record of which PAN it verified.
+      // Only recorded when the check wasn't an outright rejection — a rejected attempt might be a
+      // mistyped/invalid PAN and shouldn't become "this investor's PAN on file".
+      if (payload.pan && check.status !== "rejected") {
+        const masked = String(payload.pan).slice(-4).padStart(String(payload.pan).length, "*");
+        await query(
+          `insert into investor_profiles (user_id, pan_masked) values ($1, $2)
+           on conflict (user_id) do update set pan_masked = excluded.pan_masked, updated_at = now()`,
+          [userId, masked]
+        );
+      }
       break;
     }
 
     case "identity": {
       if (!payload.consentToken) throw new Error("identity verification requires consentToken (consent must be recorded before any document fetch).");
+      // Auth+Onboarding truth audit, Phase 11: this consentToken used to be forwarded to the
+      // document provider and then discarded — real at the moment of the call, gone from any
+      // queryable state the instant this function returned. Now durably recorded before the
+      // provider calls that depend on it, matching the ledger's own "grant must remain provable"
+      // design (see consent_records' table comment).
+      await recordConsent(userId, { consentType: "investment_declaration", version: "v1", source: "onboarding", correlationId: payload.consentToken });
       // Both retrieval/lookup calls, not writes — retrying either fetches the same answer again.
       const doc = await callProvider("mock-document", "fetchDocument", () => documentProvider.fetchDocument(payload.consentToken, "identity"), { retryable: true });
       const ckyc = await callProvider("mock-kyc", "checkCKYCStatus", () => kycProvider.checkCKYCStatus(payload.pan), { retryable: true });
@@ -133,11 +207,22 @@ export async function submitItem(userId, itemKey, payload = {}) {
         outcome = { status: "rejected", rejectionReason: "name, relationship, and allocationPct (1-100) are required." };
         break;
       }
+      // Auth+Onboarding truth audit, Phase 9: previously a plain INSERT with no ON CONFLICT, so
+      // correcting a typo by resubmitting this step created a SECOND nominee row instead of
+      // fixing the first. `sequence` (default 1) makes "which nominee is this" explicit — the
+      // current single-nominee onboarding step always targets slot 1, so a resubmission now
+      // correctly replaces it; a future multi-nominee UI can submit sequence 2, 3, ... for
+      // genuinely additional nominees without colliding.
+      const sequence = Number.isInteger(payload.sequence) && payload.sequence > 0 ? payload.sequence : 1;
       await query(
-        `insert into nominees (user_id, name, relationship, allocation_pct, minor, guardian_name)
-         values ($1, $2, $3, $4, $5, $6)`,
-        [userId, name, relationship, allocationPct, Boolean(payload.minor), payload.guardianName ?? null]
+        `insert into nominees (user_id, name, relationship, allocation_pct, minor, guardian_name, sequence)
+         values ($1, $2, $3, $4, $5, $6, $7)
+         on conflict (user_id, sequence) do update set
+           name = excluded.name, relationship = excluded.relationship, allocation_pct = excluded.allocation_pct,
+           minor = excluded.minor, guardian_name = excluded.guardian_name`,
+        [userId, name, relationship, allocationPct, Boolean(payload.minor), payload.guardianName ?? null, sequence]
       );
+      await recordConsent(userId, { consentType: "nominee_declaration", version: "v1", source: "onboarding" });
       outcome = { status: "completed" };
       break;
     }
@@ -164,9 +249,73 @@ export async function submitItem(userId, itemKey, payload = {}) {
     }
 
     case "fatca": {
-      outcome = payload.declared === true
-        ? { status: "completed" }
-        : { status: "rejected", rejectionReason: "FATCA declaration must be explicitly confirmed." };
+      // Auth+Onboarding truth audit, Phase 6: previously a single boolean (payload.declared),
+      // with NO structured persistence at all — real gap, not a documentation error (the prior
+      // docs never claimed a fatca_declarations table existed). Replaced with a versioned,
+      // structured declaration. tax_residency_country is the one field this cannot proceed
+      // without (it's NOT NULL on fatca_declarations — see migration 034's ENGINEERING MODEL
+      // READY / REGULATORY FIELD SET REQUIRES CONFIRMATION note); a submission missing it is
+      // rejected with a specific reason rather than silently defaulting to "IN" — fabricating a
+      // customer's tax residency would be a real compliance-truth violation, not a convenience.
+      if (payload.declared !== true) {
+        outcome = { status: "rejected", rejectionReason: "FATCA declaration must be explicitly confirmed." };
+        break;
+      }
+      if (!isPlausibleCountryCode(payload.taxResidencyCountry)) {
+        outcome = { status: "rejected", rejectionReason: "Country of tax residence (ISO 2-letter code) is required to complete your FATCA declaration." };
+        break;
+      }
+      const isUsPerson = Boolean(payload.isUsPerson);
+      const isUsCitizen = Boolean(payload.isUsCitizen);
+      // A US-person declaration always routes to review — the actual downstream FATCA reporting
+      // workflow for a US-person investor isn't built (BLOCKED — no reporting provider/process
+      // integrated), so auto-completing would be a false "you're all set" for a case this
+      // platform genuinely can't fully handle yet.
+      const status = isUsPerson || isUsCitizen ? "needs_review" : "completed";
+      await query(
+        `insert into fatca_declarations
+           (user_id, tax_residency_country, additional_tax_residencies, tin, tin_type, country_of_birth, place_of_birth, is_us_person, is_us_citizen, status)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         on conflict (user_id) do update set
+           version = fatca_declarations.version + 1,
+           tax_residency_country = excluded.tax_residency_country, additional_tax_residencies = excluded.additional_tax_residencies,
+           tin = excluded.tin, tin_type = excluded.tin_type, country_of_birth = excluded.country_of_birth,
+           place_of_birth = excluded.place_of_birth, is_us_person = excluded.is_us_person, is_us_citizen = excluded.is_us_citizen,
+           status = excluded.status, declared_at = now()`,
+        [
+          userId, String(payload.taxResidencyCountry).trim().toUpperCase(),
+          payload.additionalTaxResidencies ? JSON.stringify(payload.additionalTaxResidencies) : null,
+          payload.tin ?? null, payload.tinType ?? null, payload.countryOfBirth ?? null, payload.placeOfBirth ?? null,
+          isUsPerson, isUsCitizen, status,
+        ]
+      );
+      await recordConsent(userId, { consentType: "fatca_declaration", version: "v1", source: "onboarding" });
+      outcome = status === "needs_review"
+        ? { status, rejectionReason: "US-person FATCA declarations require manual review — automated FATCA reporting is not yet integrated." }
+        : { status };
+      break;
+    }
+
+    case "pep": {
+      // Auth+Onboarding truth audit, Phase 7: previously absent entirely — zero persistence, zero
+      // workflow. No automated PEP screening provider exists, so this is purely a self-declaration
+      // gate: "no" resolves immediately (not_applicable, no review needed); "yes" ALWAYS routes to
+      // manual review — this platform cannot and does not attempt to auto-clear a self-declared PEP.
+      if (typeof payload.declared !== "boolean") {
+        outcome = { status: "rejected", rejectionReason: "A PEP declaration (yes or no) is required." };
+        break;
+      }
+      const status = payload.declared ? "needs_review" : "completed";
+      await query(
+        `insert into pep_declarations (user_id, declared, status)
+         values ($1, $2, $3)
+         on conflict (user_id) do update set declared = excluded.declared, status = excluded.status, declared_at = now()`,
+        [userId, payload.declared, payload.declared ? "needs_review" : "not_applicable"]
+      );
+      await recordConsent(userId, { consentType: "pep_declaration", version: "v1", source: "onboarding" });
+      outcome = status === "needs_review"
+        ? { status, rejectionReason: "A self-declared PEP status requires manual review before investing." }
+        : { status };
       break;
     }
 

@@ -10,12 +10,19 @@ async function handleGET() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
-  const { readiness, steps, nextAction } = await getOnboardingContract(user.id);
+  const { readiness, steps, nextAction, blockers, investmentReady, accountStatus } = await getOnboardingContract(user.id);
   return Response.json({
     investor: { id: user.id, name: user.name ?? null, email: user.email ?? null },
     readiness,
     steps,
     nextAction,
+    // Additive (Auth+onboarding truth audit, Phase 3/12) — top-level mirrors of readiness's own
+    // fields, matching the {investor, progress, steps, nextAction, blockers, investmentReady,
+    // accountStatus} shape this phase's own instructions describe, without removing `readiness`
+    // (docs/INVEST_API_CONTRACTS.md and onboarding/route.test.js already depend on it existing).
+    blockers,
+    investmentReady,
+    accountStatus,
   });
 }
 

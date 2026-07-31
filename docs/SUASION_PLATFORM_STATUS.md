@@ -304,17 +304,106 @@ still not done.
 
 ## 3. Authentication + onboarding truth
 
-**Status: NOT YET AUDITED THIS PASS.**
+**Status: PARTIAL — audited capability-by-capability against the live code (not docs), one real
+security gap found and fixed, the rest verified sound or honestly flagged.** ENGINEERING READY
+throughout; nothing here is BLOCKED BY PROVIDER since auth has no external dependency beyond
+optional OAuth/Resend keys, which the code already degrades gracefully without.
+
+| Capability | Verdict | Note |
+|---|---|---|
+| Signup | PASS | Rate-limited (5/hr/IP), bcrypt cost 12, real duplicate-email check, audit-logged. |
+| Login | PASS | Rate-limited both by IP and by raw submitted email; constant-time via a dummy-hash comparison so "no such user" and "wrong password" cost the same, closing a timing side channel. |
+| Logout | PASS | Real `signOut()`; under "database" session strategy this deletes the actual session row. |
+| Session creation/validation | PASS | Auth.js v5, custom Neon adapter. Strategy is "database" once ≥1 non-Credentials provider (Google/GitHub/Resend) is configured, else "jwt" — a real `@auth/core` constraint (verified directly against the installed library, not assumed), not a bug. |
+| **Session revocation** | **FIXED this pass** | Real gap: under the "jwt" fallback (active whenever only Credentials is configured), password-reset's/account-deletion's session-invalidation was a silent no-op — no `sessions` row ever existed to delete, so the signed cookie stayed valid until its natural 30-day expiry regardless of a password change. Fixed with a `users.security_stamp` column + a `jwt` callback (`authSecurityStamp.js`) that re-verifies the live stamp on every request and invalidates the token on mismatch; password-reset now bumps the stamp. Verified with a red/green test (reverted the fix, confirmed the new test failed with the expected stale-session-still-valid behavior, restored it). Migration `033`. |
+| Password hashing | PASS | bcryptjs, cost 12, consistent everywhere it's used. |
+| Password reset | PASS | 256-bit token, stored as its own SHA-256 hash, 1-hour expiry, atomic single-use delete-and-return, real email delivery via Resend when `RESEND_API_KEY` is configured. |
+| Email verification | PARTIAL, by design | Auth.js's own `email_verified` column is vestigial (only ever set by magic-link sign-in, never read anywhere) — the REAL enforced gate is the `email` compliance-item (mock OTP). Two different "email verified" concepts exist for two different purposes; neither is broken, but a future reader should not assume the Auth.js column means anything. |
+| Mobile verification | **FIXED this pass** | Real gap: the `mobile` compliance item checked a hardcoded mock-OTP literal against no phone number at all — no number was ever collected or stored, so "mobile verified" had nothing behind it. Now requires and persists a real phone number (`investor_profiles.phone_number`, migration `034`) before the OTP check runs. SMS delivery itself remains MOCK (no SMS provider — BLOCKED BY PROVIDER for the send step only). |
+| Magic link / OAuth (Google, GitHub) | PASS, MOCK in this environment | Real, tested code paths; inactive locally because no provider secrets are configured. Production's actual provider mix could not be verified from the repo (no Vercel env access from this session). |
+| Rate limiting | PASS | Real, Postgres-backed, atomic, tested against real Neon (concurrent-request race included). |
+| Account deletion | PASS | Real, cascading, requires the caller to re-type their own email. No dedicated test file (gap, not a defect — noted for Phase 15). |
+| Role handling | PARTIAL, by design | `role`/`requireRole` are real and enforced (one route: internal reconciliation resolve). No code path grants `advisor`/`admin` — deliberately manual SQL by an operator today. Real gap for Phase 27 (Advisor/RM contract), not a bug. |
+| Protected Invest routes (API) | PASS | Every route under `/api/v1/invest/**` calls `requireUser`/`requireRole` — verified by grepping for the absence of the check, not just its presence (zero routes missing it). |
+| Protected Invest routes (frontend) | **OUT OF SCOPE FOR THIS PASS — flagged for Codex** | No `middleware.js` or client-side redirect gates `/invest/*` page shells for an unauthenticated visitor; the API layer still 401s every underlying data call, so no data leaks, but the shell itself loads. This is a frontend-ownership fix (route guarding is UI/UX), not something this pass should implement per the "Codex owns customer-facing UI/UX" boundary. |
+| API authorization (IDOR) | PASS | Every data-access query in every checked route filters by the session's own `user_id`; zero client-supplied-user-id patterns found across the whole `/api/v1/invest/**` tree. |
+| Session expiration | PASS, deliberate default | Auth.js's unmodified 30-day idle expiry. Not overridden; no finding either way. |
+| Cookie settings | PASS | `httpOnly`, `sameSite=lax`, `secure` when HTTPS (Auth.js defaults, unmodified). `forgot-password`'s reset-link generation deliberately does NOT use the request's own Host header (uses a hardcoded trusted origin instead), specifically to avoid a Host-header-spoofing reset-link-poisoning risk — a real, intentional safety measure, not an inconsistency. |
+| CSRF | PARTIAL, defensible | Auth.js's own endpoints have built-in CSRF protection. Custom routes (register, password reset, `/api/v1/invest/**` mutations) rely on `SameSite=Lax` cookie behavior rather than an explicit anti-CSRF token — a legitimate, widely-used modern default (the cookie isn't attached to cross-site non-navigation requests), not unprotected, but worth stating plainly rather than implying token-based CSRF exists. |
+| Brute-force protection beyond rate limiting | PARTIAL, accepted for now | No CAPTCHA (would require a third-party provider — not invented here) and no account lockout (a deliberate non-choice: lockout enables an attacker to lock out a legitimate user by deliberately failing their password; the existing 5-attempts/5-minutes rate limit is a real, working mitigation without that trade-off). Flagged, not silently accepted as "done." |
+
+**Real gap, not fixed this pass (test coverage, not behavior):** `auth.js`/`register`/`forgot-password`/`account` deletion route had zero automated tests before this pass. This pass added coverage for the one NEW/CHANGED behavior (`authSecurityStamp.test.js`, `reset-password/route.test.js`) — the pre-existing routes' already-working behavior (signup validation, rate-limit thresholds, token expiry) remains real but untested by an automated suite. Noted for Phase 15.
 
 ## 4. Investment readiness / compliance
 
-**Status: PARTIAL (carried from the Suasion Securities mission, verified separately)**. A canonical
-onboarding/readiness contract (`GET /api/v1/invest/onboarding`) shipped and is tested (16 new
-tests, real Neon) — see `docs/INVEST_API_CONTRACTS.md`. FATCA/CRS remains a bare boolean, PEP does
-not exist, consent is not a real ledger — confirmed via direct code + live schema inspection
-(`docs/INVESTOR_JOURNEY_AUDIT.md`, which itself corrects an earlier, false "VERIFIED" claim about
-PEP/FATCA persistence found in a prior doc revision). Not yet re-scoped against this new
-directive's more detailed compliance model (Phase 7 of the governing directive).
+**Status: PARTIAL — canonical investor record, onboarding contract, and compliance data model
+audited and substantially hardened this pass.** ENGINEERING READY; specific items below are
+BLOCKED BY PROVIDER where a real external verification/screening service would be required.
+
+**Canonical investor record (Phase 2): fragmented, not unified — a real finding, not a defect to
+silently patch.** There is no single "investor profile" row. Name/email live in `users`;
+DOB/address/occupation/PAN(masked)/phone live in `investor_profiles`; role/risk-comfort/experience
+live in a separate `research_profile` (signup personalization, a different concern entirely). A
+dead, same-era `investor_profile` (singular) table from an earlier design was already dropped in a
+prior migration (`027`) — confirmed via direct schema read, not re-litigated. This is not fixed
+this pass (a real schema consolidation, out of scope for a truth audit) but is now accurately
+documented rather than assumed away; every table above joins on `user_id`, so there is no
+compliance/orders/documents fragmentation risk today, only a "three tables to read for one profile"
+ergonomics gap.
+
+**Onboarding contract (Phase 3): real drift found and fixed.** `GET /api/v1/invest/onboarding`
+(`getOnboardingContract`) previously computed `readiness.investmentReady` from compliance
+completion ALONE — a strictly weaker condition than `orderService.assertInvestmentReady`'s actual
+enforcement gate (compliance completion AND an active `investment_accounts` row). A caller could
+see `investmentReady: true` here and still get rejected placing a real order. **Fixed** by
+extracting the enforcement logic into one function, `evaluateInvestmentReadiness()`
+(`identityService.js`) — `assertInvestmentReady` now throws based on ITS result instead of
+re-deriving the same two checks; every read-only surface (`getOnboardingContract`, and the route's
+new top-level `blockers`/`investmentReady`/`accountStatus` fields) reads the same function. This is
+the "ONE authoritative readiness function" the governing directive's Phase 12 asks for, not a
+second implementation that happens to agree.
+
+**Compliance data model (Phases 4-11) — per item:**
+
+| Item | Before this pass | After this pass |
+|---|---|---|
+| Investor profile fields | Real, but PAN/phone never actually written despite columns existing | PAN (masked) and phone now genuinely persisted on verification |
+| PAN/KYC | Real mock KYC provider flow; `pan_masked` column never written | **FIXED** — `pan_masked` now persisted (last 4 chars, same masking convention as bank) on any non-rejected check |
+| CKYC | Real, gates the `identity` item | Unchanged — already real |
+| FATCA/CRS | A single boolean (`declared: true`), no structured storage at all | **FIXED** — structured `fatca_declarations` table (tax residency country, TIN, country/place of birth, US-person flags), versioned. **ENGINEERING MODEL READY / REGULATORY FIELD SET REQUIRES CONFIRMATION** — this field set is the standard industry self-certification shape, not confirmed against Suasion's actual compliance/legal form. A US-person declaration routes to `needs_review`, never auto-completes (no FATCA reporting workflow exists — BLOCKED BY PROVIDER for that downstream step only). |
+| PEP | Absent entirely (zero code, zero schema) | **BUILT** — `pep_declarations` table + a new `pep` compliance item. "No" resolves immediately; "yes" always routes to manual review — no automated PEP screening provider exists or is assumed. |
+| Bank account | Real; masked-only storage (no unmasked column exists to leak) | Unchanged — already sound |
+| Nominee | Real, but resubmitting silently created a SECOND row instead of replacing the first (a genuine duplicate-row bug — a corrected typo would leave both the wrong and the right nominee on file) | **FIXED** — a `sequence` slot (default 1) makes resubmission an upsert; a different slot adds a genuinely additional nominee, so the schema stays multi-nominee-capable rather than foreclosing it |
+| Risk profile / suitability | Real, deterministic 4-question scorer; explicitly self-labeled "not a regulatory-grade risk assessment" in its own code comment | Unchanged — the self-labeling is accurate and was not overstated anywhere found |
+| Consent ledger | Three unrelated, non-uniform mechanisms (one already-dropped dead column, one discard-after-use token, one scattered boolean on an unrelated marketing table) | **BUILT** — `consent_records`, append-only, typed (`consent_type`/`version`/`source`/`correlation_id`). Wired into the identity-verification, nominee, FATCA, and PEP steps — the declaration-bearing ones. Deliberately no IP/device metadata column (not justified by any actual requirement). |
+
+**Investment account / UCC (Phase 13): real gap closed at the schema level, mock unchanged in
+behavior.** `investment_accounts.account_number` was (and remains) explicitly a mock-generated
+value, never a real BSE/CDSL identifier — the finding was that the table had no DISTINCT field for
+a future real provider-issued client/UCC reference, conflating "our internal account row" with
+"the provider's own identity for this investor." Added `provider`, `provider_client_reference`,
+`verified_at`, `failure_reason` columns (migration `034`) — null under the mock provider today,
+ready to populate once a real provider exists. `status` remains schema-declared
+`pending|active|suspended|closed` but the mock provider only ever produces `active`
+(`evaluateInvestmentReadiness` now handles the other three correctly even though they're currently
+unreachable — verified by reading the code path, not assumed).
+
+**Full suite after Phase 1-13 work: verification in progress — updated below once the complete run
+against real Neon finishes** (individual affected files — `complianceService.test.js`,
+`identityService.test.js`, `orderService.test.js`, `journey1-onboarding.e2e.test.js`,
+`authSecurityStamp.test.js`, `reset-password/route.test.js` — all pass as of this edit; the
+full-suite figure is not restated here until actually re-run, to avoid citing a number this session
+hasn't verified).
+
+**Cross-team dependency, flagged for Codex, not silently worked around:** the current onboarding UI
+(`OnboardingFlow.jsx`) submits `mobile` with only `{otp}` (no phone number field) and `fatca` with
+only `{declared}` (no tax-residency field) — neither collects the data these steps now correctly
+require. Until the form is updated to collect a phone number and a tax-residency country, those two
+steps will return `rejected` from the real backend instead of completing. This is the correct,
+honest consequence of closing two real truth gaps, not a regression to route around from the
+backend side — flagged here explicitly per the "coordination gap" pattern rather than silently
+patched with a compatibility shim that would have re-introduced the exact fabrication (a defaulted
+country nobody actually confirmed) this pass was trying to remove.
 
 ## 5. Transaction core (Purchase/SIP/Redemption/Switch)
 

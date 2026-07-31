@@ -222,11 +222,12 @@ describe("real wiring (integration, real Neon) — the additive emitEvent() call
     expect(byType.InvestorCreated?.length).toBe(1);
     expect(byType.InvestorCreated[0]).toMatchObject({ userId });
 
-    // 8 submitItem calls in makeInvestmentReadyUser, all forced onto their success branch —
-    // every one of them lands on a DONE_STATUSES status, so all 8 fire ComplianceCompleted.
-    expect(byType.ComplianceCompleted?.length).toBe(8);
+    // 9 submitItem calls in makeInvestmentReadyUser, all forced onto their success branch —
+    // every one of them lands on a DONE_STATUSES status, so all 9 fire ComplianceCompleted.
+    // (Auth+onboarding truth audit, 2026-07-30: was 8 before the new `pep` item existed.)
+    expect(byType.ComplianceCompleted?.length).toBe(9);
     expect(byType.ComplianceCompleted.map((p) => p.itemKey).sort()).toEqual(
-      ["bank", "email", "fatca", "identity", "mobile", "nominee", "pan", "risk_profile"].sort()
+      ["bank", "email", "fatca", "identity", "mobile", "nominee", "pan", "pep", "risk_profile"].sort()
     );
 
     expect(byType.InvestmentReady?.length).toBe(1);

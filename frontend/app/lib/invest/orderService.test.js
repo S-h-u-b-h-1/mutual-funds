@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeAll, afterAll } from "vitest";
 import * as orderService from "./orderService.js";
+import { query } from "../db.js";
 import { makeInvestmentReadyUser, createTestUser, deleteTestUser } from "./testHelpers.js";
 
 afterEach(() => vi.restoreAllMocks());
@@ -84,6 +85,31 @@ describe("orderService (integration, real Neon, disposable investment-ready user
     const order = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 5000, draft: true });
     expect(order.status).toBe("draft");
     expect(order.provider_order_id).toBeNull();
+  });
+
+  it("submitOrder re-checks readiness at submit time, not just at draft creation (Auth+onboarding truth audit, Phase 1/12)", async () => {
+    // A dedicated user, not readyUserId — this test destructively removes the investment account
+    // to simulate a readiness regression between draft creation and submission, so it must not
+    // share state with any other test in this file.
+    const regressUserId = await makeInvestmentReadyUser("order-readiness-regress");
+    try {
+      const draft = await orderService.createOrder(regressUserId, { schemeCode: "119551", orderType: "purchase", amount: 5000, draft: true });
+      expect(draft.status).toBe("draft");
+
+      // Simulates the account becoming unavailable after the draft was created (nothing in
+      // today's product actually does this yet — see assertInvestmentReady's own comment — but
+      // submitOrder must not blindly trust "was ready when the draft was made" regardless).
+      await query(`delete from investment_accounts where user_id = $1`, [regressUserId]);
+
+      await expect(orderService.submitOrder(regressUserId, draft.id)).rejects.toThrow(/investment account is required/);
+
+      // The order itself must stay in draft, not silently transition — a rejected readiness
+      // check is not the same thing as a provider decline.
+      const stillDraft = await orderService.getOrderRaw(regressUserId, draft.id);
+      expect(stillDraft.status).toBe("draft");
+    } finally {
+      await deleteTestUser(regressUserId);
+    }
   });
 
   it("creates and immediately submits by default, writing a timeline entry", async () => {

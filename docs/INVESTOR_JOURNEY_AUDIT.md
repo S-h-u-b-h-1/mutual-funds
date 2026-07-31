@@ -1,5 +1,17 @@
 # MF Pulse / Suasion Securities — Investor Journey Audit
 
+**Update (2026-07-30, Auth+Onboarding truth audit)**: the "Both claims are false" correction notice
+directly below is now itself out of date — `pep_declarations` and `fatca_declarations` were BUILT
+as of this date (migration `034_compliance_model_hardening.sql`), FATCA is now a structured,
+versioned declaration (not a boolean), and a real `pep` compliance item exists end-to-end. Verified
+directly against the current code and schema, not assumed. See
+`docs/SUASION_PLATFORM_STATUS.md` Section 4 and `docs/INVEST_API_CONTRACTS.md`'s Module 2 table for
+the current, accurate state — treat the 2026-07-28 notice below as a historical record of what was
+true THEN (the general lesson about not trusting a doc's claims over the live code/schema still
+stands), not a description of today's system.
+
+---
+
 **Audit date**: 2026-07-28 (this revision). **Method**: every row below was verified against actual
 source code (`frontend/app/lib/invest/`, `frontend/app/api/v1/invest/`) and the live production
 database schema (`information_schema.tables` / `describe_table_schema` via the Neon MCP tools) —

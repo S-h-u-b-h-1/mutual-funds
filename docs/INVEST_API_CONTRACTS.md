@@ -96,7 +96,7 @@ labels and "what do I do next" guidance without reconstructing that logic client
 ```json
 {
   "investor": { "id": "...", "name": "Jane Investor", "email": "jane@example.com" },
-  "readiness": { "status": "in_progress", "percent": 44, "investmentReady": false },
+  "readiness": { "status": "in_progress", "percent": 40, "investmentReady": false, "accountStatus": "not_opened" },
   "steps": [
     {
       "key": "mobile", "order": 1, "label": "Verify mobile number", "category": "contact_verification",
@@ -108,9 +108,16 @@ labels and "what do I do next" guidance without reconstructing that logic client
     { "key": "nominee", "order": 5, "category": "declarations", "...": "..." },
     { "key": "bank", "order": 6, "category": "banking", "...": "..." },
     { "key": "fatca", "order": 7, "category": "declarations", "...": "..." },
-    { "key": "risk_profile", "order": 8, "category": "risk_assessment", "...": "..." }
+    { "key": "pep", "order": 8, "category": "declarations", "...": "..." },
+    { "key": "risk_profile", "order": 9, "category": "risk_assessment", "...": "..." }
   ],
-  "nextAction": { "key": "pan", "label": "Verify PAN", "reason": "pending" }
+  "nextAction": { "key": "pan", "label": "Verify PAN", "reason": "pending" },
+  "blockers": [
+    { "code": "pan", "message": "Verify PAN", "status": "pending", "rejectionReason": null },
+    { "code": "investment_account_missing", "message": "Investment account not created", "status": "pending", "rejectionReason": null }
+  ],
+  "investmentReady": false,
+  "accountStatus": "not_opened"
 }
 ```
 
@@ -118,7 +125,8 @@ labels and "what do I do next" guidance without reconstructing that logic client
 `needs_review` \| `rejected` (identical vocabulary to `GET /compliance`'s items — this is a
 relabeled view of the same underlying rows, not a new state machine).
 `investment_ready` itself is intentionally excluded from `steps[]` — it's the derived gate
-(`readiness.investmentReady`), not a step the investor submits.
+(`readiness.investmentReady`), not a step the investor submits. `pep` (added 2026-07-30, Auth+
+onboarding truth audit) is a required step like every other declaration.
 
 `nextAction` priority: a `rejected` step (the investor already tried and it failed) always wins
 over an untouched `pending`/`in_progress` step, regardless of ordering — fixing a failure is more
@@ -128,18 +136,31 @@ review — no action needed right now.", "reason": "waiting_on_review" }` (not t
 key — there's nothing left for the investor to submit). `nextAction` is `null` once every required
 step is done.
 
+**`readiness.investmentReady`/`blockers`/top-level `investmentReady`/`accountStatus`** (added
+2026-07-30) all derive from ONE function, `evaluateInvestmentReadiness()` (`identityService.js`) —
+the same function `orderService.assertInvestmentReady` throws from before allowing any purchase/
+SIP/redemption/switch. Before this, `readiness.investmentReady` reflected compliance completion
+ONLY, a strictly weaker condition than the real enforcement gate (compliance completion AND an
+active `investment_accounts` row) — a caller could see `investmentReady: true` here and still get
+rejected placing a real order. That drift is now structurally impossible: this field IS what the
+order-creation gate checks, not a second calculation that happens to usually agree.
+`blockers[].code` is either a compliance `item_key` (matching `steps[].key`) or
+`investment_account_missing`/`investment_account_pending` — the exact vocabulary
+`evaluateInvestmentReadiness()` returns, not a UI-invented enum.
+
 `readiness.percent`/`readiness.status` are the exact same numbers `GET /compliance` and the
 existing `onboarding` field on `GET /profile` already return — this endpoint doesn't introduce a
-second, potentially-diverging readiness calculation, only a richer presentation of the one that
+second, potentially-diverging progress calculation, only a richer presentation of the one that
 already exists in `complianceService.js`.
 
 ---
 
 ## Module 2 — Compliance Engine
 
-Nine independent items: `mobile`, `email`, `pan`, `identity`, `nominee`, `bank`, `fatca`,
+Ten independent items: `mobile`, `email`, `pan`, `identity`, `nominee`, `bank`, `fatca`, `pep`,
 `risk_profile`, `investment_ready`. Each has its own status; `investment_ready` is **derived**
-(auto-completes once the other 8 are done) and can never be submitted directly.
+(auto-completes once the other 9 are done) and can never be submitted directly. (`pep` added
+2026-07-30 — previously absent entirely, see `docs/SUASION_PLATFORM_STATUS.md` Section 4.)
 
 Item status values: `pending` \| `in_progress` \| `verified` \| `rejected` \| `needs_review` \|
 `completed`. `verified` and `completed` both count as "done" for progress purposes.
@@ -150,8 +171,8 @@ Item status values: `pending` \| `in_progress` \| `verified` \| `rejected` \| `n
 {
   "overallStatus": "in_progress",
   "completed": 4,
-  "total": 9,
-  "percent": 44,
+  "total": 10,
+  "percent": 40,
   "items": [
     { "item_key": "mobile", "status": "completed", "provider": null, "provider_reference": null, "rejection_reason": null, "completed_at": "...", "updated_at": "..." },
     { "item_key": "pan", "status": "verified", "provider": "mock-kyc", "provider_reference": "kycsess_...", "rejection_reason": null, "completed_at": "...", "updated_at": "..." },
@@ -174,14 +195,24 @@ Request/response per item:
 
 | itemKey | Request body | Success status | Notes |
 |---|---|---|---|
-| `mobile`, `email` | `{ "otp": "123456" }` | `completed` | Mock OTP — `123456` always succeeds, anything else is `rejected`. No real SMS/email sent. |
-| `pan` | `{ "pan": "ABCDE1234F" }` | `verified` \| `needs_review` \| `rejected` | Weighted mock outcome (~85% verified) via MockKYCProvider. |
-| `identity` | `{ "pan": "...", "consentToken": "..." }` | `verified` \| `needs_review` \| `rejected` | `consentToken` is required — `400` without it. Fetches a mock document, then checks mock CKYC status. |
-| `nominee` | `{ "name": "...", "relationship": "...", "allocationPct": 100, "minor": false, "guardianName": null }` | `completed` | Persists a real row in `nominees`. `rejected` if required fields are missing/invalid. |
-| `bank` | `{ "accountNumber": "...", "ifsc": "...", "accountHolderName": "..." }` | `completed` \| `needs_review` | Mock penny-drop (~90% success). Persists a masked row in `bank_accounts`. `rejected` if fields are missing. |
-| `fatca` | `{ "declared": true }` | `completed` | Must be literal `true` — anything else is `rejected`. |
+| `mobile` | `{ "otp": "123456", "phoneNumber": "9876543210" }` | `completed` | **`phoneNumber` is required as of 2026-07-30** — previously this item checked the mock OTP against no phone number at all ("verified" with nothing behind it). Rejected before the OTP is even checked if `phoneNumber` fails a basic 7-15-digit format check. Persists to `investor_profiles.phone_number` on success. Mock OTP — `123456` always succeeds, anything else is `rejected`. No real SMS sent (send step remains MOCK). |
+| `email` | `{ "otp": "123456" }` | `completed` | Unchanged — mock OTP only, no real email verification token flow. |
+| `pan` | `{ "pan": "ABCDE1234F" }` | `verified` \| `needs_review` \| `rejected` | Weighted mock outcome (~85% verified) via MockKYCProvider. As of 2026-07-30, persists a masked `pan_masked` to `investor_profiles` on any non-rejected outcome (previously computed but never written). |
+| `identity` | `{ "pan": "...", "consentToken": "..." }` | `verified` \| `needs_review` \| `rejected` | `consentToken` is required — `400` without it. As of 2026-07-30, the consent itself is durably recorded (`consent_records`, type `investment_declaration`) before the document/CKYC provider calls. Fetches a mock document, then checks mock CKYC status. |
+| `nominee` | `{ "name": "...", "relationship": "...", "allocationPct": 100, "minor": false, "guardianName": null, "sequence": 1 }` | `completed` | Persists/upserts a real row in `nominees`. **`sequence` (default 1) added 2026-07-30** — resubmitting the same slot now correctly REPLACES that nominee (previously created a duplicate row); a different `sequence` adds a genuinely additional nominee. `rejected` if required fields are missing/invalid. |
+| `bank` | `{ "accountNumber": "...", "ifsc": "...", "accountHolderName": "..." }` | `completed` \| `needs_review` | Unchanged. Mock penny-drop (~90% success). Persists a masked row in `bank_accounts`. `rejected` if fields are missing. |
+| `fatca` | `{ "declared": true, "taxResidencyCountry": "IN", "additionalTaxResidencies": null, "tin": null, "tinType": null, "countryOfBirth": null, "placeOfBirth": null, "isUsPerson": false, "isUsCitizen": false }` | `completed` \| `needs_review` | **Structured as of 2026-07-30** — previously a bare boolean with no persistence. `declared` must be literal `true` AND `taxResidencyCountry` (ISO 2-letter) must be present, or `rejected`. A US-person declaration (`isUsPerson`/`isUsCitizen`) always resolves to `needs_review`, never auto-completes (no FATCA reporting workflow exists). Persists to `fatca_declarations`, versioned. **ENGINEERING MODEL READY / REGULATORY FIELD SET REQUIRES CONFIRMATION** — see `docs/SUASION_PLATFORM_STATUS.md` Section 4. |
+| `pep` | `{ "declared": false }` | `completed` \| `needs_review` | **New as of 2026-07-30** — previously this compliance item did not exist. `declared` must be an explicit boolean or `rejected`. `false` completes immediately; `true` ALWAYS routes to `needs_review` — no automated PEP screening provider exists or is assumed. Persists to `pep_declarations`. |
 | `risk_profile` | `{}` | `completed` \| `rejected` | Checks whether a `risk_profiles` row already exists (via `PUT /risk-profile` first) — this endpoint doesn't itself collect the questionnaire. |
 | `investment_ready` | — | — | `400` always — derived only, never directly submitted. |
+
+**Cross-team note for Codex:** the current onboarding form only sends `mobile` as `{otp}` and
+`fatca` as `{declared}` — neither collects the now-required `phoneNumber`/`taxResidencyCountry`
+fields, so both steps will return `rejected` against the live backend until the form is updated to
+collect them. This is the intended, honest consequence of closing two real data gaps (see
+`docs/SUASION_PLATFORM_STATUS.md` Section 4), not a bug to route around from the frontend with a
+default value — a defaulted tax-residency country nobody actually confirmed would reintroduce
+exactly the fabrication problem this change removed.
 
 Response shape (every item, on success):
 

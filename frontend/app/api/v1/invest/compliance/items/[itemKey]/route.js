@@ -1,5 +1,5 @@
 // Module 2 + Module 5. Submits one compliance item — mobile/email/pan/identity/nominee/bank/
-// fatca/risk_profile. 'investment_ready' is rejected here (400) — it's a derived gate, never
+// fatca/pep/risk_profile. 'investment_ready' is rejected here (400) — it's a derived gate, never
 // directly submitted (see complianceService.submitItem's own guard).
 import { requireUser, unauthorized } from "../../../../../../lib/apiAuth";
 import { submitItem } from "../../../../../../lib/invest/complianceService";

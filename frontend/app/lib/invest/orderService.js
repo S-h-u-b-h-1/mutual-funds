@@ -8,8 +8,7 @@ import { callProvider, isProviderUnavailable, investmentProviderUnavailableOutco
 import { logAudit } from "./audit.js";
 import { notifyUser } from "./notifications.js";
 import { emitEvent } from "../platform/events/core.js";
-import { getComplianceProgress } from "./complianceService.js";
-import { getAccount } from "./identityService.js";
+import { evaluateInvestmentReadiness } from "./identityService.js";
 import { reconcileCompletedOrder } from "./portfolioService.js";
 import { generateDocument } from "./documentService.js";
 import { getDefaultDistributorAttribution } from "../platform/distributor/core.js";
@@ -117,14 +116,24 @@ async function transition(order, toStatus, reason = null) {
   return completedOrder;
 }
 
+// Auth+onboarding truth audit, Phase 12: throws using evaluateInvestmentReadiness
+// (identityService.js) rather than re-deriving compliance/account checks itself — that function
+// is now the ONE place "is this investor ready" is decided; every read-only surface (the
+// onboarding contract, a future dashboard) reports the same thing this throws on, by construction,
+// not by two implementations happening to agree.
+const ACCOUNT_BLOCKER_CODES = new Set(["investment_account_missing", "investment_account_pending"]);
+
 export async function assertInvestmentReady(userId) {
-  const [progress, account] = await Promise.all([getComplianceProgress(userId), getAccount(userId)]);
-  if (progress.overallStatus !== "completed") {
-    throw new Error("Compliance must be fully completed before placing an order.");
-  }
-  if (!account || account.status !== "active") {
-    throw new Error("An active investment account is required before placing an order.");
-  }
+  const readiness = await evaluateInvestmentReadiness(userId);
+  if (readiness.ready) return;
+  // Compliance takes priority in the thrown message, matching this function's pre-refactor
+  // behavior (and the tests that pin it) — a brand-new user is missing both compliance AND an
+  // account, and "finish compliance first" is the more useful, earlier-in-the-journey message
+  // than "open an account" for that case. The account-specific message only surfaces once
+  // compliance is otherwise fully done and the account is the sole remaining blocker.
+  const hasComplianceBlocker = readiness.blockers.some((b) => !ACCOUNT_BLOCKER_CODES.has(b.code));
+  if (hasComplianceBlocker) throw new Error("Compliance must be fully completed before placing an order.");
+  throw new Error("An active investment account is required before placing an order.");
 }
 
 function validateOrderInput({ schemeCode, orderType, amount, units, relatedSchemeCode }) {
@@ -196,6 +205,13 @@ export async function submitOrder(userId, orderId) {
   const order = await getOrderRaw(userId, orderId);
   if (!order) throw new Error("Order not found.");
   if (order.status !== "draft") throw new Error(`Only a draft order can be submitted (current status: ${order.status}).`);
+  // Auth+onboarding truth audit, Phase 1/12: createOrder() checks readiness once, at draft
+  // creation — but a draft can sit unsubmitted for an arbitrary amount of time before this runs,
+  // and nothing re-verified readiness at the actual moment money/units are about to move. Cheap
+  // relative to the payment/provider calls below, and closes a real (if currently unreachable,
+  // since nothing today revokes compliance/deactivates an account after the fact) gap between
+  // "was ready when the draft was made" and "is still ready right now."
+  await assertInvestmentReady(userId);
 
   // Provider Metadata: a purchase needs money to move before the investment provider is even
   // asked to place it — paymentProvider.initiatePayment() has been fully built and registered

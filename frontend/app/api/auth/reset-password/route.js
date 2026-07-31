@@ -51,7 +51,7 @@ export async function POST(request) {
 
   const passwordHash = await bcrypt.hash(password, 12);
   const updated = await query(
-    `update users set password_hash = $2, updated_at = now() where email = $1 returning id`,
+    `update users set password_hash = $2, updated_at = now(), security_stamp = gen_random_uuid() where email = $1 returning id`,
     [email, passwordHash]
   );
   const user = updated.rows[0];
@@ -59,12 +59,12 @@ export async function POST(request) {
     return Response.json({ error: "Invalid or expired reset link" }, { status: 400 });
   }
 
-  // Revokes every "database" strategy session outright (deleted row => next lookup fails).
-  // Does NOT revoke "jwt" strategy sessions — those stay valid until natural expiry, since
-  // verifying a JWT never touches this table. That fallback only activates when zero non-
-  // Credentials providers are configured (see auth.js), which real deployments won't hit once
-  // any OAuth/magic-link provider is live; tracked as a known gap for the security review (#86)
-  // rather than a solved problem here.
+  // Revokes every "database" strategy session outright (deleted row => next lookup fails), AND
+  // (via the security_stamp bump above) every "jwt" strategy session too — auth.js's
+  // jwtSecurityStampCallback rejects any token whose stashed stamp no longer matches this row on
+  // its very next use, regardless of the cookie's own unexpired signature. Auth+onboarding truth
+  // audit, Phase 1: this used to be a real gap (documented here as "jwt strategy stays valid until
+  // natural expiry"); it no longer is.
   await query(`delete from sessions where user_id = $1`, [user.id]);
   await query(`insert into audit_log (user_id, action) values ($1, 'password_reset')`, [user.id]);
 

@@ -113,7 +113,7 @@ describe("identityService (integration, real Neon, disposable test user)", () =>
 
   it("getOnboardingProgress returns a valid compliance-backed progress shape", async () => {
     const progress = await identityService.getOnboardingProgress(userId);
-    expect(progress.total).toBe(9); // ITEM_KEYS.length in complianceService
+    expect(progress.total).toBe(10); // ITEM_KEYS.length in complianceService
     expect(progress.percent).toBeGreaterThanOrEqual(0);
     expect(progress.percent).toBeLessThanOrEqual(100);
   });
@@ -130,20 +130,20 @@ describe("getOnboardingContract (Suasion mission Section A, real Neon, disposabl
     await deleteTestUser(userId);
   });
 
-  it("a fresh investor sees all 8 steps pending, mobile as nextAction, and is not investment-ready", async () => {
+  it("a fresh investor sees all 9 steps pending, mobile as nextAction, and is not investment-ready", async () => {
     const { readiness, steps, nextAction } = await identityService.getOnboardingContract(userId);
 
-    expect(steps).toHaveLength(8); // STEP_ORDER — investment_ready itself is excluded, it's derived not user-facing
+    expect(steps).toHaveLength(9); // STEP_ORDER — investment_ready itself is excluded, it's derived not user-facing
     expect(steps.every((s) => s.status === "pending")).toBe(true);
     expect(steps.map((s) => s.key)).toEqual([
-      "mobile", "email", "pan", "identity", "nominee", "bank", "fatca", "risk_profile",
+      "mobile", "email", "pan", "identity", "nominee", "bank", "fatca", "pep", "risk_profile",
     ]);
     expect(nextAction).toEqual({ key: "mobile", label: "Verify mobile number", reason: "pending" });
-    expect(readiness).toEqual({ status: "pending", percent: 0, investmentReady: false });
+    expect(readiness).toEqual({ status: "pending", percent: 0, investmentReady: false, accountStatus: "not_opened" });
   });
 
   it("nextAction advances to the next incomplete step once earlier ones complete", async () => {
-    await submitItem(userId, "mobile", { otp: "123456" });
+    await submitItem(userId, "mobile", { otp: "123456", phoneNumber: "9876543210" });
     await submitItem(userId, "email", { otp: "123456" });
 
     const { steps, nextAction } = await identityService.getOnboardingContract(userId);
@@ -159,14 +159,14 @@ describe("getOnboardingContract (Suasion mission Section A, real Neon, disposabl
     // on this user (still 'pending') — rejected must still win, per this function's documented
     // priority (a step the investor already tried and failed is more actionable than one they
     // haven't reached).
-    await submitItem(userId, "fatca", { declared: false });
+    await submitItem(userId, "fatca", { declared: false, taxResidencyCountry: "IN" });
 
     const { nextAction } = await identityService.getOnboardingContract(userId);
     expect(nextAction).toEqual({ key: "fatca", label: "FATCA/CRS declaration", reason: "rejected" });
 
     // Clean up this test's own side effect so later tests in this file see fatca back at a
     // resolvable state rather than permanently rejected.
-    await submitItem(userId, "fatca", { declared: true });
+    await submitItem(userId, "fatca", { declared: true, taxResidencyCountry: "IN" });
   });
 
   it("nextAction reports waiting_on_review when every remaining step is needs_review, not one specific key", async () => {
@@ -197,27 +197,34 @@ describe("getOnboardingContract (Suasion mission Section A, real Neon, disposabl
     const readyUserId = await createTestUser("onboarding-ready");
     try {
       const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.1); // force pan/identity/bank mocks into their success branch
-      await submitItem(readyUserId, "mobile", { otp: "123456" });
+      await submitItem(readyUserId, "mobile", { otp: "123456", phoneNumber: "9876543210" });
       await submitItem(readyUserId, "email", { otp: "123456" });
       await submitItem(readyUserId, "pan", { pan: "ABCDE1234F" });
       await submitItem(readyUserId, "identity", { pan: "ABCDE1234F", consentToken: "consent_onboarding_contract" });
       await submitItem(readyUserId, "nominee", { name: "Contract Nominee", relationship: "Spouse", allocationPct: 100 });
       await submitItem(readyUserId, "bank", { accountNumber: "000111222333", ifsc: "HDFC0000001", accountHolderName: "Ready Test" });
-      await submitItem(readyUserId, "fatca", { declared: true });
+      await submitItem(readyUserId, "fatca", { declared: true, taxResidencyCountry: "IN" });
+      await submitItem(readyUserId, "pep", { declared: false });
       await identityService.upsertRiskProfile(readyUserId, {
         horizonScore: 4, lossToleranceScore: 3, incomeStabilityScore: 4, experienceScore: 3,
       });
       await submitItem(readyUserId, "risk_profile", {});
+      // Auth+onboarding truth audit, Phase 12: investmentReady now ALSO requires an active
+      // investment account (matching orderService.assertInvestmentReady's real gate) — without
+      // this call, compliance alone would reach 100% but investmentReady would stay false, which
+      // is the exact drift this fix closed, not a test artifact to work around.
+      await identityService.ensureAccount(readyUserId);
       randomSpy.mockRestore();
 
       const { readiness, nextAction } = await identityService.getOnboardingContract(readyUserId);
       expect(readiness.investmentReady).toBe(true);
+      expect(readiness.accountStatus).toBe("active");
       expect(readiness.percent).toBe(100);
       expect(nextAction).toBeNull();
     } finally {
       await deleteTestUser(readyUserId);
     }
-  }, 180000); // 9 sequential submitItem calls, each with real DB + emitEvent round trips -- same
+  }, 180000); // 10 sequential submitItem calls, each with real DB + emitEvent round trips -- same
   // class of work as journey1-onboarding.e2e.test.js's "clears every compliance item" test,
   // which established 180s as the real ceiling for this pattern (documented there in detail).
 });

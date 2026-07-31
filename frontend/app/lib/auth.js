@@ -12,6 +12,7 @@ import bcrypt from "bcryptjs";
 import { NeonAdapter } from "./authAdapter";
 import { hasDatabaseUrl, query } from "./db";
 import { checkRateLimit, getClientIp } from "./platform/rateLimit/core";
+import { jwtSecurityStampCallback } from "./authSecurityStamp";
 
 const hasGoogle = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 const hasGitHub = Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);
@@ -55,7 +56,7 @@ const providers = [
       const user = r.rows[0];
       const valid = await bcrypt.compare(String(credentials.password), user?.password_hash || DUMMY_HASH);
       if (!user || !user.password_hash || !valid) return null;
-      return { id: user.id, name: user.name, email: user.email, image: user.image };
+      return { id: user.id, name: user.name, email: user.email, image: user.image, securityStamp: user.security_stamp };
     },
   }),
 ];
@@ -85,6 +86,23 @@ if (hasResend) {
 const hasNonCredentialsProvider = hasGoogle || hasGitHub || hasResend;
 const sessionStrategy = hasDatabaseUrl && hasNonCredentialsProvider ? "database" : "jwt";
 
+// Session revocation (Phase 1 auth audit): under "database" strategy, password-reset and
+// account-deletion already revoke for real — they delete/cascade the actual `sessions` row.
+// Under the "jwt" fallback above (the ONLY strategy that can ever be active while Credentials is
+// the sole provider — see the comment on sessionStrategy), there is no sessions row to delete, so
+// those same revocation calls were silent no-ops and the signed cookie stayed valid until its
+// natural 30-day expiry regardless of a password change. jwtSecurityStampCallback (imported above,
+// defined in authSecurityStamp.js — see that file's header for why it lives outside this one)
+// closes that gap without touching the database-strategy path at all: Auth.js only invokes
+// `jwt()` when session strategy is actually "jwt" (database-strategy sign-ins never go through
+// here). On initial sign-in (`user` present — always the object authorize() just returned,
+// carrying a securityStamp read at that exact moment), the current stamp is stashed into the
+// token. On every later request, the live DB value is re-checked; a mismatch means something
+// bumped users.security_stamp since this token was issued (password reset, today; a future "sign
+// out everywhere" action, or a suspected-compromise response, later) — returning null here is
+// Auth.js's own documented idiom for invalidating a jwt-strategy session mid-flight (verified
+// against @auth/core/lib/actions/session.js: `if (token !== null) { ...build session... } else {
+// ...clear cookies... }`).
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: hasDatabaseUrl ? NeonAdapter() : undefined,
   session: { strategy: sessionStrategy },
@@ -98,6 +116,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return session;
     },
+    jwt: jwtSecurityStampCallback,
   },
 });
 

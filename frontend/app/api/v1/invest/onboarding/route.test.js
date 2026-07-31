@@ -27,9 +27,12 @@ describe("GET /api/v1/invest/onboarding", () => {
   it("200s with investor + readiness + steps + nextAction when signed in", async () => {
     auth.mockResolvedValue({ user: { id: "user-1", name: "Test Investor", email: "test@example.com" } });
     identityService.getOnboardingContract.mockResolvedValue({
-      readiness: { status: "in_progress", percent: 25, investmentReady: false },
+      readiness: { status: "in_progress", percent: 25, investmentReady: false, accountStatus: "not_opened" },
       steps: [{ key: "mobile", status: "completed" }],
       nextAction: { key: "email", label: "Verify email address", reason: "pending" },
+      blockers: [{ code: "email", message: "Verify email address", status: "pending", rejectionReason: null }],
+      investmentReady: false,
+      accountStatus: "not_opened",
     });
 
     const res = await GET();
@@ -39,6 +42,12 @@ describe("GET /api/v1/invest/onboarding", () => {
     expect(body.readiness.percent).toBe(25);
     expect(body.steps).toHaveLength(1);
     expect(body.nextAction.key).toBe("email");
+    // Auth+onboarding truth audit, Phase 3/12: additive top-level fields mirroring readiness —
+    // this is route-layer wiring (the spread in route.js), not logic, so it belongs in this file
+    // rather than identityService.test.js.
+    expect(body.blockers).toEqual([{ code: "email", message: "Verify email address", status: "pending", rejectionReason: null }]);
+    expect(body.investmentReady).toBe(false);
+    expect(body.accountStatus).toBe("not_opened");
     expect(identityService.getOnboardingContract).toHaveBeenCalledWith("user-1");
   });
 

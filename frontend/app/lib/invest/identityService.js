@@ -7,7 +7,7 @@ import { investmentProvider } from "./providers/index.js";
 import { callProvider } from "./providers/resilience.js";
 import { logAudit } from "./audit.js";
 import { emitEvent } from "../platform/events/core.js";
-import { getComplianceProgress } from "./complianceService.js";
+import { getComplianceProgress, DONE_STATUSES } from "./complianceService.js";
 
 export async function getProfile(userId) {
   const r = await query(`select * from investor_profiles where user_id = $1`, [userId]);
@@ -47,9 +47,13 @@ export async function getAccount(userId) {
 }
 
 // Idempotent: returns the existing account if one exists, otherwise opens one via the
-// (mock, this phase) InvestmentProvider and persists it. Account opening is gated on compliance
-// being 'completed' — an investment account existing does not itself mean the investor is
-// allowed to transact; see complianceService for that check.
+// (mock, this phase) InvestmentProvider and persists it. NOT gated on compliance status here —
+// account opening and compliance are two independent facts, and orderService.assertInvestmentReady
+// (the actual enforcement point before any money-moving action) requires BOTH compliance
+// completion AND an active account, so a caller opening this early gains no capability it
+// wouldn't otherwise get blocked from. (Auth+onboarding truth audit, Phase 12: a prior version of
+// this comment claimed a compliance gate existed here — verified against the code that it never
+// did; corrected rather than silently left to mislead the next reader.)
 export async function ensureAccount(userId) {
   const existing = await getAccount(userId);
   if (existing) return existing;
@@ -184,14 +188,56 @@ const STEP_METADATA = {
   nominee: { label: "Add a nominee", category: "declarations", required: true },
   bank: { label: "Verify bank account", category: "banking", required: true },
   fatca: { label: "FATCA/CRS declaration", category: "declarations", required: true },
+  pep: { label: "Politically Exposed Person (PEP) declaration", category: "declarations", required: true },
   risk_profile: { label: "Complete risk questionnaire", category: "risk_assessment", required: true },
 };
 // Matches the order journey1-onboarding.e2e.test.js already exercises end-to-end — a fresh
 // investor following nextAction in sequence walks the exact path that fixture proves works.
 const STEP_ORDER = Object.keys(STEP_METADATA);
 
+// Auth+onboarding truth audit, Phase 12: the ONE authoritative "can this investor invest right
+// now" function. Previously this determination existed in three places that could disagree —
+// getOnboardingContract's own readiness.investmentReady (compliance-only), the frontend
+// dashboard's identical compliance-only read, and orderService.assertInvestmentReady (the only
+// one actually enforced, and the only one that also checked the investment account). Every other
+// caller now derives from THIS function; assertInvestmentReady (orderService.js) throws based on
+// its `ready` field rather than re-deriving the same two conditions itself.
+export async function evaluateInvestmentReadiness(userId) {
+  const [progress, account] = await Promise.all([getComplianceProgress(userId), getAccount(userId)]);
+  const requiredItems = progress.items.filter((i) => i.item_key !== "investment_ready");
+
+  const blockers = [];
+  for (const item of requiredItems) {
+    if (DONE_STATUSES.has(item.status)) continue;
+    const meta = STEP_METADATA[item.item_key];
+    blockers.push({
+      code: item.item_key,
+      message: meta ? meta.label : item.item_key,
+      status: item.status, // 'pending' | 'in_progress' | 'rejected' | 'needs_review'
+      rejectionReason: item.rejection_reason ?? null,
+    });
+  }
+  if (!account) {
+    blockers.push({ code: "investment_account_missing", message: "Investment account not created", status: "pending", rejectionReason: null });
+  } else if (account.status !== "active") {
+    // Not reachable under the current mock provider (it only ever returns 'active'), but the
+    // schema declares pending/suspended/closed for when a real provider can produce them — this
+    // branch exists so evaluateInvestmentReadiness stays correct once one does, not just today.
+    blockers.push({ code: "investment_account_pending", message: `Investment account is ${account.status}, not active`, status: account.status, rejectionReason: null });
+  }
+
+  return {
+    ready: blockers.length === 0,
+    blockers,
+    warnings: [],
+    completedRequirements: requiredItems.filter((i) => DONE_STATUSES.has(i.status)).map((i) => i.item_key),
+    pendingRequirements: requiredItems.filter((i) => !DONE_STATUSES.has(i.status)).map((i) => i.item_key),
+    accountStatus: account?.status ?? "not_opened",
+  };
+}
+
 export async function getOnboardingContract(userId) {
-  const progress = await getComplianceProgress(userId);
+  const [progress, readiness0] = await Promise.all([getComplianceProgress(userId), evaluateInvestmentReadiness(userId)]);
   const byKey = Object.fromEntries(progress.items.map((i) => [i.item_key, i]));
 
   const steps = STEP_ORDER.map((key, index) => {
@@ -226,16 +272,18 @@ export async function getOnboardingContract(userId) {
     nextAction = null; // every required step is done
   }
 
-  const investmentReadyItem = byKey.investment_ready;
   // percent/status reuse getComplianceProgress's own numbers rather than recomputing from
   // `steps` — that array deliberately excludes the derived investment_ready item (it's not a
-  // user-facing step), and DONE_STATUSES's exact verified/completed definition lives in
-  // complianceService, not duplicated here.
+  // user-facing step). investmentReady/accountStatus/blockers all come from
+  // evaluateInvestmentReadiness — the same function orderService.assertInvestmentReady enforces
+  // against, so this field can't drift from what actually gates order placement the way the
+  // old compliance-only computation could (Auth+onboarding truth audit, Phase 12).
   const readiness = {
     status: progress.overallStatus,
     percent: progress.percent,
-    investmentReady: investmentReadyItem?.status === "completed",
+    investmentReady: readiness0.ready,
+    accountStatus: readiness0.accountStatus,
   };
 
-  return { readiness, steps, nextAction };
+  return { readiness, steps, nextAction, blockers: readiness0.blockers, investmentReady: readiness0.ready, accountStatus: readiness0.accountStatus };
 }

@@ -3,6 +3,21 @@
 **Date:** 27 July 2026  
 **Scope:** authenticated Suasion Invest onboarding, readiness, existing-investor import and first-investment handoff.
 
+**Correction (2026-07-30, Auth+Onboarding truth audit)**: this doc's own line below —
+"Protected `/invest/*` routes use the shared Invest shell and redirect unauthenticated users to
+login" — does not match the current code. Verified directly: there is no `middleware.js`, no
+server-component redirect, and no client-side `useSession()`-based redirect anywhere in the
+`/invest/*` page tree (repo-wide search for `router.push("/login")`/`redirect("/login")` patterns
+returns two hits, both unrelated to route gating). An unauthenticated visitor's browser fully loads
+the `/invest/*` page shell; every underlying API call then 401s and the frontend shows an inline
+"session expired" message rather than redirecting. No data is exposed (the API layer is fully
+gated — verified separately), so this is a UX gap, not a security one — but it is real, not
+"protected" as stated. This is frontend route-guarding, Codex's ownership area, not something this
+pass implements. The Mobile OTP and FATCA rows below are also now incomplete — see
+`docs/SUASION_PLATFORM_STATUS.md` Section 4 and `docs/INVEST_API_CONTRACTS.md`'s Module 2 table for
+the current, real payload requirements (`phoneNumber` for mobile; `taxResidencyCountry` and related
+fields for FATCA; a new `pep` item).
+
 ## Journey map — current implementation
 
 `/register` and `/login` create or restore the authenticated session. Protected `/invest/*`

@@ -56,13 +56,14 @@ export async function makeInvestmentReadyUser(label) {
   const originalRandom = Math.random;
   Math.random = () => 0.1; // force every weighted mock outcome onto its success branch
   try {
-    await complianceService.submitItem(userId, "mobile", { otp: "123456" });
+    await complianceService.submitItem(userId, "mobile", { otp: "123456", phoneNumber: "9876543210" });
     await complianceService.submitItem(userId, "email", { otp: "123456" });
     await complianceService.submitItem(userId, "pan", { pan: "ABCDE1234F" });
     await complianceService.submitItem(userId, "identity", { pan: "ABCDE1234F", consentToken: `consent_${label}` });
     await complianceService.submitItem(userId, "nominee", { name: "Test Nominee", relationship: "Spouse", allocationPct: 100 });
     await complianceService.submitItem(userId, "bank", { accountNumber: "000111222333", ifsc: "HDFC0000001", accountHolderName: "Test User" });
-    await complianceService.submitItem(userId, "fatca", { declared: true });
+    await complianceService.submitItem(userId, "fatca", { declared: true, taxResidencyCountry: "IN" });
+    await complianceService.submitItem(userId, "pep", { declared: false });
     await complianceService.submitItem(userId, "risk_profile", {});
   } finally {
     Math.random = originalRandom;
