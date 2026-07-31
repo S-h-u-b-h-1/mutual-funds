@@ -1,5 +1,5 @@
 {
- "asOf": "2026-07-30",
+ "asOf": "2026-07-31",
  "denominators": {
   "universe": 14221,
   "active": 8511,
@@ -32,10 +32,10 @@
     "investable_n": 3474
    },
    "Benchmark": {
-    "universe_pct": 85.75,
-    "universe_n": 12194,
-    "investable_pct": 71.93,
-    "investable_n": 2499
+    "universe_pct": 85.36,
+    "universe_n": 12139,
+    "investable_pct": 71.53,
+    "investable_n": 2485
    }
   },
   "Performance": {
@@ -182,7 +182,7 @@
  "fund_completeness": {
   "fund_completeness_avg_universe": 39.9,
   "fund_completeness_avg_investable": 55.7,
-  "research_readiness_avg_universe": 32.2,
+  "research_readiness_avg_universe": 32.1,
   "research_readiness_avg_investable": 54.6,
   "isin_coverage_pct": 98.8,
   "structure_coverage_pct": 100.0

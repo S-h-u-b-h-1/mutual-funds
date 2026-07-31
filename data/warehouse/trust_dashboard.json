@@ -1,5 +1,5 @@
 {
- "asOf": "2026-07-30",
+ "asOf": "2026-07-31",
  "coverage_score": 100.0,
  "routable_score": 100.0,
  "freshness_score": 100,
@@ -9,6 +9,6 @@
  "validation_score": 100.0,
  "parser_health": 75.0,
  "acquisition_health": 64,
- "data_completeness": 95.8,
+ "data_completeness": 95.7,
  "overall_trust_score": 86.7
 }

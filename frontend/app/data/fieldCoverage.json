@@ -1,6 +1,6 @@
 {
- "asOf": "2026-07-30",
- "amfiLastUpdated": "2026-07-30",
+ "asOf": "2026-07-31",
+ "amfiLastUpdated": "2026-07-31",
  "factsheetLastUpdated": "2026-07-19",
  "denominators": {
   "universe": 14221,
@@ -34,10 +34,10 @@
     "investable_n": 3474
    },
    "Benchmark": {
-    "universe_pct": 85.75,
-    "universe_n": 12194,
-    "investable_pct": 71.93,
-    "investable_n": 2499
+    "universe_pct": 85.36,
+    "universe_n": 12139,
+    "investable_pct": 71.53,
+    "investable_n": 2485
    }
   },
   "Performance": {

@@ -1,6 +1,6 @@
 {
 "asOf": "2026-07-30",
-"universe": 1191,
+"universe": 1195,
 "source": "AMFI NAV history \u00b7 equity Direct/Growth plans \u00b7 point-to-point NAV returns",
 "windows": [
 "r1w",
@@ -242,7 +242,7 @@
 "code": "152863",
 "name": "Invesco India Technology Fund - Direct Plan - Growth",
 "amc": "Invesco",
-"category": "Sectoral/ Thematic",
+"category": "Sectoral",
 "nav": 10.01,
 "r1w": 5.7,
 "r1m": 9.28,
@@ -266,7 +266,7 @@
 "code": "152862",
 "name": "Invesco India Technology Fund - Regular Plan - Growth",
 "amc": "Invesco",
-"category": "Sectoral/ Thematic",
+"category": "Sectoral",
 "nav": 9.72,
 "r1w": 5.65,
 "r1m": 9.09,
@@ -555,10 +555,29 @@
 ],
 "categories": [
 {
+"category": "Sectoral",
+"count": 6,
+"avg": 3.16,
+"median": 1.14,
+"best": {
+"name": "Invesco India Technology Fund - Direct Plan - Growth",
+"amc": "Invesco",
+"ret": 9.28,
+"code": "152863"
+},
+"worst": {
+"name": "Invesco India Financial Services Fund - Regular Plan - Growth",
+"amc": "Invesco",
+"ret": -0.89,
+"code": "108378"
+},
+"breadth": 67
+},
+{
 "category": "ELSS- Tax Saver",
-"count": 2,
-"avg": 2.59,
-"median": 2.59,
+"count": 4,
+"avg": 2.42,
+"median": 2.42,
 "best": {
 "name": "Mahindra Manulife ELSS Tax Saver Fund - Direct Plan -Growth",
 "amc": "Mahindra Manulife",
@@ -566,31 +585,12 @@
 "code": "139781"
 },
 "worst": {
-"name": "Mahindra Manulife ELSS Tax Saver Fund- Regular Plan - Growth",
-"amc": "Mahindra Manulife",
-"ret": 2.53,
-"code": "139783"
+"name": "Invesco India ELSS Tax Saver Fund - Regular Plan - Growth",
+"amc": "Invesco",
+"ret": 2.21,
+"code": "104636"
 },
 "breadth": 100
-},
-{
-"category": "Thematic",
-"count": 10,
-"avg": 2.31,
-"median": 3.67,
-"best": {
-"name": "Mirae Asset Healthcare Fund Direct Growth",
-"amc": "Mirae Asset",
-"ret": 4.16,
-"code": "143783"
-},
-"worst": {
-"name": "Mirae Asset Banking and Financial Services Fund Regular Growth",
-"amc": "Mirae Asset",
-"ret": -0.61,
-"code": "148621"
-},
-"breadth": 80
 },
 {
 "category": "Large Cap",
@@ -613,7 +613,7 @@
 },
 {
 "category": "Sectoral/ Thematic",
-"count": 481,
+"count": 465,
 "avg": 1.9,
 "median": 1.87,
 "best": {
@@ -628,7 +628,7 @@
 "ret": -24.69,
 "code": "149328"
 },
-"breadth": 69
+"breadth": 70
 },
 {
 "category": "Focused",
@@ -667,6 +667,25 @@
 "code": "149449"
 },
 "breadth": 93
+},
+{
+"category": "Thematic",
+"count": 22,
+"avg": 1.65,
+"median": 2.37,
+"best": {
+"name": "Mirae Asset Healthcare Fund Direct Growth",
+"amc": "Mirae Asset",
+"ret": 4.16,
+"code": "143783"
+},
+"worst": {
+"name": "Invesco India Infrastructure Fund - Regular Plan - Growth Option",
+"amc": "Invesco",
+"ret": -2.46,
+"code": "106654"
+},
+"breadth": 73
 },
 {
 "category": "Contra",
@@ -746,9 +765,9 @@
 },
 {
 "category": "ELSS",
-"count": 99,
-"avg": 1.28,
-"median": 1.42,
+"count": 97,
+"avg": 1.26,
+"median": 1.4,
 "best": {
 "name": "NJ ELSS Tax Saver Scheme Direct Growth",
 "amc": "NJ",
@@ -761,31 +780,12 @@
 "ret": -2.98,
 "code": "133385"
 },
-"breadth": 80
-},
-{
-"category": "Sectoral",
-"count": 2,
-"avg": 1.14,
-"median": 1.14,
-"best": {
-"name": "Groww Banking & Financial Services Fund - Direct Plan - Growth",
-"amc": "Groww",
-"ret": 1.21,
-"code": "152254"
-},
-"worst": {
-"name": "Groww Banking & Financial Services Fund - Regular - Growth",
-"amc": "Groww",
-"ret": 1.06,
-"code": "152274"
-},
-"breadth": 100
+"breadth": 79
 },
 {
 "category": "Value",
 "count": 44,
-"avg": 1.03,
+"avg": 1.06,
 "median": 1.16,
 "best": {
 "name": "Quantum Value Fund - Direct Plan Growth Option",
@@ -841,8 +841,8 @@
 },
 {
 "category": "Equitys",
-"count": 16,
-"avg": 0.31,
+"count": 20,
+"avg": 0.38,
 "median": 1.36,
 "best": {
 "name": "Aditya Birla Sun Life Nifty 50 Equal Weight Index Fund-Direct Growth",
@@ -856,7 +856,7 @@
 "ret": -3.8,
 "code": "153080"
 },
-"breadth": 62
+"breadth": 60
 }
 ],
 "amcs": [
@@ -981,14 +981,6 @@
 "score": 68.4
 },
 {
-"amc": "Invesco",
-"funds": 36,
-"avg": 1.76,
-"pct_outperform": 61,
-"breadth": 83,
-"score": 67.3
-},
-{
 "amc": "Edelweiss",
 "funds": 30,
 "avg": 1.67,
@@ -1007,7 +999,7 @@
 {
 "amc": "Kotak Mahindra",
 "funds": 54,
-"avg": 2.04,
+"avg": 2.05,
 "pct_outperform": 56,
 "breadth": 85,
 "score": 65.1
@@ -1029,6 +1021,14 @@
 "score": 64.4
 },
 {
+"amc": "Canara Robeco",
+"funds": 26,
+"avg": 1.36,
+"pct_outperform": 58,
+"breadth": 81,
+"score": 64.1
+},
+{
 "amc": "ICICI Prudential",
 "funds": 62,
 "avg": 2.22,
@@ -1045,12 +1045,12 @@
 "score": 63.4
 },
 {
-"amc": "Canara Robeco",
-"funds": 26,
-"avg": 1.36,
-"pct_outperform": 54,
-"breadth": 81,
-"score": 62.0
+"amc": "Invesco",
+"funds": 40,
+"avg": 1.65,
+"pct_outperform": 52,
+"breadth": 80,
+"score": 61.5
 },
 {
 "amc": "Trust",
@@ -1077,20 +1077,20 @@
 "score": 56.0
 },
 {
+"amc": "DSP",
+"funds": 32,
+"avg": 1.2,
+"pct_outperform": 38,
+"breadth": 94,
+"score": 56.0
+},
+{
 "amc": "PPFAS",
 "funds": 6,
 "avg": 1.67,
 "pct_outperform": 33,
 "breadth": 100,
 "score": 56.0
-},
-{
-"amc": "DSP",
-"funds": 32,
-"avg": 1.16,
-"pct_outperform": 38,
-"breadth": 94,
-"score": 55.9
 },
 {
 "amc": "Jio BlackRock",
@@ -1101,20 +1101,20 @@
 "score": 55.8
 },
 {
+"amc": "Mahindra Manulife",
+"funds": 30,
+"avg": 1.18,
+"pct_outperform": 40,
+"breadth": 80,
+"score": 53.9
+},
+{
 "amc": "LIC",
 "funds": 32,
 "avg": 1.23,
 "pct_outperform": 41,
 "breadth": 78,
 "score": 53.8
-},
-{
-"amc": "Mahindra Manulife",
-"funds": 30,
-"avg": 1.18,
-"pct_outperform": 33,
-"breadth": 80,
-"score": 50.2
 },
 {
 "amc": "Sundaram",
@@ -1222,9 +1222,9 @@
 }
 ],
 "insights": [
-"ELSS- Tax Saver led equity categories at +2.6% (1-month NAV), outpacing Equitys (+0.3%) by 2.3 pts.",
+"Sectoral led equity categories at +3.2% (1-month NAV), outpacing Equitys (+0.4%) by 2.8 pts.",
 "The top 10 equity funds averaged +14.6% over 1 month, led by HDFC Technology Fund - Growth Option - D (+16.1%).",
-"Across 1,191 equity Growth funds, 80% posted positive 1-month NAV returns.",
+"Across 1,195 equity Growth funds, 80% posted positive 1-month NAV returns.",
 "NJ ranks #1 on AMC quality (100% of its funds beat their category median)."
 ]
 }

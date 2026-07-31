@@ -1,11 +1,11 @@
 {
- "asOf": "2026-07-30",
+ "asOf": "2026-07-31",
  "scheme_coverage_pct": 100.0,
  "nav_coverage_pct": 98.29,
  "historical_coverage_pct": 90.44,
  "returns_coverage_pct": 99.11,
  "risk_coverage_pct": 99.25,
- "benchmark_coverage_pct": 85.75,
+ "benchmark_coverage_pct": 85.36,
  "category_coverage_pct": 100.0,
  "metadata_coverage_pct": 6.84,
  "aum_coverage_pct": 6.84,
