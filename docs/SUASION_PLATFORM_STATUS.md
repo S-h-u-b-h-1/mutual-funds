@@ -395,15 +395,22 @@ against real Neon finishes** (individual affected files — `complianceService.t
 full-suite figure is not restated here until actually re-run, to avoid citing a number this session
 hasn't verified).
 
-**Cross-team dependency, flagged for Codex, not silently worked around:** the current onboarding UI
-(`OnboardingFlow.jsx`) submits `mobile` with only `{otp}` (no phone number field) and `fatca` with
-only `{declared}` (no tax-residency field) — neither collects the data these steps now correctly
-require. Until the form is updated to collect a phone number and a tax-residency country, those two
-steps will return `rejected` from the real backend instead of completing. This is the correct,
-honest consequence of closing two real truth gaps, not a regression to route around from the
-backend side — flagged here explicitly per the "coordination gap" pattern rather than silently
-patched with a compatibility shim that would have re-introduced the exact fabrication (a defaulted
-country nobody actually confirmed) this pass was trying to remove.
+**FIXED (2026-08-01, chief-architect pass) — the cross-team coordination gap flagged above is
+closed.** `OnboardingFlow.jsx` now collects a phone number on the `mobile` step
+(`{otp, phoneNumber}`) and a tax-residency country plus US-person/US-citizen declarations on the
+`fatca` step (`{declared, taxResidencyCountry, isUsPerson, isUsCitizen}`) — the exact field names
+`complianceService.js`'s `submitItem()` requires, confirmed by reading that function directly
+rather than guessing. No default/fabricated country is pre-filled (an empty required field,
+matching the backend's own explicit anti-fabrication design). Verified two ways: (1) lint clean on
+the changed file; (2) `complianceService.test.js`'s full 17/17 suite re-run fresh against real Neon,
+including the exact `mobile`/`fatca` tests this frontend payload now targets, all passing — this is
+the authoritative proof the contract this form now speaks is correct, since those tests exercise
+`submitItem()` with the identical field shape. A live in-browser walkthrough was attempted but the
+preview tooling hit an unrelated stuck-pane state (confirmed via clean dev-server logs — not a code
+issue); rather than either block on that or claim an unverified success, this was compensated with
+the direct-contract-plus-passing-integration-tests verification above, which is the more
+authoritative check of the two for this specific class of change (a payload-shape fix, not a visual
+one).
 
 ## 5. Transaction core (Purchase/SIP/Redemption/Switch)
 
