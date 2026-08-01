@@ -595,7 +595,7 @@
 {
 "category": "Sectoral/ Thematic",
 "count": 465,
-"avg": 1.99,
+"avg": 2.0,
 "median": 1.89,
 "best": {
 "name": "HDFC Technology Fund - Growth Option - Direct Plan",
@@ -728,7 +728,7 @@
 {
 "category": "Large & Mid Cap",
 "count": 69,
-"avg": 1.39,
+"avg": 1.38,
 "median": 1.42,
 "best": {
 "name": "ICICI Prudential Large & Mid Cap Fund - Direct Plan - Growth",
@@ -804,7 +804,7 @@
 {
 "category": "Equity Savings",
 "count": 46,
-"avg": 0.83,
+"avg": 0.84,
 "median": 0.85,
 "best": {
 "name": "LIC MF Equity Savings Fund-Direct Plan-Growth",
@@ -957,6 +957,14 @@
 "score": 74.2
 },
 {
+"amc": "Edelweiss",
+"funds": 30,
+"avg": 1.85,
+"pct_outperform": 70,
+"breadth": 87,
+"score": 73.1
+},
+{
 "amc": "Taurus",
 "funds": 14,
 "avg": 3.62,
@@ -970,14 +978,6 @@
 "avg": 2.12,
 "pct_outperform": 67,
 "breadth": 85,
-"score": 71.3
-},
-{
-"amc": "Edelweiss",
-"funds": 30,
-"avg": 1.84,
-"pct_outperform": 67,
-"breadth": 87,
 "score": 71.3
 },
 {
@@ -1151,10 +1151,10 @@
 {
 "amc": "Nippon India",
 "funds": 42,
-"avg": 0.01,
+"avg": 0.07,
 "pct_outperform": 31,
 "breadth": 76,
-"score": 46.1
+"score": 46.2
 },
 {
 "amc": "Sundaram",
