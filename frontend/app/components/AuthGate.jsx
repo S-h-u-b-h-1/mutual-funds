@@ -23,6 +23,12 @@ const PUBLIC_PATH_PREFIXES = [
   "/news", "/methodology", "/data-status", "/data-quality", "/status",
   "/performance", "/brief", "/market-map", "/signals", "/discover",
   "/research", "/compare", "/about", "/advisor",
+  // Stock Intelligence (Section 37: public company/sector research must be as openly readable as
+  // mutual-fund research is above — same reasoning, new domain). Only the research surface is
+  // public; user-specific stock pages (watchlists, stock portfolio, research notes) are not in
+  // this list and stay gated once their frontend pages exist, matching how /portfolio (MF) is
+  // gated today despite /funds being public.
+  "/stocks", "/sectors", "/markets", "/commodities",
 ];
 
 function isPublicResearchPath(pathname) {
