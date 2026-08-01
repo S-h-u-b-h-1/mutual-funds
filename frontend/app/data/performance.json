@@ -35,18 +35,6 @@
 "r1y": -9.33
 },
 {
-"code": "152462",
-"name": "Kotak Technology Fund - Direct Plan - Growth Option",
-"amc": "Kotak Mahindra",
-"category": "Sectoral/ Thematic",
-"nav": 10.887,
-"r1w": 6.82,
-"r1m": 14.26,
-"r3m": 8.65,
-"r6m": null,
-"r1y": -5.49
-},
-{
 "code": "120539",
 "name": "Aditya Birla Sun Life Digital India Fund - Growth - Direct Plan",
 "amc": "Aditya Birla Sun Life",
@@ -57,18 +45,6 @@
 "r3m": 9.78,
 "r6m": null,
 "r1y": -4.52
-},
-{
-"code": "152460",
-"name": "Kotak Technology Fund - Regular Plan - Growth Option",
-"amc": "Kotak Mahindra",
-"category": "Sectoral/ Thematic",
-"nav": 10.512,
-"r1w": 6.8,
-"r1m": 14.12,
-"r3m": 8.25,
-"r6m": null,
-"r1y": -6.86
 },
 {
 "code": "103168",
@@ -107,6 +83,18 @@
 "r1y": -4.58
 },
 {
+"code": "152462",
+"name": "Kotak Technology Fund - Direct Plan - Growth Option",
+"amc": "Kotak Mahindra",
+"category": "Sectoral/ Thematic",
+"nav": 10.786,
+"r1w": 5.83,
+"r1m": 13.2,
+"r3m": 7.64,
+"r6m": null,
+"r1y": -6.36
+},
+{
 "code": "120594",
 "name": "ICICI Prudential Technology Fund - Direct Plan -  Growth",
 "amc": "ICICI Prudential",
@@ -117,6 +105,18 @@
 "r3m": 7.53,
 "r6m": null,
 "r1y": -6.04
+},
+{
+"code": "152460",
+"name": "Kotak Technology Fund - Regular Plan - Growth Option",
+"amc": "Kotak Mahindra",
+"category": "Sectoral/ Thematic",
+"nav": 10.414,
+"r1w": 5.8,
+"r1m": 13.06,
+"r3m": 7.24,
+"r6m": null,
+"r1y": -7.73
 },
 {
 "code": "100363",
@@ -191,18 +191,6 @@
 "r1y": -5.06
 },
 {
-"code": "152437",
-"name": "Edelweiss Technology Fund - Direct Plan - Growth",
-"amc": "Edelweiss",
-"category": "Sectoral/ Thematic",
-"nav": 13.03,
-"r1w": 4.17,
-"r1m": 9.71,
-"r3m": 10.24,
-"r6m": null,
-"r1y": 9.59
-},
-{
 "code": "152966",
 "name": "Motilal Oswal Digital India Fund - Regular Plan- Growth",
 "amc": "Motilal Oswal",
@@ -239,18 +227,6 @@
 "r1y": -6.01
 },
 {
-"code": "152439",
-"name": "Edelweiss Technology Fund - Regular Plan - Growth",
-"amc": "Edelweiss",
-"category": "Sectoral/ Thematic",
-"nav": 12.5055,
-"r1w": 4.15,
-"r1m": 9.57,
-"r3m": 9.8,
-"r6m": null,
-"r1y": 7.78
-},
-{
 "code": "152863",
 "name": "Invesco India Technology Fund - Direct Plan - Growth",
 "amc": "Invesco",
@@ -273,6 +249,30 @@
 "r3m": 10.08,
 "r6m": null,
 "r1y": 2.32
+},
+{
+"code": "152437",
+"name": "Edelweiss Technology Fund - Direct Plan - Growth",
+"amc": "Edelweiss",
+"category": "Sectoral/ Thematic",
+"nav": 12.9572,
+"r1w": 3.59,
+"r1m": 9.1,
+"r3m": 9.62,
+"r6m": null,
+"r1y": 8.97
+},
+{
+"code": "152439",
+"name": "Edelweiss Technology Fund - Regular Plan - Growth",
+"amc": "Edelweiss",
+"category": "Sectoral/ Thematic",
+"nav": 12.4351,
+"r1w": 3.56,
+"r1m": 8.96,
+"r3m": 9.18,
+"r6m": null,
+"r1y": 7.18
 },
 {
 "code": "152796",
@@ -595,7 +595,7 @@
 {
 "category": "Sectoral/ Thematic",
 "count": 465,
-"avg": 2.0,
+"avg": 1.99,
 "median": 1.89,
 "best": {
 "name": "HDFC Technology Fund - Growth Option - Direct Plan",
@@ -652,8 +652,8 @@
 {
 "category": "Flexi Cap",
 "count": 89,
-"avg": 1.68,
-"median": 1.44,
+"avg": 1.7,
+"median": 1.52,
 "best": {
 "name": "UTI - Flexi Cap Fund-Growth Option - Direct",
 "amc": "UTI",
@@ -726,6 +726,25 @@
 "breadth": 92
 },
 {
+"category": "Large & Mid Cap",
+"count": 69,
+"avg": 1.39,
+"median": 1.42,
+"best": {
+"name": "ICICI Prudential Large & Mid Cap Fund - Direct Plan - Growth",
+"amc": "ICICI Prudential",
+"ret": 3.73,
+"code": "120596"
+},
+"worst": {
+"name": "Motilal Oswal Large and Midcap Fund - Regular Plan Growth",
+"amc": "Motilal Oswal",
+"ret": -1.82,
+"code": "147701"
+},
+"breadth": 88
+},
+{
 "category": "Multi Cap",
 "count": 64,
 "avg": 1.37,
@@ -743,25 +762,6 @@
 "code": "147184"
 },
 "breadth": 92
-},
-{
-"category": "Large & Mid Cap",
-"count": 69,
-"avg": 1.36,
-"median": 1.42,
-"best": {
-"name": "ICICI Prudential Large & Mid Cap Fund - Direct Plan - Growth",
-"amc": "ICICI Prudential",
-"ret": 3.73,
-"code": "120596"
-},
-"worst": {
-"name": "Motilal Oswal Large and Midcap Fund - Regular Plan Growth",
-"amc": "Motilal Oswal",
-"ret": -1.82,
-"code": "147701"
-},
-"breadth": 88
 },
 {
 "category": "ELSS",
@@ -885,14 +885,6 @@
 "score": 92.9
 },
 {
-"amc": "Abakkus",
-"funds": 4,
-"avg": 1.54,
-"pct_outperform": 100,
-"breadth": 100,
-"score": 92.5
-},
-{
 "amc": "WhiteOak Capital",
 "funds": 28,
 "avg": 3.33,
@@ -925,6 +917,14 @@
 "score": 78.8
 },
 {
+"amc": "Abakkus",
+"funds": 4,
+"avg": 1.54,
+"pct_outperform": 75,
+"breadth": 100,
+"score": 78.7
+},
+{
 "amc": "Trust",
 "funds": 8,
 "avg": 1.32,
@@ -935,10 +935,10 @@
 {
 "amc": "Axis",
 "funds": 36,
-"avg": 2.17,
+"avg": 2.24,
 "pct_outperform": 72,
 "breadth": 100,
-"score": 78.2
+"score": 78.3
 },
 {
 "amc": "UTI",
@@ -975,7 +975,7 @@
 {
 "amc": "Edelweiss",
 "funds": 30,
-"avg": 1.88,
+"avg": 1.84,
 "pct_outperform": 67,
 "breadth": 87,
 "score": 71.3
@@ -1005,6 +1005,14 @@
 "score": 67.4
 },
 {
+"amc": "PPFAS",
+"funds": 6,
+"avg": 1.74,
+"pct_outperform": 50,
+"breadth": 100,
+"score": 65.3
+},
+{
 "amc": "Old Bridge",
 "funds": 4,
 "avg": 1.65,
@@ -1031,7 +1039,7 @@
 {
 "amc": "ICICI Prudential",
 "funds": 62,
-"avg": 2.1,
+"avg": 2.09,
 "pct_outperform": 55,
 "breadth": 76,
 "score": 62.5
@@ -1055,10 +1063,10 @@
 {
 "amc": "Kotak Mahindra",
 "funds": 54,
-"avg": 2.12,
+"avg": 2.08,
 "pct_outperform": 48,
 "breadth": 85,
-"score": 61.2
+"score": 61.1
 },
 {
 "amc": "SBI",
@@ -1067,14 +1075,6 @@
 "pct_outperform": 46,
 "breadth": 82,
 "score": 59.6
-},
-{
-"amc": "Mahindra Manulife",
-"funds": 30,
-"avg": 1.27,
-"pct_outperform": 47,
-"breadth": 87,
-"score": 59.4
 },
 {
 "amc": "LIC",
@@ -1099,6 +1099,14 @@
 "pct_outperform": 45,
 "breadth": 75,
 "score": 57.6
+},
+{
+"amc": "Mahindra Manulife",
+"funds": 30,
+"avg": 1.27,
+"pct_outperform": 43,
+"breadth": 87,
+"score": 57.5
 },
 {
 "amc": "The Wealth Company",
@@ -1139,14 +1147,6 @@
 "pct_outperform": 33,
 "breadth": 80,
 "score": 50.3
-},
-{
-"amc": "PPFAS",
-"funds": 6,
-"avg": 1.48,
-"pct_outperform": 17,
-"breadth": 100,
-"score": 46.5
 },
 {
 "amc": "Nippon India",
@@ -1223,7 +1223,7 @@
 ],
 "insights": [
 "Sectoral led equity categories at +3.1% (1-month NAV), outpacing Equitys (+0.7%) by 2.4 pts.",
-"The top 10 equity funds averaged +14.1% over 1 month, led by HDFC Technology Fund - Growth Option - D (+15.6%).",
+"The top 10 equity funds averaged +13.9% over 1 month, led by HDFC Technology Fund - Growth Option - D (+15.6%).",
 "Across 1,195 equity Growth funds, 81% posted positive 1-month NAV returns.",
 "NJ ranks #1 on AMC quality (100% of its funds beat their category median)."
 ]
