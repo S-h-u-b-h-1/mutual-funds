@@ -10,6 +10,19 @@ function uniqueSuffix(label) {
   return `${label}-${Date.now()}-${counter}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Short, label-independent uniqueness for space-constrained identifier columns (isin: unique,
+// realistically <=12 chars; nse_symbol/bse_code likewise short in practice). uniqueSuffix()'s
+// output is NOT safe to .slice() into a short column — its uniqueness-bearing part (timestamp/
+// counter/random) sits AFTER the human-readable label, so truncating to N chars keeps only the
+// label's own prefix and silently drops the part that actually makes it unique. Two labels
+// sharing a short common prefix (e.g. "fin-stmt" and "fin-stmt-empty") then collide on a real
+// unique constraint. This generates the unique token first, independent of any label.
+let shortCounter = 0;
+function shortUniqueToken() {
+  shortCounter += 1;
+  return (shortCounter.toString(36) + Math.random().toString(36).slice(2, 8)).toUpperCase();
+}
+
 export async function createTestSector(label = "sector") {
   const suffix = uniqueSuffix(label);
   const r = await query(
@@ -35,10 +48,11 @@ export async function createTestIndustry(sectorId, label = "industry") {
 
 export async function createTestCompany({ sectorId = null, industryId = null, label = "company" } = {}) {
   const suffix = uniqueSuffix(label);
+  const token = shortUniqueToken();
   const r = await query(
     `insert into companies (legal_name, display_name, isin, nse_symbol, bse_code, sector_id, industry_id)
      values ($1,$2,$3,$4,$5,$6,$7) returning id`,
-    [`Test Company ${suffix} Ltd`, `Test Co ${suffix}`, `INTEST${suffix}`.slice(0, 12).toUpperCase(), `TSTCO${suffix}`.slice(0, 20).toUpperCase(), null, sectorId, industryId]
+    [`Test Company ${suffix} Ltd`, `Test Co ${suffix}`, `IN${token}`.slice(0, 12), `T${token}`.slice(0, 20), null, sectorId, industryId]
   );
   return r.rows[0].id;
 }
