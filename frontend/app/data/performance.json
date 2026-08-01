@@ -35,30 +35,6 @@
 "r1y": -9.33
 },
 {
-"code": "120578",
-"name": "SBI TECHNOLOGY OPPORTUNITIES FUND - DIRECT PLAN - GROWTH",
-"amc": "SBI",
-"category": "Sectoral/ Thematic",
-"nav": 234.3394,
-"r1w": 8.3,
-"r1m": 14.38,
-"r3m": 9.53,
-"r6m": null,
-"r1y": -3.16
-},
-{
-"code": "120577",
-"name": "SBI TECHNOLOGY OPPORTUNITIES FUND - REGULAR PLAN - GROWTH",
-"amc": "SBI",
-"category": "Sectoral/ Thematic",
-"nav": 203.6597,
-"r1w": 8.29,
-"r1m": 14.3,
-"r3m": 9.27,
-"r6m": null,
-"r1y": -4.1
-},
-{
 "code": "152462",
 "name": "Kotak Technology Fund - Direct Plan - Growth Option",
 "amc": "Kotak Mahindra",
@@ -105,6 +81,30 @@
 "r3m": 9.5,
 "r6m": null,
 "r1y": -5.51
+},
+{
+"code": "120578",
+"name": "SBI TECHNOLOGY OPPORTUNITIES FUND - DIRECT PLAN - GROWTH",
+"amc": "SBI",
+"category": "Sectoral/ Thematic",
+"nav": 233.1921,
+"r1w": 7.77,
+"r1m": 13.82,
+"r3m": 9.0,
+"r6m": null,
+"r1y": -3.63
+},
+{
+"code": "120577",
+"name": "SBI TECHNOLOGY OPPORTUNITIES FUND - REGULAR PLAN - GROWTH",
+"amc": "SBI",
+"category": "Sectoral/ Thematic",
+"nav": 202.6574,
+"r1w": 7.75,
+"r1m": 13.73,
+"r3m": 8.73,
+"r6m": null,
+"r1y": -4.58
 },
 {
 "code": "120594",
@@ -596,7 +596,7 @@
 "category": "Sectoral/ Thematic",
 "count": 465,
 "avg": 2.0,
-"median": 1.88,
+"median": 1.89,
 "best": {
 "name": "HDFC Technology Fund - Growth Option - Direct Plan",
 "amc": "HDFC",
@@ -633,8 +633,8 @@
 {
 "category": "Focused",
 "count": 56,
-"avg": 1.72,
-"median": 1.83,
+"avg": 1.79,
+"median": 1.85,
 "best": {
 "name": "Axis Focused Fund - Direct Plan - Growth Option",
 "amc": "Axis",
@@ -690,8 +690,8 @@
 {
 "category": "Contra",
 "count": 8,
-"avg": 1.49,
-"median": 1.59,
+"avg": 1.58,
+"median": 1.77,
 "best": {
 "name": "Invesco India Contra Fund - Direct Plan - Growth",
 "amc": "Invesco",
@@ -748,7 +748,7 @@
 "category": "Large & Mid Cap",
 "count": 69,
 "avg": 1.36,
-"median": 1.32,
+"median": 1.42,
 "best": {
 "name": "ICICI Prudential Large & Mid Cap Fund - Direct Plan - Growth",
 "amc": "ICICI Prudential",
@@ -957,14 +957,6 @@
 "score": 74.2
 },
 {
-"amc": "Edelweiss",
-"funds": 30,
-"avg": 1.88,
-"pct_outperform": 70,
-"breadth": 87,
-"score": 73.2
-},
-{
 "amc": "Taurus",
 "funds": 14,
 "avg": 3.62,
@@ -978,6 +970,14 @@
 "avg": 2.12,
 "pct_outperform": 67,
 "breadth": 85,
+"score": 71.3
+},
+{
+"amc": "Edelweiss",
+"funds": 30,
+"avg": 1.88,
+"pct_outperform": 67,
+"breadth": 87,
 "score": 71.3
 },
 {
@@ -1013,14 +1013,6 @@
 "score": 65.1
 },
 {
-"amc": "The Wealth Company",
-"funds": 8,
-"avg": 1.1,
-"pct_outperform": 50,
-"breadth": 100,
-"score": 64.3
-},
-{
 "amc": "Bandhan",
 "funds": 34,
 "avg": 1.46,
@@ -1035,14 +1027,6 @@
 "pct_outperform": 58,
 "breadth": 81,
 "score": 64.0
-},
-{
-"amc": "Kotak Mahindra",
-"funds": 54,
-"avg": 2.12,
-"pct_outperform": 52,
-"breadth": 85,
-"score": 63.2
 },
 {
 "amc": "ICICI Prudential",
@@ -1061,12 +1045,28 @@
 "score": 61.9
 },
 {
-"amc": "JM Financial",
-"funds": 16,
-"avg": 1.47,
+"amc": "DSP",
+"funds": 32,
+"avg": 1.23,
 "pct_outperform": 50,
 "breadth": 88,
-"score": 61.7
+"score": 61.3
+},
+{
+"amc": "Kotak Mahindra",
+"funds": 54,
+"avg": 2.12,
+"pct_outperform": 48,
+"breadth": 85,
+"score": 61.2
+},
+{
+"amc": "SBI",
+"funds": 56,
+"avg": 2.18,
+"pct_outperform": 46,
+"breadth": 82,
+"score": 59.6
 },
 {
 "amc": "Mahindra Manulife",
@@ -1085,12 +1085,12 @@
 "score": 58.9
 },
 {
-"amc": "DSP",
-"funds": 32,
-"avg": 1.2,
+"amc": "JM Financial",
+"funds": 16,
+"avg": 1.47,
 "pct_outperform": 44,
 "breadth": 88,
-"score": 57.9
+"score": 58.3
 },
 {
 "amc": "Motilal Oswal",
@@ -1101,6 +1101,14 @@
 "score": 57.6
 },
 {
+"amc": "The Wealth Company",
+"funds": 8,
+"avg": 1.1,
+"pct_outperform": 38,
+"breadth": 100,
+"score": 57.4
+},
+{
 "amc": "Invesco",
 "funds": 40,
 "avg": 1.55,
@@ -1109,28 +1117,20 @@
 "score": 57.2
 },
 {
-"amc": "Bajaj Finserv",
-"funds": 20,
-"avg": 1.55,
-"pct_outperform": 40,
-"breadth": 90,
-"score": 57.0
-},
-{
-"amc": "SBI",
-"funds": 56,
-"avg": 2.08,
-"pct_outperform": 39,
-"breadth": 82,
-"score": 55.5
-},
-{
 "amc": "Navi",
 "funds": 6,
 "avg": 1.31,
 "pct_outperform": 33,
 "breadth": 100,
 "score": 55.4
+},
+{
+"amc": "Bajaj Finserv",
+"funds": 20,
+"avg": 1.55,
+"pct_outperform": 35,
+"breadth": 90,
+"score": 54.2
 },
 {
 "amc": "Franklin Templeton",
@@ -1223,7 +1223,7 @@
 ],
 "insights": [
 "Sectoral led equity categories at +3.1% (1-month NAV), outpacing Equitys (+0.7%) by 2.4 pts.",
-"The top 10 equity funds averaged +14.2% over 1 month, led by HDFC Technology Fund - Growth Option - D (+15.6%).",
+"The top 10 equity funds averaged +14.1% over 1 month, led by HDFC Technology Fund - Growth Option - D (+15.6%).",
 "Across 1,195 equity Growth funds, 81% posted positive 1-month NAV returns.",
 "NJ ranks #1 on AMC quality (100% of its funds beat their category median)."
 ]
