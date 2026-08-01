@@ -10,8 +10,8 @@
  "universe": {
   "asset_class": {
    "Debt": 7962,
-   "Other": 2339,
    "Equity": 2944,
+   "Other": 2339,
    "Hybrid": 832,
    "Solution": 145
   },
