@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import ProductBreadcrumbs from "../components/ProductBreadcrumbs";
 import GlassPanel from "../components/ui/GlassPanel";
 import Badge from "../components/ui/Badge";
 
@@ -9,6 +10,7 @@ export default function MarketsPage() {
     <>
       <Nav active="/markets" />
       <main id="main-content" className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Markets", null]]} />
         <div className="eyebrow text-accent">Markets</div>
         <h1 className="page-title mt-3 max-w-4xl">Market context without mixing research and execution.</h1>
         <p className="measure mt-4 text-sm leading-6 text-ink-muted">

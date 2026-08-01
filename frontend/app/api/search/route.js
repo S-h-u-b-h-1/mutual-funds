@@ -60,6 +60,9 @@ const STATIC_SEARCH_SURFACES = [
   { name: "Investment readiness", kind: "invest", path: "/invest/compliance", subtitle: "KYC, bank, nominee, FATCA and readiness steps", keywords: ["kyc", "readiness", "compliance", "bank", "fatca", "nominee"] },
   { name: "Portfolio", kind: "portfolio", path: "/portfolio", subtitle: "Mutual-fund portfolio import and intelligence", keywords: ["portfolio", "holdings", "gain", "loss", "xirr", "allocation"] },
   { name: "Invest portfolio", kind: "portfolio", path: "/invest/portfolio", subtitle: "Authenticated portfolio, holdings and pending transactions", keywords: ["portfolio", "holdings", "transactions"] },
+  { name: "Profile", kind: "account", path: "/profile", subtitle: "Account, preferences and setup", keywords: ["profile", "account", "settings", "preferences"] },
+  { name: "Help Center", kind: "support", path: "/help", subtitle: "Get oriented, check data status and find support paths", keywords: ["help", "support", "stuck", "contact", "status"] },
+  { name: "Service status", kind: "support", path: "/status", subtitle: "Application and data-service status", keywords: ["status", "outage", "service", "health"] },
 ];
 
 function staticMatches(qLower) {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
+import ProductBreadcrumbs from "../../components/ProductBreadcrumbs";
 import GlassPanel from "../../components/ui/GlassPanel";
 import Badge, { EmptyState } from "../../components/ui/Badge";
 import SectionHeader from "../../components/ui/SectionHeader";
@@ -77,6 +78,7 @@ export default async function StockScreenerPage({ searchParams }) {
     <>
       <Nav active="/stocks/screener" />
       <main id="main-content" className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Stocks", "/stocks"], ["Screener", null]]} />
         <div className="eyebrow text-accent">Stock screener</div>
         <h1 className="page-title mt-3 max-w-4xl">Powerful screens, with missing data treated honestly.</h1>
         <p className="measure mt-4 text-sm leading-6 text-ink-muted">

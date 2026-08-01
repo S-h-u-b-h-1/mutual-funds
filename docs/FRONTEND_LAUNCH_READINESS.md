@@ -1,5 +1,30 @@
 # MF Pulse frontend launch readiness
 
+Updated 1 August 2026 — product-experience IA slice.
+
+Implemented since the previous note:
+
+- Unified desktop navigation with the shared product IA instead of maintaining a separate desktop menu.
+- Added a public Help Center route for orientation, support paths, product boundaries and recovery actions.
+- Made Help public in the auth gate so users are not redirected to login when they are stuck.
+- Reframed the homepage around Research → Learn → Track → Invest, while keeping stock research separate from mutual-fund execution.
+- Added reusable breadcrumbs to public stock/market/learning/help research surfaces.
+- Extended global search to include Help, Profile and Service Status.
+- Added Stocks/Markets/Learn/Help public areas to the sitemap.
+
+Validation:
+
+- Lint passed.
+- Production build passed with 114 generated pages.
+- Local browser responsive smoke checks passed at 320, 375, 390, 768, 1024, 1440 and 1920 widths for representative touched routes.
+- Search query `help` returns the Help Center.
+- `/help` remains public and no longer redirects to login.
+- Test execution is still blocked by the configured `DATABASE_URL` safety guard.
+
+Production gate:
+
+- This slice still requires push, production refresh and browser verification on `https://mf-pulse.vercel.app` before it can be called live.
+
 Updated 1 August 2026. The frontend is now being evaluated as a customer-experience release, not
 as a collection of pages. Current launch posture: improving, but not final-launch approved until
 authenticated journey, browser-matrix and failure-mode verification are complete.

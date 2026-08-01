@@ -8,6 +8,7 @@
 import { notFound } from "next/navigation";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
+import ProductBreadcrumbs from "../../components/ProductBreadcrumbs";
 import GlassPanel from "../../components/ui/GlassPanel";
 import SectionHeader from "../../components/ui/SectionHeader";
 import Badge, { EmptyState } from "../../components/ui/Badge";
@@ -110,6 +111,7 @@ export default async function StockPage({ params }) {
     <>
       <Nav active="/stocks" />
       <main className="container-px mx-auto max-w-5xl pb-16 pt-8">
+        <ProductBreadcrumbs items={[["Stocks", "/stocks"], [company.displayName, null]]} />
         {/* Identity */}
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">

@@ -7,13 +7,17 @@ import ThemeToggle from "./ui/ThemeToggle";
 import FreshnessBadge from "./ui/FreshnessBadge";
 import { asOf } from "../lib/funds";
 import { marketStatus } from "../lib/marketStatus";
-const NAV_MENUS = [
-  { label: "Mutual Funds", links: [["Research Home", "/funds"], ["Compare Funds", "/compare"], ["AMCs", "/amc"], ["Categories", "/categories"], ["Suasion MF Invest", "/invest"]] },
-  { label: "Stocks", links: [["Stocks Home", "/stocks"], ["Company Screener", "/stocks/screener"], ["Sectors", "/stocks/sectors"], ["Stock Learning", "/learn/stocks"]] },
-  { label: "Portfolio", links: [["Mutual Fund Portfolio", "/portfolio"], ["Invest Portfolio", "/invest/portfolio"], ["Dashboard", "/dashboard"], ["Watchlist", "/dashboard#watchlist"], ["Notebook", "/dashboard#notebook"]] },
-  { label: "Markets", links: [["Market Overview", "/markets"], ["Market Map", "/market-map"], ["News", "/news"], ["Signals", "/signals"], ["Raw Materials", "/markets/raw-materials"]] },
-  { label: "Learn", links: [["Methodology", "/methodology"], ["Stock Research", "/learn/stocks"], ["Data Quality", "/data-quality"], ["Morning Brief", "/brief"]] },
-];
+import { NAV_GROUPS } from "../lib/navLinks";
+
+const visibleGroups = new Set(["Mutual Funds", "Stocks", "Markets", "Portfolio", "Learn", "Invest", "Profile", "Help"]);
+const NAV_MENUS = NAV_GROUPS.filter((group) => visibleGroups.has(group.label));
+
+function isActiveLink(active, href) {
+  if (!href || href.includes("#")) return active === href.split("#")[0];
+  if (href === "/") return active === "/";
+  if (href === "/invest") return active === "/invest" || active?.startsWith("/invest/");
+  return active === href || active?.startsWith(`${href}/`);
+}
 
 export default function Nav({ active }) {
   const market = marketStatus(asOf);
@@ -39,18 +43,18 @@ export default function Nav({ active }) {
 
           <nav className="hidden min-w-0 items-center justify-center gap-1 lg:flex" aria-label="Primary navigation">
             {NAV_MENUS.map((menu) => {
-              const isActive = menu.links.some(([, href]) => active === href || (href !== "/" && active?.startsWith(href)));
+              const isActive = menu.links.some(([, href]) => isActiveLink(active, href));
               return (
                 <details key={menu.label} className="group relative">
-                  <summary className={`flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-full px-3.5 text-sm font-semibold transition hover:bg-surface hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent/35 [&::-webkit-details-marker]:hidden ${isActive ? "bg-surface text-ink shadow-sm" : "text-ink-muted"}`}>
+                  <summary className={`flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-full px-2.5 text-[13px] font-semibold transition hover:bg-surface hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent/35 xl:px-3.5 xl:text-sm [&::-webkit-details-marker]:hidden ${isActive ? "bg-surface text-ink shadow-sm" : "text-ink-muted"}`}>
                     {menu.label}
                     <svg className="h-3.5 w-3.5 text-ink-faint transition group-open:rotate-180" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   </summary>
-                  <div className="absolute left-1/2 top-[calc(100%+0.7rem)] z-[75] hidden w-56 -translate-x-1/2 rounded-[1.25rem] border border-line bg-surface p-2 shadow-float group-open:block">
+                  <div className="absolute left-1/2 top-[calc(100%+0.7rem)] z-[75] hidden w-60 -translate-x-1/2 rounded-[1.25rem] border border-line bg-surface p-2 shadow-float group-open:block">
                     {menu.links.map(([label, href]) => {
-                      const linkActive = active === href || (href !== "/" && active?.startsWith(href));
+                      const linkActive = isActiveLink(active, href);
                       return (
-                        <Link key={href} href={href} aria-current={linkActive ? "page" : undefined} className={`flex min-h-10 items-center justify-between rounded-xl px-3 text-sm font-semibold transition ${linkActive ? "bg-accent/10 text-accent" : "text-ink-muted hover:bg-surface-2 hover:text-ink"}`}>
+                        <Link key={`${menu.label}-${label}-${href}`} href={href} aria-current={linkActive ? "page" : undefined} className={`flex min-h-10 items-center justify-between rounded-xl px-3 text-sm font-semibold transition ${linkActive ? "bg-accent/10 text-accent" : "text-ink-muted hover:bg-surface-2 hover:text-ink"}`}>
                           {label}
                           <span aria-hidden="true" className="text-ink-faint">→</span>
                         </Link>

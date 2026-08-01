@@ -4,6 +4,7 @@ import Footer from "./components/Footer";
 import Tracker from "./components/Tracker";
 import AlertSignup from "./components/AlertSignup";
 import HomeWatchlistSection from "./components/HomeWatchlistSection";
+import ProductBreadcrumbs from "./components/ProductBreadcrumbs";
 import GlassPanel from "./components/ui/GlassPanel";
 import Badge from "./components/ui/Badge";
 import { SearchLauncher } from "./components/Search";
@@ -24,6 +25,13 @@ const lakhCr = (n) => `₹${(n / 100000).toFixed(2)}L Cr`;
 const signedInrCr = (n) => `${n >= 0 ? "+" : "−"}₹${fmt(Math.abs(Math.round(n)))} Cr`;
 const pctStr = (n, dp = 1) => `${n >= 0 ? "+" : ""}${Number(n).toFixed(dp)}%`;
 const freshnessTone = (tone) => (tone === "pos" ? "current" : tone === "neg" ? "stale" : "delayed");
+
+const customerJourney = [
+  ["Research", "Compare funds, companies, AMCs and sectors with source/freshness context.", "/funds"],
+  ["Learn", "Understand ratios, risk, valuation and methodology in the page where the question appears.", "/learn/stocks"],
+  ["Track", "Upload a CAS or build watchlists so changes become personal, not generic.", "/portfolio"],
+  ["Invest", "Use Suasion Invest only for supported mutual-fund execution workflows.", "/invest"],
+];
 
 // Every card in the daily workspace carries this triplet, per the redesign brief's explicit
 // requirement: no insight is shown without the reader being able to see where it came from,
@@ -111,10 +119,11 @@ export default async function HomePage() {
         <section className="relative overflow-hidden pb-8 pt-10 sm:pt-12">
           <div className="absolute left-1/2 top-4 h-[320px] w-[640px] -translate-x-1/2 rounded-full bg-accent/10 blur-3xl" aria-hidden="true" />
           <div className="container-px relative">
+            <ProductBreadcrumbs items={[["MF Pulse", null]]} />
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h1 className="text-[2rem] font-semibold leading-[1.05] tracking-[-0.05em] text-ink sm:text-[2.6rem]">Your morning mutual fund workspace.</h1>
-                <p className="mt-3 max-w-2xl text-[14px] leading-6 text-ink-muted">Everything that changed since you last looked — NAV, flows, your portfolio, and what&rsquo;s worth researching next. Every number below traces to an official source.</p>
+                <h1 className="text-[2rem] font-semibold leading-[1.05] tracking-[-0.05em] text-ink sm:text-[2.6rem]">Research, learn, track and invest with evidence.</h1>
+                <p className="mt-3 max-w-2xl text-[14px] leading-6 text-ink-muted">MF Pulse guides you from discovery to portfolio action. Mutual-fund investing stays inside Suasion Invest; stocks remain research-only until a real execution backend exists.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-ink-faint">
                 <Badge tone={freshnessTone(market.tone) === "current" ? "pos" : freshnessTone(market.tone) === "stale" ? "neg" : "warn"} dot>{market.navLine}</Badge>
@@ -122,6 +131,16 @@ export default async function HomePage() {
               </div>
             </div>
             <div className="mt-6"><SearchLauncher /></div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {customerJourney.map(([title, detail, href], index) => (
+                <Link key={title} href={href} className="group rounded-[1.25rem] border border-line bg-surface/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/35 hover:bg-surface">
+                  <div className="financial-number text-[11px] font-semibold text-accent">0{index + 1}</div>
+                  <h2 className="mt-2 text-sm font-semibold text-ink">{title}</h2>
+                  <p className="mt-1.5 text-xs leading-5 text-ink-muted">{detail}</p>
+                  <span className="mt-3 inline-flex text-xs font-semibold text-accent group-hover:translate-x-0.5">Continue →</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
 

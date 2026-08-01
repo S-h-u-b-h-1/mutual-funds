@@ -22,7 +22,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/funds", "/fund", "/amc", "/categories", "/benchmark", "/manager",
   "/news", "/methodology", "/data-status", "/data-quality", "/status",
   "/performance", "/brief", "/market-map", "/signals", "/discover",
-  "/research", "/compare", "/about", "/advisor", "/learn",
+  "/research", "/compare", "/about", "/advisor", "/help", "/learn",
   // Stock Intelligence (Section 37: public company/sector research must be as openly readable as
   // mutual-fund research is above — same reasoning, new domain). Only the research surface is
   // public; user-specific stock pages (watchlists, stock portfolio, research notes) are not in

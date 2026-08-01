@@ -1,6 +1,37 @@
 # Frontend audit report
 
 Audit date: 1 August 2026
+Scope update: product-experience audit across top-level IA, homepage guidance, stock research
+wayfinding, public help access, breadcrumbs, global search and responsive smoke checks.
+
+## 1 August 2026 product-experience findings and fixes
+
+| Severity | Finding | Fix / disposition |
+|---|---|---|
+| P1 | Desktop and mobile navigation were defined separately, creating drift as Stocks, Markets, Learn and Invest evolved. | Desktop navigation now consumes the shared `NAV_GROUPS` product IA. Top-level areas are Home, Mutual Funds, Stocks, Markets, Portfolio, Learn, Invest, Profile and Help. |
+| P1 | `/help` did not exist as a clear recovery/orientation path, and after creation it was initially caught by the auth gate. | Added a public Help Center and added `/help` to the public allowlist. The page explains product boundaries, recovery paths and where to go when stuck. |
+| P1 | Homepage still opened as a daily mutual-fund workspace rather than explaining the full customer journey. | Reframed the hero around Research → Learn → Track → Invest, with clear boundaries between stock research and Suasion mutual-fund execution. |
+| P2 | Stock and market research routes lacked consistent breadcrumb/back-navigation affordances. | Added reusable `ProductBreadcrumbs` and applied it to Stocks home, Screener, Sectors, Company pages, Markets, Learn and Help. |
+| P2 | Global search did not surface Help/Profile/Status recovery destinations. | Added Help Center, Profile and Service Status to the server search surfaces. |
+| P2 | The route sitemap omitted the new Stocks/Markets/Learn/Help public product areas. | Added the public product-area routes to `frontend/app/sitemap.js`. |
+| P2 | Benchmark review of Screener/Tijori/ValuePickr/BigMint reinforced that research UX should be progressive, source-aware and context-rich rather than metric-dense. | Applied as IA guidance only: no proprietary layout/content copied, and no backend data fabricated. |
+
+## 1 August 2026 product-experience validation evidence
+
+- `npm run lint --prefix frontend` passed.
+- `npm run build --prefix frontend` passed with 114 generated App Router pages.
+- `npm test --prefix frontend` remains blocked by the existing `DATABASE_URL` safety guard before collecting tests.
+- Browser smoke checks passed locally for `/`, `/stocks`, `/stocks/screener`, `/stocks/sectors`, `/markets`, `/learn/stocks` and `/help`.
+- Responsive overflow samples passed at 320, 375, 390, 768, 1024, 1440 and 1920 widths across the touched public routes.
+- Local browser console had no application errors after fixing the duplicate React key in the Profile menu; only dev-only React/Next messages appeared.
+
+## Remaining product-experience risks
+
+- Full every-route visual certification still requires production credentials, production provider access and browser/device matrix coverage.
+- Authenticated Invest and personal Portfolio workflows were not modified in this slice; they still need real-account verification for launch.
+- Stock richness remains backend/data-contract dependent; frontend continues to render unavailable states rather than inferred data.
+
+Audit date: 1 August 2026
 Scope update: customer-experience release audit across navigation, global search, Stocks IA,
 Invest dashboard, public route access, mobile overflow, accessibility skip target, lint, build and
 browser smoke checks.

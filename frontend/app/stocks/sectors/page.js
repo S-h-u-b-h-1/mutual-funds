@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
+import ProductBreadcrumbs from "../../components/ProductBreadcrumbs";
 import GlassPanel from "../../components/ui/GlassPanel";
 import Badge, { EmptyState } from "../../components/ui/Badge";
 import SectionHeader from "../../components/ui/SectionHeader";
@@ -29,6 +30,7 @@ export default async function StockSectorsPage() {
     <>
       <Nav active="/stocks/sectors" />
       <main id="main-content" className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Stocks", "/stocks"], ["Sectors", null]]} />
         <div className="eyebrow text-accent">Stock sectors</div>
         <h1 className="page-title mt-3 max-w-4xl">Move from a sector to companies, operating metrics and source evidence.</h1>
         <p className="measure mt-4 text-sm leading-6 text-ink-muted">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import ProductBreadcrumbs from "../components/ProductBreadcrumbs";
 import GlassPanel from "../components/ui/GlassPanel";
 import Badge, { EmptyState } from "../components/ui/Badge";
 import SectionHeader from "../components/ui/SectionHeader";
@@ -42,6 +43,7 @@ export default async function StocksHome({ searchParams }) {
     <>
       <Nav active="/stocks" />
       <main id="main-content" className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Stocks", null]]} />
         <section className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
           <div>
             <div className="eyebrow text-accent">Stocks research</div>
