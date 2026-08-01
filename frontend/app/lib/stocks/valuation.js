@@ -168,3 +168,50 @@ export async function getPeerMedianValuation(companyId, asOfDate) {
     reason: medians.companyCount === 0 ? "No peer companies (same industry_id) with a valuation snapshot on or before asOfDate." : null,
   };
 }
+
+// Individual peer rows (identity + latest valuation each), same peer-set definition as
+// getPeerMedianValuation above (same industry_id, excluding the company itself) — kept
+// byte-for-byte consistent with it so "who are the peers" and "what's the peer median" can never
+// silently disagree about who counts as a peer. Peer selection is deliberately this simple and
+// transparent (Section 10) rather than a similarity score or market-cap-band heuristic that would
+// need its own justification. Only valuation fields are returned per peer this pass — full
+// fundamental metrics (ROE/ROCE/growth) per peer is a natural next step once this is proven, not
+// built here to keep this composition's cost bounded (it would mean fetching and computing
+// metrics for every peer on every call).
+export async function getPeerCompanies(companyId) {
+  if (!companyId) throw new Error("getPeerCompanies requires companyId.");
+  const companyResult = await query(`select industry_id from companies where id = $1`, [companyId]);
+  const company = companyResult.rows[0];
+  if (!company) return { companyId, industryId: null, peers: [], reason: `No company found with id ${companyId}.` };
+  if (!company.industry_id) return { companyId, industryId: null, peers: [], reason: "Company has no industry_id set — cannot determine a peer set without guessing." };
+
+  const r = await query(
+    `select distinct on (c.id) c.id, c.display_name, c.nse_symbol, c.bse_code,
+            cvs.price, cvs.market_cap, cvs.pe, cvs.pb, cvs.ev_ebitda, cvs.dividend_yield, cvs.as_of_date
+       from companies c
+       left join company_valuation_snapshots cvs on cvs.company_id = c.id
+      where c.industry_id = $1 and c.id != $2
+      order by c.id, cvs.as_of_date desc`,
+    [company.industry_id, companyId]
+  );
+  return {
+    companyId,
+    industryId: company.industry_id,
+    peers: r.rows.map((row) => ({
+      companyId: row.id,
+      displayName: row.display_name,
+      nseSymbol: row.nse_symbol,
+      bseCode: row.bse_code,
+      valuation: row.as_of_date === null ? null : {
+        asOfDate: row.as_of_date,
+        price: numOrNull(row.price),
+        marketCap: numOrNull(row.market_cap),
+        pe: numOrNull(row.pe),
+        pb: numOrNull(row.pb),
+        evEbitda: numOrNull(row.ev_ebitda),
+        dividendYield: numOrNull(row.dividend_yield),
+      },
+    })),
+    reason: r.rows.length === 0 ? "No other companies share this industry_id yet." : null,
+  };
+}

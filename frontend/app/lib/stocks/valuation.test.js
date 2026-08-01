@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import {
   upsertValuationSnapshot, getLatestValuation, getValuationHistory,
-  getSectorMedianValuation, getPeerMedianValuation,
+  getSectorMedianValuation, getPeerMedianValuation, getPeerCompanies,
 } from "./valuation.js";
 import { createTestSector, createTestIndustry, createTestCompany, deleteTestCompany, deleteTestSector } from "./testHelpers.js";
 import { query } from "../db.js";
@@ -122,6 +122,36 @@ describe("valuation medians (integration, real Neon, disposable sector/industry/
     } finally {
       await deleteTestCompany(noIndustryId);
     }
+  });
+
+  it("getPeerCompanies uses the SAME peer-set definition as getPeerMedianValuation (same industry_id, excludes self)", async () => {
+    const [companyId] = companyIds; // pe=10
+    const result = await getPeerCompanies(companyId);
+    expect(result.industryId).toBe(industryId);
+    expect(result.peers.length).toBe(2);
+    expect(result.peers.some((p) => p.companyId === companyId)).toBe(false); // never includes itself
+    const pes = result.peers.map((p) => p.valuation?.pe).sort();
+    expect(pes).toEqual([20, 30]);
+  });
+
+  it("getPeerCompanies returns an explicit reason (not a guess) for a company with no industry_id", async () => {
+    const noIndustryId = await createTestCompany({ label: "no-industry-peers" });
+    try {
+      const result = await getPeerCompanies(noIndustryId);
+      expect(result.peers).toEqual([]);
+      expect(result.reason).toMatch(/no industry_id/i);
+    } finally {
+      await deleteTestCompany(noIndustryId);
+    }
+  });
+
+  it("getPeerCompanies returns a null valuation (not a fabricated one) for a peer with no snapshot on file", async () => {
+    const peerNoValuationId = await createTestCompany({ sectorId, industryId, label: "peer-no-valuation" });
+    companyIds.push(peerNoValuationId); // afterAll cleans up every id in this array
+    const [companyId] = companyIds;
+    const result = await getPeerCompanies(companyId);
+    const noValuationPeer = result.peers.find((p) => p.companyId === peerNoValuationId);
+    expect(noValuationPeer.valuation).toBeNull();
   });
 
   it("getSectorMedianValuation reports an explicit reason for a sector with no valuation data as of the cutoff", async () => {
