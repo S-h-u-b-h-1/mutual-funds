@@ -15,9 +15,13 @@ const TRENDING_FUNDS = [
 ];
 
 const WORKSPACE_SHORTCUTS = [
+  { label: "Open Stocks Research", path: "/stocks", key: "/stocks" },
+  { label: "Run Stock Screener", path: "/stocks/screener", key: "/screener" },
+  { label: "Open Suasion Invest", path: "/invest", key: "/invest" },
+  { label: "Open Portfolio", path: "/portfolio", key: "/portfolio" },
   { label: "Go to News & Regulatory Updates", path: "/news", key: "/news" },
   { label: "Go to Compare & Allocations", path: "/compare", key: "/compare" },
-  { label: "Go to Ingestion & System Status", path: "/data-status", key: "/status" },
+  { label: "Go to Data Status", path: "/data-status", key: "/status" },
   { label: "Go to Performance Leaderboards", path: "/performance", key: "/performance" }
 ];
 
@@ -235,7 +239,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
     SUGGESTED_CATEGORIES.forEach((c) => registerItem("category", c));
     SUGGESTED_BENCHMARKS.forEach((b) => registerItem("benchmark", b));
   } else {
-    results.forEach((r) => registerItem("result", r.name, r.code));
+    results.forEach((r) => registerItem("result", r.name, r));
   }
 
   const handleKeyDown = (e) => {
@@ -269,10 +273,16 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
   const triggerItem = (item) => {
     if (item.type === "recent" || item.type === "popular" || item.type === "amc" || item.type === "category" || item.type === "benchmark") {
       runSearch(item.value);
-    } else if (item.type === "fund" || item.type === "result") {
+    } else if (item.type === "fund") {
       track("search_click", { scheme_code: item.payload, name: item.value });
       saveHistory({ type: "fund", id: item.payload, name: item.value });
       window.location.href = `/fund/${item.payload}`;
+      closePalette();
+    } else if (item.type === "result") {
+      const result = item.payload || {};
+      track("search_click", { code: result.code, name: item.value, kind: result.kind || "fund" });
+      if ((result.kind || "fund") === "fund") saveHistory({ type: "fund", id: result.code, name: item.value });
+      window.location.href = result.path || `/fund/${result.code}`;
       closePalette();
     } else if (item.type === "pinned" || item.type === "visit" || item.type === "shortcut") {
       window.location.href = item.payload;
@@ -322,14 +332,14 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
             <input
               ref={inputRef}
               type="text"
-              aria-label="Search funds, categories, AMCs, benchmarks, and workspace commands"
+              aria-label="Search funds, AMCs, stocks, companies, sectors, learn articles, portfolio, and workspace commands"
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
                 fetchResults(e.target.value);
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Search funds, shortcuts (/news), categories or pin pages..."
+              placeholder="Search funds, stocks, sectors, learn, portfolio…"
               className="w-full bg-transparent text-[15px] text-ink placeholder:text-ink-faint outline-none"
             />
             {loading && (
@@ -648,8 +658,9 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                 <div className="space-y-1 mt-1">
                   {results.map((r, idx) => {
                     const globalIndex = idx;
-                    const targetPath = `/fund/${r.code}`;
+                    const targetPath = r.path || `/fund/${r.code}`;
                     const isPinned = pinned.some((x) => x.path === targetPath);
+                    const subtitle = r.subtitle || [r.amc, r.category].filter(Boolean).join(" · ");
                     return (
                       <div
                         key={r.code}
@@ -661,7 +672,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                       >
                         <button
                           type="button"
-                          onClick={() => triggerItem({ type: "result", value: r.name, payload: r.code })}
+                          onClick={() => triggerItem({ type: "result", value: r.name, payload: r })}
                           className="flex flex-col gap-0.5 min-w-0 text-left w-full"
                         >
                           <span className={`text-[13.5px] truncate font-medium ${
@@ -670,7 +681,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                             {r.name}
                           </span>
                           <span className="text-[11px] text-ink-muted truncate">
-                            {r.amc} · {r.category}
+                            {subtitle || r.kind || "MF Pulse"}
                           </span>
                         </button>
                         <div className="flex items-center gap-2 shrink-0 ml-3">
@@ -704,6 +715,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                 <div className="mt-2 text-[14px] font-semibold text-ink-muted">No matches found</div>
                 <div className="mt-1 text-[12px] text-ink-faint max-w-xs mx-auto">
                   No funds, AMCs, or benchmarks match the query &ldquo;{q.trim()}&rdquo;. Try another term.
+                  Search also covers stocks, companies, sectors, learning, and portfolio workspaces when those backend records are available.
                 </div>
               </div>
             )}

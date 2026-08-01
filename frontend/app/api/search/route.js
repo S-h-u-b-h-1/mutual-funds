@@ -3,6 +3,8 @@ import { allFunds, getFund } from "../../lib/funds";
 import { allManagers } from "../../lib/metadata";
 import { canonicalName, canonicalKey } from "../../lib/canonical";
 import { fundHealth } from "../../lib/fundHealth";
+import { searchCompanies } from "../../lib/stocks/companyService";
+import { listSectors } from "../../lib/stocks/sectors";
 
 export const revalidate = 600;
 
@@ -43,7 +45,62 @@ function researchResult(f, matchType = "Exact code") {
     catPct: f.catPct ?? null,
     _h: health?.overall ?? null,
     _g: health?.grade ?? null,
+    kind: "fund",
+    path: `/fund/${f.code}`,
   };
+}
+
+const STATIC_SEARCH_SURFACES = [
+  { name: "Stocks research", kind: "workspace", path: "/stocks", subtitle: "Company research, screeners, sectors and learning", keywords: ["stocks", "equity", "company", "companies", "research"] },
+  { name: "Stock screener", kind: "tool", path: "/stocks/screener", subtitle: "ROCE, debt, growth, cash flow and dividend screens", keywords: ["screener", "screen", "roce", "debt", "growth", "dividend"] },
+  { name: "Stock sectors", kind: "workspace", path: "/stocks/sectors", subtitle: "Sector → companies → metrics → raw-material context", keywords: ["sector", "industry", "companies"] },
+  { name: "Raw materials", kind: "market", path: "/markets/raw-materials", subtitle: "Commodity context when licensed/public feeds exist", keywords: ["commodity", "commodities", "raw material", "bigmint", "steel", "cement"] },
+  { name: "Learn stock research", kind: "learn", path: "/learn/stocks", subtitle: "Annual reports, management, valuation, risks and thesis building", keywords: ["learn", "education", "annual report", "valuation", "management", "thesis"] },
+  { name: "Suasion Invest", kind: "invest", path: "/invest", subtitle: "Mutual-fund execution workspace", keywords: ["invest", "investment", "suasion", "kyc", "order"] },
+  { name: "Investment readiness", kind: "invest", path: "/invest/compliance", subtitle: "KYC, bank, nominee, FATCA and readiness steps", keywords: ["kyc", "readiness", "compliance", "bank", "fatca", "nominee"] },
+  { name: "Portfolio", kind: "portfolio", path: "/portfolio", subtitle: "Mutual-fund portfolio import and intelligence", keywords: ["portfolio", "holdings", "gain", "loss", "xirr", "allocation"] },
+  { name: "Invest portfolio", kind: "portfolio", path: "/invest/portfolio", subtitle: "Authenticated portfolio, holdings and pending transactions", keywords: ["portfolio", "holdings", "transactions"] },
+];
+
+function staticMatches(qLower) {
+  return STATIC_SEARCH_SURFACES
+    .filter((item) => item.name.toLowerCase().includes(qLower) || item.subtitle.toLowerCase().includes(qLower) || item.keywords.some((keyword) => keyword.includes(qLower) || qLower.includes(keyword)))
+    .map((item) => ({ ...item, code: item.path, matchType: item.kind }));
+}
+
+async function stockMatches(q) {
+  try {
+    const companies = await searchCompanies(q, { limit: 5 });
+    return companies.map((company) => ({
+      code: company.id,
+      name: company.displayName,
+      kind: "company",
+      path: `/stocks/${company.id}`,
+      matchType: company.nseSymbol ? "NSE company" : company.bseCode ? "BSE company" : "Company",
+      subtitle: [company.nseSymbol || company.bseCode || company.isin, company.listingStatus].filter(Boolean).join(" · "),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function sectorMatches(qLower) {
+  try {
+    const sectors = await listSectors();
+    return sectors
+      .filter((sector) => sector.name?.toLowerCase().includes(qLower) || sector.slug?.toLowerCase().includes(qLower))
+      .slice(0, 5)
+      .map((sector) => ({
+        code: sector.id,
+        name: sector.name,
+        kind: "sector",
+        path: "/stocks/sectors",
+        matchType: "Sector",
+        subtitle: sector.description || "Stock sector research",
+      }));
+  } catch {
+    return [];
+  }
 }
 
 export async function GET(req) {
@@ -96,5 +153,6 @@ export async function GET(req) {
     .sort((a, b) => (a.staleDays ?? 999) - (b.staleDays ?? 999)) // freshest/most-active first
     .slice(0, 12);
 
-  return NextResponse.json({ results });
+  const [companies, sectors] = await Promise.all([stockMatches(q), sectorMatches(qLower)]);
+  return NextResponse.json({ results: [...staticMatches(qLower), ...companies, ...sectors, ...results].slice(0, 18) });
 }

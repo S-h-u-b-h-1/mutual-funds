@@ -1,5 +1,41 @@
 # MF Pulse frontend launch readiness
 
+Updated 1 August 2026. The frontend is now being evaluated as a customer-experience release, not
+as a collection of pages. Current launch posture: improving, but not final-launch approved until
+authenticated journey, browser-matrix and failure-mode verification are complete.
+
+## 1 August 2026 release update
+
+Implemented since the previous readiness note:
+
+- Stocks is now a first-class product area for research, discovery, portfolio intelligence,
+  watchlist readiness and learning. It remains separate from Suasion mutual-fund execution.
+- New public routes exist for `/stocks`, `/stocks/screener`, `/stocks/sectors`, `/markets`,
+  `/markets/raw-materials` and `/learn/stocks`.
+- Global search now covers funds, AMCs, Stocks entry points, sectors, learning, portfolio and
+  Invest navigation. Company and sector search remains backend-data-gated.
+- The universal skip-link target is now route-independent and avoids duplicate `main-content` IDs.
+- The Invest dashboard now surfaces net worth, today’s change, total gain, portfolio health,
+  invested amount, freshness and action-required state from existing backend contracts.
+
+Current validation:
+
+- Lint passed.
+- Production build passed with 113 generated pages.
+- Browser smoke checks passed for home, Stocks, search, mobile Stocks and unauthenticated Invest
+  redirect.
+- Production `/stocks` was verified on `https://mf-pulse.vercel.app` after CDN purge in the prior
+  Stocks deployment.
+
+Still required before final launch:
+
+- Authenticated journey verification with real test credentials.
+- Full mobile matrix: 320, 375, 390, 768, 1024, 1440 and 1920.
+- Browser matrix: Chrome, Safari, Firefox and Edge.
+- Simulated API failure matrix: 401, 403, 404, 409, 422, 429, 500, timeout, offline and malformed
+  payloads.
+- Production validation after each new frontend commit.
+
 Updated 27 July 2026. This checklist records the current frontend state and the backend
 dependencies that still prevent a full production launch.
 

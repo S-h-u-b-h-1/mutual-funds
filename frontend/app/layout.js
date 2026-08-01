@@ -35,11 +35,11 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`${manrope.variable} ${plexMono.variable}`} suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body>
-        <a href="#main-content" className="skip-link">Skip to main content</a>
+        <a href="#app-content" className="skip-link">Skip to main content</a>
         <SessionProvider>
           <SentryInit />
           <PageView />
-          <div id="main-content" tabIndex={-1}>
+          <div id="app-content" tabIndex={-1}>
             <AuthGate>{children}</AuthGate>
           </div>
           <SyncPrompt />

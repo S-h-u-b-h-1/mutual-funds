@@ -7,6 +7,20 @@ import { ErrorCard, LoadingCards, useInvestData } from "./useInvestData";
 import { documentsApi, investApi, notificationsApi, portfolioApi, sipApi } from "../../lib/invest/api";
 
 const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+const percent = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 });
+
+function formatMoney(value) {
+  return value == null ? "Not available" : money.format(Number(value));
+}
+
+function formatPct(value) {
+  return value == null ? "Not available" : `${percent.format(Number(value))}%`;
+}
+
+function gainTone(value) {
+  if (value == null || Number(value) === 0) return "text-ink";
+  return Number(value) > 0 ? "text-pos" : "text-neg";
+}
 
 export default function InvestDashboard() {
   const { data, loading, error, refresh } = useInvestData();
@@ -25,8 +39,16 @@ export default function InvestDashboard() {
   const readiness = data?.compliance;
   const ready = readiness?.overallStatus === "completed";
   const pendingOrders = dashboardData.orders.filter(order => !["completed", "failed", "cancelled", "reversed"].includes(order.status));
+  const failedOrders = dashboardData.orders.filter(order => ["failed", "retry_required"].includes(order.status));
   const activeSips = dashboardData.sips.filter(sip => ["active", "verified", "completed"].includes(sip.mandate_status || sip.status));
   const unread = dashboardData.unreadNotifications;
+  const actionCount = (ready ? 0 : 1) + pendingOrders.length + failedOrders.length + (unread || 0);
+  const topMetrics = [
+    ["Net worth", formatMoney(summary?.totalValue), summary?.latestOfficialNavDate ? `NAV as of ${summary.latestOfficialNavDate}` : "Connect or import a portfolio"],
+    ["Today's change", summary?.latestNavDayChange ? formatMoney(summary.latestNavDayChange.value) : "Not available", summary?.latestNavDayChange?.coveragePct != null ? `${summary.latestNavDayChange.coveragePct}% holding coverage` : "Daily movement appears when NAV-day data exists"],
+    ["Total gain", formatMoney(summary?.gainLoss), summary?.gainLossPct == null ? "Return percentage unavailable" : `${formatPct(summary.gainLossPct)} absolute return`, gainTone(summary?.gainLoss)],
+    ["Portfolio health", summary?.healthScore == null ? "Not available" : `${summary.healthScore}/100`, dataQuality?.latestNavCoveragePct == null ? "Awaiting valuation coverage" : `${dataQuality.latestNavCoveragePct}% NAV coverage`],
+  ];
   return <InvestShell title="Your wealth, clearly." description="A calm view of what is invested, what needs attention, and what comes next." actions={<ButtonLink href={ready ? "/funds" : "/invest/onboarding"}>{ready ? "Explore investments" : "Continue setup"}</ButtonLink>}>
     {loading ? <LoadingCards /> : error ? <ErrorCard message={error} retry={refresh} /> : <>
       <Card className="relative overflow-hidden p-6 sm:p-8">
@@ -34,10 +56,16 @@ export default function InvestDashboard() {
         <div className="relative grid gap-8 xl:grid-cols-[1fr_340px] xl:items-end">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-ink-muted"><span className="h-2 w-2 rounded-full bg-pos" />Portfolio overview</div>
-            <div className="mt-5 break-words text-[clamp(2.5rem,6vw,5rem)] font-semibold tracking-[-.07em] text-ink">{summary?.totalValue == null ? "Not available" : money.format(Number(summary.totalValue))}</div>
+            <div className="mt-5 break-words text-[clamp(2.5rem,6vw,5rem)] font-semibold tracking-[-.07em] text-ink">{formatMoney(summary?.totalValue)}</div>
             <p className="mt-2 text-sm text-ink-muted">{summaryError || (summary?.totalValue == null ? "Current value will appear after a portfolio is connected" : "Current value · latest server valuation")}</p>
-            <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {["Today", "Overall returns", "Net invested"].map((label) => <div key={label} className="rounded-2xl bg-surface-2 p-4"><div className="text-xs text-ink-faint">{label}</div><div className="mt-1 break-words text-lg font-semibold text-ink">{label === "Net invested" && summary?.investedValue != null ? money.format(Number(summary.investedValue)) : "Not available"}</div></div>)}
+            <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {topMetrics.map(([label, value, detail, tone = "text-ink"]) => (
+                <div key={label} className="rounded-2xl bg-surface-2 p-4">
+                  <div className="text-xs text-ink-faint">{label}</div>
+                  <div className={`mt-1 break-words text-lg font-semibold ${tone}`}>{value}</div>
+                  <div className="mt-1 text-[11px] leading-4 text-ink-faint">{detail}</div>
+                </div>
+              ))}
             </div>
           </div>
           <div className="rounded-[1.45rem] border border-line bg-bg/55 p-5">
@@ -54,7 +82,22 @@ export default function InvestDashboard() {
         {dataQuality.navDateRange?.newest ? ` · latest holding NAV ${dataQuality.navDateRange.newest}` : ""}
       </p>}
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[["Active SIP amount", activeSips.reduce((total, sip) => total + Number(sip.amount || 0), 0), "/invest/sips"], ["Pending transactions", pendingOrders.length, "/invest/transactions"], ["Documents", dashboardData.documents.length, "/invest/documents"], ["Unread notifications", unread == null ? "Not available" : unread, "/invest/notifications"]].map(([label, value, href]) => <a key={label} href={href} className="rounded-2xl border border-line bg-surface p-4 transition hover:border-accent/40"><div className="text-xs text-ink-faint">{label}</div><div className="mt-2 text-2xl font-semibold text-ink">{label === "Active SIP amount" ? money.format(value) : value}</div><div className="mt-2 text-xs font-semibold text-accent">View details →</div></a>)}</div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{[["Invested amount", formatMoney(summary?.investedValue), "/invest/portfolio"], ["Active SIP amount", money.format(activeSips.reduce((total, sip) => total + Number(sip.amount || 0), 0)), "/invest/sips"], ["Pending transactions", pendingOrders.length, "/invest/transactions"], ["Documents", dashboardData.documents.length, "/invest/documents"], ["Unread notifications", unread == null ? "Not available" : unread, "/invest/notifications"]].map(([label, value, href]) => <a key={label} href={href} className="rounded-2xl border border-line bg-surface p-4 transition hover:border-accent/40"><div className="text-xs text-ink-faint">{label}</div><div className="mt-2 text-2xl font-semibold text-ink">{value}</div><div className="mt-2 text-xs font-semibold text-accent">View details →</div></a>)}</div>
+
+      <Card className={`mt-5 p-5 ${actionCount > 0 ? "border-warn/40 bg-warn/10" : ""}`}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[.16em] text-accent">Action required</div>
+            <h2 className="mt-1 text-lg font-semibold text-ink">{actionCount > 0 ? `${actionCount} item${actionCount === 1 ? "" : "s"} need attention` : "Nothing urgent right now"}</h2>
+            <p className="mt-1 text-sm leading-6 text-ink-muted">{ready ? "Investment readiness is complete." : "Complete investment readiness before placing new mutual-fund investments."} {failedOrders.length ? `${failedOrders.length} order${failedOrders.length === 1 ? " needs" : "s need"} retry or support review.` : ""}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {!ready && <ButtonLink href="/invest/compliance">Complete readiness</ButtonLink>}
+            {pendingOrders.length > 0 && <ButtonLink href="/invest/transactions" secondary>Track transactions</ButtonLink>}
+            {failedOrders.length > 0 && <ButtonLink href="/invest/orders" secondary>Review failures</ButtonLink>}
+          </div>
+        </div>
+      </Card>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
         <div className="grid gap-5 sm:grid-cols-2">
