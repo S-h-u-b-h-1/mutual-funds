@@ -8,10 +8,11 @@ import FreshnessBadge from "./ui/FreshnessBadge";
 import { asOf } from "../lib/funds";
 import { marketStatus } from "../lib/marketStatus";
 const NAV_MENUS = [
-  { label: "Invest", links: [["Overview", "/invest"], ["Investment Readiness", "/invest/compliance"], ["Portfolio", "/invest/portfolio"], ["Orders", "/invest/orders"], ["Advisor", "/invest/advisor"]] },
-  { label: "Research", links: [["Funds", "/funds"], ["AMCs", "/amc"], ["Categories", "/categories"], ["Benchmarks", "/performance"], ["Compare", "/compare"]] },
-  { label: "Intelligence", links: [["Brief", "/brief"], ["News", "/news"], ["Signals", "/signals"], ["Market Map", "/market-map"]] },
-  { label: "Personal", links: [["Dashboard", "/dashboard"], ["Portfolio", "/portfolio"], ["Watchlist", "/dashboard#watchlist"], ["Notebook", "/dashboard#notebook"]] },
+  { label: "Mutual Funds", links: [["Research Home", "/funds"], ["Compare Funds", "/compare"], ["AMCs", "/amc"], ["Categories", "/categories"], ["Suasion MF Invest", "/invest"]] },
+  { label: "Stocks", links: [["Stocks Home", "/stocks"], ["Company Screener", "/stocks/screener"], ["Sectors", "/stocks/sectors"], ["Stock Learning", "/learn/stocks"]] },
+  { label: "Portfolio", links: [["Mutual Fund Portfolio", "/portfolio"], ["Invest Portfolio", "/invest/portfolio"], ["Dashboard", "/dashboard"], ["Watchlist", "/dashboard#watchlist"], ["Notebook", "/dashboard#notebook"]] },
+  { label: "Markets", links: [["Market Overview", "/markets"], ["Market Map", "/market-map"], ["News", "/news"], ["Signals", "/signals"], ["Raw Materials", "/markets/raw-materials"]] },
+  { label: "Learn", links: [["Methodology", "/methodology"], ["Stock Research", "/learn/stocks"], ["Data Quality", "/data-quality"], ["Morning Brief", "/brief"]] },
 ];
 
 export default function Nav({ active }) {

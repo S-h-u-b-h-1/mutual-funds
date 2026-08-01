@@ -16,6 +16,8 @@ import { getStatementsForCompany } from "../../lib/stocks/financialStatements";
 import { computeMetrics } from "../../lib/stocks/metrics";
 import { getLatestValuation, getPeerCompanies } from "../../lib/stocks/valuation";
 import { getCompanyTimeline, getResultsCalendar } from "../../lib/stocks/timeline";
+import { getCompanyCommodityExposures } from "../../lib/stocks/commodityService";
+import { getSector } from "../../lib/stocks/sectors";
 
 export const revalidate = 0; // live DB-backed research data, not a static/prebuilt bundle like the MF fund page
 
@@ -47,6 +49,34 @@ const EVENT_TYPE_LABELS = {
   credit_rating: "Credit Rating", capacity_expansion: "Capacity Expansion", order: "Order", regulatory: "Regulatory",
 };
 
+const SECTION_LINKS = ["Overview", "Financials", "Valuation", "Peers", "Timeline", "Documents", "Sector", "Raw Materials", "Learn", "Notes"];
+
+const METRIC_LESSONS = [
+  ["ROCE", "Return on capital employed shows how efficiently capital is used. It is most useful when compared across time and against peers, not as a one-year shortcut."],
+  ["Debt / Equity", "Debt can amplify returns and risk. Low debt is not automatically good; high debt is not automatically bad without cash-flow and sector context."],
+  ["CFO / PAT", "Cash conversion checks whether accounting profit is turning into operating cash. One bad year may be working-capital timing; repeated weakness deserves investigation."],
+];
+
+function ResearchActions({ company }) {
+  const searchLabel = encodeURIComponent(company.displayName || company.nseSymbol || company.id);
+  return (
+    <div className="mt-5 flex flex-wrap gap-2">
+      <a href="#overview" className="inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-sm font-semibold text-bg">Research</a>
+      <a href={`/login?callbackUrl=/stocks/${company.id}`} className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-sm font-semibold text-ink-muted">Watch</a>
+      <a href={`/stocks?comparison=${searchLabel}`} className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-sm font-semibold text-ink-muted">Compare</a>
+      <a href={`/login?callbackUrl=/stocks/${company.id}#notes`} className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-sm font-semibold text-ink-muted">Take note</a>
+    </div>
+  );
+}
+
+function SectionNav() {
+  return (
+    <nav className="sticky top-24 z-30 mb-6 flex gap-2 overflow-x-auto rounded-full border border-line bg-surface/92 p-1 shadow-sm backdrop-blur-xl" aria-label="Company research sections">
+      {SECTION_LINKS.map((label) => <a key={label} href={`#${label.toLowerCase().replaceAll(" ", "-")}`} className="shrink-0 rounded-full px-3 py-2 text-xs font-semibold text-ink-muted hover:bg-surface-2 hover:text-ink">{label}</a>)}
+    </nav>
+  );
+}
+
 export default async function StockPage({ params }) {
   const { id } = await params;
   const contract = await getCompanyPageContract(id);
@@ -63,6 +93,10 @@ export default async function StockPage({ params }) {
   const [balanceSheetStatement, cashFlowStatement] = await Promise.all([
     getStatementsForCompany(id, { statementType: "balance_sheet", periodType: "annual", limit: 1 }).then((r) => r[0] ?? null),
     getStatementsForCompany(id, { statementType: "cash_flow", periodType: "annual", limit: 1 }).then((r) => r[0] ?? null),
+  ]);
+  const [commodityExposures, sector] = await Promise.all([
+    getCompanyCommodityExposures(id).catch(() => []),
+    company.sectorId ? getSector(company.sectorId).catch(() => null) : Promise.resolve(null),
   ]);
   const latestPnl = pnlStatements[0] ?? null;
   const hasAnyStatement = Boolean(latestPnl || balanceSheetStatement || cashFlowStatement);
@@ -93,11 +127,15 @@ export default async function StockPage({ params }) {
             )}
             {valuation?.marketCap != null && <span>Mkt Cap ₹{fmtRatio(valuation.marketCap, 0)} Cr</span>}
             {valuation?.asOfDate && <span>as of {fmtDate(valuation.asOfDate)}</span>}
+            {sector?.name && <span>{sector.name}</span>}
           </div>
+          <ResearchActions company={company} />
         </div>
 
+        <SectionNav />
+
         {/* Business overview */}
-        <GlassPanel className="p-5 mb-6">
+        <GlassPanel id="overview" className="p-5 mb-6 scroll-mt-32">
           <SectionHeader eyebrow="Company" title="Business overview" />
           {company.description ? (
             <>
@@ -118,7 +156,7 @@ export default async function StockPage({ params }) {
         </GlassPanel>
 
         {/* Key metrics */}
-        <GlassPanel className="p-5 mb-6">
+        <GlassPanel id="financials" className="p-5 mb-6 scroll-mt-32">
           <SectionHeader eyebrow="Fundamentals" title="Key metrics" action={latestPnl ? `FY${latestPnl.fiscalYear}, annual` : null} />
           {metrics ? (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -137,7 +175,7 @@ export default async function StockPage({ params }) {
         </GlassPanel>
 
         {/* Valuation */}
-        <GlassPanel className="p-5 mb-6">
+        <GlassPanel id="valuation" className="p-5 mb-6 scroll-mt-32">
           <SectionHeader eyebrow="Valuation" title="Current valuation" />
           {valuation ? (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -153,7 +191,7 @@ export default async function StockPage({ params }) {
         </GlassPanel>
 
         {/* Peers */}
-        <GlassPanel className="p-5 mb-6">
+        <GlassPanel id="peers" className="p-5 mb-6 scroll-mt-32">
           <SectionHeader eyebrow="Comparison" title="Peers" action={peers.industryId ? "Same industry" : null} />
           {peers.peers.length > 0 ? (
             <div className="divide-y divide-line">
@@ -170,7 +208,7 @@ export default async function StockPage({ params }) {
         </GlassPanel>
 
         {/* Timeline */}
-        <GlassPanel className="p-5 mb-6">
+        <GlassPanel id="timeline" className="p-5 mb-6 scroll-mt-32">
           <SectionHeader eyebrow="Research" title="Company timeline" />
           {resultsCalendar[0] && (
             <div className="mb-3 rounded-lg border border-line bg-white/[0.015] px-3 py-2 text-[12.5px]">
@@ -196,6 +234,61 @@ export default async function StockPage({ params }) {
           ) : (
             <EmptyState icon="🕘" title="No events recorded yet" hint="Results, filings, corporate actions, and other events will appear here as they're ingested from sourced, cited material." />
           )}
+        </GlassPanel>
+
+        <GlassPanel id="documents" className="p-5 mb-6 scroll-mt-32">
+          <SectionHeader eyebrow="Documents" title="Annual reports, filings and concalls" />
+          <EmptyState icon="📄" title="Document index is not populated for this company yet" hint="Annual reports, investor presentations, concalls and exchange filings will appear only after sourced document ingestion is connected." />
+        </GlassPanel>
+
+        <GlassPanel id="sector" className="p-5 mb-6 scroll-mt-32">
+          <SectionHeader eyebrow="Sector" title="Operating context" action={sector?.name || "Awaiting sector mapping"} />
+          {sector ? (
+            <p className="text-sm leading-6 text-ink-muted">{sector.description || "Sector description has not been sourced yet."}</p>
+          ) : (
+            <EmptyState icon="🏭" title="Sector mapping unavailable" hint="Sector-specific operating metrics stay hidden until the backend maps this company to a sector." />
+          )}
+        </GlassPanel>
+
+        <GlassPanel id="raw-materials" className="p-5 mb-6 scroll-mt-32">
+          <SectionHeader eyebrow="Raw materials" title="Commodity exposure" action="Source gated" />
+          {commodityExposures.length ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {commodityExposures.map((exposure) => (
+                <div key={exposure.id} className="rounded-2xl bg-surface-2 p-4 text-sm">
+                  <div className="font-semibold text-ink">{exposure.commodityName}</div>
+                  <p className="mt-1 text-xs leading-5 text-ink-muted">{exposure.exposureType} · {exposure.significance || "significance not stated"}</p>
+                  {exposure.description && <p className="mt-2 text-xs leading-5 text-ink-faint">{exposure.description}</p>}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState icon="⛓️" title="No sourced commodity exposure on file" hint="MF Pulse will not infer input costs from sector stereotypes. See Markets → Raw Materials for feed status." />
+          )}
+        </GlassPanel>
+
+        <GlassPanel id="learn" className="p-5 mb-6 scroll-mt-32">
+          <SectionHeader eyebrow="Learn in context" title="How to interpret key stock metrics" />
+          <div className="grid gap-3 md:grid-cols-3">
+            {METRIC_LESSONS.map(([label, detail]) => (
+              <div key={label} className="rounded-2xl bg-surface-2 p-4">
+                <div className="text-sm font-semibold text-ink">{label}</div>
+                <p className="mt-2 text-xs leading-5 text-ink-muted">{detail}</p>
+              </div>
+            ))}
+          </div>
+        </GlassPanel>
+
+        <GlassPanel id="notes" className="p-5 mb-6 scroll-mt-32">
+          <SectionHeader eyebrow="Private research notes" title="Thesis, risks, catalysts and questions" action="Login required" />
+          <div className="grid gap-3 md:grid-cols-3">
+            {["Thesis", "Risks", "Catalysts", "Questions", "Valuation", "Management"].map((label) => (
+              <div key={label} className="rounded-2xl border border-dashed border-line bg-surface-2 p-4">
+                <div className="text-sm font-semibold text-ink">{label}</div>
+                <p className="mt-2 text-xs leading-5 text-ink-muted">Private note category ready for the research-notes API. No public community content is copied or embedded.</p>
+              </div>
+            ))}
+          </div>
         </GlassPanel>
 
         {/* Management */}

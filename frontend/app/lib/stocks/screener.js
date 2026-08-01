@@ -176,11 +176,21 @@ export const EXAMPLE_SCREENS = Object.freeze({
     description: "Operating cash flow greater than zero.",
     filterGroup: { combinator: "AND", filters: [{ field: "operatingCashFlow", operator: FILTER_OPERATORS.GT, value: 0 }] },
   },
+  cashFlowGenerators: {
+    label: "Cash-flow generators",
+    description: "Companies with positive operating cash flow. Missing cash-flow evidence does not pass.",
+    filterGroup: { combinator: "AND", filters: [{ field: "operatingCashFlow", operator: FILTER_OPERATORS.GT, value: 0 }] },
+  },
+  dividendStocks: {
+    label: "Dividend stocks",
+    description: "Companies with a positive dividend yield in the latest valuation snapshot.",
+    filterGroup: { combinator: "AND", filters: [{ field: "dividendYield", operator: FILTER_OPERATORS.GT, value: 0 }] },
+  },
   // Bonus: demonstrates nested-group composition — quality AND (conservatively levered OR
   // already self-funding) — the kind of compound question a real screener user would ask, and
   // proof evaluateFilterGroup's nesting actually works end to end through runScreener.
   qualityAndSafe: {
-    label: "Quality & safe (ROCE > 20% AND (Debt/Equity < 0.5 OR operating cash flow positive))",
+    label: "Quality compounders",
     description: "High-quality businesses that are either conservatively levered or already self-funding.",
     filterGroup: {
       combinator: "AND",
