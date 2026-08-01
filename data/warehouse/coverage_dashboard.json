@@ -1,30 +1,30 @@
 {
- "asOf": "2026-07-31",
+ "asOf": "2026-08-02",
  "live_amfi_fetched": true,
- "live_amfi_schemes": 14221,
- "mfpulse_schemes": 14221,
- "covered": 14221,
+ "live_amfi_schemes": 14222,
+ "mfpulse_schemes": 14222,
+ "covered": 14222,
  "coverage_pct": 100.0,
  "missing_count": 0,
  "delisted_count": 0,
  "universe": {
   "asset_class": {
-   "Debt": 7961,
    "Equity": 2944,
+   "Debt": 7962,
    "Other": 2339,
    "Hybrid": 832,
    "Solution": 145
   },
   "scheme_type": {
+   "Open Ended Schemes": 9470,
    "Close Ended Schemes": 4711,
-   "Open Ended Schemes": 9469,
    "Interval Fund Schemes": 41
   },
   "fund_type": {
-   "Active/Other": 11905,
+   "Active/Other": 11906,
+   "ETF": 345,
    "Index Fund": 1290,
-   "Fund of Fund": 681,
-   "ETF": 345
+   "Fund of Fund": 681
   },
   "international": 177,
   "commodity": 209
@@ -34,9 +34,9 @@
  "kpis": {
   "scheme_coverage_pct": 100.0,
   "nav_coverage_pct": 98.29,
-  "historical_coverage_pct": 90.44,
-  "returns_coverage_pct": 99.11,
-  "risk_coverage_pct": 99.25,
+  "historical_coverage_pct": 90.53,
+  "returns_coverage_pct": 99.14,
+  "risk_coverage_pct": 99.22,
   "benchmark_coverage_pct": 85.36,
   "category_coverage_pct": 100.0,
   "metadata_coverage_pct": 6.84,
