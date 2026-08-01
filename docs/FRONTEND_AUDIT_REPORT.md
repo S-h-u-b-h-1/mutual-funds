@@ -8,6 +8,7 @@ wayfinding, public help access, breadcrumbs, global search and responsive smoke 
 
 | Severity | Finding | Fix / disposition |
 |---|---|---|
+| P1 | Public research deep links still depended on local page headings/back links, creating inconsistent recovery paths when users landed from search, Google, or shared links. | Added `ProductBreadcrumbs` to high-traffic mutual-fund research routes: Funds, Compare, Categories, Category detail, Fund detail, AMC index/detail, Performance, News, Status, Data Status, Raw Materials, About, Methodology and public Portfolio. |
 | P1 | Desktop and mobile navigation were defined separately, creating drift as Stocks, Markets, Learn and Invest evolved. | Desktop navigation now consumes the shared `NAV_GROUPS` product IA. Top-level areas are Home, Mutual Funds, Stocks, Markets, Portfolio, Learn, Invest, Profile and Help. |
 | P1 | `/help` did not exist as a clear recovery/orientation path, and after creation it was initially caught by the auth gate. | Added a public Help Center and added `/help` to the public allowlist. The page explains product boundaries, recovery paths and where to go when stuck. |
 | P1 | Homepage still opened as a daily mutual-fund workspace rather than explaining the full customer journey. | Reframed the hero around Research → Learn → Track → Invest, with clear boundaries between stock research and Suasion mutual-fund execution. |
@@ -24,6 +25,7 @@ wayfinding, public help access, breadcrumbs, global search and responsive smoke 
 - Browser smoke checks passed locally for `/`, `/stocks`, `/stocks/screener`, `/stocks/sectors`, `/markets`, `/learn/stocks` and `/help`.
 - Responsive overflow samples passed at 320, 375, 390, 768, 1024, 1440 and 1920 widths across the touched public routes.
 - Local browser console had no application errors after fixing the duplicate React key in the Profile menu; only dev-only React/Next messages appeared.
+- Follow-up public-route breadcrumb validation is required after the second wayfinding slice is built and deployed.
 
 ## Remaining product-experience risks
 

@@ -3,6 +3,7 @@ import { sb } from "../../lib/supabase";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import Tracker from "../../components/Tracker";
+import ProductBreadcrumbs from "../../components/ProductBreadcrumbs";
 import WatchButton from "../../components/WatchButton";
 import NextActions from "../../components/NextActions";
 import ProvenanceDisclosure from "../../components/ui/ProvenanceDisclosure";
@@ -93,6 +94,7 @@ export default async function AmcPage({ params }) {
       <Nav active="/amc" />
       <Tracker event="amc_view" payload={{ amc }} view={{ type: "amc", id: amc, name: shortName }} />
       <main id="main-content" className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Mutual Funds", "/funds"], ["AMCs", "/amc"], [shortName, null]]} />
         <header className="grid gap-7 border-b border-line pb-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div><Link href="/amc" className="text-xs font-semibold text-ink-muted hover:text-accent">← AMC directory</Link><div className="eyebrow mt-5 text-accent">AMC intelligence · {dominantClass}</div><h1 className="page-title mt-3">{amc}</h1><p className="mt-4 max-w-3xl text-sm leading-6 text-ink-muted">Understand this fund house through observed scheme coverage, peer-relative fund evidence and explicit limitations—not brand reputation or an inferred corporate rating.</p></div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[34rem]">{[

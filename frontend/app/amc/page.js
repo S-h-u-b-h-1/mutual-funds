@@ -1,6 +1,7 @@
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import Tracker from "../components/Tracker";
+import ProductBreadcrumbs from "../components/ProductBreadcrumbs";
 import SectionHeader from "../components/ui/SectionHeader";
 import DataTable from "../components/ui/DataTable";
 import ProvenanceDisclosure from "../components/ui/ProvenanceDisclosure";
@@ -36,6 +37,7 @@ export default function AmcIndex() {
       <Nav active="/amc" />
       <Tracker event="page_view" payload={{ page: "amc_index" }} />
       <main className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Mutual Funds", "/funds"], ["AMCs", null]]} />
         <div className="eyebrow text-accent">Explore AMCs · {asOf}</div>
         <h1 className="page-title mt-3">Research every fund house in one frame.</h1>
         <p className="mt-2 max-w-2xl text-[14px] text-ink-muted">

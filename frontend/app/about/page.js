@@ -1,5 +1,6 @@
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import ProductBreadcrumbs from "../components/ProductBreadcrumbs";
 import GlassPanel from "../components/ui/GlassPanel";
 import SectionHeader from "../components/ui/SectionHeader";
 import Badge from "../components/ui/Badge";
@@ -11,6 +12,7 @@ export default function About() {
     <>
       <Nav active="/about" />
       <main className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Help", "/help"], ["About", null]]} />
         <div className="eyebrow text-accent">Product and provenance</div>
         <h1 className="page-title mt-3">Research infrastructure, made legible.</h1>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">

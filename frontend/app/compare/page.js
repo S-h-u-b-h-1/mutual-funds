@@ -1,6 +1,7 @@
 import { sb } from "../lib/supabase";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import ProductBreadcrumbs from "../components/ProductBreadcrumbs";
 import CompareClient from "../components/CompareClient";
 import CompareFundsClient from "../components/CompareFundsClient";
 import AdvisorSoftCTA from "../components/AdvisorSoftCTA";
@@ -34,6 +35,7 @@ export default async function Compare({ searchParams }) {
       <>
         <Nav active="/compare" />
         <main className="container-px py-10 sm:py-14">
+          <ProductBreadcrumbs items={[["Mutual Funds", "/funds"], ["Compare", null]]} />
           <div className="eyebrow text-accent">Comparison research</div>
           <h1 className="page-title mt-3">Understand differences before choosing what to research next.</h1>
           <p className="measure mt-4 text-sm leading-6 text-ink-muted">Compare observed performance, risk, health, and data completeness. MF Pulse does not label one fund a universal winner.</p>
@@ -71,6 +73,7 @@ export default async function Compare({ searchParams }) {
     <>
       <Nav active="/compare" />
       <main className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Mutual Funds", "/funds"], ["Compare", null]]} />
         <div className="eyebrow text-accent">AMC comparison</div>
         <h1 className="page-title mt-3">Compare fund houses in the same research frame.</h1>
         <p className="measure mt-4 text-sm leading-6 text-ink-muted">

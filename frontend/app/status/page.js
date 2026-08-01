@@ -1,6 +1,7 @@
 import { sb } from "../lib/supabase";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import ProductBreadcrumbs from "../components/ProductBreadcrumbs";
 import GlassPanel from "../components/ui/GlassPanel";
 import { getFreshnessChain, getPipelineRuns, getNewsFreshness, getFactsheetFreshness } from "../lib/pipelineHealth";
 import { getFreshnessSummary } from "../lib/freshnessService";
@@ -62,6 +63,7 @@ export default async function Status() {
     <>
       <Nav active="/status" />
       <main className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Help", "/help"], ["System status", null]]} />
         <div className="eyebrow text-accent">Operational transparency</div>
         <h1 className="page-title mt-3">System status</h1>
         <div className={`mt-2 flex items-center gap-2 text-[14px] font-medium ${allGood ? "text-pos" : "text-neg"}`}>

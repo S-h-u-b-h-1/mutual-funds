@@ -1,5 +1,6 @@
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import ProductBreadcrumbs from "../components/ProductBreadcrumbs";
 import GlassPanel from "../components/ui/GlassPanel";
 import SectionHeader from "../components/ui/SectionHeader";
 
@@ -37,6 +38,7 @@ export default function Methodology() {
     <>
       <Nav active="/methodology" />
       <main className="container-px py-10">
+        <ProductBreadcrumbs items={[["Help", "/help"], ["Methodology", null]]} />
         <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tightest text-ink">Methodology</h1>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
           How MF Pulse turns free public data into flow intelligence — sources, classification,

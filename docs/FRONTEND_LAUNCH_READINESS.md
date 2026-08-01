@@ -4,6 +4,7 @@ Updated 1 August 2026 — product-experience IA slice.
 
 Implemented since the previous note:
 
+- Added consistent breadcrumb wayfinding to public mutual-fund research, AMC, category, fund, market status, methodology and portfolio deep links.
 - Unified desktop navigation with the shared product IA instead of maintaining a separate desktop menu.
 - Added a public Help Center route for orientation, support paths, product boundaries and recovery actions.
 - Made Help public in the auth gate so users are not redirected to login when they are stuck.

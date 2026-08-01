@@ -1,6 +1,7 @@
 import { sb } from "../lib/supabase";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import ProductBreadcrumbs from "../components/ProductBreadcrumbs";
 import GlassPanel from "../components/ui/GlassPanel";
 import SectionHeader from "../components/ui/SectionHeader";
 import StatStrip from "../components/ui/StatStrip";
@@ -89,6 +90,7 @@ export default async function DataStatus() {
     <>
       <Nav active="/status" />
       <main className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Help", "/help"], ["Data status", null]]} />
         <div className="eyebrow text-accent">Observability</div>
         <h1 className="page-title mt-3">Data status</h1>
         <div className="mt-2 flex items-center gap-2 text-[14px]">

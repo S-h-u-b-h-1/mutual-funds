@@ -3,6 +3,7 @@ import { newsStatus } from "../lib/newsStatus";
 import { impactChainsFor, themesFor, impactScoreFor, researchLinksFor, fundsWorthResearching, sectorExposure, THEMES } from "../lib/marketImpact";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import ProductBreadcrumbs from "../components/ProductBreadcrumbs";
 import GlassPanel from "../components/ui/GlassPanel";
 import NewsClient from "../components/NewsClient";
 import FreshnessBadge from "../components/ui/FreshnessBadge";
@@ -92,6 +93,7 @@ export default async function News() {
     <>
       <Nav active="/news" />
       <main className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Markets", "/markets"], ["News", null]]} />
         <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
           <div><div className="eyebrow text-accent">News intelligence</div><h1 className="page-title mt-3">Connect financial events to mutual-fund research.</h1><p className="measure mt-4 text-sm leading-6 text-ink-muted">Near-real-time financial news, regulatory updates, and market events mapped to relevant categories, AMCs, sectors, and funds through traceable rules.</p></div>
           <FreshnessBadge status={status.tone === "pos" ? "current" : status.tone === "warn" ? "delayed" : "stale"}>{status.tone === "pos" ? "Near-real-time feed" : status.label}</FreshnessBadge>

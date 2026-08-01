@@ -1,6 +1,7 @@
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import Tracker from "../components/Tracker";
+import ProductBreadcrumbs from "../components/ProductBreadcrumbs";
 import ScreenerPresets from "../components/ScreenerPresets";
 import ScreenerTableClient from "../components/ScreenerTableClient";
 import FreshnessBadge from "../components/ui/FreshnessBadge";
@@ -94,6 +95,7 @@ export default function FundsPage({ searchParams }) {
       <Nav active="/funds" />
       <Tracker event="fund_filter_used" payload={{ q, plan, option, category, amc, sort, fresh, needYear, aum, expense, verified, results: total }} />
       <main className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Mutual Funds", null]]} />
         <header className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
           <div><div className="eyebrow text-accent">Fund research</div><h1 className="page-title mt-3">Find evidence, not a leaderboard winner.</h1><p className="measure mt-4 text-sm leading-6 text-ink-muted">Screen direct and regular plans separately, keep missing measures visible, and move selected funds into comparison or strategy research.</p></div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-ink-faint"><FreshnessBadge status={asOfStatus}>NAV {asOf}</FreshnessBadge><a href="/data-quality" className="font-medium text-accent">Review coverage →</a></div>

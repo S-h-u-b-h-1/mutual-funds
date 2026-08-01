@@ -1,6 +1,7 @@
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import Tracker from "../components/Tracker";
+import ProductBreadcrumbs from "../components/ProductBreadcrumbs";
 import SectionHeader from "../components/ui/SectionHeader";
 import DataTable from "../components/ui/DataTable";
 import ProvenanceDisclosure from "../components/ui/ProvenanceDisclosure";
@@ -37,6 +38,7 @@ export default function Categories() {
       <Nav active="/categories" />
       <Tracker event="category_view" payload={{ page: "categories" }} />
       <main className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Mutual Funds", "/funds"], ["Categories", null]]} />
         <div className="eyebrow text-accent">Category Intelligence</div>
         <h1 className="page-title mt-3">Compare category movement in context.</h1>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">

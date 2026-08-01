@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import NavChart from "./NavChart";
 import VolatilityChart from "./VolatilityChart";
+import ProductBreadcrumbs from "./ProductBreadcrumbs";
 import GlassPanel from "./ui/GlassPanel";
 import Badge from "./ui/Badge";
 import WatchButton from "./WatchButton";
@@ -246,6 +247,7 @@ export default function FundPageClient({
 
   return (
     <div className="container-px relative py-8 sm:py-10">
+      <ProductBreadcrumbs items={[["Mutual Funds", "/funds"], [fund.category || "Fund", fund.category ? `/categories/${encodeURIComponent(fund.category)}` : "/funds"], [fund.name.replace(/ - (Direct|Regular).*/i, ""), null]]} />
       
       {/* Onboarding Walkthrough Overlay */}
       {onboardStep !== null && (

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import Tracker from "../../components/Tracker";
+import ProductBreadcrumbs from "../../components/ProductBreadcrumbs";
 import SectionHeader from "../../components/ui/SectionHeader";
 import DataTable from "../../components/ui/DataTable";
 import StatStrip from "../../components/ui/StatStrip";
@@ -67,6 +68,7 @@ export default async function CategoryDetail({ params }) {
       <Nav active="/categories" />
       <Tracker event="category_view" payload={{ category, funds: funds.length }} view={{ type: "category", id: category, name: category }} />
       <main className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Mutual Funds", "/funds"], ["Categories", "/categories"], [category, null]]} />
         <div className="eyebrow text-accent"><a className="hover:text-ink" href="/categories">Categories</a> · {category}</div>
         <h1 className="page-title mt-3">{category}</h1>
         <p className="mt-2 max-w-2xl text-[14px] text-ink-muted">

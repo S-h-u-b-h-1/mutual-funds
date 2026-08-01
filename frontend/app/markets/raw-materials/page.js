@@ -1,5 +1,6 @@
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
+import ProductBreadcrumbs from "../../components/ProductBreadcrumbs";
 import GlassPanel from "../../components/ui/GlassPanel";
 import Badge, { EmptyState } from "../../components/ui/Badge";
 import SectionHeader from "../../components/ui/SectionHeader";
@@ -28,6 +29,7 @@ export default async function RawMaterialsPage() {
     <>
       <Nav active="/markets/raw-materials" />
       <main id="main-content" className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Markets", "/markets"], ["Raw materials", null]]} />
         <div className="eyebrow text-accent">Markets · Raw materials</div>
         <h1 className="page-title mt-3 max-w-4xl">Commodity context for stock research, only when sourced.</h1>
         <p className="measure mt-4 text-sm leading-6 text-ink-muted">

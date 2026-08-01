@@ -1,6 +1,7 @@
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import Tracker from "../components/Tracker";
+import ProductBreadcrumbs from "../components/ProductBreadcrumbs";
 import SectionHeader from "../components/ui/SectionHeader";
 import DataTable from "../components/ui/DataTable";
 import ProvenanceDisclosure from "../components/ui/ProvenanceDisclosure";
@@ -44,6 +45,7 @@ export default function Performance() {
       <Nav active="/research" />
       <Tracker event="performance_view" payload={{ page: "performance" }} />
       <main className="container-px py-10 sm:py-14">
+        <ProductBreadcrumbs items={[["Mutual Funds", "/funds"], ["Performance", null]]} />
         <div className="eyebrow text-accent">Performance Intelligence</div>
         <h1 className="page-title mt-3">Read performance alongside risk and coverage.</h1>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
