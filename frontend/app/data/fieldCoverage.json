@@ -1,6 +1,6 @@
 {
- "asOf": "2026-08-02",
- "amfiLastUpdated": "2026-08-02",
+ "asOf": "2026-08-03",
+ "amfiLastUpdated": "2026-08-03",
  "factsheetLastUpdated": "2026-07-19",
  "denominators": {
   "universe": 14222,
@@ -34,10 +34,10 @@
     "investable_n": 3475
    },
    "Benchmark": {
-    "universe_pct": 85.36,
-    "universe_n": 12140,
-    "investable_pct": 71.54,
-    "investable_n": 2486
+    "universe_pct": 85.33,
+    "universe_n": 12136,
+    "investable_pct": 71.48,
+    "investable_n": 2484
    }
   },
   "Performance": {
@@ -56,12 +56,12 @@
    "1M": {
     "universe_pct": 28.14,
     "universe_n": 4002,
-    "investable_pct": 99.14,
-    "investable_n": 3445
+    "investable_pct": 99.17,
+    "investable_n": 3446
    },
    "3M": {
-    "universe_pct": 27.86,
-    "universe_n": 3962,
+    "universe_pct": 27.83,
+    "universe_n": 3958,
     "investable_pct": 98.36,
     "investable_n": 3418
    },
@@ -72,10 +72,10 @@
     "investable_n": 0
    },
    "1Y": {
-    "universe_pct": 25.14,
-    "universe_n": 3575,
-    "investable_pct": 90.53,
-    "investable_n": 3146
+    "universe_pct": 0.0,
+    "universe_n": 0,
+    "investable_pct": 0.0,
+    "investable_n": 0
    },
    "3Y": {
     "universe_pct": 0.0,
