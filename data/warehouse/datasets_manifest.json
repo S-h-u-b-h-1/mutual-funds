@@ -1,6 +1,6 @@
 {
  "asOf": "2026-08-02",
- "snapshot_age_days": 0,
+ "snapshot_age_days": 1,
  "datasets": [
   {
    "dataset": "AMFI NAV universe",
@@ -8,7 +8,7 @@
    "source_url": "https://portal.amfiindia.com/spages/NAVAll.txt",
    "last_updated": "2026-08-02",
    "rows": 14222,
-   "checksum": "7e869a0b94457a7e",
+   "checksum": "fee34609d0d64771",
    "parser_version": "amfi_parser@1",
    "freshness": "current",
    "confidence": "high",
@@ -20,7 +20,7 @@
    "source_url": "https://portal.amfiindia.com/spages/NAVAll.txt",
    "last_updated": "2026-08-02",
    "rows": 14222,
-   "checksum": "0627116c6df2bd9d",
+   "checksum": "c51f941d1121f1e6",
    "parser_version": "build_performance@2",
    "freshness": "current",
    "confidence": "high",
