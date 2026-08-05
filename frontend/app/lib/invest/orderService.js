@@ -2,7 +2,7 @@
 // units_pending -> completed | failed | retry_required, plus cancelled (from any non-terminal
 // state) and reversed (an explicit action on a completed order). Backs
 // docs/INVEST_PLATFORM_ARCHITECTURE.md §7 and the Phase 1 brief's Module 6 lifecycle.
-import { query } from "../db.js";
+import { query, withTransaction } from "../db.js";
 import { investmentProvider, paymentProvider } from "./providers/index.js";
 import { callProvider, isProviderUnavailable, investmentProviderUnavailableOutcome, paymentProviderUnavailableOutcome } from "./providers/resilience.js";
 import { logAudit } from "./audit.js";
@@ -54,11 +54,26 @@ const NOTIFICATION_COPY = {
 
 async function transition(order, toStatus, reason = null) {
   const fromStatus = order.status;
+  // C1 (order idempotency): compare-and-swap, not an unconditional UPDATE — the WHERE clause
+  // requires the row to still be in the status this caller believes it's in. Without this, two
+  // concurrent callers computing a transition from the same stale `order` snapshot (two
+  // overlapping refreshOrderStatus() polls, or a poll racing a real provider-driven update) could
+  // both succeed, both write a history row, and — worst case — both run 'completed''s settlement
+  // side effects (reconciliation, document generation, payout) for the same order.
+  // submission_claimed_at is cleared here too — it's submitOrder()/retryOrder()'s internal claim
+  // marker (see claimForSubmission below), always stale by the time any transition lands.
   const r = await query(
-    `update investment_orders set status = $2, rejection_reason = coalesce($3, rejection_reason), updated_at = now()
-     where id = $1 returning *`,
-    [order.id, toStatus, reason]
+    `update investment_orders set status = $3, rejection_reason = coalesce($4, rejection_reason), submission_claimed_at = null, updated_at = now()
+     where id = $1 and status = $2 returning *`,
+    [order.id, fromStatus, toStatus, reason]
   );
+  if (r.rows.length === 0) {
+    // Lost the race — someone else already moved this order out of fromStatus. Their call owns
+    // the side effects below (history row, notification, settlement); return the order's actual
+    // current state rather than acting as if our transition happened.
+    const current = await query(`select * from investment_orders where id = $1`, [order.id]);
+    return current.rows[0];
+  }
   await query(
     `insert into order_status_history (order_id, from_status, to_status, reason) values ($1, $2, $3, $4)`,
     [order.id, fromStatus, toStatus, reason]
@@ -170,7 +185,7 @@ function validateOrderInput({ schemeCode, orderType, amount, units, relatedSchem
 export async function createOrder(userId, input) {
   validateOrderInput(input);
   await assertInvestmentReady(userId);
-  const { schemeCode, relatedSchemeCode = null, orderType, amount = null, units = null, draft = false } = input;
+  const { schemeCode, relatedSchemeCode = null, orderType, amount = null, units = null, draft = false, idempotencyKey = null } = input;
 
   // Distributor attribution is stamped once, here, at creation — not re-derived later. It's a
   // snapshot of who gets commission/audit credit for this specific order, so it must freeze at
@@ -184,13 +199,51 @@ export async function createOrder(userId, input) {
   // unresolvable code), so a missing fund here is not a case this needs to guard against.
   const fund = getFund(schemeCode);
 
-  const r = await query(
-    `insert into investment_orders (user_id, scheme_code, related_scheme_code, order_type, amount, units, status, distributor_arn, distributor_euin, plan, option)
-     values ($1, $2, $3, $4, $5, $6, 'draft', $7, $8, $9, $10)
-     returning *`,
-    [userId, schemeCode, relatedSchemeCode, orderType, amount, units, distributor.arn, distributor.euin, fund?.plan ?? null, fund?.option ?? null]
-  );
-  const order = r.rows[0];
+  // C1 (order idempotency, sql/neon/022_order_idempotency.sql): a double-click submit or a
+  // client retry after a timed-out request must not create two separate orders. Two independent
+  // guards, both inside one advisory-locked transaction so the check-then-insert is atomic:
+  //   1. idempotencyKey, if the caller sends one — an exact-match dedupe on (user_id, key).
+  //   2. A short content-based window, regardless of whether a key was sent — "do not rely
+  //      solely on frontend button disabling." A genuine "place the exact same order again a few
+  //      seconds later" is not a real mutual-fund-purchase workflow, so this only ever catches an
+  //      accidental duplicate, never a deliberate new order.
+  const { order, isNew } = await withTransaction(async (client) => {
+    await client.query(`select pg_advisory_xact_lock(hashtext($1))`, [`order-create:${userId}:${schemeCode}:${orderType}`]);
+
+    if (idempotencyKey) {
+      const byKey = await client.query(
+        `select * from investment_orders where user_id = $1 and idempotency_key = $2`,
+        [userId, idempotencyKey]
+      );
+      if (byKey.rows.length > 0) return { order: byKey.rows[0], isNew: false };
+    }
+    // Scoped to status='draft' specifically, not "any recent order": once an order has moved
+    // past draft (submitted, failed, ...) it is a resolved, distinct action, and a later create
+    // call — however similar in shape — must never merge into it, no matter how recent. This
+    // keeps the guard narrow enough that it cannot misfire against two genuinely separate,
+    // sequential actions that merely happen to share scheme/amount — only a request that's still
+    // sitting unclaimed in draft looks like an actual duplicate.
+    const recent = await client.query(
+      `select * from investment_orders
+       where user_id = $1 and scheme_code = $2 and order_type = $3
+         and amount is not distinct from $4 and units is not distinct from $5
+         and status = 'draft'
+         and created_at > now() - interval '5 seconds'
+       order by created_at desc limit 1`,
+      [userId, schemeCode, orderType, amount, units]
+    );
+    if (recent.rows.length > 0) return { order: recent.rows[0], isNew: false };
+
+    const inserted = await client.query(
+      `insert into investment_orders (user_id, scheme_code, related_scheme_code, order_type, amount, units, status, distributor_arn, distributor_euin, plan, option, idempotency_key)
+       values ($1, $2, $3, $4, $5, $6, 'draft', $7, $8, $9, $10, $11)
+       returning *`,
+      [userId, schemeCode, relatedSchemeCode, orderType, amount, units, distributor.arn, distributor.euin, fund?.plan ?? null, fund?.option ?? null, idempotencyKey]
+    );
+    return { order: inserted.rows[0], isNew: true };
+  });
+
+  if (!isNew) return order; // deduped — return the existing order as-is, never re-run creation side effects or re-submit
   await logAudit(userId, "order_created", { orderId: order.id, orderType, schemeCode, distributorArn: distributor.arn, distributorEuin: distributor.euin });
   if (draft) return order;
   return submitOrder(userId, order.id);
@@ -201,10 +254,30 @@ export async function getOrderRaw(userId, orderId) {
   return r.rows[0] ?? null;
 }
 
+// C1 (order idempotency): atomic claim for a call about to contact a payment/investment
+// provider — the actual compare-and-swap, not just the read-then-compare status checks in
+// submitOrder()/retryOrder() (which two concurrent or retried calls — two browser tabs, a client
+// retry after a timed-out request — could both pass before either writes anything). Only the
+// caller whose UPDATE actually matches a row gets to proceed to the provider. Treated as
+// stale/reclaimable after 30s — generous for these mock, near-instant providers, but this is a
+// soft lease, not a hard fence: a slower real provider would need this tuned, and the window
+// exists so a mid-flight crash's claim self-heals on the next retry rather than wedging the order
+// forever with no background sweep to recover it (unlike the job platform's lease recovery, H2).
+async function claimForSubmission(order, fromStatus) {
+  const r = await query(
+    `update investment_orders set submission_claimed_at = now(), updated_at = now()
+     where id = $1 and status = $2
+       and (submission_claimed_at is null or submission_claimed_at < now() - interval '30 seconds')
+     returning *`,
+    [order.id, fromStatus]
+  );
+  return r.rows[0] ?? null;
+}
+
 export async function submitOrder(userId, orderId) {
-  const order = await getOrderRaw(userId, orderId);
-  if (!order) throw new Error("Order not found.");
-  if (order.status !== "draft") throw new Error(`Only a draft order can be submitted (current status: ${order.status}).`);
+  const existing = await getOrderRaw(userId, orderId);
+  if (!existing) throw new Error("Order not found.");
+  if (existing.status !== "draft") throw new Error(`Only a draft order can be submitted (current status: ${existing.status}).`);
   // Auth+onboarding truth audit, Phase 1/12: createOrder() checks readiness once, at draft
   // creation — but a draft can sit unsubmitted for an arbitrary amount of time before this runs,
   // and nothing re-verified readiness at the actual moment money/units are about to move. Cheap
@@ -212,6 +285,11 @@ export async function submitOrder(userId, orderId) {
   // since nothing today revokes compliance/deactivates an account after the fact) gap between
   // "was ready when the draft was made" and "is still ready right now."
   await assertInvestmentReady(userId);
+  // C1: claim the order before contacting any provider — a concurrent/retried second call that
+  // loses this race must never reach the payment/investment provider at all, not just disagree
+  // about the final status.
+  const order = await claimForSubmission(existing, "draft");
+  if (!order) throw new Error("This order has already been submitted.");
 
   // Provider Metadata: a purchase needs money to move before the investment provider is even
   // asked to place it — paymentProvider.initiatePayment() has been fully built and registered
@@ -232,7 +310,7 @@ export async function submitOrder(userId, orderId) {
     // 'failed' via the existing decline path below, instead of 500ing the whole submit.
     let paymentAck;
     try {
-      paymentAck = await callProvider("mock-payment", "initiatePayment", () => paymentProvider.initiatePayment({ amount: order.amount, bankAccountId: bank.id, schemeCode: order.scheme_code }));
+      paymentAck = await callProvider("mock-payment", "initiatePayment", () => paymentProvider.initiatePayment({ amount: order.amount, bankAccountId: bank.id, schemeCode: order.scheme_code, idempotencyKey: order.id }));
     } catch (err) {
       if (!isProviderUnavailable(err)) throw err;
       paymentAck = paymentProviderUnavailableOutcome();
@@ -260,7 +338,7 @@ export async function submitOrder(userId, orderId) {
       distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin,
       folioNumber: order.folio_number, exitLoadPct: order.exit_load_pct, exitLoadAmount: order.exit_load_amount,
       relatedSchemeCode: order.related_scheme_code, switchOrderId: order.switch_order_id,
-      paymentReference,
+      paymentReference, idempotencyKey: order.id,
     }));
   } catch (err) {
     if (!isProviderUnavailable(err)) throw err;
@@ -319,9 +397,13 @@ export async function cancelOrder(userId, orderId) {
 }
 
 export async function retryOrder(userId, orderId) {
-  const order = await getOrderRaw(userId, orderId);
-  if (!order) throw new Error("Order not found.");
-  if (order.status !== "retry_required") throw new Error(`Only an order in retry_required can be retried (current status: ${order.status}).`);
+  const existing = await getOrderRaw(userId, orderId);
+  if (!existing) throw new Error("Order not found.");
+  if (existing.status !== "retry_required") throw new Error(`Only an order in retry_required can be retried (current status: ${existing.status}).`);
+  // C1: same claim as submitOrder — a concurrent/retried second retryOrder() call must lose this
+  // race before touching the provider, not just disagree about the final status afterward.
+  const order = await claimForSubmission(existing, "retry_required");
+  if (!order) throw new Error("This order is already being retried.");
   // Not retryable at THIS layer for the same reason as submitOrder's placeOrder call — this IS
   // already the user-initiated retry action, so a further automatic retry-of-the-retry would only
   // compound the risk. A timeout/open circuit resolves to the existing 'failed' rejection path.
@@ -330,6 +412,7 @@ export async function retryOrder(userId, orderId) {
     ack = await callProvider("mock-investment", "placeOrder", () => investmentProvider.placeOrder({
       schemeCode: order.scheme_code, orderType: order.order_type, amount: order.amount, units: order.units,
       distributorArn: order.distributor_arn, distributorEuin: order.distributor_euin,
+      idempotencyKey: order.id,
     }));
   } catch (err) {
     if (!isProviderUnavailable(err)) throw err;
@@ -349,7 +432,7 @@ export async function reverseOrder(userId, orderId, reason) {
   return transition(order, "reversed", reason ?? "Reversed.");
 }
 
-export async function createSipMandate(userId, { schemeCode, amount, frequency, startDate, endDate = null }) {
+export async function createSipMandate(userId, { schemeCode, amount, frequency, startDate, endDate = null, idempotencyKey = null }) {
   await assertInvestmentReady(userId);
   if (!schemeCode || !(amount > 0) || !["monthly", "weekly", "quarterly"].includes(frequency) || !startDate) {
     throw new Error("schemeCode, amount (>0), frequency (monthly|weekly|quarterly), and startDate are required.");
@@ -368,50 +451,77 @@ export async function createSipMandate(userId, { schemeCode, amount, frequency, 
   // authorization behind it.
   const bank = await getVerifiedBankAccount(userId);
   if (!bank) throw new Error("No verified payment bank account on file — required before setting up a SIP mandate.");
-  // Not retryable — registers a new standing authorization each call. A timeout/open circuit
-  // resolves to a decline, same as initiatePayment above: the mandate is recorded as
-  // mandate_status='failed' via the existing decline path below, never thrown.
-  let mandateAck;
-  try {
-    mandateAck = await callProvider("mock-payment", "initiateMandate", () => paymentProvider.initiateMandate({ amount, frequency, bankAccountId: bank.id, schemeCode }));
-  } catch (err) {
-    if (!isProviderUnavailable(err)) throw err;
-    mandateAck = paymentProviderUnavailableOutcome();
-  }
 
-  let providerAck = { status: "failed", providerMandateId: null, provider: mandateAck.provider };
-  if (mandateAck.status === "active") {
-    // Not retryable/not caught: this only runs once the payment-side authorization already
-    // succeeded, so a failure here is the genuine partial-failure gap M17 already tracks
-    // (docs/BACKEND_TECHNICAL_DEBT.md) — not something to newly invent handling for.
-    providerAck = await callProvider("mock-investment", "createSIPMandate", () => investmentProvider.createSIPMandate({
-      schemeCode, amount, frequency, startDate,
-      distributorArn: distributor.arn, distributorEuin: distributor.euin,
-      paymentReference: mandateAck.mandateRef,
-    }));
-  }
+  // C1 (order idempotency): a SIP mandate has no separate draft-then-claim stage the way an
+  // order does — everything (dedupe check, both provider calls, the insert) happens in this one
+  // call, so the advisory lock is held across the provider calls themselves, not just around the
+  // insert. Safe today because these are in-process mock providers with no real network latency;
+  // revisit (adopt createOrder's draft/claim split instead) if a real, slower provider ever
+  // replaces them, since holding a DB lock across a slow external call is an anti-pattern.
+  const { mandate, isNew } = await withTransaction(async (client) => {
+    await client.query(`select pg_advisory_xact_lock(hashtext($1))`, [`sip-create:${userId}:${schemeCode}`]);
 
-  const r = await query(
-    `insert into sip_mandates (
-       user_id, scheme_code, amount, frequency, start_date, end_date, mandate_status,
-       provider_mandate_id, provider, distributor_arn, distributor_euin,
-       plan, option, payment_reference, payment_status, payment_bank_account_id, provider_error_code
-     )
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-     returning *`,
-    [
-      userId, schemeCode, amount, frequency, startDate, endDate, providerAck.status, providerAck.providerMandateId, providerAck.provider, distributor.arn, distributor.euin,
-      fund?.plan ?? null, fund?.option ?? null, mandateAck.mandateRef, mandateAck.status, bank.id, mandateAck.errorCode ?? null,
-    ]
-  );
+    if (idempotencyKey) {
+      const byKey = await client.query(`select * from sip_mandates where user_id = $1 and idempotency_key = $2`, [userId, idempotencyKey]);
+      if (byKey.rows.length > 0) return { mandate: byKey.rows[0], isNew: false };
+    }
+    const recent = await client.query(
+      `select * from sip_mandates
+       where user_id = $1 and scheme_code = $2 and amount = $3 and frequency = $4
+         and created_at > now() - interval '5 seconds'
+       order by created_at desc limit 1`,
+      [userId, schemeCode, amount, frequency]
+    );
+    if (recent.rows.length > 0) return { mandate: recent.rows[0], isNew: false };
+
+    // Not retryable — registers a new standing authorization each call. A timeout/open circuit
+    // resolves to a decline, same as initiatePayment above: the mandate is recorded as
+    // mandate_status='failed' via the existing decline path below, never thrown.
+    let mandateAck;
+    try {
+      mandateAck = await callProvider("mock-payment", "initiateMandate", () => paymentProvider.initiateMandate({ amount, frequency, bankAccountId: bank.id, schemeCode, idempotencyKey }));
+    } catch (err) {
+      if (!isProviderUnavailable(err)) throw err;
+      mandateAck = paymentProviderUnavailableOutcome();
+    }
+
+    let providerAck = { status: "failed", providerMandateId: null, provider: mandateAck.provider };
+    if (mandateAck.status === "active") {
+      // Not retryable/not caught: this only runs once the payment-side authorization already
+      // succeeded, so a failure here is the genuine partial-failure gap M17 already tracks
+      // (docs/BACKEND_TECHNICAL_DEBT.md) — not something to newly invent handling for.
+      providerAck = await callProvider("mock-investment", "createSIPMandate", () => investmentProvider.createSIPMandate({
+        schemeCode, amount, frequency, startDate,
+        distributorArn: distributor.arn, distributorEuin: distributor.euin,
+        paymentReference: mandateAck.mandateRef, idempotencyKey,
+      }));
+    }
+
+    const inserted = await client.query(
+      `insert into sip_mandates (
+         user_id, scheme_code, amount, frequency, start_date, end_date, mandate_status,
+         provider_mandate_id, provider, distributor_arn, distributor_euin,
+         plan, option, payment_reference, payment_status, payment_bank_account_id, provider_error_code, idempotency_key
+       )
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+       returning *`,
+      [
+        userId, schemeCode, amount, frequency, startDate, endDate, providerAck.status, providerAck.providerMandateId, providerAck.provider, distributor.arn, distributor.euin,
+        fund?.plan ?? null, fund?.option ?? null, mandateAck.mandateRef, mandateAck.status, bank.id, mandateAck.errorCode ?? null, idempotencyKey,
+      ]
+    );
+    return { mandate: inserted.rows[0], isNew: true };
+  });
+
+  if (!isNew) return mandate; // deduped — return the existing mandate as-is, never re-run creation side effects or re-call providers
   await logAudit(userId, "sip_mandate_created", {
     schemeCode, amount, frequency, distributorArn: distributor.arn, distributorEuin: distributor.euin,
-    paymentReference: mandateAck.mandateRef, paymentStatus: mandateAck.status, paymentBankAccountId: bank.id,
+    paymentReference: mandate.payment_reference, paymentStatus: mandate.payment_status, paymentBankAccountId: bank.id,
   });
-  if (mandateAck.status === "active") {
-    await notifyUser(userId, "sip_mandate_created", { title: "SIP set up", body: `${frequency} SIP of ₹${amount} in ${schemeCode}`, relatedEntityType: "sip_mandate", relatedEntityId: r.rows[0].id });
+  if (mandate.mandate_status === "active") {
+    await notifyUser(userId, "sip_mandate_created", { title: "SIP set up", body: `${frequency} SIP of ₹${amount} in ${schemeCode}`, relatedEntityType: "sip_mandate", relatedEntityId: mandate.id });
   }
-  return r.rows[0];
+  return mandate;
 }
 
 export async function listSipMandates(userId) {

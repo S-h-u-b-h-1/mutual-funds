@@ -121,6 +121,49 @@ describe("orderService (integration, real Neon, disposable investment-ready user
     expect(timeline[0].to_status).toBe(order.status);
   });
 
+  it("C1: two concurrent createOrder calls with the same idempotencyKey create exactly one order", async () => {
+    const idempotencyKey = `concurrency-key-${Date.now()}-${Math.random()}`;
+    const [a, b] = await Promise.all([
+      orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 6001, idempotencyKey }),
+      orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 6001, idempotencyKey }),
+    ]);
+    expect(a.id).toBe(b.id);
+    const orders = await orderService.listOrders(readyUserId);
+    expect(orders.filter((o) => o.idempotency_key === idempotencyKey)).toHaveLength(1);
+  });
+
+  it("C1: two concurrent createOrder calls with identical content and NO idempotencyKey are still deduped to one order", async () => {
+    // The backend-native backstop — proves duplicate-submit protection does not depend on the
+    // caller ever sending an idempotencyKey ("do not rely solely on frontend button disabling").
+    const [a, b] = await Promise.all([
+      orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 6002 }),
+      orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 6002 }),
+    ]);
+    expect(a.id).toBe(b.id);
+    const orders = await orderService.listOrders(readyUserId);
+    const matching = orders.filter((o) => o.scheme_code === "119551" && o.order_type === "purchase" && Number(o.amount) === 6002);
+    expect(matching).toHaveLength(1);
+  });
+
+  it("C1: two concurrent submitOrder calls on the same draft order — only one reaches the provider, the other is refused", async () => {
+    const draft = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 6003, draft: true });
+    const results = await Promise.allSettled([
+      orderService.submitOrder(readyUserId, draft.id),
+      orderService.submitOrder(readyUserId, draft.id),
+    ]);
+    const fulfilled = results.filter((r) => r.status === "fulfilled");
+    const rejected = results.filter((r) => r.status === "rejected");
+    expect(fulfilled).toHaveLength(1);
+    expect(["submitted", "failed"]).toContain(fulfilled[0].value.status);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].reason.message).toMatch(/already been submitted/);
+
+    // Exactly one payment attempt actually happened — not two — which is the real financial
+    // claim this test exists to verify, not just "the two calls disagreed."
+    const { timeline } = await orderService.getOrderWithTimeline(readyUserId, draft.id);
+    expect(timeline.filter((t) => t.to_status === "submitted" || t.to_status === "failed")).toHaveLength(1);
+  });
+
   it("GET-equivalent refresh never regresses a terminal order and is safe to call repeatedly", async () => {
     const order = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 1000 });
     if (order.status === "failed") return; // hit the ~8% immediate-rejection branch — nothing to progress, test the other path next run
