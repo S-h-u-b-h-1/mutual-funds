@@ -1,5 +1,5 @@
 {
- "asOf": "2026-08-05",
+ "asOf": "2026-08-06",
  "checks": [
   {
    "check": "Every live AMFI scheme covered",
@@ -9,7 +9,7 @@
   {
    "check": "Every scheme routable (funds.json == our universe)",
    "pass": true,
-   "detail": "14241 vs 14241"
+   "detail": "14252 vs 14252"
   },
   {
    "check": "No orphan funds outside source",
