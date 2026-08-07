@@ -1,5 +1,5 @@
 {
- "asOf": "2026-08-06",
+ "asOf": "2026-08-07",
  "items": [
   {
    "item": "Expense ratio",
@@ -35,7 +35,7 @@
   },
   {
    "item": "Index-return alpha",
-   "missing_count": 3485,
+   "missing_count": 3481,
    "impact": "medium",
    "expected_source": "index NAV series",
    "reason": "benchmark index NAV series not ingested \u2014 peer-relative only",
