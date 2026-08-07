@@ -7,7 +7,7 @@ import { ErrorCard, LoadingCards, useInvestData } from "./useInvestData";
 
 const steps = [
   ["profile", "Profile"], ["mobile", "Mobile"], ["email", "Email"], ["pan", "PAN"], ["identity", "Identity"],
-  ["risk_profile", "Risk profile"], ["preferences", "Preferences"], ["bank", "Bank"], ["nominee", "Nominee"], ["fatca", "Declaration"],
+  ["risk_profile", "Risk profile"], ["preferences", "Preferences"], ["bank", "Bank"], ["nominee", "Nominee"], ["fatca", "Declaration"], ["pep", "PEP screening"],
 ];
 const fieldClass = "mt-2 min-h-12 w-full rounded-2xl border border-line bg-bg px-4 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15";
 const labelClass = "text-xs font-semibold text-ink-muted";
@@ -20,7 +20,7 @@ export default function OnboardingFlow() {
   const requested = params.get("step");
   const initialIndex = Math.max(0, steps.findIndex(([id]) => id === requested));
   const [index, setIndex] = useState(initialIndex);
-  const [form, setForm] = useState({ otp:"", phoneNumber:"", pan:"", consent:false, dateOfBirth:"", gender:"", occupation:"", annualIncomeBand:"", city:"", state:"", pincode:"", horizonScore:3, lossToleranceScore:3, incomeStabilityScore:3, experienceScore:3, preferredPlan:"direct", sipDay:5, goalName:"", accountNumber:"", ifsc:"", accountHolderName:"", nomineeName:"", relationship:"", fatca:false, taxResidencyCountry:"", isUsPerson:false, isUsCitizen:false });
+  const [form, setForm] = useState({ otp:"", phoneNumber:"", pan:"", consent:false, dateOfBirth:"", gender:"", occupation:"", annualIncomeBand:"", city:"", state:"", pincode:"", horizonScore:3, lossToleranceScore:3, incomeStabilityScore:3, experienceScore:3, preferredPlan:"direct", sipDay:5, goalName:"", accountNumber:"", ifsc:"", accountHolderName:"", nomineeName:"", relationship:"", fatca:false, taxResidencyCountry:"", isUsPerson:false, isUsCitizen:false, pep:"" });
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
   const { data, loading, error, refresh, api } = useInvestData();
@@ -51,6 +51,7 @@ export default function OnboardingFlow() {
     pan: ["Verify your PAN", "The mock KYC provider returns a simulated verification outcome."], identity: ["Confirm your identity", "Your consent is recorded before the mock document provider is called."],
     risk_profile: ["Understand your risk profile", "Four simple questions produce a provisional profile for this mock phase."], preferences: ["Shape your investment plan", "Choose how you prefer to invest and name the goal you are working toward."],
     bank: ["Verify your bank", "Used for future payments and redemptions. This phase runs a simulated penny-drop check."], nominee: ["Add a nominee", "Helps your investments reach the person you choose."], fatca: ["Complete your declaration", "Confirm your FATCA declaration to finish investment readiness."],
+    pep: ["Politically exposed person screening", "A required regulatory declaration. Most investors answer no and complete this instantly."],
   }), []);
 
   async function submit(e) {
@@ -61,7 +62,7 @@ export default function OnboardingFlow() {
       else if (stepId === "risk_profile") { await api.updateRiskProfile({ horizonScore:Number(form.horizonScore), lossToleranceScore:Number(form.lossToleranceScore), incomeStabilityScore:Number(form.incomeStabilityScore), experienceScore:Number(form.experienceScore) }); result = await api.submitCompliance("risk_profile", {}); }
       else if (stepId === "preferences") result = await api.updatePreferences({ preferredPlan:form.preferredPlan, sipDay:Number(form.sipDay), goals:form.goalName ? [{name:form.goalName}] : [] });
       else {
-        const payload = stepId === "mobile" ? {otp:form.otp, phoneNumber:form.phoneNumber} : stepId === "email" ? {otp:form.otp} : stepId === "pan" ? {pan:form.pan} : stepId === "identity" ? {pan:form.pan, consentToken:form.consent ? `consent-${Date.now()}` : ""} : stepId === "bank" ? {accountNumber:form.accountNumber, ifsc:form.ifsc, accountHolderName:form.accountHolderName} : stepId === "nominee" ? {name:form.nomineeName, relationship:form.relationship, allocationPct:100, minor:false} : {declared:form.fatca, taxResidencyCountry:form.taxResidencyCountry, isUsPerson:form.isUsPerson, isUsCitizen:form.isUsCitizen};
+        const payload = stepId === "mobile" ? {otp:form.otp, phoneNumber:form.phoneNumber} : stepId === "email" ? {otp:form.otp} : stepId === "pan" ? {pan:form.pan} : stepId === "identity" ? {pan:form.pan, consentToken:form.consent ? `consent-${Date.now()}` : ""} : stepId === "bank" ? {accountNumber:form.accountNumber, ifsc:form.ifsc, accountHolderName:form.accountHolderName} : stepId === "nominee" ? {name:form.nomineeName, relationship:form.relationship, allocationPct:100, minor:false} : stepId === "pep" ? {declared:form.pep === "yes"} : {declared:form.fatca, taxResidencyCountry:form.taxResidencyCountry, isUsPerson:form.isUsPerson, isUsCitizen:form.isUsCitizen};
         result = await api.submitCompliance(stepId, payload);
         if (stepId === "fatca" && result.overallStatus === "completed") {
           await api.openAccount();
@@ -95,6 +96,14 @@ export default function OnboardingFlow() {
               <label className="flex gap-3 rounded-2xl bg-surface-2 p-4 text-sm leading-6 text-ink-muted"><input type="checkbox" name="isUsCitizen" checked={form.isUsCitizen} onChange={update} className="mt-1 h-5 w-5 accent-[rgb(var(--color-brand))]"/><span>I am a US citizen.</span></label>
             </div>
             <label className="flex gap-3 rounded-2xl bg-surface-2 p-5 text-sm leading-6 text-ink-muted"><input type="checkbox" name="fatca" checked={form.fatca} onChange={update} required className="mt-1 h-5 w-5 accent-[rgb(var(--color-brand))]"/><span>I confirm that my tax-residency details are accurate and I agree to provide additional information if required.</span></label>
+          </div>}
+          {stepId === "pep" && <div className="max-w-2xl space-y-5">
+            <p className="text-sm leading-6 text-ink-muted">A Politically Exposed Person (PEP) holds, or has held, a prominent public position — for example a government minister, judge, senior military officer, or a senior executive at a state-owned enterprise — or is a close family member or known associate of such a person.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex gap-3 rounded-2xl bg-surface-2 p-4 text-sm leading-6 text-ink-muted"><input type="radio" name="pep" value="no" checked={form.pep === "no"} onChange={update} required className="mt-1 h-5 w-5 accent-[rgb(var(--color-brand))]"/><span>No — I am not a PEP, and have no close family member or known associate who is.</span></label>
+              <label className="flex gap-3 rounded-2xl bg-surface-2 p-4 text-sm leading-6 text-ink-muted"><input type="radio" name="pep" value="yes" checked={form.pep === "yes"} onChange={update} required className="mt-1 h-5 w-5 accent-[rgb(var(--color-brand))]"/><span>Yes — I am a PEP, or a close family member or known associate of one.</span></label>
+            </div>
+            <p className="text-xs text-ink-faint">A &ldquo;yes&rdquo; answer is not a barrier to investing — it routes to manual review rather than automatic completion, since this platform cannot auto-clear a self-declared PEP.</p>
           </div>}
           {notice && <p role="status" className={`mt-5 rounded-2xl p-4 text-sm ${notice.startsWith("Saved") ? "bg-pos/10 text-pos" : "bg-neg/10 text-neg"}`}>{notice}</p>}
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5"><button type="button" disabled={index===0} onClick={()=>{setIndex(i=>Math.max(0,i-1));setNotice("");}} className="min-h-11 rounded-full border border-line px-5 text-sm font-semibold text-ink disabled:opacity-35">Back</button><button type="submit" disabled={saving} className="min-h-11 rounded-full bg-ink px-6 text-sm font-semibold text-bg disabled:opacity-50">{saving ? "Saving…" : "Save and continue"}</button></div>

@@ -7,7 +7,8 @@ const copy = {
   mobile: ["Mobile verified", "Protects account access and transaction updates.", "2 min"], email: ["Email verified", "Receipts and important service communication.", "2 min"],
   pan: ["PAN verification", "Required for identity and tax reporting.", "3 min"], identity: ["Identity check", "Confirms your KYC status with recorded consent.", "5 min"],
   nominee: ["Nominee", "Helps your investments reach the right person.", "4 min"], bank: ["Bank verification", "Confirms where redemptions and mandates belong.", "4 min"],
-  fatca: ["FATCA declaration", "A required tax-residency declaration.", "2 min"], risk_profile: ["Risk profile", "Aligns products with your capacity and experience.", "5 min"],
+  fatca: ["FATCA declaration", "A required tax-residency declaration.", "2 min"], pep: ["PEP screening", "A required regulatory declaration. Most investors answer no.", "1 min"],
+  risk_profile: ["Risk profile", "Aligns products with your capacity and experience.", "5 min"],
   investment_ready: ["Investment ready", "Unlocked automatically when every required check is complete.", "Automatic"],
 };
 
