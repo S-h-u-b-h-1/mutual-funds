@@ -359,16 +359,16 @@
 "r1y": 13.51
 },
 {
-"code": "152439",
-"name": "Edelweiss Technology Fund - Regular Plan - Growth",
-"amc": "Edelweiss",
+"code": "152462",
+"name": "Kotak Technology Fund - Direct Plan - Growth Option",
+"amc": "Kotak Mahindra",
 "category": "Sectoral/ Thematic",
-"nav": 12.8959,
-"r1w": 3.71,
-"r1m": 9.87,
-"r3m": 10.79,
-"r6m": 9.59,
-"r1y": 11.64
+"nav": 10.934,
+"r1w": 1.37,
+"r1m": 9.89,
+"r3m": 9.0,
+"r6m": -5.42,
+"r1y": -3.72
 }
 ],
 "bottom": [
@@ -595,7 +595,7 @@
 {
 "category": "Sectoral/ Thematic",
 "count": 465,
-"avg": 4.5,
+"avg": 4.51,
 "median": 4.47,
 "best": {
 "name": "SBI Automotive Opportunities Fund - Direct Plan - Growth",
@@ -1031,7 +1031,7 @@
 {
 "amc": "Kotak Mahindra",
 "funds": 54,
-"avg": 4.54,
+"avg": 4.56,
 "pct_outperform": 52,
 "breadth": 100,
 "score": 70.8
