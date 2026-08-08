@@ -1,5 +1,5 @@
 {
- "asOf": "2026-08-07",
+ "asOf": "2026-08-09",
  "denominators": {
   "universe": 14252,
   "active": 8531,
@@ -46,10 +46,10 @@
     "investable_n": 3481
    },
    "NAV History (90d)": {
-    "universe_pct": 27.97,
-    "universe_n": 3986,
-    "investable_pct": 98.94,
-    "investable_n": 3444
+    "universe_pct": 27.98,
+    "universe_n": 3988,
+    "investable_pct": 98.99,
+    "investable_n": 3446
    },
    "1M": {
     "universe_pct": 28.03,
@@ -88,16 +88,16 @@
     "investable_n": 0
    },
    "Volatility": {
-    "universe_pct": 27.97,
-    "universe_n": 3986,
-    "investable_pct": 98.94,
-    "investable_n": 3444
+    "universe_pct": 27.98,
+    "universe_n": 3988,
+    "investable_pct": 98.99,
+    "investable_n": 3446
    },
    "Drawdown": {
-    "universe_pct": 27.97,
-    "universe_n": 3986,
-    "investable_pct": 98.94,
-    "investable_n": 3444
+    "universe_pct": 27.98,
+    "universe_n": 3988,
+    "investable_pct": 98.99,
+    "investable_n": 3446
    }
   },
   "Metadata": {
@@ -175,7 +175,7 @@
  },
  "performance_completeness": {
   "universe_avg": 46.6,
-  "investable_avg": 92.5,
+  "investable_avg": 92.6,
   "investable_ge80": 95.95,
   "universe_ge80": 27.06
  },

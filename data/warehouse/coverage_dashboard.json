@@ -1,5 +1,5 @@
 {
- "asOf": "2026-08-07",
+ "asOf": "2026-08-09",
  "live_amfi_fetched": true,
  "live_amfi_schemes": 14252,
  "mfpulse_schemes": 14252,
@@ -9,10 +9,10 @@
  "delisted_count": 0,
  "universe": {
   "asset_class": {
-   "Equity": 3007,
+   "Other": 2299,
    "Debt": 7967,
+   "Equity": 3009,
    "Hybrid": 832,
-   "Other": 2301,
    "Solution": 145
   },
   "scheme_type": {
@@ -21,9 +21,9 @@
    "Interval Fund Schemes": 41
   },
   "fund_type": {
+   "ETF": 351,
    "Active/Other": 11928,
    "Index Fund": 1290,
-   "ETF": 351,
    "Fund of Fund": 683
   },
   "international": 177,
@@ -36,7 +36,7 @@
   "nav_coverage_pct": 98.29,
   "historical_coverage_pct": 90.32,
   "returns_coverage_pct": 98.94,
-  "risk_coverage_pct": 98.94,
+  "risk_coverage_pct": 98.99,
   "benchmark_coverage_pct": 85.17,
   "category_coverage_pct": 100.0,
   "metadata_coverage_pct": 6.83,
@@ -48,7 +48,7 @@
   "document_coverage_pct": 6.83,
   "isin_coverage_pct": 98.77,
   "structure_coverage_pct": 100.0,
-  "performance_completeness_avg_investable": 92.5,
+  "performance_completeness_avg_investable": 92.6,
   "fund_completeness_avg_investable": 57.6,
   "research_readiness_avg_investable": 54.5
  }

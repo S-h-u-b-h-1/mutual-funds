@@ -1,5 +1,5 @@
 {
- "asOf": "2026-08-07",
+ "asOf": "2026-08-09",
  "checks": [
   {
    "check": "Every live AMFI scheme covered",
@@ -51,7 +51,7 @@
  "total": 9,
  "production_ready_pct": 100.0,
  "observations": {
-  "local_snapshot_age_days": 0,
+  "local_snapshot_age_days": -1,
   "note": "prod NAV refreshed daily by cron; local bundle may lag a few days"
  }
 }
