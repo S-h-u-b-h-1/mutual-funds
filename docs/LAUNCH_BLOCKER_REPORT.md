@@ -92,27 +92,28 @@ real but cosmetic, internal-only, or already in flight.
 
 ## HIGH
 
-### H1 — The CAS-upload progress bar is fabricated, not real backend state.
+### H1 — STALE FINDING, corrected 2026-08-09. The CAS-upload progress bar was fabricated in an earlier build; it is not anymore.
 
-- **Problem**: Per the platform's own prior audit (`docs/PORTFOLIO_UI_FUNCTIONAL_AUDIT.md:57`):
-  "Seven-stage pipeline... Advances every 650ms, unrelated to backend state." Explicitly labeled
-  "Misleading" by that doc.
-  &gt; ***Quoted directly** because it's the platform's own prior finding, stated in under 15 words,
-  and precisely on point.*
-- **Customer impact**: A customer uploading a real CAS statement watches a progress animation that
-  has no relationship to whether their document is actually being parsed, is stuck, or has failed —
-  they cannot tell real progress from a decorative timer.
-- **Business impact**: Direct violation of this mission's own Phase 6 principle ("never allow stale
-  information to appear fresh... never fabricate values") — this is the clearest instance of that
-  exact anti-pattern found anywhere in this audit.
-- **Technical impact**: None — the real parse *does* happen and *is* correct
-  (`docs/SUASION_PLATFORM_STATUS.md` §2); only the progress indicator lies about its pacing.
-- **Recommended fix**: Replace the fixed-interval fake progress with real state — the upload
-  request already returns a final result; at minimum collapse to a real
-  "uploading → parsing → done/error" state machine tied to the actual request lifecycle, not a
-  timer.
-- **Estimated effort**: S (a few hours) — no backend change needed, purely a frontend state fix.
-- **Dependencies**: None.
+- **Original problem** (as written 2026-08-07): quoted `docs/PORTFOLIO_UI_FUNCTIONAL_AUDIT.md:57`
+  — "Seven-stage pipeline... Advances every 650ms, unrelated to backend state" — without
+  re-checking it against current code, which this report's own Doc Trust Note commits to doing.
+  That specific gap was real once, but was already fixed **2026-07-16** (commit `042ce53`,
+  `fix(portfolio-ui): audit persistence UX and repair import flow`) — three weeks before this
+  report was written on 2026-08-07.
+- **Current state, verified directly against `frontend/app/components/PortfolioWorkspace.jsx`**:
+  `uploadPhase` is a real state machine (`idle`/`uploading`/`processing`/`complete`/`error`) driven
+  entirely by the actual `fetch` request lifecycle in `processStatement()` — no `setInterval`,
+  no timer, no invented stage advancing on a clock anywhere in the file. `UploadStatus` renders
+  exactly those states, includes a working "Cancel request" button wired to a real
+  `AbortController.abort()`, and its own copy proactively tells the customer "timed or invented
+  parser stages are not shown" — the UI actively counter-messages the old behavior rather than
+  merely no longer exhibiting it.
+- **Lesson**: this report's own audit pass cited a prior document's finding here instead of
+  checking live code, the exact failure mode its Doc Trust Note says it avoided elsewhere (L4).
+  Treat any report item whose only cited evidence is another document, not a file:line in current
+  code, as unverified until checked — this one turned out to be resolved, but that was luck, not
+  the report's own process working.
+- **Dependencies**: None — no work item remains here.
 
 ### H2 — Document downloads return metadata with no real file behind them.
 
