@@ -13,7 +13,7 @@ export const revalidate = 600;
 // name/AMC/asset_class/ISIN; benchmark and manager search need this server-side path instead.
 // Every match is real: no field here is guessed or ranked by anything but exact/substring hits.
 function matches(f, q, qLower) {
-  if (f.code === q) return "Scheme code";
+  if (f.code === q) return "Exact fund match";
   if (f.isin && f.isin.toUpperCase() === q.toUpperCase()) return "ISIN";
   if (f.name?.toLowerCase().includes(qLower)) return "Fund name";
   if (f.amc?.toLowerCase().includes(qLower)) return "AMC";
@@ -22,7 +22,7 @@ function matches(f, q, qLower) {
   return null;
 }
 
-function researchResult(f, matchType = "Exact code") {
+function researchResult(f, matchType = "Exact fund match") {
   const health = fundHealth(f);
   return {
     code: f.code,
@@ -33,6 +33,9 @@ function researchResult(f, matchType = "Exact code") {
     plan: f.plan,
     isDirect: f.isDirect,
     isIdcw: f.isIdcw,
+    nav: f.nav ?? null,
+    navDate: f.navDate ?? null,
+    staleDays: f.staleDays ?? null,
     matchType,
     r1m: f.r1m ?? null,
     r3m: f.r3m ?? null,

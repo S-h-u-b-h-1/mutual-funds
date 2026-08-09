@@ -25,6 +25,33 @@ const WORKSPACE_SHORTCUTS = [
   { label: "Go to Performance Leaderboards", path: "/performance", key: "/performance" }
 ];
 
+function formatSearchResultContext(result) {
+  if ((result.kind || "fund") !== "fund") return result.subtitle || result.kind || "MF Pulse";
+  const plan = result.plan || (result.isDirect ? "Direct" : "Regular");
+  const option = result.isIdcw ? "IDCW" : "Growth";
+  const nav = result.nav == null ? null : `NAV ₹${Number(result.nav).toFixed(2)}`;
+  const navDate = result.navDate ? `as of ${result.navDate}` : null;
+  const freshness = typeof result.staleDays === "number"
+    ? result.staleDays === 0
+      ? "fresh"
+      : result.staleDays <= 2
+        ? `${result.staleDays}d old`
+        : "stale"
+    : null;
+  return [result.amc, result.category, [plan, option].filter(Boolean).join(" · "), nav, navDate, freshness].filter(Boolean).join(" · ");
+}
+
+function resultTypeLabel(result) {
+  const kind = result.kind || "fund";
+  if (kind === "fund") return result.matchType && result.matchType !== "Fund name" ? result.matchType : "Fund";
+  if (kind === "company") return "Company";
+  if (kind === "sector") return "Sector";
+  if (kind === "invest") return "Invest";
+  if (kind === "portfolio") return "Portfolio";
+  if (kind === "support") return "Help";
+  return kind.replace(/^\w/, (char) => char.toUpperCase());
+}
+
 export function SearchLauncher({ className = "inline-flex w-full", compact = false }) {
   return (
     <button
@@ -97,13 +124,6 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
       .catch(() => {});
   }, [open, syncStorage]);
 
-  useEffect(() => {
-    if (!listenForOpenRequest) return undefined;
-    function handleOpenRequest() { triggerRef.current?.click(); }
-    window.addEventListener("mfp-open-search", handleOpenRequest);
-    return () => window.removeEventListener("mfp-open-search", handleOpenRequest);
-  }, [listenForOpenRequest]);
-
   // Toggle pinning an item
   const togglePin = (e, item) => {
     e.preventDefault();
@@ -140,6 +160,13 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
     setResults([]);
     setActiveIndex(0);
   }, []);
+
+  useEffect(() => {
+    if (!listenForOpenRequest) return undefined;
+    function handleOpenRequest() { openPalette(); }
+    window.addEventListener("mfp-open-search", handleOpenRequest);
+    return () => window.removeEventListener("mfp-open-search", handleOpenRequest);
+  }, [listenForOpenRequest, openPalette]);
 
   // Keyboard shortcut listener (Cmd+K, Ctrl+K, and /)
   useEffect(() => {
@@ -660,7 +687,8 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                     const globalIndex = idx;
                     const targetPath = r.path || `/fund/${r.code}`;
                     const isPinned = pinned.some((x) => x.path === targetPath);
-                    const subtitle = r.subtitle || [r.amc, r.category].filter(Boolean).join(" · ");
+                    const subtitle = formatSearchResultContext(r);
+                    const typeLabel = resultTypeLabel(r);
                     return (
                       <div
                         key={r.code}
@@ -685,13 +713,8 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
                           </span>
                         </button>
                         <div className="flex items-center gap-2 shrink-0 ml-3">
-                          {r.matchType && r.matchType !== "Fund name" && (
-                            <span className="rounded-full border border-line px-2 py-0.5 text-[10px] text-ink-faint">
-                              {r.matchType}
-                            </span>
-                          )}
-                          <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] font-mono text-ink-faint font-semibold">
-                            {r.code}
+                          <span className="rounded-full border border-line px-2 py-0.5 text-[10px] text-ink-faint">
+                            {typeLabel}
                           </span>
                           <button
                             type="button"

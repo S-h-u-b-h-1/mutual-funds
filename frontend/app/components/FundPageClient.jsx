@@ -206,6 +206,18 @@ export default function FundPageClient({
     track("value_copied", { label, text });
   };
 
+  const copyResearchLink = async () => {
+    const researchLink = window.location.href;
+    try {
+      await navigator.clipboard.writeText(researchLink);
+      alert("Copied research link.");
+      track("value_copied", { label: "Research link" });
+    } catch {
+      window.prompt("Copy this research link:", researchLink);
+      track("value_copy_fallback", { label: "Research link" });
+    }
+  };
+
   // Premium Health Score Ring details
   const healthRingDashoffset = useMemo(() => {
     if (!health) return 0;
@@ -443,11 +455,11 @@ export default function FundPageClient({
               Workspace Actions
             </div>
             <button
-              onClick={() => copyToClipboard(fund.code, "Scheme Code")}
+              onClick={copyResearchLink}
               className="w-full text-left rounded-lg px-2.5 py-1.5 text-ink-muted hover:bg-surface-2 transition-colors flex items-center justify-between"
             >
-              <span>Copy Scheme Code</span>
-              <span className="font-mono text-[10.5px] text-ink-faint">{fund.code}</span>
+              <span>Copy research link</span>
+              <span className="text-[10.5px] text-ink-faint">Share</span>
             </button>
             <button
               onClick={() => {
