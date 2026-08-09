@@ -161,7 +161,7 @@ real but cosmetic, internal-only, or already in flight.
   by `AuthGate` itself before this fix — the gap this closes is specifically the mid-visit
   session-expiry case the report describes, verified by code path rather than a forced live race.
 
-### H4 — SIPs never actually recur after the first mandate is set up.
+### H4 — RESOLVED 2026-08-09. SIPs never actually recurred after the first mandate was set up.
 
 - **Problem**: `orderService.js` exports only `createSipMandate`/`listSipMandates` — no job or
   handler exists anywhere that fires subsequent SIP installments (confirmed: zero portfolio- or
@@ -183,6 +183,16 @@ real but cosmetic, internal-only, or already in flight.
 - **Estimated effort**: M (1-2 days) — the order-creation path this reuses is already solid and
   now idempotent.
 - **Dependencies**: None for the mock environment; real money movement still depends on C1.
+- **Resolution**: full detail in `docs/SIP_RECURRENCE.md`. A `sip-installment-run` job type
+  (`frontend/app/lib/platform/jobs/handlers/sipInstallments.js`) scans active mandates daily,
+  places one purchase order per mandate due today via `createOrder()` with idempotency key
+  `sip:<mandateId>:<dueDate>` — exactly the pattern this entry recommended — and skips (not
+  throws) a single mandate's failure so it can't block the rest of the run. Seeded as a
+  `job_schedules` row (`036_sip_installments.sql`), same mechanism the two existing
+  platform-maintenance jobs already use — no new workflow needed. Caught and fixed a real bug
+  during testing: node-postgres's local-timezone `date` parsing was silently shifting mandate
+  dates by a day in this sandbox; fixed by casting to `::text` in SQL before any date math runs.
+  15 tests (11 pure unit + 4 real-Neon integration).
 
 ### H5 — Notification channels (SMS/push/email) are all mock — no real message ever leaves the system.
 

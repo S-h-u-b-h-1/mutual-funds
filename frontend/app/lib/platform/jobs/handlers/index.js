@@ -4,6 +4,9 @@
 // directly instead.
 import "./vaultRetentionSweep.js";
 import "./jobHistoryPrune.js";
+// H4 (docs/LAUNCH_BLOCKER_REPORT.md): registers the 'sip-installment-run' job type — the daily
+// recurrence job that actually places SIP purchase orders (see sipInstallments.js).
+import "./sipInstallments.js";
 // M2 webhook platform: registers 'webhook-process' + 'webhook-outbound-deliver' job types and
 // the incoming provider handlers they dispatch to.
 import "../../webhooks/core.js";
