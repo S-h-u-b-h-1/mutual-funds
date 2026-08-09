@@ -135,7 +135,7 @@ real but cosmetic, internal-only, or already in flight.
 - **Dependencies**: A storage choice (S3-compatible, Vercel Blob, or similar) — not blocked on
   licensed provider access, genuinely buildable today.
 
-### H3 — An expired or logged-out session hitting `/invest/*` dead-ends instead of redirecting to login.
+### H3 — RESOLVED 2026-08-09. An expired or logged-out session hitting `/invest/*` used to dead-end instead of redirecting to login.
 
 - **Problem**: No `middleware.js` exists for the invest route tree; `InvestShell.jsx` only reads
   `useSession()` for a display name, never redirects on `unauthenticated`. `useInvestData.js`'s
@@ -153,6 +153,12 @@ real but cosmetic, internal-only, or already in flight.
   redirect to `/login?callbackUrl=...` specifically on a 401, not just show a generic retry.
 - **Estimated effort**: S (a few hours).
 - **Dependencies**: None.
+- **Resolution**: took the second option — `useInvestData`'s catch block now redirects to
+  `/login?callbackUrl=...` on a 401 (`InvestApiError.status === 401`) instead of just setting an
+  error message, reusing the exact callback pattern `AuthGate.jsx` already uses. Full page-load
+  cases (never signed in, or signed in with an incomplete profile) were already correctly handled
+  by `AuthGate` itself before this fix — the gap this closes is specifically the mid-visit
+  session-expiry case the report describes, verified by code path rather than a forced live race.
 
 ### H4 — SIPs never actually recur after the first mandate is set up.
 
@@ -199,7 +205,7 @@ real but cosmetic, internal-only, or already in flight.
 - **Dependencies**: A transactional email/SMS provider account (cheap, fast — not the same category
   of blocker as C1).
 
-### H6 — `/advisor`, `/advisor/workspace`, `/operations`, and `/management` are publicly-routable, non-functional UI shells with no role-gating found.
+### H6 — RESOLVED 2026-08-09. `/advisor/workspace`, `/operations`, and `/management` were publicly-routable, non-functional UI shells with no role-gating.
 
 - **Problem**: `AdvisorWorkspace.jsx` and `InternalConsole.jsx` (exporting `OperationsConsole` +
   `ManagementDashboard`) are real, routed pages (`app/advisor/workspace/page.js`,
@@ -219,6 +225,13 @@ real but cosmetic, internal-only, or already in flight.
 - **Estimated effort**: XS-S.
 - **Dependencies**: None for the gating itself; the underlying advisor/ops backend remains
   explicitly out of scope (design-only) per prior direction.
+- **Resolution**: each page now calls `requireRole(["advisor","admin"])` (Advisor Workspace) or
+  `requireRole(["admin"])` (Operations, Management) and calls `notFound()` when it returns null —
+  which is unconditional today, since no role-granting flow exists. Verified live in a dev
+  environment for both an anonymous visitor and a freshly-registered, default-role authenticated
+  user: all three routes 404. The bare `/advisor` contact-lead page was never actually in scope —
+  it's a deliberately public lead-gen form (see `AuthGate.jsx`'s own comment), not an internal
+  console; the report's heading above has been corrected to drop it from this item's title.
 
 ---
 
