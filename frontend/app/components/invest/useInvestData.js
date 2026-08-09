@@ -1,9 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { investApi } from "../../lib/invest/api";
 
+// H3 (docs/LAUNCH_BLOCKER_REPORT.md): a session that expires mid-visit previously left the
+// customer stuck on a "This view did not load" card with only a "Try again" button that re-hit
+// the same 401'ing endpoint -- no path back to /login anywhere in the invest tree. A 401 here
+// means the session itself is gone, not a transient failure, so it's handled as a redirect
+// rather than a retryable error, mirroring the callbackUrl pattern AuthGate.jsx already uses for
+// a signed-out visitor's first load.
 export function useInvestData() {
+  const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -12,9 +20,16 @@ export function useInvestData() {
     try {
       const [profile, compliance] = await Promise.all([investApi.getProfile(), investApi.getCompliance()]);
       setData({ ...profile, compliance });
-    } catch (e) { setError(e.message); }
+    } catch (e) {
+      if (e?.status === 401) {
+        const target = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        router.replace(`/login?callbackUrl=${encodeURIComponent(target)}`);
+        return;
+      }
+      setError(e.message);
+    }
     finally { setLoading(false); }
-  }, []);
+  }, [router]);
   useEffect(() => { refresh(); }, [refresh]);
   return { data, loading, error, refresh, api: investApi };
 }
