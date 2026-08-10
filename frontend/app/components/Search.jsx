@@ -77,6 +77,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [recent, setRecent] = useState([]);
   const [popular, setPopular] = useState([]);
   const [pinned, setPinned] = useState([]);
@@ -158,6 +159,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
     setOpen(false);
     setQ("");
     setResults([]);
+    setError("");
     setActiveIndex(0);
   }, []);
 
@@ -225,6 +227,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
       return;
     }
     setLoading(true);
+    setError("");
     const myReq = ++reqId.current;
     timer.current = setTimeout(async () => {
       try {
@@ -239,7 +242,10 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
           getSearchHistory(6).then(setRecent);
         }
       } catch {
-        if (myReq === reqId.current) setResults([]);
+        if (myReq === reqId.current) {
+          setResults([]);
+          setError("Search is temporarily unavailable. Try again in a moment.");
+        }
       } finally {
         if (myReq === reqId.current) setLoading(false);
       }
@@ -344,14 +350,15 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
         ref={dialogRef}
         closedby="any"
         onClose={closePalette}
+        onClick={(event) => { if (event.target === event.currentTarget) closePalette(); }}
         aria-labelledby="global-search-title"
-        className="cmd-dialog fixed inset-0 z-50 m-0 hidden h-full w-full max-h-none max-w-none overflow-hidden bg-transparent p-0 pt-[8vh] outline-none open:flex open:items-start open:justify-center"
+        className="cmd-dialog fixed inset-0 z-[90] m-0 hidden h-full w-full max-h-none max-w-none overflow-hidden bg-transparent p-0 pt-3 outline-none open:flex open:items-start open:justify-center sm:pt-[8vh]"
       >
-        <div className="w-full max-w-2.5xl overflow-hidden rounded-2xl border border-white/[0.08] bg-[#090b11]/97 shadow-2xl backdrop-blur-3xl transition-spring flex flex-col max-h-[82vh] mx-4" style={{ maxWidth: "720px" }}>
+        <div className="mx-3 flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-[1.35rem] border border-line bg-surface/98 shadow-float backdrop-blur-3xl transition-spring sm:mx-4 sm:max-h-[82vh]" style={{ maxWidth: "720px" }}>
           <h2 id="global-search-title" className="sr-only">Search MF Pulse</h2>
           
           {/* Header Search Field */}
-          <div className="flex items-center gap-3.5 border-b border-white/[0.06] px-5 py-4">
+          <div className="flex items-center gap-3 border-b border-line/70 px-4 py-3.5 sm:px-5 sm:py-4">
             <svg className="h-5 w-5 text-accent-soft shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
@@ -379,11 +386,13 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
               type="button"
               aria-label="Close search"
               onClick={closePalette}
-              className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-wide text-ink-faint hover:text-ink transition-colors"
+              className="min-h-8 rounded-lg border border-line bg-surface-2 px-2 font-mono text-[9.5px] uppercase tracking-wide text-ink-faint transition-colors hover:text-ink"
             >
               esc
             </button>
           </div>
+
+          {error && <div role="alert" className="border-b border-neg/20 bg-neg/10 px-5 py-3 text-xs text-neg">{error}</div>}
 
           {/* Body items scroll container */}
           <div
@@ -745,7 +754,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
           </div>
 
           {/* Footer Shortcuts Guide */}
-          <div className="flex items-center justify-between border-t border-white/[0.06] bg-white/[0.015] px-4.5 py-3 text-[11px] text-ink-faint">
+          <div className="flex items-center justify-between border-t border-line/70 bg-surface-2/70 px-4 py-3 text-[11px] text-ink-faint sm:px-5">
             <div className="flex items-center gap-4">
               <span className="inline-flex items-center gap-1"><kbd className="rounded bg-white/[0.08] px-1 py-0.5 text-[9px] font-semibold text-ink-muted">↑↓</kbd> Navigate</span>
               <span className="inline-flex items-center gap-1"><kbd className="rounded bg-white/[0.08] px-1 py-0.5 text-[9px] font-semibold text-ink-muted">Enter</kbd> Select</span>

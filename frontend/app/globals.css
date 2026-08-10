@@ -69,7 +69,7 @@
       radial-gradient(680px 360px at 4% 12%, rgb(var(--color-information) / 0.08), transparent 62%),
       linear-gradient(180deg, rgb(var(--color-canvas)), rgb(var(--color-canvas)));
     background-attachment: fixed;
-    padding-bottom: 92px;
+    padding-bottom: 0;
   }
   h1, h2, h3 { text-wrap: balance; }
   p { text-wrap: pretty; }
@@ -78,8 +78,6 @@
   :focus-visible { outline: 3px solid rgb(var(--color-focus) / 0.5); outline-offset: 3px; }
   ::selection { background: rgb(var(--color-brand) / 0.22); }
 }
-
-@media (min-width: 1024px) { body { padding-bottom: 0; } }
 
 @layer components {
   .glass, .research-surface {

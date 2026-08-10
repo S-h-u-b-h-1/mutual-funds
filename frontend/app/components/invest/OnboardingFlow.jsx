@@ -64,7 +64,18 @@ export default function OnboardingFlow() {
       else {
         const payload = stepId === "mobile" ? {otp:form.otp, phoneNumber:form.phoneNumber} : stepId === "email" ? {otp:form.otp} : stepId === "pan" ? {pan:form.pan} : stepId === "identity" ? {pan:form.pan, consentToken:form.consent ? `consent-${Date.now()}` : ""} : stepId === "bank" ? {accountNumber:form.accountNumber, ifsc:form.ifsc, accountHolderName:form.accountHolderName} : stepId === "nominee" ? {name:form.nomineeName, relationship:form.relationship, allocationPct:100, minor:false} : stepId === "pep" ? {declared:form.pep === "yes"} : {declared:form.fatca, taxResidencyCountry:form.taxResidencyCountry, isUsPerson:form.isUsPerson, isUsCitizen:form.isUsCitizen};
         result = await api.submitCompliance(stepId, payload);
-        if (stepId === "fatca" && result.overallStatus === "completed") {
+        // P0 (Suasion real-investor launch path): this used to fire only when stepId === "fatca",
+        // but pep is the LAST step in the fixed order above, so overallStatus can never actually
+        // be "completed" at the moment fatca is submitted -- it only reaches "completed" when pep
+        // is submitted, by which point stepId is "pep", not "fatca", and the old condition was
+        // always false on a normal walkthrough. No real user could ever open an investment
+        // account through this flow, unconditionally -- not just PEP-decliners, everyone. Firing
+        // on ANY step whose submission happens to complete compliance, rather than hardcoding
+        // which step that is, closes the gap and stays correct if the step order ever changes.
+        // Safe to call every time compliance is already complete (e.g. revisiting a finished
+        // step) -- ensureAccount() is idempotent, verified via identityService.js's own doc
+        // comment and unique-constraint race handling.
+        if (result.overallStatus === "completed") {
           await api.openAccount();
         }
       }

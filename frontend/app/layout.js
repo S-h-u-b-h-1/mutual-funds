@@ -9,7 +9,7 @@ import AuthGate from "./components/AuthGate";
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-research-sans", display: "swap" });
 const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-research-mono", display: "swap" });
 
-const SITE = "https://frontend-six-beta-20.vercel.app";
+const SITE = "https://mf-pulse.vercel.app";
 const DESC =
   "Mutual fund performance intelligence for India — real 1-week to 1-year NAV returns, AMC quality rankings, and category leadership across 1,200+ equity funds, from daily AMFI data.";
 

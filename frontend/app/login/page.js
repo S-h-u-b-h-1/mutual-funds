@@ -14,7 +14,9 @@ const oauthButtonClass =
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const requestedCallback = searchParams.get("callbackUrl");
+  const callbackUrl = requestedCallback?.startsWith("/") && !requestedCallback.startsWith("//") ? requestedCallback : "/dashboard";
+  const accountCreated = searchParams.get("created") === "1";
 
   const [providers, setProviders] = useState(null);
   const [email, setEmail] = useState("");
@@ -35,23 +37,37 @@ function LoginForm() {
     e.preventDefault();
     setError("");
     setBusy(true);
-    const result = await signIn("credentials", { email, password, redirect: false });
-    setBusy(false);
-    if (result?.error) {
-      setError("Incorrect email or password.");
-      return;
+    try {
+      const result = await signIn("credentials", { email, password, redirect: false });
+      if (!result || result.error) {
+        setError("Incorrect email or password.");
+        return;
+      }
+      router.push(callbackUrl);
+      router.refresh();
+    } catch {
+      setError("We could not reach the sign-in service. Check your connection and try again.");
+    } finally {
+      setBusy(false);
     }
-    router.push(callbackUrl);
-    router.refresh();
   }
 
   async function handleMagicLink(e) {
     e.preventDefault();
     setError("");
     setBusy(true);
-    await signIn("resend", { email: magicEmail, redirect: false, callbackUrl });
-    setBusy(false);
-    setMagicSent(true);
+    try {
+      const result = await signIn("resend", { email: magicEmail, redirect: false, callbackUrl });
+      if (!result || result.error) {
+        setError("We could not send the sign-in link. Please try again.");
+        return;
+      }
+      setMagicSent(true);
+    } catch {
+      setError("We could not reach the sign-in service. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -101,6 +117,7 @@ function LoginForm() {
         ) : null}
 
         <form onSubmit={handleCredentials} className="mt-6 space-y-4">
+          {accountCreated && <p role="status" className="rounded-2xl border border-pos/25 bg-pos/10 px-4 py-3 text-sm text-pos">Your account was created. Sign in to continue.</p>}
           <label className="block text-sm font-semibold text-ink">Email<input type="email" autoComplete="email" required placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className={`${inputClass} mt-2`} /></label>
           <label className="block text-sm font-semibold text-ink">Password<input type="password" autoComplete="current-password" required placeholder="Your password" value={password} onChange={(e) => setPassword(e.target.value)} className={`${inputClass} mt-2`} /></label>
           {error && <p role="alert" className="rounded-2xl border border-neg/25 bg-neg/10 px-4 py-3 text-sm text-neg">{error}</p>}

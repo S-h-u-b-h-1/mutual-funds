@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { hasDatabaseUrl, query } from "../../../lib/db";
+import { hasDatabaseUrl, withTransaction } from "../../../lib/db";
 import { checkRateLimit, rateLimitResponse, getClientIp } from "../../../lib/platform/rateLimit/core";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -35,22 +35,33 @@ export async function POST(request) {
     return Response.json({ error: "Password must be at least 8 characters" }, { status: 400 });
   }
 
-  const existing = await query(`select id from users where email = $1`, [email]);
-  if (existing.rows[0]) {
-    return Response.json({ error: "An account with this email already exists" }, { status: 409 });
+  try {
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await withTransaction(async (client) => {
+      const existing = await client.query(`select id from users where email = $1`, [email]);
+      if (existing.rows[0]) return null;
+
+      const inserted = await client.query(
+        `insert into users (name, email, password_hash) values ($1, $2, $3) returning id, name, email`,
+        [name, email, passwordHash]
+      );
+      const created = inserted.rows[0];
+      await client.query(
+        `insert into audit_log (user_id, action, metadata) values ($1, 'sign_up', $2)`,
+        [created.id, JSON.stringify({ method: "credentials" })]
+      );
+      return created;
+    });
+
+    if (!user) {
+      return Response.json({ error: "An account with this email already exists" }, { status: 409 });
+    }
+    return Response.json({ id: user.id, name: user.name, email: user.email }, { status: 201 });
+  } catch (error) {
+    if (error?.code === "23505") {
+      return Response.json({ error: "An account with this email already exists" }, { status: 409 });
+    }
+    console.error("Registration failed", error);
+    return Response.json({ error: "Account creation is temporarily unavailable" }, { status: 503 });
   }
-
-  const passwordHash = await bcrypt.hash(password, 12);
-  const r = await query(
-    `insert into users (name, email, password_hash) values ($1, $2, $3) returning id, name, email`,
-    [name, email, passwordHash]
-  );
-  const user = r.rows[0];
-
-  await query(
-    `insert into audit_log (user_id, action, metadata) values ($1, 'sign_up', $2)`,
-    [user.id, JSON.stringify({ method: "credentials" })]
-  );
-
-  return Response.json({ id: user.id, name: user.name, email: user.email }, { status: 201 });
 }
