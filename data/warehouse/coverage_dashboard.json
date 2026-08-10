@@ -1,5 +1,5 @@
 {
- "asOf": "2026-08-09",
+ "asOf": "2026-08-10",
  "live_amfi_fetched": true,
  "live_amfi_schemes": 14252,
  "mfpulse_schemes": 14252,
@@ -9,22 +9,22 @@
  "delisted_count": 0,
  "universe": {
   "asset_class": {
-   "Equity": 3009,
    "Debt": 7967,
+   "Equity": 3009,
+   "Hybrid": 832,
    "Other": 2299,
-   "Solution": 145,
-   "Hybrid": 832
+   "Solution": 145
   },
   "scheme_type": {
-   "Open Ended Schemes": 9500,
    "Close Ended Schemes": 4711,
+   "Open Ended Schemes": 9500,
    "Interval Fund Schemes": 41
   },
   "fund_type": {
    "Active/Other": 11928,
+   "ETF": 351,
    "Index Fund": 1290,
-   "Fund of Fund": 683,
-   "ETF": 351
+   "Fund of Fund": 683
   },
   "international": 177,
   "commodity": 209
