@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { getStoredProfile, isProfileComplete } from "../lib/userProfile";
+import { getStoredProfile, isProfileComplete, saveStoredProfile } from "../lib/userProfile";
+import { getResearchProfile } from "../lib/cloudSync";
 
 const AUTH_PAGES = new Set(["/login", "/register", "/forgot-password", "/reset-password"]);
 
@@ -76,18 +77,41 @@ export default function AuthGate({ children }) {
       return;
     }
 
-    function refreshProfile() {
+    let cancelled = false;
+
+    function refreshLocalProfile() {
       const profile = getStoredProfile(session.user);
       setProfileComplete(isProfileComplete(profile));
       setProfileReady(true);
     }
 
-    refreshProfile();
-    window.addEventListener("storage", refreshProfile);
-    window.addEventListener("mfp-profile-updated", refreshProfile);
+    async function restoreProfile() {
+      setProfileReady(false);
+      const localProfile = getStoredProfile(session.user);
+      if (isProfileComplete(localProfile)) {
+        if (!cancelled) {
+          setProfileComplete(true);
+          setProfileReady(true);
+        }
+        return;
+      }
+
+      // Profiles are account data, not a device-only access token. Restore the cloud copy before
+      // deciding that a returning user needs setup again, and cache it locally for the rest of UI.
+      const cloudProfile = await getResearchProfile();
+      if (cancelled) return;
+      const restoredProfile = cloudProfile ? saveStoredProfile(session.user, cloudProfile) : localProfile;
+      setProfileComplete(isProfileComplete(restoredProfile));
+      setProfileReady(true);
+    }
+
+    restoreProfile();
+    window.addEventListener("storage", refreshLocalProfile);
+    window.addEventListener("mfp-profile-updated", refreshLocalProfile);
     return () => {
-      window.removeEventListener("storage", refreshProfile);
-      window.removeEventListener("mfp-profile-updated", refreshProfile);
+      cancelled = true;
+      window.removeEventListener("storage", refreshLocalProfile);
+      window.removeEventListener("mfp-profile-updated", refreshLocalProfile);
     };
   }, [session, status]);
 

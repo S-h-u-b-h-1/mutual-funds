@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 
 const inputClass =
@@ -12,7 +12,6 @@ const oauthButtonClass =
   "inline-flex min-h-12 w-full items-center justify-center rounded-2xl border border-line bg-surface px-5 text-sm font-semibold text-ink-muted shadow-sm transition hover:border-accent/40 hover:text-ink disabled:opacity-50";
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const requestedCallback = searchParams.get("callbackUrl");
   const callbackUrl = requestedCallback?.startsWith("/") && !requestedCallback.startsWith("//") ? requestedCallback : "/dashboard";
@@ -38,13 +37,15 @@ function LoginForm() {
     setError("");
     setBusy(true);
     try {
-      const result = await signIn("credentials", { email, password, redirect: false });
+      const result = await signIn("credentials", { email, password, redirect: false, callbackUrl });
       if (!result || result.error) {
         setError("Incorrect email or password.");
         return;
       }
-      router.push(callbackUrl);
-      router.refresh();
+      // Auth.js writes the session cookie on the callback response. A full navigation makes the
+      // next page and SessionProvider read that cookie together; a client-only push can race the
+      // session refresh and let AuthGate bounce the user back to /login.
+      window.location.assign(result.url || callbackUrl);
     } catch {
       setError("We could not reach the sign-in service. Check your connection and try again.");
     } finally {
