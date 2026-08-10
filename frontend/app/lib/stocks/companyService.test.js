@@ -2,6 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import {
   createCompany, getCompanyById, getCompanyByIdentifier, searchCompanies,
   renameCompanyIdentifier, getIdentifierHistory, addExchangeListing, delistExchangeListing, getExchangeListings,
+  normalizeCompanyName,
 } from "./companyService.js";
 import { deleteTestCompany } from "./testHelpers.js";
 
@@ -40,6 +41,23 @@ describe("companyService (integration, real Neon, disposable companies)", () => 
 
     const notFound = await getCompanyByIdentifier({ isin: "INNOPE00000" });
     expect(notFound).toBeNull();
+
+    // Third-tier fallback: no ISIN/NSE/BSE match, but a normalized-name match against the same
+    // company under a differently-punctuated/differently-cased name — e.g. reconciling a
+    // BSE-100-only source row (no ISIN in that feed) against a company already created from NSE.
+    const byNormalizedName = await getCompanyByIdentifier({ name: `ALPHA TEST INDUSTRIES ${suffix} LTD.` });
+    expect(byNormalizedName?.id).toBe(companyId);
+
+    const noNameMatch = await getCompanyByIdentifier({ name: "Definitely Not A Real Company Ltd" });
+    expect(noNameMatch).toBeNull();
+  });
+
+  it("normalizeCompanyName treats legal-suffix/punctuation/case variants as equal", () => {
+    expect(normalizeCompanyName("Adani Enterprises Ltd.")).toBe(normalizeCompanyName("ADANI ENTERPRISES LTD."));
+    expect(normalizeCompanyName("Mahindra & Mahindra Ltd.")).toBe(normalizeCompanyName("Mahindra and Mahindra Limited"));
+    expect(normalizeCompanyName("Tata Motors Passenger Vehicles Ltd.")).not.toBe(normalizeCompanyName("Tata Motors Ltd."));
+    expect(normalizeCompanyName("")).toBe("");
+    expect(normalizeCompanyName(null)).toBe("");
   });
 
   it("finds the company via a partial display-name search", async () => {

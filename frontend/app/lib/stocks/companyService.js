@@ -56,9 +56,32 @@ export async function getCompanyById(companyId) {
   return shapeCompany(r.rows[0]);
 }
 
+// Third-tier fallback for getCompanyByIdentifier: strips the legal-suffix/punctuation noise that
+// differs between sources describing the same company (NSE's "Adani Enterprises Ltd." vs BSE's
+// "ADANI ENTERPRISES LTD." vs a filing's "Adani Enterprises Limited") so they compare equal.
+// Deliberately aggressive (drops ALL non-alphanumerics, not just spaces) because the two inputs
+// this exists to reconcile are two different exchanges' own free-text company-name fields, not a
+// single canonical source — a looser match here is the entire point of this being the LAST tier,
+// after ISIN/NSE/BSE have already had first refusal on the precise, structured identifiers.
+export function normalizeCompanyName(raw) {
+  return String(raw || "")
+    .toUpperCase()
+    .replace(/\bLTD\.?\b/g, "")
+    .replace(/\bLIMITED\b/g, "")
+    .replace(/\bPVT\.?\b/g, "")
+    .replace(/\bPRIVATE\b/g, "")
+    .replace(/&/g, "AND")
+    .replace(/[^A-Z0-9]+/g, "")
+    .trim();
+}
+
 // Looks a company up by whichever identifier the caller has on hand — a scheme upload, a
 // screener seed script, and a document-ingestion job each start from a different one of these.
-export async function getCompanyByIdentifier({ isin, nseSymbol, bseCode } = {}) {
+// Tries ISIN, then NSE symbol, then BSE code (all indexed exact matches) and only falls back to
+// `name` (normalized, table-scan) when none of the structured identifiers are available or match —
+// e.g. reconciling a BSE-100-only row (no ISIN/NSE symbol in that source) against a company
+// already created from the NIFTY 50 feed under its NSE identity.
+export async function getCompanyByIdentifier({ isin, nseSymbol, bseCode, name } = {}) {
   if (isin) {
     const r = await query(`select ${COMPANY_COLUMNS} from companies where isin = $1`, [isin]);
     if (r.rows[0]) return shapeCompany(r.rows[0]);
@@ -70,6 +93,16 @@ export async function getCompanyByIdentifier({ isin, nseSymbol, bseCode } = {}) 
   if (bseCode) {
     const r = await query(`select ${COMPANY_COLUMNS} from companies where bse_code = $1`, [bseCode]);
     if (r.rows[0]) return shapeCompany(r.rows[0]);
+  }
+  if (name) {
+    const target = normalizeCompanyName(name);
+    if (target) {
+      const r = await query(`select ${COMPANY_COLUMNS} from companies`);
+      const match = r.rows.find(
+        (row) => normalizeCompanyName(row.legal_name) === target || normalizeCompanyName(row.display_name) === target
+      );
+      if (match) return shapeCompany(match);
+    }
   }
   return null;
 }
