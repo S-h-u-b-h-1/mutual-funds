@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computePortfolioProjection } from "./projectionModel";
 import { healthScore } from "./scores";
+import { buildHealthReport } from "./healthReport";
 
 const holdings = [
   { schemeCode: "100218", schemeName: "JM Large Cap", category: "Large Cap", weight: 60, currentValue: 600000 },
@@ -32,5 +33,20 @@ describe("portfolio projection model", () => {
     expect(result.overall).toBeGreaterThan(0);
     expect(result.breakdown.map((item) => item.key)).toEqual(["quality", "diversification", "concentration", "overlapPenalty", "downsideResilience", "assetBalance"]);
     expect(result.breakdown.reduce((sum, item) => sum + item.weight, 0)).toBe(100);
+  });
+
+  it("explains the evaluation strategy and every material conclusion", () => {
+    const report = buildHealthReport(holdings.map((holding, index) => ({ ...holding, amc: index ? "Aditya Birla Sun Life" : "JM Financial", units: 100, purchaseValue: holding.currentValue * 0.8, source: "test", folioNumber: String(index + 1) })));
+    expect(report.evaluationStrategy.steps).toHaveLength(7);
+    expect(report.evaluationStrategy.decisionRule).toContain("High returns alone");
+    expect(report.strengths.every((item) => typeof item === "string")).toBe(true);
+    for (const detail of [...report.strengthDetails, ...report.weaknessDetails]) {
+      expect(detail.title).toBeTruthy();
+      expect(detail.observation).toBeTruthy();
+      expect(detail.whyItMatters).toBeTruthy();
+      expect(detail.evidence).toBeTruthy();
+      expect(detail.confidence).toBeTruthy();
+      expect(detail.nextStep).toBeTruthy();
+    }
   });
 });

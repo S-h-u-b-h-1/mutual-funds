@@ -593,9 +593,36 @@ function AllocationSection({ allocations }) {
   );
 }
 
+function EvaluationStrategy({ strategy }) {
+  if (!strategy) return null;
+  return (
+    <article className="portfolio-card-outlined">
+      <div className="flex flex-wrap items-start justify-between gap-3"><div className="max-w-3xl"><div className="eyebrow text-accent">Portfolio evaluation strategy · v{strategy.version}</div><h3 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-ink">Seven checks before MF Pulse states a conclusion</h3><p className="mt-3 text-sm leading-6 text-ink-muted">{strategy.objective}</p></div><a href="/methodology#portfolio-evaluation-strategy" className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-xs font-semibold text-ink-muted hover:text-accent">Full strategy</a></div>
+      <div className="mt-4 flex flex-wrap gap-2">{strategy.principles?.map((principle) => <span key={principle} className="rounded-full bg-accent/10 px-3 py-1.5 text-[11px] font-semibold text-accent">{principle}</span>)}</div>
+      <ol className="mt-5 grid portfolio-grid-gap md:grid-cols-2 xl:grid-cols-3">{strategy.steps?.map((step) => <li key={step.number} className="rounded-[1.1rem] border border-line bg-surface-2 p-4"><div className="financial-number text-xs font-semibold text-accent">{step.number}</div><h4 className="mt-2 text-sm font-semibold text-ink">{step.title}</h4><p className="mt-2 text-xs font-semibold leading-5 text-ink-muted">{step.question}</p><p className="mt-2 text-xs leading-5 text-ink-faint">{step.method}</p><div className="mt-3 rounded-lg bg-bg p-3 text-xs leading-5 text-ink"><span className="font-semibold">Current result:</span> {step.result}</div></li>)}</ol>
+      <div className="mt-4 rounded-xl border border-accent/20 bg-accent/5 p-4"><div className="eyebrow text-accent">Decision rule</div><p className="mt-2 text-sm leading-6 text-ink">{strategy.decisionRule}</p></div>
+    </article>
+  );
+}
+
+function InsightCard({ item, tone }) {
+  const isPositive = tone === "positive";
+  const border = isPositive ? "border-pos/25" : item.severity === "high" ? "border-neg/30" : "border-warn/25";
+  const accent = isPositive ? "text-pos" : item.severity === "high" ? "text-neg" : "text-warn";
+  return (
+    <li className={`rounded-xl border ${border} bg-surface-2 p-4`}>
+      <div className="flex flex-wrap items-start justify-between gap-2"><h4 className="text-sm font-semibold leading-5 text-ink">{item.title}</h4><StatusPill tone={isPositive ? "positive" : item.severity === "high" ? "negative" : "warning"}>{isPositive ? "Strength" : `${item.severity || "medium"} priority`}</StatusPill></div>
+      <p className={`mt-3 text-sm font-medium leading-6 ${accent}`}>{item.observation}</p>
+      <dl className="mt-4 space-y-3 text-xs leading-5"><div><dt className="font-semibold text-ink">Why it matters</dt><dd className="mt-1 text-ink-muted">{item.whyItMatters}</dd></div><div><dt className="font-semibold text-ink">Evidence and confidence</dt><dd className="mt-1 text-ink-muted">{item.evidence} <span className="text-ink-faint">Confidence: {item.confidence}.</span></dd></div><div><dt className="font-semibold text-ink">What to research next</dt><dd className="mt-1 text-ink-muted">{item.nextStep}</dd></div></dl>
+    </li>
+  );
+}
+
 function IntelligenceSection({ report }) {
   const strengths = report?.strengths || [];
   const weaknesses = report?.weaknesses || [];
+  const strengthDetails = report?.strengthDetails?.length ? report.strengthDetails : strengths.map((value) => ({ title: "Portfolio strength", observation: value, whyItMatters: "This rule cleared the current strength threshold.", evidence: "Portfolio intelligence response.", confidence: "Not separately supplied", nextStep: "Preserve only if it remains aligned with the portfolio's goal." }));
+  const weaknessDetails = report?.weaknessDetails?.length ? report.weaknessDetails : weaknesses.map((value) => ({ title: "Risk to review", observation: value, whyItMatters: "This rule cleared the current review threshold.", evidence: "Portfolio intelligence response.", confidence: "Not separately supplied", nextStep: "Research the contributing holdings before taking action.", severity: "medium" }));
   const research = report?.researchOpportunities || [];
   const projection = report?.projection;
   return (
@@ -603,6 +630,7 @@ function IntelligenceSection({ report }) {
       <SectionHeader eyebrow="Risk and portfolio intelligence" title="Health, uncertainty and the range of possible outcomes" detail="A transparent planning model—not a promise. Portfolio quality, downside resilience and evidence confidence are measured separately." action={<a href="/methodology#portfolio-model" className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-xs font-semibold text-ink-muted hover:text-accent">How this works</a>} />
       <h2 id="portfolio-intelligence-title" className="sr-only">Risk and portfolio intelligence</h2>
       {report?.bottomLine && <div className="rounded-[1.35rem] bg-accent/10 p-5"><div className="eyebrow text-accent">Research conclusion</div><p className="mt-2 text-sm leading-6 text-ink">{report.bottomLine}</p></div>}
+      <EvaluationStrategy strategy={report?.evaluationStrategy} />
 
       {projection && <>
         <div className="grid portfolio-grid-gap sm:grid-cols-2 xl:grid-cols-4">
@@ -629,9 +657,11 @@ function IntelligenceSection({ report }) {
         <details className="portfolio-card-outlined group"><summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-ink"><span>See the exact logic and fund-level assumptions</span><span className="text-accent group-open:rotate-45" aria-hidden="true">+</span></summary><div className="mt-4 border-t border-line pt-4"><p className="text-sm leading-6 text-ink-muted">{projection.methodology}</p><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[720px] text-xs"><thead className="text-left text-ink-faint"><tr><th className="pb-2">Holding</th><th className="pb-2">Bucket</th><th className="pb-2 text-right">Weight</th><th className="pb-2 text-right">Prior</th><th className="pb-2 text-right">Observed</th><th className="pb-2 text-right">Model</th><th className="pb-2 text-right">Evidence weight</th></tr></thead><tbody>{projection.holdingAssumptions.map((item) => <tr key={item.schemeCode} className="border-t border-line"><th scope="row" className="max-w-[280px] py-3 pr-3 text-left font-medium text-ink">{item.schemeName || item.schemeCode}</th><td className="py-3 text-ink-muted">{item.bucket}</td><td className="financial-number py-3 text-right">{decimal(item.weight, "%")}</td><td className="financial-number py-3 text-right">{decimal(item.priorReturnPct, "%")}</td><td className="financial-number py-3 text-right">{decimal(item.observedReturnPct, "%")}</td><td className="financial-number py-3 text-right font-semibold text-accent">{decimal(item.expectedReturnPct, "%")}</td><td className="financial-number py-3 text-right">{decimal(item.credibilityPct, "%")}</td></tr>)}</tbody></table></div><ul className="mt-4 grid gap-2 text-xs leading-5 text-ink-faint md:grid-cols-2">{projection.limitations.map((item) => <li key={item} className="rounded-lg bg-surface-2 p-3">{item}</li>)}</ul></div></details>
       </>}
 
-      <div className="grid portfolio-grid-gap lg:grid-cols-3">
-        {[["Strengths", strengths, "positive"], ["Risks to review", weaknesses, "warning"], ["Research next", research.map((item) => item.note || item.category), "neutral"]].map(([title, items, tone]) => <article key={title} className="portfolio-card-outlined"><div className="flex items-center justify-between gap-3"><h3 className="text-sm font-semibold text-ink">{title}</h3><StatusPill tone={tone}>{items.length}</StatusPill></div>{items.length ? <ul className="mt-4 space-y-3 text-sm leading-6 text-ink-muted">{items.slice(0, 6).map((item, index) => <li key={`${title}-${index}`} className="flex gap-2"><span aria-hidden="true">•</span><span>{item}</span></li>)}</ul> : <p className="mt-4 text-sm leading-6 text-ink-muted">No items were supplied for this section.</p>}</article>)}
+      <div className="grid portfolio-grid-gap xl:grid-cols-2">
+        <article className="portfolio-card-outlined"><div className="flex items-center justify-between gap-3"><div><div className="eyebrow text-pos">Evidence-backed strengths</div><h3 className="mt-2 text-lg font-semibold text-ink">What is working—and why</h3></div><StatusPill tone="positive">{strengthDetails.length}</StatusPill></div>{strengthDetails.length ? <ul className="mt-5 space-y-3">{strengthDetails.slice(0, 6).map((item, index) => <InsightCard key={`strength-${item.title}-${index}`} item={item} tone="positive" />)}</ul> : <p className="mt-4 text-sm leading-6 text-ink-muted">No strength clears the current evidence thresholds. That does not mean every holding is weak; it means the portfolio cannot support a strong positive conclusion yet.</p>}</article>
+        <article className="portfolio-card-outlined"><div className="flex items-center justify-between gap-3"><div><div className="eyebrow text-warn">Evidence-backed weaknesses</div><h3 className="mt-2 text-lg font-semibold text-ink">What could fail—and why</h3></div><StatusPill tone="warning">{weaknessDetails.length}</StatusPill></div>{weaknessDetails.length ? <ul className="mt-5 space-y-3">{weaknessDetails.slice(0, 6).map((item, index) => <InsightCard key={`weakness-${item.title}-${index}`} item={item} tone="warning" />)}</ul> : <p className="mt-4 text-sm leading-6 text-ink-muted">No material weakness clears the current thresholds. Stress scenarios and evidence limitations still apply.</p>}</article>
       </div>
+      <article className="portfolio-card-outlined"><div className="flex items-center justify-between gap-3"><div><div className="eyebrow">Coverage gaps</div><h3 className="mt-2 text-lg font-semibold text-ink">Research that could change the conclusion</h3></div><StatusPill>{research.length}</StatusPill></div>{research.length ? <ul className="mt-4 grid gap-3 text-sm leading-6 text-ink-muted md:grid-cols-2">{research.slice(0, 8).map((item, index) => <li key={`research-${index}`} className="rounded-xl bg-surface-2 p-4">{item.note || item.category}</li>)}</ul> : <p className="mt-4 text-sm leading-6 text-ink-muted">No missing category research items were generated for this portfolio.</p>}</article>
     </section>
   );
 }
@@ -738,7 +768,7 @@ export default function PortfolioWorkspace() {
       const data = await portfolioApi.connect();
       setHoldings(data.holdings || []);
       setUnresolved(data.unresolved || []);
-      setReport({ portfolioSummary: data.summary || {}, allocations: data.allocation || {}, topHoldings: data.topHoldings || [], performanceLeaders: data.performanceLeaders || [], strengths: data.strengths || [], weaknesses: data.weaknesses || [], researchOpportunities: data.researchOpportunities || [], bottomLine: data.bottomLine || null, projection: data.projection || null, risk: data.risk || null, diversification: data.diversification || null, concentration: data.concentration || null });
+      setReport({ portfolioSummary: data.summary || {}, allocations: data.allocation || {}, topHoldings: data.topHoldings || [], performanceLeaders: data.performanceLeaders || [], strengths: data.strengths || [], weaknesses: data.weaknesses || [], strengthDetails: data.strengthDetails || [], weaknessDetails: data.weaknessDetails || [], evaluationStrategy: data.evaluationStrategy || null, researchOpportunities: data.researchOpportunities || [], bottomLine: data.bottomLine || null, projection: data.projection || null, risk: data.risk || null, diversification: data.diversification || null, concentration: data.concentration || null });
       setComputedAt(data.summary?.computedAt || null);
       setView("dashboard");
       setMessage(data.alreadyConnected ? "Your connected portfolio is already up to date." : "Demo portfolio connected. Every synthetic position is labelled as mock-connected.");
