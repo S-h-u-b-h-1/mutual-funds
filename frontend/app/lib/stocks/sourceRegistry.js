@@ -21,7 +21,7 @@ export const STOCK_SOURCES = [
     url: "https://nsearchives.nseindia.com/content/indices/ind_nifty50list.csv",
     format: "Official CSV",
     frequency: "Check daily; changes are event-driven",
-    collectionStatus: "ready",
+    collectionStatus: "active",
     investorValue: "Canonical company name, NSE symbol, industry and ISIN for the current NIFTY 50 universe.",
     usePolicy: "Store constituent facts with retrieval date and source link; do not imply live index weights.",
   },
@@ -34,9 +34,9 @@ export const STOCK_SOURCES = [
     url: "https://www.bseindices.com/indices-details/code/22/",
     format: "Official constituent page",
     frequency: "Check daily; changes are event-driven",
-    collectionStatus: "reference",
+    collectionStatus: "active",
     investorValue: "Official membership of the 100-company BSE 100 universe (the product universe requested as ‘Sensex 100’).",
-    usePolicy: "Link directly while stable automated access and reuse terms are reviewed.",
+    usePolicy: "Store a dated constituent-metadata snapshot and link the official page; refresh remains manually reviewed while reuse terms are documented.",
   },
   {
     id: "nse-announcements",
@@ -184,4 +184,3 @@ export function groupedStockSources(sources = STOCK_SOURCES) {
       return groups;
     }, {});
 }
-

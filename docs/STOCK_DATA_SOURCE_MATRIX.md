@@ -24,6 +24,20 @@ Implementation status labels now mean: **Active feed** (collected today), **Read
 (source and handling contract defined), **Direct reference** (linked for investors, automation
 pending access review), and **Licence required** (intentionally unavailable until contracted).
 
+### First collected universe snapshot
+
+The first validated snapshot is now committed in `frontend/app/data/stock_universe.json` and
+served to investors at `/stocks/universe` and `/api/v1/stocks/universe`. It contains exactly 50
+NIFTY 50 records (50 NSE symbols and 50 ISINs) and 100 BSE 100 records (100 BSE codes). The
+collector rejects a refresh if either count or identifier uniqueness contract fails, retains a
+SHA-256 checksum for each raw source, and records the retrieval/source-effective date. It does
+not merge the two lists by company name, fetch prices or weights, or call membership a ranking.
+
+BSE 100 refreshes remain manually reviewed while the endpoint's reuse terms are documented; a
+public page endpoint being technically reachable is not treated as permission for unattended
+high-frequency collection. Neon persistence will append membership periods after the production
+stock schema is enabled, rather than overwriting this versioned snapshot.
+
 Every external data category the Stock Research & Investor Intelligence domain (Sections 1-31 of
 the standing directive) needs, with what's actually confirmed available, what requires a
 commercial relationship, and what remains genuinely unknown. Same discipline as
