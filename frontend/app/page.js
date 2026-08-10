@@ -28,7 +28,7 @@ const freshnessTone = (tone) => (tone === "pos" ? "current" : tone === "neg" ? "
 
 const customerJourney = [
   ["Research", "Compare funds, companies, AMCs and sectors with source/freshness context.", "/funds"],
-  ["Learn", "Understand ratios, risk, valuation and methodology in the page where the question appears.", "/learn/stocks"],
+  ["Learn", "Understand NAV, AUM, risk, costs, SIPs, redemption and switch before acting.", "/learn"],
   ["Track", "Upload a CAS or build watchlists so changes become personal, not generic.", "/portfolio"],
   ["Invest", "Use Suasion Invest only for supported mutual-fund execution workflows.", "/invest"],
 ];

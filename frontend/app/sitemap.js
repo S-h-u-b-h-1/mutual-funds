@@ -8,7 +8,7 @@ export default function sitemap() {
     changeFrequency: "daily",
     priority: 0.7,
   }));
-  const pages = ["/performance", "/categories", "/research", "/compare", "/data-quality", "/stocks", "/stocks/screener", "/stocks/sectors", "/markets", "/learn/stocks", "/help"].map((p) => ({
+  const pages = ["/performance", "/categories", "/research", "/compare", "/data-quality", "/stocks", "/stocks/screener", "/stocks/sectors", "/markets", "/learn", "/learn/stocks", "/help"].map((p) => ({
     url: `${SITE}${p}`,
     changeFrequency: "daily",
     priority: 0.8,

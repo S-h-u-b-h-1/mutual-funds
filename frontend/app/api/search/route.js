@@ -54,6 +54,7 @@ function researchResult(f, matchType = "Exact fund match") {
 }
 
 const STATIC_SEARCH_SURFACES = [
+  { name: "Learn mutual funds", kind: "learn", path: "/learn", subtitle: "NAV, AUM, expense ratio, risk, SIP, redemption and switch basics", keywords: ["learn", "education", "mutual fund", "nav", "aum", "expense", "sip", "redemption", "switch", "xirr", "cagr"] },
   { name: "Stocks research", kind: "workspace", path: "/stocks", subtitle: "Company research, screeners, sectors and learning", keywords: ["stocks", "equity", "company", "companies", "research"] },
   { name: "Stock screener", kind: "tool", path: "/stocks/screener", subtitle: "ROCE, debt, growth, cash flow and dividend screens", keywords: ["screener", "screen", "roce", "debt", "growth", "dividend"] },
   { name: "Stock sectors", kind: "workspace", path: "/stocks/sectors", subtitle: "Sector → companies → metrics → raw-material context", keywords: ["sector", "industry", "companies"] },

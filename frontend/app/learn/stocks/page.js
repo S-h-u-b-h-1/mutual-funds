@@ -18,7 +18,7 @@ export default function StockLearningPage() {
     <>
       <Nav active="/learn/stocks" />
       <main id="main-content" className="container-px py-10 sm:py-14">
-        <ProductBreadcrumbs items={[["Learn", "/learn/stocks"], ["Stocks", null]]} />
+        <ProductBreadcrumbs items={[["Learn", "/learn"], ["Stocks", null]]} />
         <div className="eyebrow text-accent">Learn · Stocks</div>
         <h1 className="page-title mt-3 max-w-4xl">A research culture for company analysis, not a stream of tips.</h1>
         <p className="measure mt-4 text-sm leading-6 text-ink-muted">
