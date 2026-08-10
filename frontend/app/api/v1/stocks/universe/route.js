@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getIndexUniverse, getStockUniverseSnapshot, STOCK_INDEX_KEYS } from "../../../../lib/stocks/universe";
 
-export const dynamic = "force-static";
+// Query-string filtering (`?index=BSE100`) must remain request-aware. Marking this force-static
+// caused Next.js to build one unfiltered response and reuse it for every query variant.
+export const dynamic = "force-dynamic";
 
 export function GET(request) {
   const indexKey = new URL(request.url).searchParams.get("index")?.toUpperCase();
@@ -15,4 +17,3 @@ export function GET(request) {
     },
   });
 }
-
