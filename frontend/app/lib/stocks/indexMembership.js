@@ -102,13 +102,36 @@ const COMPANY_COLUMNS_FOR_INDEX = "id, legal_name, display_name, isin, nse_symbo
 // to the same company (shouldn't happen within one index's own list, but the same companyIndex
 // gets reused across NIFTY 50 and BSE 100 in one script run — see sync_stock_index_membership.mjs
 // — so a company NIFTY 50 just created must be visible when BSE 100 processes it next) sees it.
+// Real, discovered-not-hypothesized data-quality issue: BSE's own SCRIPNAME field is fixed-width
+// truncated (empirically ~30 chars — e.g. "Adani Ports and Special Economic Zone Ltd." arrives as
+// "ADANI PORTS AND SPECIAL ECONOM"), so an exact normalized-name match against the SAME company's
+// full name from NSE's feed fails outright — not a formatting difference the 3rd tier's exact
+// match was built for, a genuinely different (shorter) string. This is a 4th, narrower tier: only
+// fires when the exact match already failed, and only accepts a prefix match that is UNAMBIGUOUS
+// (exactly one existing company's normalized name starts with this shorter one) — a short or
+// ambiguous prefix (e.g. two different "TATA..." companies) returns no match rather than guessing,
+// so an under-confident non-match (a new company row) is the failure mode, never a wrong merge.
+const MIN_PREFIX_MATCH_LENGTH = 12;
+function findByNormalizedNamePrefix(companyIndex, normalizedName) {
+  if (normalizedName.length < MIN_PREFIX_MATCH_LENGTH) return null;
+  let match = null;
+  for (const [candidateKey, candidateRow] of companyIndex.byNormalizedName) {
+    if (candidateKey.startsWith(normalizedName) || normalizedName.startsWith(candidateKey)) {
+      if (match && match.id !== candidateRow.id) return null; // ambiguous — do not guess
+      match = candidateRow;
+    }
+  }
+  return match;
+}
+
 async function resolveOrCreateCompany(companyIndex, { name, isin = null, nseSymbol = null, bseCode = null }) {
   const normalizedName = normalizeCompanyName(name);
   const existing =
     (isin && companyIndex.byIsin.get(isin)) ||
     (nseSymbol && companyIndex.byNseSymbol.get(nseSymbol)) ||
     (bseCode && companyIndex.byBseCode.get(bseCode)) ||
-    (normalizedName && companyIndex.byNormalizedName.get(normalizedName));
+    (normalizedName && companyIndex.byNormalizedName.get(normalizedName)) ||
+    (normalizedName && findByNormalizedNamePrefix(companyIndex, normalizedName));
 
   if (existing) {
     if (isin && !existing.isin) {

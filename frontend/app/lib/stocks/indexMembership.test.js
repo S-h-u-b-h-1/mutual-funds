@@ -109,6 +109,46 @@ describe("indexMembership (integration, real Neon, disposable index + companies)
     expect(allCompanies.rows[0].n).toBe(1); // never duplicated
   });
 
+  it("an unambiguous truncated-name prefix match reconciles to the existing company (BSE's real fixed-width SCRIPNAME truncation), never a duplicate", async () => {
+    const longName = `Test Delta Special Economic Extended Company ${suffix} Ltd`;
+    const truncatedName = longName.slice(0, 30); // mirrors BSE's real ~30-char truncation
+    const deltaIsin = `INTESTD${suffix}`.slice(0, 12).toUpperCase();
+
+    const first = await syncIndexMembership({
+      indexKey: `${indexKey}B`,
+      indexName: "Prefix Test Index A",
+      provider: "Test Provider",
+      constituents: [{ name: longName, isin: deltaIsin }],
+      source: "Test Provider",
+      retrievedAt: "2026-08-05T00:00:00Z",
+    });
+    expect(first.opened).toBe(1);
+
+    const deltaCompany = await getCompanyByIdentifier({ isin: deltaIsin });
+    const second = await syncIndexMembership({
+      indexKey: `${indexKey}C`,
+      indexName: "Prefix Test Index B",
+      provider: "Test Provider Two",
+      // No isin/nseSymbol/bseCode at all here -- exactly BSE100's real shape when it independently
+      // lists a company NIFTY 50 already created: name-only, and truncated at that.
+      constituents: [{ name: truncatedName }],
+      source: "Test Provider Two",
+      retrievedAt: "2026-08-05T00:00:00Z",
+    });
+    expect(second.opened).toBe(1); // a new MEMBERSHIP row (different index), not a new COMPANY
+
+    const stillOne = await query(`select count(*)::int as n from companies where isin = $1`, [deltaIsin]);
+    expect(stillOne.rows[0].n).toBe(1); // never duplicated despite the truncated name
+
+    const membersB = await getIndexMembers(`${indexKey}C`);
+    expect(membersB.length).toBe(1);
+    expect(membersB[0].companyId).toBe(deltaCompany.id); // resolved to the SAME company
+
+    await deleteTestIndex(`${indexKey}B`);
+    await deleteTestIndex(`${indexKey}C`);
+    await deleteTestCompany(deltaCompany.id);
+  });
+
   it("closes a membership for a company no longer in the constituent list", async () => {
     const result = await syncIndexMembership({
       indexKey,
