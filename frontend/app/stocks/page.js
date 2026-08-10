@@ -24,6 +24,7 @@ const workflows = [
   ["Run a screen", "Use backend filters for ROCE, debt, growth, cash flow and dividends. Missing metrics do not pass silently.", "/stocks/screener", "Discover"],
   ["Study sectors", "Move from sector to companies, operating metrics, raw-material exposures and relevant events.", "/stocks/sectors", "Sectors"],
   ["Build a thesis", "Use private notes for thesis, risks, catalysts, valuation, management and open questions.", "/learn/stocks#thesis", "Learn"],
+  ["Inspect the sources", "See which exchange, company, regulator and publisher channels are active, ready or licence-gated.", "/stocks/sources", "Evidence"],
 ];
 
 const learning = [
@@ -67,7 +68,7 @@ export default async function StocksHome({ searchParams }) {
           </GlassPanel>
         </section>
 
-        <section className="mt-8 grid gap-4 lg:grid-cols-4">
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {workflows.map(([title, detail, href, tag]) => (
             <Link key={title} href={href} className="premium-card p-5 transition hover:-translate-y-0.5 hover:border-accent/35">
               <div className="relative">
