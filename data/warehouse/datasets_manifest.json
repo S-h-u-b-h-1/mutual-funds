@@ -1,6 +1,6 @@
 {
  "asOf": "2026-08-09",
- "snapshot_age_days": 0,
+ "snapshot_age_days": 1,
  "datasets": [
   {
    "dataset": "AMFI NAV universe",
