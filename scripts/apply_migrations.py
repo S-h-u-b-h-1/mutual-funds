@@ -15,6 +15,7 @@ script never guesses which branch (test vs production) it's pointed at, and neve
 Modes:
     python -m scripts.apply_migrations                     # status: report pending, do nothing
     python -m scripts.apply_migrations --apply              # execute every pending file, in order
+    python -m scripts.apply_migrations --apply-one FILE     # execute one reviewed pending file
     python -m scripts.apply_migrations --verify              # checksum on-disk files vs the ledger
     python -m scripts.apply_migrations --backfill FILE...    # record already-applied files WITHOUT
                                                                # re-running them (bootstrap only —
@@ -123,6 +124,34 @@ def cmd_apply():
     return 0
 
 
+def cmd_apply_one(filename):
+    """Apply exactly one reviewed migration without pulling unrelated pending work forward."""
+    path = MIGRATIONS_DIR / Path(filename).name
+    if path.name != filename or not path.exists() or not path.name[:3].isdigit():
+        print(f"Migration not found in {MIGRATIONS_DIR}: {filename}")
+        return 1
+
+    with neon_db.connect() as conn:
+        if not _ledger_exists(conn):
+            print(f"schema_migrations does not exist on this DATABASE_URL yet — bootstrap it first:\n  psql \"$DATABASE_URL\" -f sql/neon/{LEDGER_MIGRATION}")
+            return 1
+        if path.name in _applied(conn):
+            print(f"Already recorded as applied: {path.name}")
+            return 0
+
+    print(f"Applying only {path.name} ...")
+    try:
+        with neon_db.connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(path.read_text())
+            _record(conn, path, applied_by="scripts.apply_migrations --apply-one")
+    except Exception as e:
+        print(f"FAILED on {path.name}: {e}")
+        return 1
+    print(f"Applied and recorded {path.name}.")
+    return 0
+
+
 def cmd_verify():
     with neon_db.connect() as conn:
         if not _ledger_exists(conn):
@@ -192,6 +221,11 @@ def main():
         return cmd_status()
     if args[0] == "--apply":
         return cmd_apply()
+    if args[0] == "--apply-one":
+        if len(args) != 2:
+            print("Usage: python -m scripts.apply_migrations --apply-one FILE")
+            return 1
+        return cmd_apply_one(args[1])
     if args[0] == "--verify":
         return cmd_verify()
     if args[0] == "--backfill":
