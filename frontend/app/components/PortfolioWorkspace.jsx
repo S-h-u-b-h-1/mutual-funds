@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { saveWatchlist } from "../lib/cloudSync";
 import { portfolioApi } from "../lib/invest/api";
@@ -661,6 +662,7 @@ function ImportWorkspace({ file, fileUrl, statementType, setStatementType, dragg
 }
 
 export default function PortfolioWorkspace() {
+  const router = useRouter();
   const { data: session, status: authStatus } = useSession();
   const sessionKey = session?.user?.id || session?.user?.email || null;
   const [statementType, setStatementType] = useState(STATEMENT_TYPES[0].key);
@@ -682,6 +684,15 @@ export default function PortfolioWorkspace() {
   const uploadInputRef = useRef(null);
   const requestRef = useRef(null);
   const noticeRef = useRef(null);
+
+  // H3-pattern (docs/LAUNCH_BLOCKER_REPORT.md): a 401 here means the session itself is gone, not
+  // a transient failure. Left unhandled, this used to fall through to setError() while view
+  // stayed "dashboard" and holdings stayed empty -- which renders the *false* "No saved portfolio
+  // yet." empty state instead of any error at all. A silent dead end, not just a missing retry
+  // button: the investor sees what looks like an empty account, not an expired session.
+  const redirectToSessionExpiredLogin = useCallback(() => {
+    router.replace("/login?callbackUrl=/portfolio");
+  }, [router]);
 
   useEffect(() => {
     if (!file) { setFileUrl(""); return undefined; }
@@ -715,7 +726,10 @@ export default function PortfolioWorkspace() {
       setComputedAt(data.summary?.computedAt || null);
       setView("dashboard");
       setMessage(data.alreadyConnected ? "Your connected portfolio is already up to date." : "Demo portfolio connected. Every synthetic position is labelled as mock-connected.");
-    } catch (err) { setError(err.message || "Portfolio could not be connected."); }
+    } catch (err) {
+      if (err?.status === 401) { redirectToSessionExpiredLogin(); return; }
+      setError(err.message || "Portfolio could not be connected.");
+    }
     finally { setConnecting(false); }
   }
 
@@ -730,10 +744,14 @@ export default function PortfolioWorkspace() {
         setView("dashboard");
         return computeReport();
       })
-      .catch((err) => { if (active) setError(`${err.message || "Portfolio could not be loaded."} Retry after checking your connection or signing in again.`); })
+      .catch((err) => {
+        if (!active) return;
+        if (err?.status === 401) { redirectToSessionExpiredLogin(); return; }
+        setError(`${err.message || "Portfolio could not be loaded."} Retry after checking your connection or signing in again.`);
+      })
       .finally(() => { if (active) setLoadingPortfolio(false); });
     return () => { active = false; };
-  }, [sessionKey]);
+  }, [sessionKey, redirectToSessionExpiredLogin]);
 
   function selectFile(nextFile) {
     setError(""); setMessage(""); setImportResult(null); setUploadPhase("idle");

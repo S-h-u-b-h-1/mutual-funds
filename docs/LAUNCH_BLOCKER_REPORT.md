@@ -38,34 +38,52 @@ real but cosmetic, internal-only, or already in flight.
   the category the governing directive names as a legitimate stop condition. This is that
   condition, for the whole transaction chain at once.
 
-### C2 — PEP declaration is a required, blocking compliance item with no onboarding UI. No customer can ever reach investment-ready.
+### C2 — RESOLVED. PEP declaration is now a real onboarding step; no longer a blocking gap on its own.
 
-- **Problem**: `complianceService.js`'s `ITEM_KEYS` (line 14) includes `pep` as a required
-  compliance item, defaulted to `pending` for every new user. `evaluateInvestmentReadiness()`
-  (`identityService.js:205-219`) blocks readiness on any incomplete required item, and every
-  order/SIP/redemption/switch calls `assertInvestmentReady()` (`orderService.js:141-152`), which
-  enforces that. But `OnboardingFlow.jsx`'s hardcoded `steps` array (lines 8-11) has no `"pep"`
-  entry, and no `stepId === "pep"` form exists anywhere in the file. `ComplianceCenter.jsx`'s
-  `copy` object also omits `pep`; its "Open →" deep link resolves to step 0 (Profile) because
-  `steps.findIndex(...)` returns `-1` for a step that doesn't exist and `Math.max(0, -1)` = `0`.
-- **Customer impact**: Every single new customer is permanently stuck at 8/9 (or whatever fraction
-  excludes PEP) compliance completion. Nobody can ever place a first order. This is the same class
-  of bug as the mobile-phone-number and FATCA-country gaps found and fixed earlier this session
-  (`docs/SUASION_PLATFORM_STATUS.md` §4) — except neither of those two fully blocked onboarding on
-  their own (only their own two steps failed); PEP blocks the *entire* readiness gate for
-  everyone, unconditionally.
-- **Business impact**: Total — zero real signups can ever convert, in mock mode or with a real
-  provider, until this is fixed.
-- **Technical impact**: None beyond the missing UI — the backend (`pep_declarations` table,
-  `complianceService.js`'s `pep` case) is correct and already tested.
-- **Recommended fix**: Add a `pep` step to `OnboardingFlow.jsx`'s `steps` array and a form
-  (`payload.declared` must be a JS boolean — a two-button yes/no choice, not a checkbox, since this
-  is a substantive declaration, not a confirmation) plus the matching `copy` entry in
-  `ComplianceCenter.jsx`. Exactly the pattern already used for `fatca`.
-- **Estimated effort**: XS (under 1 hour) — this session already has full context on this exact
-  file and pattern from the mobile/FATCA fix.
-- **Dependencies**: None. Fixing this immediately, right after this report, since it's the single
-  highest-leverage launch blocker that's actually internally solvable today.
+- **Original problem**: `OnboardingFlow.jsx`'s `steps` array had no `"pep"` entry despite
+  `complianceService.js` requiring it for readiness, so every customer was stuck short of 100%
+  compliance with no way to complete the missing item.
+- **Current state, verified directly against `OnboardingFlow.jsx`**: `steps` (line 8-10) now
+  includes `["pep", "PEP screening"]` as the last step, with a real two-radio-button form
+  (lines 111-115: explicit "Yes"/"No" declaration, not a checkbox) that posts
+  `{declared: form.pep === "yes"}`. `ComplianceCenter.jsx`'s deep link resolves correctly since the
+  step now exists in the array.
+- **Dependencies**: None — resolved. See C4 below for a distinct, more severe bug in the same file
+  that this pass also found and fixed: the step existing didn't mean opening an account after
+  completing it actually worked.
+
+### C4 — RESOLVED 2026-08-10. Completing onboarding didn't actually open an investment account, for any customer, ever.
+
+- **Problem**: `OnboardingFlow.jsx`'s account-open trigger was gated on
+  `if (stepId === "fatca" && result.overallStatus === "completed")` — but `pep` is the last step in
+  the wizard's fixed order (see C2), so `overallStatus` can only become `"completed"` when `pep` is
+  submitted, at which point `stepId` is `"pep"`, not `"fatca"`. The condition was structurally
+  false on every real walkthrough, unconditionally — not an edge case, not limited to PEP-decliners
+  the way the earlier PEP-array bug was.
+- **Customer impact**: A customer who completed every step exactly as presented saw "Saved
+  securely" and a dashboard that flipped to "ready" (itself misleading, since that flag reads only
+  compliance status, not account existence), then hit a raw, unactionable "An active investment
+  account is required before placing an order." error on their first purchase attempt, with no
+  button, link, or guidance anywhere in the app to recover. The only escape was manually revisiting
+  and resubmitting an already-completed step — nothing in the UI prompts that.
+- **Business impact**: Total, and worse than C2 — even a customer who successfully finished
+  onboarding (the thing C2 was blocking) could never actually open an account or place an order.
+  This bug was invisible to `journey1-onboarding.e2e.test.js`, which calls the account-open service
+  function directly and independently of any compliance submission, proving the service layer
+  works without ever exercising the UI's actual trigger logic.
+- **Recommended fix**: Fire the trigger on `result.overallStatus === "completed"` after any step's
+  submission, not hardcoded to one step name — stays correct if step order ever changes again.
+  Safe to call repeatedly since `identityService.ensureAccount()` is genuinely idempotent (checks
+  for an existing account first, backstopped by a unique-constraint race handler).
+- **Estimated effort**: XS — a one-line condition change.
+- **Dependencies**: None.
+- **Resolution**: fixed exactly as recommended (commit `c516611`). Verified with a new real-Neon
+  integration test (`frontend/app/api/v1/invest/onboardingAccountTrigger.e2e.test.js`) that drives
+  the real compliance routes in the wizard's exact order and empirically confirms `overallStatus`
+  stays non-`completed` through `fatca`, flips to `completed` only at `pep`, no account exists
+  before that point, and the investor can then open one and place a real (mock) order — the full
+  chain, not just the trigger condition in isolation. Full field-by-field onboarding trace in
+  `docs/ONBOARDING_READINESS_TRACE.md`. Deployed and verified live.
 
 ### C3 — KRA (KYC Registration Agency) does not exist anywhere in the codebase.
 
@@ -258,13 +276,24 @@ that actually caught it only renders on `/status` and `/data-status`, off the pr
 path. **Fix**: route the customer-facing badge through the deeper signal, or expose it more
 prominently. **Effort**: S. **Dependencies**: none.
 
-### M2 — Stock/company valuation data has zero freshness contract.
+### M2 — CORRECTED 2026-08-10. Stock valuation data has real per-row provenance; what's missing is a computed freshness badge, not a source field.
 
-Confirmed independently by this session's own `docs/STOCK_INTELLIGENCE_STATUS.md` work and a fresh
-audit: no `source`/`lastFetched`/`freshnessStatus` fields exist anywhere in the stocks domain — only
-a bare `as_of_date` column. **Fix**: extend the MF-domain freshness pattern once real stock data
-exists to populate it. **Effort**: S once there's real data to attach it to. **Dependencies**: real
-stock/company data source (separately tracked, licensing-gated).
+The original claim ("no `source`/`lastFetched`/`freshnessStatus` fields exist anywhere in the
+stocks domain") does not hold up against current schema. `company_valuation_snapshots`
+(`sql/neon/035_stock_intelligence_foundation.sql:242-259`) has `as_of_date date not null`,
+`source text not null`, and `computed_at timestamptz not null default now()` — and
+`valuation.js:43` actively enforces this: `if (!source) throw new Error("upsertValuationSnapshot
+requires source.")`. The same per-row `source`/`as_of` pattern repeats across
+`company_ownership`, `company_subsidiaries`, `company_business_segments`, and
+`company_financial_statements` — a deliberate design choice (`companyProfile.js:2`: "each a
+row-per-fact table so every fact carries its own as_of_date/source rather than a single blob").
+The real, narrower gap: zero code anywhere in `frontend/app/lib/stocks/*.js` computes a
+staleness/freshness status from these fields for display — no equivalent of the MF domain's
+`FreshnessBadge`/`marketStatus.js` exists for stocks at all. **Fix**: build a stocks-domain
+freshness computation once real (non-seed) data flows through these tables regularly enough for
+staleness to be meaningful. **Effort**: S. **Dependencies**: real stock/company data source
+(separately tracked, licensing-gated) — the schema and enforcement are already in place and don't
+block on it.
 
 ### M3 — `portfolio_snapshots.total_value` actually stores cost basis, not market value.
 
@@ -379,8 +408,19 @@ cross-checked.
 
 ## What happens next
 
-Per the directive's own execution model, the highest-leverage next step is C2 (PEP onboarding
-gap) — internally solvable, zero external dependency, unblocks 100% of new signups. Fixing it
-immediately following this report, then working down the list by severity within what's internally
-buildable, holding anything genuinely gated on C1/C3/H2's storage decision/H5's provider choice as
-explicit, separately-flagged dependencies rather than silently skipped.
+C2 and C4 are both now resolved — the PEP step exists and completing onboarding actually opens an
+account. Remaining internally-actionable items, roughly by severity: H2 (document downloads),
+M1 (freshness badge depth), M3-M6/M8 (contained data-quality items), M7 (mobile verification pass),
+M9 (CI secret), M10 (product decision, not engineering). C1, C3, and H5 remain genuinely gated on
+external dependencies (licensed provider access, regulatory clarification, and a transactional
+email/SMS provider respectively) and are tracked, not silently skipped.
+
+## Update log
+
+- **2026-08-10**: C2 confirmed resolved (PEP step wired into `OnboardingFlow.jsx`). C4 added and
+  resolved same-day: the account-open trigger was gated on the wrong step and could never fire for
+  any real customer — the single most severe finding of the Suasion real-investor launch-path
+  mission, since it blocked 100% of onboarding at the very last step regardless of C2. M2 corrected
+  — stock valuation data has real, enforced per-row provenance (`source`/`as_of_date`/
+  `computed_at`); the actual gap is a missing freshness *badge*, not missing source attribution.
+  Full field-by-field onboarding trace: `docs/ONBOARDING_READINESS_TRACE.md`.
