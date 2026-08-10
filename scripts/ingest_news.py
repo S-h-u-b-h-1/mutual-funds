@@ -33,6 +33,7 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
 from ingestion.market_reaction import classify, strip_html
+from ingestion.company_mentions import detect_company_mentions
 from ingestion import db as neon_db
 
 URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -167,6 +168,9 @@ def run_source(name, source_type, url, credibility):
         for it in items:
             title_hash = hashlib.sha256(re.sub(r"\s+", " ", it["title"].strip().lower()).encode()).hexdigest()[:16]
             cls = classify(it["title"], it["summary"])
+            company_links = detect_company_mentions(it["title"], it["summary"])
+            cls["links"].extend(company_links)
+            cls["market_relevance_score"] = min(100, cls["market_relevance_score"] + len(company_links) * 15)
             article_rows.append({
                 "source_id": source_id, "title": it["title"], "url": it["url"], "title_hash": title_hash,
                 "summary": it["summary"], "published_at": it["published_at"],

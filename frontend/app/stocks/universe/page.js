@@ -5,7 +5,7 @@ import ProductBreadcrumbs from "../../components/ProductBreadcrumbs";
 import GlassPanel from "../../components/ui/GlassPanel";
 import Badge, { EmptyState } from "../../components/ui/Badge";
 import SectionHeader from "../../components/ui/SectionHeader";
-import { getIndexUniverse, getStockUniverseSummary, searchIndexUniverse, STOCK_INDEX_KEYS } from "../../lib/stocks/universe";
+import { companyResearchHref, getIndexUniverse, getStockUniverseSummary, searchIndexUniverse, STOCK_INDEX_KEYS } from "../../lib/stocks/universe";
 
 export const metadata = { title: "NIFTY 50 and BSE 100 Companies — MF Pulse" };
 
@@ -79,7 +79,7 @@ export default async function StockUniversePage({ searchParams }) {
                 <tbody className="divide-y divide-line">
                   {companies.map((company) => (
                     <tr key={company.isin || company.bseCode} className="hover:bg-surface-2/60">
-                      <td className="px-5 py-3 font-semibold text-ink">{company.name}</td>
+                      <td className="px-5 py-3 font-semibold text-ink"><Link className="hover:text-accent" href={companyResearchHref(company)}>{company.name}<span className="ml-2 text-xs text-accent">Research →</span></Link></td>
                       <td className="px-4 py-3 text-ink-muted">{company.industry}</td>
                       <td className="px-4 py-3 font-mono text-xs text-ink-muted">{company.nseSymbol || `BSE ${company.bseCode}`}{company.isin && <span className="mt-1 block text-[10px] text-ink-faint">{company.isin}</span>}</td>
                       <td className="px-5 py-3 text-right"><a href={index.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-accent">Official source ↗</a></td>
@@ -92,7 +92,7 @@ export default async function StockUniversePage({ searchParams }) {
         </GlassPanel>
 
         <section className="mt-6 grid gap-3 md:grid-cols-3">
-          <GlassPanel className="p-5"><div className="eyebrow">Current limitation</div><p className="mt-2 text-sm leading-6 text-ink-muted">The two lists are not merged by name. Cross-index identity will be reconciled only through verified ISIN and exchange identifiers.</p></GlassPanel>
+          <GlassPanel className="p-5"><div className="eyebrow">Identity reconciliation</div><p className="mt-2 text-sm leading-6 text-ink-muted">Cross-index records are joined through exchange identifiers or a conservative, unambiguous normalized-name prefix. Ambiguous names remain separate rather than being guessed.</p></GlassPanel>
           <GlassPanel className="p-5"><div className="eyebrow">Next enrichment</div><p className="mt-2 text-sm leading-6 text-ink-muted">Each company will receive a verified investor-relations root, document catalogue and filing timeline.</p></GlassPanel>
           <GlassPanel className="p-5"><div className="eyebrow">Open data</div><p className="mt-2 text-sm leading-6 text-ink-muted">The same snapshot is available as structured JSON through <a className="font-semibold text-accent" href="/api/v1/stocks/universe">the universe API</a>.</p></GlassPanel>
         </section>
@@ -101,4 +101,3 @@ export default async function StockUniversePage({ searchParams }) {
     </>
   );
 }
-
