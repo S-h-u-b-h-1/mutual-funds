@@ -21,6 +21,7 @@ async function safeCompanies(query) {
 
 const workflows = [
   ["Research a company", "Start with business, sector, financial quality and source freshness before reading valuation.", "/stocks", "Research"],
+  ["Explore the universe", "Browse the current official NIFTY 50 and BSE 100 constituent snapshots with identifiers.", "/stocks/universe", "150 records"],
   ["Run a screen", "Use backend filters for ROCE, debt, growth, cash flow and dividends. Missing metrics do not pass silently.", "/stocks/screener", "Discover"],
   ["Study sectors", "Move from sector to companies, operating metrics, raw-material exposures and relevant events.", "/stocks/sectors", "Sectors"],
   ["Build a thesis", "Use private notes for thesis, risks, catalysts, valuation, management and open questions.", "/learn/stocks#thesis", "Learn"],
@@ -68,7 +69,7 @@ export default async function StocksHome({ searchParams }) {
           </GlassPanel>
         </section>
 
-        <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {workflows.map(([title, detail, href, tag]) => (
             <Link key={title} href={href} className="premium-card p-5 transition hover:-translate-y-0.5 hover:border-accent/35">
               <div className="relative">
