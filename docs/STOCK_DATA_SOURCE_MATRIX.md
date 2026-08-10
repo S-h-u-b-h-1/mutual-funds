@@ -1,5 +1,29 @@
 # Stock Intelligence — Data Source Matrix
 
+## Verified source baseline — 10 August 2026
+
+The stock source centre at `/stocks/sources` is now the product-facing registry for the first
+collection phase. The following were re-checked against their publishers before being added:
+
+- NSE Indices publishes the current NIFTY 50 universe as an official CSV containing company
+  name, industry, symbol, series and ISIN. This is the first machine-readable universe feed to
+  connect; membership must be stored with an effective/retrieval date rather than overwritten.
+- BSE Indices publishes the official BSE 100 constituent universe on its index page. This is the
+  universe meant by the working phrase “Sensex 100”; the product calls it **BSE 100** to avoid
+  confusing it with the 30-stock SENSEX. It remains a direct-reference source until a stable,
+  approved bulk-access method and reuse terms are documented.
+- NSE and BSE publish investor-facing corporate filing directories. They are primary evidence
+  links, but public browsing is not treated as automatic permission for an undocumented scraper.
+- The existing SEBI/RBI and publisher RSS channels remain the only automated stock-relevant news
+  feeds. MF Pulse stores the supplied headline/summary/timestamp/link, not publisher full text.
+- Each covered company will have one separately verified investor-relations root. Annual reports,
+  presentations, transcripts and releases will retain the company URL and reporting period;
+  full copyrighted documents will not be republished by default.
+
+Implementation status labels now mean: **Active feed** (collected today), **Ready to connect**
+(source and handling contract defined), **Direct reference** (linked for investors, automation
+pending access review), and **Licence required** (intentionally unavailable until contracted).
+
 Every external data category the Stock Research & Investor Intelligence domain (Sections 1-31 of
 the standing directive) needs, with what's actually confirmed available, what requires a
 commercial relationship, and what remains genuinely unknown. Same discipline as
