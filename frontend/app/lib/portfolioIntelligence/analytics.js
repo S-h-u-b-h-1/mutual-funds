@@ -1,12 +1,13 @@
 import { consolidateByScheme, totalPortfolioValue, groupAllocation, sectorAllocation, topHoldings, effectiveN } from "./allocations";
 import { underlyingStockExposure } from "./stockOverlap";
-import { qualityScore, diversificationConcentrationScores, riskApproximation, healthScore } from "./scores";
+import { qualityScore, diversificationConcentrationScores, healthScore } from "./scores";
+import { computePortfolioProjection } from "./projectionModel";
 
 // Phase A orchestrator — takes raw (pre-consolidation) holdings from holdingsRead.js, computes
 // every deterministic metric in one pass, and hands back both the consolidated holdings (used by
 // overlapEngine.js/exposureEngine.js so nothing downstream recomputes it) and the full metrics
-// object. No AI, no estimation — every field here traces to a real portfolio_holdings row and the
-// same live fund data every other page reads.
+// object. No AI is used. Observed metrics trace to holdings/fund data; planning projections are
+// explicitly separated and disclose their versioned assumptions and coverage.
 export function computeAnalytics(rawHoldings) {
   const holdings = consolidateByScheme(rawHoldings);
   const totalValue = totalPortfolioValue(holdings);
@@ -18,12 +19,14 @@ export function computeAnalytics(rawHoldings) {
   const stockExposure = underlyingStockExposure(holdings);
   const quality = qualityScore(holdings);
   const diversification = diversificationConcentrationScores(holdings, amcAllocation, categoryAllocation);
-  const risk = riskApproximation(holdings);
+  const projection = computePortfolioProjection(holdings, { duplicateExposurePct: stockExposure.duplicateExposurePct });
   const health = healthScore({
     quality: quality.score,
     diversificationScore: diversification.diversificationScore,
     concentrationScore: diversification.concentrationScore,
     duplicateExposurePct: stockExposure.duplicateExposurePct,
+    downsideResilienceScore: projection.resilience.downsideScore,
+    balanceScore: projection.resilience.balanceScore,
   });
 
   return {
@@ -44,8 +47,9 @@ export function computeAnalytics(rawHoldings) {
     qualityScore: quality.score,
     healthScore: health?.overall ?? null,
     healthScoreBreakdown: health?.breakdown ?? [],
-    volatility: risk.volatility,
-    expectedDrawdown: risk.expectedDrawdown,
-    _internal: { stockExposure, sectorContributions: sectors.contributionsBySector, diversificationDetail: diversification, qualityDetail: quality, riskDetail: risk },
+    volatility: projection.modelledAnnualVolatilityPct,
+    expectedDrawdown: projection.planningDrawdownPct,
+    projection,
+    _internal: { stockExposure, sectorContributions: sectors.contributionsBySector, diversificationDetail: diversification, qualityDetail: quality, riskDetail: { methodology: projection.methodology, coveragePct: projection.confidence.riskCoveragePct } },
   };
 }

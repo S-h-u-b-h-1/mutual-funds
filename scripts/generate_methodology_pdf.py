@@ -59,7 +59,7 @@ def header_footer(canvas, doc):
         canvas.drawString(18 * mm, PAGE_H - 11 * mm, "MF PULSE")
         canvas.setFont("Helvetica", 7.5)
         canvas.setFillColor(MUTED)
-        canvas.drawRightString(PAGE_W - 18 * mm, PAGE_H - 11 * mm, "Ranking and analysis methodology - Version 2")
+        canvas.drawRightString(PAGE_W - 18 * mm, PAGE_H - 11 * mm, "Ranking and analysis methodology - Version 3")
     canvas.setStrokeColor(LINE)
     canvas.line(18 * mm, 14 * mm, PAGE_W - 18 * mm, 14 * mm)
     canvas.setFont("Helvetica", 7)
@@ -106,7 +106,7 @@ def section(number, title, intro=None):
 
 def build_story():
     story = []
-    cover = Table([[p("MF PULSE", "Eyebrow")], [p("Ranking and analysis methodology", "TitleWhite")], [p("How fund and AMC conclusions are calculated, explained, confidence-capped and compared.", "SubWhite")], [Spacer(1, 34 * mm)], [p("VERSION 2  |  EVIDENCE-AWARE ANALYSIS", "SubWhite")]], colWidths=[PAGE_W - 36 * mm], rowHeights=[12 * mm, 40 * mm, 25 * mm, 60 * mm, 12 * mm])
+    cover = Table([[p("MF PULSE", "Eyebrow")], [p("Ranking and analysis methodology", "TitleWhite")], [p("How fund, AMC and portfolio conclusions are calculated, explained, confidence-capped and compared.", "SubWhite")], [Spacer(1, 34 * mm)], [p("VERSION 3  |  EVIDENCE-AWARE ANALYSIS", "SubWhite")]], colWidths=[PAGE_W - 36 * mm], rowHeights=[12 * mm, 40 * mm, 25 * mm, 60 * mm, 12 * mm])
     cover.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), NAVY), ("VALIGN", (0, 0), (-1, -1), "TOP"), ("VALIGN", (0, 4), (0, 4), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 14 * mm), ("RIGHTPADDING", (0, 0), (-1, -1), 14 * mm), ("TOPPADDING", (0, 0), (-1, -1), 9 * mm), ("BOTTOMPADDING", (0, 0), (-1, -1), 8 * mm)]))
     story += [Spacer(1, 8 * mm), cover, PageBreak()]
 
@@ -179,7 +179,10 @@ def build_story():
         ["Health", "Higher deterministic research score", "Evidence sets may differ; not a forecast."],
     ], [33 * mm, 59 * mm, 72 * mm]), Spacer(1, 4 * mm), p("An overall measured lead is shown only when selected funds share category and plan context. When categories or plan types differ, metric leaders remain factual but MF Pulse withholds an overall winner.", "Callout")]
 
-    story += [PageBreak()] + section("10", "Validation and model governance")
+    story += [PageBreak()] + section("10", "Portfolio health, risk and projected ranges")
+    story += [p("Portfolio Health Score", "H2x"), p("Health keeps investment merit separate from evidence confidence. Available components are quality (25%), diversification (20%), inverse concentration (15%), overlap (10%), downside resilience (20%) and asset balance (10%). Missing components are dropped and remaining weights are renormalised."), p("Expected annual return", "H2x"), p("Each holding starts with a versioned nominal category planning prior. Capped observed evidence can tilt, but never replace, that prior."), p("Model return = prior x (1 - credibility) + observed return x credibility", "Formula"), p("Observed evidence combines 3Y CAGR, 1Y return and annualised 3M return after conservative caps. Credibility is capped at 50%. New funds therefore stay close to their category prior and receive lower evidence confidence."), p("Covariance-aware volatility", "H2x"), p("Portfolio volatility = sqrt(sum_i sum_j w_i w_j sigma_i sigma_j rho_ij)", "Formula"), p("The model uses holding-level 90-day annualised volatility where available and category defaults otherwise. A disclosed category-correlation matrix approximates diversification because complete aligned daily histories are not yet available for every scheme."), p("Projection bands and loss probability", "H2x"), p("The 1Y, 3Y and 5Y bands show 10th, 50th and 90th model percentiles. Volatility receives an uncertainty multiplier tied to evidence confidence plus a 15% tail-width inflation. Values assume no additions, withdrawals, tax or fees."), p("Stress tests", "H2x"), p("Equity sell-off, rates and credit shock, and inflation and currency shock apply deterministic category shocks. Concentration and duplicate exposure amplify the impact. No probability is assigned to a stress test."), p("These outputs are planning distributions, not price targets or guaranteed returns. They do not model market timing, future cash flows, tax, regime changes, manager changes or investor behaviour.", "Warn")]
+
+    story += [PageBreak()] + section("11", "Validation and model governance")
     story += [p("A transparent formula is not automatically a predictive model. Predictive claims require walk-forward validation using only the data available at each historical date."), p("Required validation", "H2x")] + bullets([
         "Calculate every fund score at historical month-end using only then-available data.",
         "Measure benchmark excess return, category percentile and drawdown 6, 12 and 36 months later.",
@@ -189,7 +192,7 @@ def build_story():
     ])
     story += [p("Until this validation is complete, MF Pulse describes the composite indicators as research aids, not proven predictors.", "Warn")]
 
-    story += section("11", "Data safeguards and limitations")
+    story += section("12", "Data safeguards and limitations")
     story += bullets([
         "Stale long-period returns are withheld rather than extrapolated.",
         "IDCW NAV-only performance is withheld because payouts distort NAV comparisons.",
@@ -199,7 +202,7 @@ def build_story():
         "Debt-fund ranking remains incomplete without duration, yield, credit quality and liquidity evidence.",
         "Past performance and high evidence confidence do not guarantee future results.",
     ])
-    story += [Spacer(1, 6 * mm), p("Methodology status", "H2x"), p("Version 2 establishes fund-type frameworks, track-record confidence caps, fund-specific reasoning, fair-comparison gating and canonical AMC analysis. Future versions should add aligned long-window risk series, official TRI histories, debt analytics, broader factsheet coverage and walk-forward score validation.", "Callout")]
+    story += [Spacer(1, 6 * mm), p("Methodology status", "H2x"), p("Version 3 adds portfolio health v2, evidence-shrunk return ranges, covariance-aware risk and deterministic stress testing. Future versions should add aligned long-window risk series, official TRI histories, debt analytics, broader factsheet coverage and published walk-forward model validation.", "Callout")]
     return story
 
 

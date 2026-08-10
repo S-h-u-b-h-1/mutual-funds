@@ -71,7 +71,12 @@ export async function getPortfolio(userId) {
     performanceLeaders: leaders,
     strengths: report.strengths,
     weaknesses: report.weaknesses,
+    researchOpportunities: report.researchOpportunities,
     bottomLine: report.bottomLine,
+    projection: report.projection,
+    risk: report.risk,
+    diversification: report.diversification,
+    concentration: report.concentration,
     valueHistory: buildCurrentValueHistory(summary, dataQuality),
     valueHistoryRanges: summary.totalValue > 0 ? ["since_import"] : [],
     dataQuality,
@@ -148,6 +153,8 @@ function buildSummary(a, valuation, dataQuality = null, unresolved = [], storedH
     computedAt: dataQuality?.calculatedAt || new Date().toISOString(),
     valuationConfidence: buildValuationConfidence(valuation, unresolved),
     latestNavDayChange: buildLatestNavDayChange(a.holdings || []),
+    evidenceConfidence: a.projection?.confidence || null,
+    healthScoreBreakdown: a.healthScoreBreakdown || [],
   };
 }
 

@@ -75,16 +75,17 @@ export function riskApproximation(holdings) {
   };
 }
 
-// Portfolio Health Score: same "weighted parts, drop and renormalize on missing data" shape as
-// app/lib/fundHealth.js's per-fund score — quality (are the funds themselves good), diversification,
-// concentration (inverted: less concentrated scores higher), and an overlap penalty (redundant
-// stock exposure across funds pulls the score down).
-export function healthScore({ quality, diversificationScore, concentrationScore, duplicateExposurePct }) {
+// Portfolio Health v2: merit stays separate from evidence confidence. Alongside quality,
+// diversification, concentration and overlap, it includes the projection model's downside
+// resilience and asset-balance measures. Missing components are dropped and renormalized.
+export function healthScore({ quality, diversificationScore, concentrationScore, duplicateExposurePct, downsideResilienceScore, balanceScore }) {
   const parts = [];
-  if (quality != null) parts.push(["quality", 40, quality]);
-  if (diversificationScore != null) parts.push(["diversification", 30, diversificationScore]);
-  if (concentrationScore != null) parts.push(["concentration", 20, 100 - concentrationScore]);
+  if (quality != null) parts.push(["quality", 25, quality]);
+  if (diversificationScore != null) parts.push(["diversification", 20, diversificationScore]);
+  if (concentrationScore != null) parts.push(["concentration", 15, 100 - concentrationScore]);
   if (duplicateExposurePct != null) parts.push(["overlapPenalty", 10, Math.max(0, 100 - duplicateExposurePct * 2)]);
+  if (downsideResilienceScore != null) parts.push(["downsideResilience", 20, downsideResilienceScore]);
+  if (balanceScore != null) parts.push(["assetBalance", 10, balanceScore]);
   if (!parts.length) return null;
 
   const totalW = parts.reduce((s, [, w]) => s + w, 0);

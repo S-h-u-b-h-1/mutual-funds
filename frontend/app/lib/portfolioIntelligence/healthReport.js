@@ -1,42 +1,20 @@
 import { computeAnalytics } from "./analytics";
 import { computeOverlap } from "./overlapEngine";
 import { computeExposure } from "./exposureEngine";
+import { CANONICAL_CATEGORIES, categoryToCanonicalBucket } from "./categoryBuckets";
 
 // Canonical research-category buckets, keyword-matched against real AMFI category strings
 // (case-insensitive substring — same explainable-matching approach as exposureEngine.js). A
 // bucket with zero matching holdings is a genuine gap, not an estimate. Exported so other
 // deterministic modules (goalPlanning.js) can bucket a raw category allocation into the same
 // canonical set rather than re-deriving a second, possibly-inconsistent mapping.
-export const CANONICAL_CATEGORIES = {
-  "Large Cap": ["large cap"],
-  "Mid Cap": ["mid cap"],
-  "Small Cap": ["small cap"],
-  Debt: ["debt", "gilt", "liquid", "corporate bond", "money market", "banking and psu", "credit risk", "overnight"],
-  Gold: ["gold"],
-  International: ["international", "overseas", "global", "fund of funds"],
-  Hybrid: ["hybrid", "balanced advantage", "multi asset"],
-  // "index" alone (not just "index fund"/"etf") — the real AMFI-derived category string for
-  // index funds in this dataset is "Indexs" (a known upstream taxonomy artifact, not a typo to
-  // fix here), which "index fund" does not match as a substring. Confirmed live: without the
-  // bare "index" keyword, index funds were being reported as a *missing* category even when
-  // held, silently wrong-footing missingCategories(), the Recommendation Engine, and the
-  // Rebalancing Engine all at once.
-  Index: ["index", "etf"],
-};
-
-export function categoryToCanonicalBucket(category) {
-  const cat = (category || "").toLowerCase();
-  for (const [bucket, keywords] of Object.entries(CANONICAL_CATEGORIES)) {
-    if (keywords.some((k) => cat.includes(k))) return bucket;
-  }
-  return null;
-}
+export { CANONICAL_CATEGORIES, categoryToCanonicalBucket } from "./categoryBuckets";
 
 function missingCategories(holdings) {
   const present = new Set();
   for (const h of holdings) {
     const bucket = categoryToCanonicalBucket(h.category);
-    if (bucket) present.add(bucket);
+    if (Object.prototype.hasOwnProperty.call(CANONICAL_CATEGORIES, bucket)) present.add(bucket);
   }
   return Object.keys(CANONICAL_CATEGORIES).filter((bucket) => !present.has(bucket));
 }
@@ -77,6 +55,12 @@ function strengthsAndWeaknesses(analytics, overlap, exposure) {
   for (const [theme, t] of Object.entries(exposure.themes)) {
     if (t.available && t.exposurePct >= 40) weaknesses.push(`High concentration risk to ${theme} — ${t.exposurePct}% of your portfolio.`);
   }
+
+  if (analytics.projection.resilience.downsideScore >= 70) strengths.push(`Downside resilience is relatively strong at ${analytics.projection.resilience.downsideScore}/100 under the model assumptions.`);
+  else if (analytics.projection.resilience.downsideScore < 45) weaknesses.push(`Downside resilience is weak at ${analytics.projection.resilience.downsideScore}/100; stress losses deserve attention.`);
+
+  const worstStress = analytics.projection.stressTests.reduce((worst, scenario) => scenario.impactPct < worst.impactPct ? scenario : worst, analytics.projection.stressTests[0]);
+  if (worstStress?.impactPct <= -30) weaknesses.push(`${worstStress.name} scenario models a ${Math.abs(worstStress.impactPct)}% portfolio decline before taxes or investor cash flows.`);
 
   return { strengths, weaknesses };
 }
@@ -122,6 +106,8 @@ export function buildHealthReport(rawHoldings) {
       effectiveCategories: analytics.effectiveCategories,
       healthScore: analytics.healthScore,
       qualityScore: analytics.qualityScore,
+      evidenceConfidence: analytics.projection.confidence,
+      healthScoreBreakdown: analytics.healthScoreBreakdown,
     },
     strengths,
     weaknesses,
@@ -144,6 +130,7 @@ export function buildHealthReport(rawHoldings) {
       expectedDrawdown: analytics.expectedDrawdown,
       methodology: analytics._internal.riskDetail.methodology,
     },
+    projection: analytics.projection,
     exposure: exposure.themes,
     overlap: {
       duplicateFunds: overlap.duplicateFunds,
