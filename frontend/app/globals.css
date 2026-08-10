@@ -69,7 +69,6 @@
       radial-gradient(680px 360px at 4% 12%, rgb(var(--color-information) / 0.08), transparent 62%),
       linear-gradient(180deg, rgb(var(--color-canvas)), rgb(var(--color-canvas)));
     background-attachment: fixed;
-    padding-bottom: 92px;
   }
   h1, h2, h3 { text-wrap: balance; }
   p { text-wrap: pretty; }
@@ -78,8 +77,6 @@
   :focus-visible { outline: 3px solid rgb(var(--color-focus) / 0.5); outline-offset: 3px; }
   ::selection { background: rgb(var(--color-brand) / 0.22); }
 }
-
-@media (min-width: 1024px) { body { padding-bottom: 0; } }
 
 @layer components {
   .glass, .research-surface {
@@ -123,6 +120,7 @@
   .btn-premium-secondary { @apply inline-flex min-h-11 items-center justify-center rounded-full border border-line-strong bg-surface/90 px-5 text-sm font-semibold text-ink shadow-sm transition-spring hover:-translate-y-0.5 hover:border-accent/40 hover:bg-surface-2; }
   .reveal-card { animation: reveal-up 620ms var(--ease-research) both; }
   .mobile-sheet { animation: sheet-up 260ms var(--ease-research) both; }
+  .mobile-menu-panel { animation: menu-down 240ms var(--ease-research) both; }
   .tnum, .financial-number { font-family: var(--font-research-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums slashed-zero; letter-spacing: -0.025em; }
   .container-px { @apply mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8; }
   .measure { max-width: 68ch; }
@@ -163,6 +161,11 @@
 
 @keyframes sheet-up {
   from { opacity: 0; transform: translateY(28px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes menu-down {
+  from { opacity: 0; transform: translateY(-18px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 

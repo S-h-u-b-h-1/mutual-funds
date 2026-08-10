@@ -4,7 +4,6 @@ import Footer from "./components/Footer";
 import Tracker from "./components/Tracker";
 import AlertSignup from "./components/AlertSignup";
 import HomeWatchlistSection from "./components/HomeWatchlistSection";
-import ProductBreadcrumbs from "./components/ProductBreadcrumbs";
 import GlassPanel from "./components/ui/GlassPanel";
 import Badge from "./components/ui/Badge";
 import { SearchLauncher } from "./components/Search";
@@ -26,11 +25,15 @@ const signedInrCr = (n) => `${n >= 0 ? "+" : "−"}₹${fmt(Math.abs(Math.round(
 const pctStr = (n, dp = 1) => `${n >= 0 ? "+" : ""}${Number(n).toFixed(dp)}%`;
 const freshnessTone = (tone) => (tone === "pos" ? "current" : tone === "neg" ? "stale" : "delayed");
 
-const customerJourney = [
-  ["Research", "Compare funds, companies, AMCs and sectors with source/freshness context.", "/funds"],
-  ["Learn", "Understand NAV, AUM, risk, costs, SIPs, redemption and switch before acting.", "/learn"],
-  ["Track", "Upload a CAS or build watchlists so changes become personal, not generic.", "/portfolio"],
-  ["Invest", "Use Suasion Invest only for supported mutual-fund execution workflows.", "/invest"],
+const researchPaths = [
+  ["Compare mutual funds", "Line up returns, 90-day volatility, max drawdown, consistency and data completeness.", "/compare", "Peer comparison"],
+  ["Best mutual funds—for whom?", "Screen within category and inspect why a fund ranks strongly instead of trusting a generic winner list.", "/funds", "Fund screener"],
+  ["XIRR, CAGR & rolling returns", "Use the right return measure for SIP cash flows, long periods and consistency across start dates.", "/learn", "Returns explained"],
+  ["Sharpe, Sortino & downside risk", "Study risk-adjusted returns, volatility and drawdown before judging headline performance.", "/methodology", "Risk analysis"],
+  ["Expense ratio & direct plans", "Understand how TER and direct-versus-regular costs can compound into meaningful return differences.", "/funds", "Cost research"],
+  ["Portfolio overlap & health", "Upload a CAS to inspect concentration, diversification, XIRR, risk and evidence gaps across holdings.", "/portfolio", "Portfolio diagnosis"],
+  ["NFO & new AMC evaluation", "Use mandate, people, process, cost and portfolio evidence when a long performance history does not exist.", "/methodology", "New-fund framework"],
+  ["NIFTY 50 stock research", "Open source-traceable company briefs with official filings, industry context and linked news.", "/stocks/universe", "Equity research"],
 ];
 
 // Every card in the daily workspace carries this triplet, per the redesign brief's explicit
@@ -115,29 +118,79 @@ export default async function HomePage() {
       <Nav active="/" />
       <Tracker event="page_view" payload={{ page: "home" }} />
       <main>
-        {/* Compact hero — the workspace below is the point, not the pitch */}
-        <section className="relative overflow-hidden pb-8 pt-10 sm:pt-12">
-          <div className="absolute left-1/2 top-4 h-[320px] w-[640px] -translate-x-1/2 rounded-full bg-accent/10 blur-3xl" aria-hidden="true" />
+        <section className="relative overflow-hidden pb-10 pt-8 sm:pt-10">
+          <div className="absolute left-[8%] top-0 h-[360px] w-[520px] rounded-full bg-accent/12 blur-3xl" aria-hidden="true" />
+          <div className="absolute right-[-8%] top-20 h-[340px] w-[500px] rounded-full bg-info/10 blur-3xl" aria-hidden="true" />
           <div className="container-px relative">
-            <ProductBreadcrumbs items={[["MF Pulse", null]]} />
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h1 className="text-[2rem] font-semibold leading-[1.05] tracking-[-0.05em] text-ink sm:text-[2.6rem]">Research, learn, track and invest with evidence.</h1>
-                <p className="mt-3 max-w-2xl text-[14px] leading-6 text-ink-muted">MF Pulse guides you from discovery to portfolio action. Mutual-fund investing stays inside Suasion Invest; stocks remain research-only until a real execution backend exists.</p>
+            <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1.12fr)_minmax(360px,0.88fr)]">
+              <div className="flex flex-col justify-center py-3 sm:py-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="pos" dot>AMFI-backed Indian fund data</Badge>
+                  <Badge tone="neutral">Explainable rankings</Badge>
+                </div>
+                <h1 className="mt-5 max-w-4xl text-[2.65rem] font-semibold leading-[0.98] tracking-[-0.06em] text-ink sm:text-[3.6rem] lg:text-[4.1rem]">Find stronger funds. Understand the risk. Defend every decision.</h1>
+                <p className="mt-5 max-w-2xl text-[15px] leading-7 text-ink-muted sm:text-base">
+                  Compare Indian mutual funds using CAGR, rolling returns, volatility, max drawdown, Sharpe and Sortino ratios, expense ratios and category context—then diagnose portfolio XIRR, overlap and concentration with visible source freshness.
+                </p>
+                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                  <Link href="/compare" className="btn-premium-primary min-h-12 px-6">Compare mutual funds <span className="ml-2" aria-hidden="true">→</span></Link>
+                  <Link href="/portfolio" className="btn-premium-secondary min-h-12 px-6">Check portfolio health</Link>
+                </div>
+                <div className="mt-7 grid max-w-2xl grid-cols-3 gap-2 sm:gap-3">
+                  {[[fmt(funds.length), "schemes tracked"], [fmt(amcCount), "fund houses"], [asOf || "—", "latest NAV date"]].map(([value, label]) => (
+                    <div key={label} className="rounded-2xl border border-line/70 bg-surface/65 p-3 backdrop-blur-xl sm:p-4">
+                      <div className="financial-number text-sm font-semibold text-ink sm:text-lg">{value}</div>
+                      <div className="mt-1 text-[9px] uppercase tracking-[0.1em] text-ink-faint sm:text-[10px]">{label}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-ink-faint">
-                <Badge tone={freshnessTone(market.tone) === "current" ? "pos" : freshnessTone(market.tone) === "stale" ? "neg" : "warn"} dot>{market.navLine}</Badge>
-                <Link href="/data-status" className="font-semibold text-accent">Data health →</Link>
-              </div>
+
+              <GlassPanel className="relative overflow-hidden p-5 sm:p-6">
+                <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-accent/12 blur-3xl" aria-hidden="true" />
+                <div className="relative">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="eyebrow text-accent">Research terminal</div>
+                      <h2 className="mt-2 text-xl font-semibold tracking-[-0.035em] text-ink sm:text-2xl">Start with the question you actually have.</h2>
+                    </div>
+                    <Badge tone={freshnessTone(market.tone) === "current" ? "pos" : freshnessTone(market.tone) === "stale" ? "neg" : "warn"} dot>Source-traced</Badge>
+                  </div>
+                  <div className="mt-5"><SearchLauncher /></div>
+                  <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                    {[
+                      ["Which fund is more consistent?", "/compare"],
+                      ["Is my portfolio over-diversified?", "/portfolio"],
+                      ["How risky is this small-cap fund?", "/discover"],
+                      ["How should I judge an NFO?", "/methodology"],
+                    ].map(([label, href], index) => (
+                      <Link key={label} href={href} className="group flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-line/70 bg-surface-2/75 p-3.5 text-sm font-semibold leading-5 text-ink-muted hover:border-accent/35 hover:text-ink">
+                        <span><span className="mr-2 font-mono text-[10px] text-accent">0{index + 1}</span>{label}</span><span className="text-accent transition group-hover:translate-x-0.5" aria-hidden="true">→</span>
+                      </Link>
+                    ))}
+                  </div>
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line/70 pt-4 text-[11px] text-ink-faint">
+                    <span>{market.navLine} · {market.sessionLabel}</span>
+                    <Link href="/data-status" className="font-semibold text-accent">Audit data health →</Link>
+                  </div>
+                </div>
+              </GlassPanel>
             </div>
-            <div className="mt-6"><SearchLauncher /></div>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {customerJourney.map(([title, detail, href], index) => (
-                <Link key={title} href={href} className="group rounded-[1.25rem] border border-line bg-surface/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/35 hover:bg-surface">
-                  <div className="financial-number text-[11px] font-semibold text-accent">0{index + 1}</div>
-                  <h2 className="mt-2 text-sm font-semibold text-ink">{title}</h2>
-                  <p className="mt-1.5 text-xs leading-5 text-ink-muted">{detail}</p>
-                  <span className="mt-3 inline-flex text-xs font-semibold text-accent group-hover:translate-x-0.5">Continue →</span>
+
+            <div className="mt-9 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <div className="eyebrow text-accent">Popular research paths</div>
+                <h2 className="mt-2 text-xl font-semibold tracking-[-0.035em] text-ink sm:text-2xl">Go beyond “top returns.” Study what can survive scrutiny.</h2>
+              </div>
+              <Link href="/methodology" className="premium-link">How MF Pulse evaluates evidence <span aria-hidden="true">→</span></Link>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {researchPaths.map(([title, detail, href, tag], index) => (
+                <Link key={title} href={href} className="group rounded-[1.25rem] border border-line bg-surface/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/35 hover:bg-surface sm:p-5">
+                  <div className="flex items-center justify-between gap-3"><span className="eyebrow text-accent">{tag}</span><span className="financial-number text-[10px] text-ink-faint">0{index + 1}</span></div>
+                  <h3 className="mt-3 text-sm font-semibold text-ink">{title}</h3>
+                  <p className="mt-2 text-xs leading-5 text-ink-muted">{detail}</p>
+                  <span className="mt-4 inline-flex text-xs font-semibold text-accent transition group-hover:translate-x-0.5">Explore →</span>
                 </Link>
               ))}
             </div>

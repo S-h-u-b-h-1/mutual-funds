@@ -9,16 +9,16 @@ import AuthGate from "./components/AuthGate";
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-research-sans", display: "swap" });
 const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-research-mono", display: "swap" });
 
-const SITE = "https://frontend-six-beta-20.vercel.app";
+const SITE = "https://mf-pulse.vercel.app";
 const DESC =
-  "Mutual fund performance intelligence for India — real 1-week to 1-year NAV returns, AMC quality rankings, and category leadership across 1,200+ equity funds, from daily AMFI data.";
+  "Compare Indian mutual funds with AMFI-backed returns, rolling performance, volatility, drawdown, Sharpe and Sortino ratios, expense ratios, AMC research and explainable portfolio health.";
 
 export const metadata = {
   metadataBase: new URL(SITE),
   title: { default: "MF Pulse — India mutual fund performance intelligence", template: "%s · MF Pulse" },
   description: DESC,
-  keywords: ["mutual funds", "India", "AMFI", "NAV", "fund performance", "fund returns", "best mutual funds", "AMC rankings"],
-  openGraph: { title: "MF Pulse — Mutual fund performance intelligence", description: DESC, url: SITE, siteName: "MF Pulse", type: "website", locale: "en_IN" },
+  keywords: ["compare mutual funds India", "best mutual funds research", "mutual fund rolling returns", "XIRR", "CAGR", "Sharpe ratio", "Sortino ratio", "expense ratio", "portfolio overlap", "portfolio health", "NFO analysis", "AMC rankings", "AMFI NAV"],
+  openGraph: { title: "MF Pulse — Evidence-led mutual fund research", description: DESC, url: SITE, siteName: "MF Pulse", type: "website", locale: "en_IN" },
   twitter: { card: "summary_large_image", title: "MF Pulse", description: DESC },
   robots: { index: true, follow: true },
 };
