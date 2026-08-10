@@ -6,6 +6,7 @@ import { saveWatchlist } from "../lib/cloudSync";
 import { buildComparisonReport } from "../lib/reports/comparisonReport";
 import { classifyFundTaxTreatment } from "../lib/portfolioIntelligence/taxEngine";
 import { investorFit } from "../lib/investorAnalyst";
+import { buildComparisonEvidence } from "../lib/evidenceAnalysis";
 
 const metricRows = [
   ["Health score", "_h", (value, fund) => value == null ? "Missing" : `${value}/100 · ${fund._g}`],
@@ -109,6 +110,7 @@ export default function CompareFundsClient({ initialFunds }) {
   // Phase 10) instead of re-deriving a second leader-picking implementation — includes its
   // already-verified maxdd90 sign handling (a negative number, so "shallower" is the higher value).
   const comparisonReport = useMemo(() => (activeFunds.length >= 2 ? buildComparisonReport(activeFunds) : null), [activeFunds]);
+  const comparisonEvidence = useMemo(() => (activeFunds.length >= 2 ? buildComparisonEvidence(activeFunds) : null), [activeFunds]);
 
   // Tax efficiency — category-level classification only, reusing the exact same map Tax
   // Intelligence uses on the portfolio page, never a second classification list.
@@ -134,7 +136,7 @@ export default function CompareFundsClient({ initialFunds }) {
   // pick: ties are named as ties, confidence reflects how concentrated the wins actually are, and
   // every dimension the "lead" fund does NOT win is listed as an explicit trade-off.
   const overallRecommendation = useMemo(() => {
-    if (!comparisonReport || comparisonReport.metricLeaders.length < 2) return null;
+    if (!comparisonReport || !comparisonEvidence?.comparable || comparisonReport.metricLeaders.length < 2) return null;
     const wins = {};
     for (const m of comparisonReport.metricLeaders) wins[m.leader.schemeCode] = (wins[m.leader.schemeCode] || 0) + 1;
     const totalDims = comparisonReport.metricLeaders.length;
@@ -152,7 +154,7 @@ export default function CompareFundsClient({ initialFunds }) {
       .filter((m) => !topCodes.includes(m.leader.schemeCode))
       .map((m) => `${m.metric}: ${cleanName(m.leader.schemeName)} leads instead (${typeof m.leader.value === "number" ? m.leader.value.toFixed(2) : m.leader.value}${m.unit}).`);
     return { leadFunds, tied, winsCount: maxWins, totalDims, confidence, tradeoffs };
-  }, [comparisonReport, activeFunds]);
+  }, [comparisonReport, comparisonEvidence, activeFunds]);
 
   return (
     <div className="space-y-9">
@@ -166,8 +168,20 @@ export default function CompareFundsClient({ initialFunds }) {
       {!activeFunds.length ? <div className="rounded-2xl border border-dashed border-line p-10 text-center"><h2 className="text-base font-semibold text-ink">No funds selected</h2><p className="mt-2 text-sm text-ink-muted">Search above or select funds from the screener to begin an evidence-led comparison.</p></div> : <>
         <section aria-labelledby="comparison-conclusions"><div className="eyebrow">At a glance</div><h2 id="comparison-conclusions" className="section-title mt-2">Observed differences—not a universal winner.</h2><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{conclusions.map(([label, fund, detail]) => <article key={label} className="research-surface p-4"><div className="eyebrow">{label}</div><div className="mt-3 text-sm font-semibold leading-snug text-ink">{fund ? cleanName(fund.name) : "Data unavailable"}</div><div className="financial-number mt-2 text-xs text-ink-muted">{detail}</div></article>)}</div>{incomplete?.count > 0 && <p className="mt-3 rounded-xl border border-missing/30 bg-missing/10 p-3 text-xs text-ink-muted"><b className="text-ink">Most incomplete:</b> {cleanName(incomplete.fund.name)} is missing {incomplete.count} comparison measure{incomplete.count === 1 ? "" : "s"}.</p>}</section>
 
+        {comparisonEvidence && <section aria-labelledby="comparison-logic" className={`rounded-2xl border p-5 sm:p-6 ${comparisonEvidence.comparable ? "border-pos/25 bg-pos/[0.03]" : "border-warn/30 bg-warn/[0.04]"}`}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div><div className="eyebrow">Comparison logic</div><h2 id="comparison-logic" className="section-title mt-2">Why this comparison is—or is not—fair</h2></div>
+            <div className="rounded-xl border border-line bg-surface px-4 py-3 text-right"><div className="financial-number text-xl font-semibold text-ink">{comparisonEvidence.score}/100</div><div className="text-[10px] font-semibold text-ink-faint">{comparisonEvidence.label}</div></div>
+          </div>
+          <p className="mt-4 text-sm leading-6 text-ink-muted">{comparisonEvidence.fairness}</p>
+          <p className="mt-2 text-xs leading-5 text-ink-faint">{comparisonEvidence.method}</p>
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">{Object.entries(comparisonEvidence.evidence).map(([key, count]) => <div key={key} className="rounded-xl border border-line bg-surface p-3"><div className="text-[10px] uppercase tracking-wider text-ink-faint">{key}</div><div className="financial-number mt-1 text-sm font-semibold text-ink">{count}/{activeFunds.length} funds</div></div>)}</div>
+          {!comparisonEvidence.comparable && <p className="mt-4 rounded-xl border border-warn/25 bg-bg p-3 text-xs font-semibold text-warn">MF Pulse has withheld an overall winner because unlike categories or plan types should not be collapsed into one conclusion.</p>}
+          <a href="/methodology" className="mt-4 inline-flex text-xs font-semibold text-accent">Read the complete ranking methodology →</a>
+        </section>}
+
         {overallRecommendation && <section aria-labelledby="overall-recommendation" className="rounded-2xl border border-accent/30 bg-accent/5 p-5 sm:p-6">
-          <div className="eyebrow text-accent">Overall recommendation</div>
+          <div className="eyebrow text-accent">Measured lead</div>
           <h2 id="overall-recommendation" className="section-title mt-2">
             {overallRecommendation.tied
               ? `${overallRecommendation.leadFunds.map((fund) => cleanName(fund.name)).join(" and ")} are evenly matched.`

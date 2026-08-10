@@ -65,10 +65,22 @@ export function amcIntel(allFunds, amcSlug, assetSlug) {
   const grade = score >= 85 ? "A" : score >= 70 ? "B+" : score >= 60 ? "B" : score >= 50 ? "C" : score >= 40 ? "D" : "E";
 
   // ---- peer rank vs all AMCs in this asset class (avg 1Y) ----
+  // Rank AMCs using one canonical fund idea per category/strategy, not every Direct/Regular
+  // variant. Counting plan variants as independent funds would overweight AMCs with more share
+  // classes and make the peer ranking structurally unfair.
+  const amcCanonicalGroups = new Map();
+  for (const f of universe) {
+    const key = `${f.amc}|${canonicalKey(f.name)}`;
+    if (!amcCanonicalGroups.has(key)) amcCanonicalGroups.set(key, []);
+    amcCanonicalGroups.get(key).push(f);
+  }
   const amcGroups = {};
-  for (const f of universe) (amcGroups[f.amc] ||= []).push(f);
+  for (const variants of amcCanonicalGroups.values()) {
+    const pick = variants.find((f) => f.isDirect && f.isGrowth) || variants.find((f) => f.isGrowth) || variants[0];
+    (amcGroups[pick.amc] ||= []).push(pick);
+  }
   const ranked = Object.entries(amcGroups)
-    .map(([a, fs]) => ({ amc: a, avg1y: mean(fs.map((f) => f.r1y).filter((v) => v != null)), n: fs.length }))
+    .map(([a, fs]) => ({ amc: a, avg1y: mean(fs.map((f) => f.r1y).filter((v) => v != null)), n: fs.filter((f) => f.r1y != null).length }))
     .filter((r) => r.avg1y != null && r.n >= 3)
     .sort((a, b) => b.avg1y - a.avg1y);
   const rankIdx = ranked.findIndex((r) => r.amc === amcName);
@@ -96,6 +108,7 @@ export function amcIntel(allFunds, amcSlug, assetSlug) {
   return {
     amcName, assetClass, fundCount: canon.length, totalVariants: amcFunds.length,
     score, grade, avgHealth: avgHealth != null ? Math.round(avgHealth) : null,
+    eligible1yCount: with1y.length,
     beatPct: beatPct != null ? Math.round(beatPct) : null, topQ, topQPct: Math.round(topQPct),
     avgVol: avgVol != null ? +avgVol.toFixed(1) : null, completeness: Math.round(completeness),
     rank, totalAmcs, percentile,

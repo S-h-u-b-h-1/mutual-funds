@@ -41,23 +41,29 @@ const cols = [
 
 export default async function CategoryDetail({ params }) {
   const category = decodeURIComponent(params.category);
-  const funds = allFunds()
+  const categoryFunds = allFunds()
     .filter((f) => f.category === category && f.isGrowth && !f.isIdcw && f.assetClass === "Equity" && f.r1m != null)
     .map((f) => { const h = fundHealth(f); return { ...f, _h: h?.overall ?? null, _g: h?.grade ?? null }; })
     .sort((a, b) => b.r1m - a.r1m);
-  if (!funds.length) notFound();
+  if (!categoryFunds.length) notFound();
+
+  // A short launch-period return is useful evidence, but not enough for a normal ordinal rank.
+  // Keep emerging funds visible in a separate, explicitly unranked cohort.
+  const funds = categoryFunds.filter((f) => f.r1y != null);
+  const emergingFunds = categoryFunds.filter((f) => f.r1y == null);
+  const analysisFunds = funds.length ? funds : categoryFunds;
 
   const news = await getArticlesForEntity({ entityType: "category", entityName: category, limit: 3 });
 
-  const rets = funds.map((f) => f.r1m);
+  const rets = analysisFunds.map((f) => f.r1m);
   const avg = rets.reduce((s, v) => s + v, 0) / rets.length;
   const med = median(rets);
   const breadth = Math.round((100 * rets.filter((v) => v > 0).length) / rets.length);
-  const healths = funds.map((f) => f._h).filter((v) => v != null);
+  const healths = analysisFunds.map((f) => f._h).filter((v) => v != null);
   const avgHealth = healths.length ? Math.round(healths.reduce((s, v) => s + v, 0) / healths.length) : null;
-  const improving = funds.filter((f) => f.trend != null && f.trend >= 60).length;
-  const weakening = funds.filter((f) => f.trend != null && f.trend <= 40).length;
-  const vols = funds.map((f) => f.vol90).filter((v) => v != null);
+  const improving = analysisFunds.filter((f) => f.trend != null && f.trend >= 60).length;
+  const weakening = analysisFunds.filter((f) => f.trend != null && f.trend <= 40).length;
+  const vols = analysisFunds.map((f) => f.vol90).filter((v) => v != null);
   const avgVol = vols.length ? vols.reduce((s, v) => s + v, 0) / vols.length : null;
   const riskLevel = avgVol == null ? "—" : avgVol < 12 ? "Low" : avgVol < 20 ? "Moderate" : avgVol < 30 ? "High" : "Very high";
   const momentum = improving > weakening ? "improving" : improving < weakening ? "fading" : "mixed";
@@ -66,18 +72,18 @@ export default async function CategoryDetail({ params }) {
   return (
     <>
       <Nav active="/categories" />
-      <Tracker event="category_view" payload={{ category, funds: funds.length }} view={{ type: "category", id: category, name: category }} />
+      <Tracker event="category_view" payload={{ category, funds: categoryFunds.length }} view={{ type: "category", id: category, name: category }} />
       <main className="container-px py-10 sm:py-14">
         <ProductBreadcrumbs items={[["Mutual Funds", "/funds"], ["Categories", "/categories"], [category, null]]} />
         <div className="eyebrow text-accent"><a className="hover:text-ink" href="/categories">Categories</a> · {category}</div>
         <h1 className="page-title mt-3">{category}</h1>
         <p className="mt-2 max-w-2xl text-[14px] text-ink-muted">
-          {funds.length} equity Growth funds · momentum is <b className="text-ink">{momentum}</b> ({improving} improving / {weakening} weakening) · risk is <b className="text-ink">{riskLevel.toLowerCase()}</b>. Real AMFI NAV, as of {asOf}.
+          {categoryFunds.length} equity Growth funds · {funds.length} have at least 1-year evidence and are eligible for the recent rank{emergingFunds.length ? ` · ${emergingFunds.length} emerging fund${emergingFunds.length === 1 ? " is" : "s are"} shown separately` : ""}. Momentum is <b className="text-ink">{momentum}</b> and risk is <b className="text-ink">{riskLevel.toLowerCase()}</b>. Real AMFI NAV, as of {asOf}.
         </p>
 
         <div className="mt-5 max-w-3xl">
           <StatStrip items={[
-            { label: "Funds", value: funds.length },
+            { label: "Rank eligible", value: funds.length, sub: `${emergingFunds.length} emerging` },
             { label: "Avg 1M", value: `${avg >= 0 ? "+" : ""}${avg.toFixed(2)}%`, tone: avg >= 0 ? "pos" : "neg" },
             { label: "Median 1M", value: `${med >= 0 ? "+" : ""}${med.toFixed(2)}%` },
             { label: "Breadth", value: `${breadth}%`, sub: "positive", tip: "Share of funds in this category with a positive 1-month return — a quick read on how broadly the category is participating, not just its average." },
@@ -90,6 +96,14 @@ export default async function CategoryDetail({ params }) {
           <SectionHeader eyebrow="ranked by 1-month NAV return" title="Funds in this category" action={<Badge tone="pos" dot>real NAV</Badge>} />
           <DataTable columns={cols} rows={rows} footnote={`Equity Growth plans. Health = MF Pulse Fund Health Score. Source: AMFI. As of ${asOf}.`} />
         </section>
+
+        {emergingFunds.length > 0 && (
+          <section className="mt-9">
+            <SectionHeader eyebrow="not ordinally ranked" title="Emerging evidence / new funds" action={<a className="text-accent hover:text-ink" href="/methodology">Why ranks are withheld →</a>} />
+            <p className="mb-3 max-w-3xl text-[12.5px] text-ink-muted">These funds do not yet have a usable 1-year return. Their launch-period results remain visible, but are not compared as if they had a full track record.</p>
+            <DataTable columns={cols} rows={emergingFunds.map((f) => ({ ...f, _key: f.code, _rank: "—" }))} footnote={`Emerging Equity Growth plans. No normal rank until at least 1-year evidence is available. Source: AMFI. As of ${asOf}.`} />
+          </section>
+        )}
 
         {news.length > 0 && (
           <section className="mt-9">

@@ -10,6 +10,7 @@ import ProvenanceDisclosure from "../../components/ui/ProvenanceDisclosure";
 import { getFund, asOf, allFunds } from "../../lib/funds";
 import { getArticlesForEntity, relativeTime } from "../../lib/news";
 import { amcIntel, amcSlugify, gradeTone } from "../../lib/amcIntel";
+import { buildAmcEvidence } from "../../lib/evidenceAnalysis";
 import trendData from "../../data/amc_trend.json";
 
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(Number(n || 0));
@@ -43,6 +44,26 @@ function ScoreEvidence({ intel }) {
         </div>
         <p className="mt-4 text-xs leading-5 text-ink-muted">Available components are weighted and renormalised by the existing AMC intelligence engine. Missing components are dropped; they are never assigned an average value.</p>
       </details>
+    </article>
+  );
+}
+
+function AmcReasoning({ evidence, intel }) {
+  if (!evidence) return null;
+  return (
+    <article className={`rounded-2xl border p-5 sm:p-6 ${evidence.eligible ? "border-pos/25 bg-pos/[0.03]" : "border-warn/30 bg-warn/[0.04]"}`}>
+      <div className="flex flex-wrap items-start justify-between gap-5">
+        <div className="max-w-3xl"><div className="eyebrow">How MF Pulse analysed this AMC</div><h2 className="section-title mt-2">Canonical funds first, evidence confidence before rank.</h2><p className="mt-3 text-sm leading-6 text-ink-muted">{evidence.summary}</p></div>
+        <div className="rounded-xl border border-line bg-surface px-4 py-3 text-right"><div className="financial-number text-2xl font-semibold text-ink">{evidence.score}/100</div><div className="text-[10px] font-semibold text-ink-faint">{evidence.label}</div></div>
+      </div>
+      <p className="mt-4 text-xs leading-5 text-ink-muted">{evidence.logic}</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-line bg-surface p-4"><div className="text-[10px] uppercase tracking-wider text-ink-faint">Canonical funds</div><div className="financial-number mt-1 text-lg font-semibold text-ink">{intel.fundCount}</div></div>
+        <div className="rounded-xl border border-line bg-surface p-4"><div className="text-[10px] uppercase tracking-wider text-ink-faint">1Y eligible</div><div className="financial-number mt-1 text-lg font-semibold text-ink">{intel.eligible1yCount}</div></div>
+        <div className="rounded-xl border border-line bg-surface p-4"><div className="text-[10px] uppercase tracking-wider text-ink-faint">Input completeness</div><div className="financial-number mt-1 text-lg font-semibold text-ink">{intel.completeness}%</div></div>
+      </div>
+      {!evidence.eligible && <p className="mt-4 rounded-xl border border-warn/25 bg-bg p-3 text-xs font-semibold text-warn">AMC peer rank is withheld from the headline until at least three canonical funds and 50% score-input completeness are available.</p>}
+      <a href="/methodology" className="mt-4 inline-flex text-xs font-semibold text-accent">Read the complete AMC methodology →</a>
     </article>
   );
 }
@@ -85,6 +106,7 @@ export default async function AmcPage({ params }) {
   const total = summary.reduce((sum, item) => sum + Number(item.schemes), 0);
   const dominantClass = summary[0]?.asset_class;
   const intel = dominantClass ? amcIntel(allFunds(), amcSlugify(shortName), dominantClass.toLowerCase()) : null;
+  const amcEvidence = buildAmcEvidence(intel);
   const trend = trendData.amcs[amc];
   const trendChange = trend ? trend[trend.length - 1][1] - trend[0][1] : null;
   const strongest = intel?.categories?.[0];
@@ -98,19 +120,20 @@ export default async function AmcPage({ params }) {
         <header className="grid gap-7 border-b border-line pb-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div><Link href="/amc" className="text-xs font-semibold text-ink-muted hover:text-accent">← AMC directory</Link><div className="eyebrow mt-5 text-accent">AMC intelligence · {dominantClass}</div><h1 className="page-title mt-3">{amc}</h1><p className="mt-4 max-w-3xl text-sm leading-6 text-ink-muted">Understand this fund house through observed scheme coverage, peer-relative fund evidence and explicit limitations—not brand reputation or an inferred corporate rating.</p></div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[34rem]">{[
-            ["Schemes", fmt(total)], ["Asset classes", summary.length], ["Peer rank", intel?.rank ? `#${intel.rank} / ${intel.totalAmcs}` : "Unavailable"], ["30d index", trendChange == null ? "Unavailable" : `${trendChange >= 0 ? "+" : ""}${trendChange.toFixed(1)}%`],
+            ["Schemes", fmt(total)], ["Asset classes", summary.length], ["Peer rank", amcEvidence?.eligible && intel?.rank ? `#${intel.rank} / ${intel.totalAmcs}` : "Withheld"], ["30d index", trendChange == null ? "Unavailable" : `${trendChange >= 0 ? "+" : ""}${trendChange.toFixed(1)}%`],
           ].map(([label, value]) => <div key={label} className="rounded-2xl border border-line bg-surface p-4"><div className="text-[10px] uppercase tracking-[0.1em] text-ink-faint">{label}</div><div className="financial-number mt-2 break-words text-lg font-semibold text-ink">{value}</div></div>)}</div>
         </header>
 
         <ProvenanceDisclosure className="mt-6" source="AMFI NAV universe and NAV history" sourceUrl="https://www.amfiindia.com" updatedAt={asOf} confidence="Unavailable" coverage={intel ? `${intel.fundCount} canonical ${intel.assetClass} funds · ${intel.completeness}% score-input coverage` : `${total} schemes`} freshness="Daily on trading days" methodology="The AMC engine groups plan variants into canonical funds, computes observed fund-health and peer evidence, then drops and renormalises unavailable score components." limitations="The AMC engine does not emit an independent confidence rating. This is research evidence, not an AMC credit rating. Public sources do not provide authoritative AMC-level AUM, governance quality or individual AMC net flows." />
 
         <section className="mt-8 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,.65fr)]" aria-labelledby="executive-title">
-          <article className="rounded-2xl border border-line bg-ink p-6 text-bg sm:p-8"><div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-bg/55">Executive summary</div><h2 id="executive-title" className="mt-3 text-2xl font-semibold tracking-tight">{intel?.rank ? `${shortName} ranks #${intel.rank} among ${intel.totalAmcs} ${intel.assetClass} peers on observed 1-year fund returns.` : `${shortName} does not yet have enough 1-year evidence for a peer rank.`}</h2><p className="mt-4 max-w-3xl text-sm leading-6 text-bg/70">{intel ? `${intel.beatPct ?? 0}% of eligible canonical funds beat their category average. ${strongest ? `${strongest.category} is the strongest observed category by average fund health (${strongest.avgHealth ?? "unavailable"}/100).` : "Category strength is unavailable."}` : "The AMC intelligence engine has no eligible canonical-fund cohort for this dominant asset class."}</p></article>
+          <article className="rounded-2xl border border-line bg-ink p-6 text-bg sm:p-8"><div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-bg/55">Executive summary</div><h2 id="executive-title" className="mt-3 text-2xl font-semibold tracking-tight">{amcEvidence?.eligible && intel?.rank ? `${shortName} ranks #${intel.rank} among ${intel.totalAmcs} ${intel.assetClass} peers on observed 1-year canonical-fund returns.` : `${shortName} does not yet have enough comparable evidence for a responsible AMC peer rank.`}</h2><p className="mt-4 max-w-3xl text-sm leading-6 text-bg/70">{intel ? `${intel.beatPct ?? 0}% of eligible canonical funds beat their category average. ${strongest ? `${strongest.category} is the strongest observed category by average fund health (${strongest.avgHealth ?? "unavailable"}/100).` : "Category strength is unavailable."}` : "The AMC intelligence engine has no eligible canonical-fund cohort for this dominant asset class."}</p></article>
           <article className="rounded-2xl border border-line bg-surface p-6"><div className="eyebrow text-ink-faint">Confidence and update</div><dl className="mt-4 space-y-4 text-sm"><div><dt className="text-ink-faint">Latest official NAV evidence</dt><dd className="financial-number mt-1 font-semibold text-ink">{asOf}</dd></div><div><dt className="text-ink-faint">Score-input coverage</dt><dd className="financial-number mt-1 font-semibold text-ink">{intel ? `${intel.completeness}%` : "Unavailable"}</dd></div><div><dt className="text-ink-faint">Confidence interpretation</dt><dd className="mt-1 leading-6 text-ink-muted">{intel ? `Based on ${intel.fundCount} canonical funds; ${100 - intel.completeness}% lack either 1Y return or volatility evidence and reduce confidence.` : "Official data not yet available."}</dd></div></dl></article>
         </section>
 
         {intel ? <>
           <section className="mt-8"><ScoreEvidence intel={intel} /></section>
+          <section className="mt-8"><AmcReasoning evidence={amcEvidence} intel={intel} /></section>
           <section className="mt-8 grid gap-4 lg:grid-cols-2"><FundRanking title="Best observed fund health" detail="Highest deterministic fund-health scores within this AMC and asset class—not a buy list." items={intel.best} tone="text-pos" /><FundRanking title="Weakest observed fund health" detail="Lowest available fund-health scores, shown for investigation rather than judgment." items={intel.weakest} tone="text-neg" /></section>
           <section className="mt-8 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,.8fr)]">
             <article className="rounded-2xl border border-line bg-surface p-5 sm:p-6"><div className="eyebrow text-ink-faint">Category presence</div><h2 className="section-title mt-2">Strength varies across categories.</h2><div className="mt-5 grid gap-3 sm:grid-cols-2">{intel.categories.map((category) => <details key={category.category} className="group rounded-xl border border-line p-4"><summary className="cursor-pointer list-none outline-none focus-visible:ring-2 focus-visible:ring-accent"><div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold text-ink">{category.category}</h3><p className="mt-1 text-xs text-ink-faint">{category.count} canonical fund{category.count === 1 ? "" : "s"}</p></div><span className="financial-number shrink-0 text-sm font-semibold text-ink">{category.avgHealth == null ? "—" : `${category.avgHealth}/100`}</span></div></summary><div className="mt-3 border-t border-line pt-3 text-xs leading-5 text-ink-muted"><p>Average 1Y return: {pct(category.avgR1y)} · average volatility: {pct(category.avgVol)}.</p><p className="mt-1">Engine label: {category.rating}. This is based on available canonical fund health, not a standalone category recommendation.</p>{category.topCode && <Link href={`/fund/${category.topCode}`} className="mt-2 inline-block font-semibold text-accent">Open highest observed 1Y fund →</Link>}</div></details>)}</div></article>

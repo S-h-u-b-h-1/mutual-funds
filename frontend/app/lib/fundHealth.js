@@ -11,11 +11,11 @@ const retScore = (r) => clamp(50 + r * 2);
 export function fundHealth(f) {
   const parts = [];
 
-  // 1 · Performance (30%) — blend of 90d/30d return and category percentile.
+  // 1 · Performance (30%) — absolute recent return only. Peer percentile has its own
+  // component below, so including it here as well would double-count the same evidence.
   if (f.r1m != null || f.r3m != null) {
     const rPart = f.r3m != null ? 0.6 * retScore(f.r3m) + 0.4 * retScore(f.r1m ?? f.r3m) : retScore(f.r1m);
-    const perf = f.catPct != null ? 0.5 * rPart + 0.5 * f.catPct : rPart;
-    parts.push(["performance", 30, clamp(perf)]);
+    parts.push(["performance", 30, clamp(rPart)]);
   }
 
   // 2 · Consistency (20%) — share of non-negative daily NAV days (real, from 90d series).
@@ -72,10 +72,11 @@ export function gradeTone(g) {
 function explain(f, overall, breakdown) {
   const pick = (k) => breakdown.find((b) => b.key === k)?.score;
   const bits = [`Overall health ${overall}/100 (grade ${gradeOf(overall)}).`];
-  if (pick("performance") != null) bits.push(`Performance ${pick("performance")}/100${f.catPct != null ? ` (category percentile ${f.catPct})` : ""}.`);
+  if (pick("performance") != null) bits.push(`Recent-return performance ${pick("performance")}/100.`);
+  if (pick("categoryRank") != null) bits.push(`Same-category peer standing ${pick("categoryRank")}/100 (percentile ${f.catPct}).`);
   if (pick("risk") != null) bits.push(`Risk ${pick("risk")}/100 — 90-day volatility ${f.vol90}% , max drawdown ${f.maxdd90}%.`);
   if (pick("consistency") != null) bits.push(`Consistency ${pick("consistency")}/100 from ${f.quality?.obs || "—"} daily observations.`);
-  if (!f.expenseRatio) bits.push(`Cost score unavailable (expense ratio not yet ingested).`);
+  if (f.expenseRatio == null) bits.push(`Cost score unavailable (expense ratio not yet ingested).`);
   if (f.isIdcw) bits.push(`IDCW plan — NAV-return comparisons may be distorted by payouts.`);
   return bits.join(" ");
 }

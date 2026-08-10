@@ -135,12 +135,65 @@ function MetricTile({ label, value, sub, tone, tooltip }) {
   );
 }
 
+function EvidenceReasoningBox({ analysis }) {
+  if (!analysis) return null;
+  const confidenceTone = analysis.confidence.score >= 75 ? "text-pos border-pos/30 bg-pos/5" : analysis.confidence.score >= 50 ? "text-warn border-warn/30 bg-warn/5" : "text-ink-muted border-line bg-surface-2";
+  return (
+    <WorkspaceCard title="How MF Pulse analysed this fund" subtitle="Fund-specific logic, evidence confidence, strengths, weaknesses and boundaries">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+        <div>
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full border border-line px-3 py-1 text-[11px] font-semibold text-ink">{analysis.framework.label}</span>
+            <span className="rounded-full border border-line px-3 py-1 text-[11px] font-semibold text-ink-muted">{analysis.stage.label}</span>
+          </div>
+          <p className="mt-3 text-[13px] leading-6 text-ink-muted">{analysis.rankExplanation}</p>
+        </div>
+        <div className={`rounded-xl border p-4 ${confidenceTone}`}>
+          <div className="text-[10px] font-bold uppercase tracking-wider">Evidence confidence</div>
+          <div className="financial-number mt-1 text-2xl font-semibold">{analysis.confidence.score}/100</div>
+          <div className="mt-1 text-xs font-semibold">{analysis.confidence.label}</div>
+          <p className="mt-2 text-[10.5px] leading-4 opacity-80">{analysis.confidence.reason}</p>
+        </div>
+      </div>
+
+      {analysis.facts.length > 0 && <div className="mt-5 grid gap-3 md:grid-cols-3">{analysis.facts.map((fact) => (
+        <article key={fact.title} className="rounded-xl border border-line bg-surface p-4">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">{fact.title}</div>
+          <div className="financial-number mt-2 text-lg font-semibold text-ink">{fact.value}</div>
+          <p className="mt-2 text-[11px] leading-5 text-ink-muted">{fact.logic}</p>
+          <div className="mt-3 text-[10px] font-semibold text-accent">{fact.confidence}</div>
+        </article>
+      ))}</div>}
+
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-pos/20 bg-pos/[0.03] p-4">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-pos">Evidence-backed strengths</div>
+          {analysis.strengths.length ? <ul className="mt-3 space-y-2 text-[12px] leading-5 text-ink-muted">{analysis.strengths.map((item) => <li key={item}>+ {item}</li>)}</ul> : <p className="mt-3 text-[12px] text-ink-faint">No material strength clears the current evidence rules.</p>}
+        </div>
+        <div className="rounded-xl border border-warn/20 bg-warn/[0.03] p-4">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-warn">Weaknesses and uncertainty</div>
+          {analysis.weaknesses.length ? <ul className="mt-3 space-y-2 text-[12px] leading-5 text-ink-muted">{analysis.weaknesses.map((item) => <li key={item}>- {item}</li>)}</ul> : <p className="mt-3 text-[12px] text-ink-faint">No material weakness clears the current evidence rules.</p>}
+        </div>
+      </div>
+
+      <details className="group mt-5 rounded-xl border border-line p-4">
+        <summary className="cursor-pointer list-none text-[12px] font-semibold text-ink">Why this framework, and what remains unknown <span className="float-right text-ink-faint group-open:rotate-180">⌄</span></summary>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div><div className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">What matters for this scheme type</div><ol className="mt-2 space-y-1.5 text-[12px] text-ink-muted">{analysis.framework.priorities.map((item, index) => <li key={item}>{index + 1}. {item}</li>)}</ol></div>
+          <div><div className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Current limitations</div><ul className="mt-2 space-y-1.5 text-[12px] text-ink-muted">{analysis.limitations.map((item) => <li key={item}>- {item}</li>)}</ul></div>
+        </div>
+        <p className="mt-4 border-t border-line pt-3 text-[11px] leading-5 text-ink-faint">{analysis.conclusion}</p>
+      </details>
+    </WorkspaceCard>
+  );
+}
+
 export default function FundPageClient({
   fund, cohort, history, sig, rets, bench, meta, port, health, notice, fTone, fLabel,
   sharpe, sortino, riskStats, calReturns, rollReturns, comparisons, relatedNews,
   priority, attentionReasons, completeness, readiness, aRank, asOf,
   categoryAvgVol, categoryAvgDvol, categoryAvgMaxdd, categoryAvgConsistency,
-  thesis, strengthsWeak, fit, priceContext, dna, quality, decisionSupport, newsInsights, similarPastEvents, report
+  thesis, strengthsWeak, fit, priceContext, dna, quality, decisionSupport, evidenceAnalysis, newsInsights, similarPastEvents, report
 }) {
   const [viewMode, setViewMode] = useState("workspace"); // "workspace" (tabbed) or "report" (scroll)
   const [activeTab, setActiveTab] = useState("identity"); // tabs: identity, performance, risk, research, news, compare
@@ -478,6 +531,13 @@ export default function FundPageClient({
             >
               Print Research PDF
             </button>
+            <a
+              href="/mf-pulse-ranking-methodology.pdf"
+              download
+              className="block w-full rounded-lg px-2.5 py-1.5 text-left text-ink-muted hover:bg-surface-2 transition-colors"
+            >
+              Download Ranking Methodology
+            </a>
             {report && (
               <button
                 onClick={() => {
@@ -529,6 +589,8 @@ export default function FundPageClient({
                   {researchSummary(fund, cohort)}
                 </div>
               </WorkspaceCard>
+
+              <EvidenceReasoningBox analysis={evidenceAnalysis} />
 
               {/* Verified Fund Profile — Research Intelligence Upgrade, Mission 1. Every value
                   here comes from a real AMC factsheet (meta = getMetadata(f.code)), distinct
@@ -1070,8 +1132,8 @@ export default function FundPageClient({
                       {sharpe != null && (
                         <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                           <span className="text-ink-faint flex items-center gap-1.5">
-                            Sharpe Ratio (1Y, rf 6.5%)
-                            <MetricTooltip>Return earned per unit of total risk taken, above the risk-free rate. Above 1 is generally considered good, above 2 very good, below 0 means the fund underperformed a risk-free investment. Example: a Sharpe of 1.2 means the fund earned 1.2 units of return for every unit of volatility.</MetricTooltip>
+                            Sharpe Ratio (90D annualised, rf 6.5%)
+                            <MetricTooltip>Uses the annualised 90-day return with 90-day volatility so the periods match. It shows return above the disclosed risk-free rate per unit of total risk. Short-window annualisation can move sharply, so use it as recent evidence, not a long-term verdict.</MetricTooltip>
                           </span>
                           <span className={`font-bold font-mono ${sharpe >= 1 ? "text-pos" : "text-ink"}`}>{sharpe}</span>
                         </div>
@@ -1079,8 +1141,8 @@ export default function FundPageClient({
                       {sortino != null && (
                         <div className="flex justify-between text-[12.5px] border-b border-line pb-1.5">
                           <span className="text-ink-faint flex items-center gap-1.5">
-                            Sortino Ratio (1Y, rf 6.5%)
-                            <MetricTooltip>Like Sharpe, but only penalises downside volatility — a fund that swings up sharply isn’t treated as “risky” here. Above 1.5 is generally considered good. Useful alongside Sharpe: a much higher Sortino than Sharpe suggests the fund’s volatility skews more upside than downside.</MetricTooltip>
+                            Sortino Ratio (90D annualised, rf 6.5%)
+                            <MetricTooltip>Uses the annualised 90-day return and matching 90-day downside volatility. It penalises harmful volatility rather than upside moves. The short window is deliberately labelled and should be read beside drawdown and longer-term returns.</MetricTooltip>
                           </span>
                           <span className={`font-bold font-mono ${sortino >= 1.5 ? "text-pos" : "text-ink"}`}>{sortino}</span>
                         </div>

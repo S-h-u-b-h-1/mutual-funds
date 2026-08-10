@@ -9,7 +9,7 @@
 export function buildResearchReport(f, {
   cohort, thesis, strengthsWeak, fit, dna, quality, decisionSupport, health,
   rets, bench, calReturns, rollReturns, riskStats, sharpe, sortino,
-  completeness, readiness, relatedNews, newsInsights, priority,
+  completeness, readiness, relatedNews, newsInsights, priority, evidenceAnalysis,
 } = {}) {
   const name = f.name.replace(/ - (Direct|Regular).*/i, "");
 
@@ -24,6 +24,8 @@ export function buildResearchReport(f, {
     },
 
     investmentThesis: thesis,
+
+    evidenceReasoning: evidenceAnalysis ?? null,
 
     fundDNA: dna ? { dimensions: dna.dimensions, coverage: `${dna.availableCount}/${dna.totalCount}` } : null,
 

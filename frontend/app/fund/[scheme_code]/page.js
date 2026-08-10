@@ -33,6 +33,7 @@ import { investmentThesis, strengthsAndWeaknesses, investorFit, recentPriceConte
 import { fundDNA } from "../../lib/fundDNA";
 import { qualityEngine, explainQuality } from "../../lib/qualityEngine";
 import { buildResearchReport } from "../../lib/researchReport";
+import { buildFundEvidenceAnalysis } from "../../lib/evidenceAnalysis";
 
 export const revalidate = 3600;
 
@@ -157,10 +158,13 @@ export default async function FundPage({ params }) {
     ? await getSimilarPastArticles({ ruleId: topNewsRuleId, excludeArticleId: topNewsArticle.id, limit: 3 })
     : [];
 
-  // Institutional risk ratios — computed only when 1Y return + risk series exist (no estimation).
+  // Institutional risk ratios — return and risk must use the same window. The source bundle
+  // currently has 3M return and 90D volatility, so annualise that matched observation window;
+  // never mix a 1Y return with 90D risk.
   const RF = 6.5; // disclosed risk-free (≈ India 1Y T-bill)
-  const sharpe = f.r1y != null && f.vol90 ? +((f.r1y - RF) / f.vol90).toFixed(2) : null;
-  const sortino = f.r1y != null && f.dvol90 ? +((f.r1y - RF) / f.dvol90).toFixed(2) : null;
+  const annualized90dReturn = f.r3m != null ? (Math.pow(1 + f.r3m / 100, 365 / 90) - 1) * 100 : null;
+  const sharpe = annualized90dReturn != null && f.vol90 ? +((annualized90dReturn - RF) / f.vol90).toFixed(2) : null;
+  const sortino = annualized90dReturn != null && f.dvol90 ? +((annualized90dReturn - RF) / f.dvol90).toFixed(2) : null;
   // Real Beta/Alpha/Info Ratio/Treynor — only for the ~227 funds benchmarked exactly to Nifty 50
   // TRI or Sensex TRI, only with enough real overlapping history (see lib/riskMetrics.js for the
   // disclosed price-index-vs-TRI caveat this carries).
@@ -197,6 +201,7 @@ export default async function FundPage({ params }) {
   const dna = fundDNA(f, { cohortRisk, betaAlpha: riskStats });
   const quality = qualityEngine(enrichedF, meta);
   const decisionSupport = explainQuality(quality, f); // Phase 7 — drivers/detractors/monitor narrative
+  const evidenceAnalysis = buildFundEvidenceAnalysis(f, meta, cohort);
 
   // Decision Engine (Decision Support sprint) — Research Priority Score extends the existing
   // attention_score (real 1M-vs-3M category rank movement, from scripts/explain.py) with AMC
@@ -246,14 +251,14 @@ export default async function FundPage({ params }) {
   const report = buildResearchReport(f, {
     cohort, thesis, strengthsWeak, fit, dna, quality, decisionSupport, health,
     rets, bench, calReturns, rollReturns, riskStats, sharpe, sortino,
-    completeness, readiness, relatedNews, newsInsights, priority,
+    completeness, readiness, relatedNews, newsInsights, priority, evidenceAnalysis,
   });
 
   return (
     <>
       <Nav active="/funds" />
       <Tracker event="fund_view" payload={{ code: f.code, category: f.category, amc: f.amc }} view={{ type: "fund", id: f.code, name: f.name.replace(/ - (Direct|Regular).*/i, ""), amc: f.amc, category: f.category }} />
-      <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} categoryAvgVol={categoryAvgVol} categoryAvgDvol={categoryAvgDvol} categoryAvgMaxdd={categoryAvgMaxdd} categoryAvgConsistency={categoryAvgConsistency} thesis={thesis} strengthsWeak={strengthsWeak} fit={fit} priceContext={priceContext} dna={dna} quality={quality} decisionSupport={decisionSupport} newsInsights={newsInsights} similarPastEvents={similarPastEvents} report={report} />
+      <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} categoryAvgVol={categoryAvgVol} categoryAvgDvol={categoryAvgDvol} categoryAvgMaxdd={categoryAvgMaxdd} categoryAvgConsistency={categoryAvgConsistency} thesis={thesis} strengthsWeak={strengthsWeak} fit={fit} priceContext={priceContext} dna={dna} quality={quality} decisionSupport={decisionSupport} evidenceAnalysis={evidenceAnalysis} newsInsights={newsInsights} similarPastEvents={similarPastEvents} report={report} />
       <Footer note={<span>NAV as of {f.navDate} · daily data, not real-time · past performance ≠ future returns · source AMFI / MFAPI. Platform as of {asOf}.</span>} />
     </>
   );
