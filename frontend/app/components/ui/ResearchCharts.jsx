@@ -60,7 +60,7 @@ export function AllocationDonut({ items = [], centerLabel = "Allocation", center
 
   return (
     <div className="grid items-center gap-4 sm:grid-cols-[minmax(180px,0.9fr)_minmax(190px,1.1fr)]">
-      <div role="img" aria-label={`${centerLabel}: ${rows.map((item) => `${item.name} ${pct(item.value)}`).join(", ")}`}>
+      <div className="overflow-hidden rounded-2xl bg-[#0b171c]" role="img" aria-label={`${centerLabel}: ${rows.map((item) => `${item.name} ${pct(item.value)}`).join(", ")}`}>
         <EChart option={option} height={height} />
       </div>
       <div className="space-y-3">
@@ -130,7 +130,7 @@ export function RiskReturnMap({ points = [], height = 300, returnLabel = "1-year
   }), [clean, returnLabel, riskLabel]);
 
   if (!clean.length) return <EmptyVisual>The risk/return map needs both return and volatility observations.</EmptyVisual>;
-  return <div role="img" aria-label={`Risk and return map with ${clean.length} observations`}><EChart option={option} height={height} /></div>;
+  return <div className="overflow-hidden rounded-2xl bg-[#0b171c]" role="img" aria-label={`Risk and return map with ${clean.length} observations`}><EChart option={option} height={height} /></div>;
 }
 
 export function ComparisonBars({ funds = [], metrics = [] }) {
