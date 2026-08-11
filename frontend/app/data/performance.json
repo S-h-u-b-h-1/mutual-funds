@@ -135,24 +135,24 @@
 "name": "Aditya Birla Sun Life Digital India Fund - Growth - Direct Plan",
 "amc": "Aditya Birla Sun Life",
 "category": "Sectoral/ Thematic",
-"nav": 182.19,
-"r1w": -0.57,
-"r1m": 9.15,
-"r3m": 13.81,
-"r6m": -3.58,
-"r1y": -0.22
+"nav": 182.13,
+"r1w": -0.61,
+"r1m": 9.11,
+"r3m": 13.77,
+"r6m": -3.61,
+"r1y": -0.25
 },
 {
 "code": "103168",
 "name": "Aditya Birla Sun Life Digital India Fund - Growth - Regular Plan",
 "amc": "Aditya Birla Sun Life",
 "category": "Sectoral/ Thematic",
-"nav": 160.15,
-"r1w": -0.58,
-"r1m": 9.06,
-"r3m": 13.54,
-"r6m": -4.07,
-"r1y": -1.25
+"nav": 160.08,
+"r1w": -0.63,
+"r1m": 9.02,
+"r3m": 13.49,
+"r6m": -4.11,
+"r1y": -1.29
 },
 {
 "code": "152059",
@@ -903,7 +903,7 @@
 {
 "amc": "Aditya Birla Sun Life",
 "funds": 66,
-"avg": 2.99,
+"avg": 3.01,
 "pct_outperform": 76,
 "breadth": 91,
 "score": 79.2
@@ -1151,7 +1151,7 @@
 {
 "amc": "Sundaram",
 "funds": 44,
-"avg": 1.4,
+"avg": 1.42,
 "pct_outperform": 27,
 "breadth": 84,
 "score": 48.3
@@ -1191,10 +1191,10 @@
 {
 "amc": "PPFAS",
 "funds": 6,
-"avg": 1.64,
+"avg": 1.68,
 "pct_outperform": 0,
 "breadth": 100,
-"score": 37.6
+"score": 37.7
 },
 {
 "amc": "Shriram",
