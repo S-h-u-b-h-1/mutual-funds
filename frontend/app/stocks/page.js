@@ -58,6 +58,7 @@ export default async function StocksHome({ searchParams }) {
               <input id="stock-search" name="q" defaultValue={query} className="min-h-12 flex-1 rounded-2xl bg-transparent px-4 text-sm text-ink outline-none placeholder:text-ink-faint" placeholder="Search company, ticker, ISIN…" />
               <button className="min-h-12 rounded-full bg-ink px-5 text-sm font-semibold text-bg" type="submit">Search</button>
             </form>
+            <Link href="/stocks/demo" className="mt-3 inline-flex text-sm font-semibold text-accent">View the interactive stock-analysis demo →</Link>
           </div>
           <GlassPanel className="p-5">
             <SectionHeader eyebrow="Product boundary" title="What Stocks can do today" />

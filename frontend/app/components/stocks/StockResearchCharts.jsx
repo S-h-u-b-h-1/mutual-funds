@@ -14,7 +14,7 @@ const asDate = (value) => new Date(value).getTime();
 const money = (value) => `₹${Number(value).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
 function EmptyChart({ children }) {
-  return <div className="grid min-h-72 place-items-center rounded-2xl border border-dashed border-line bg-surface-2/60 p-6 text-center text-sm leading-6 text-ink-muted">{children}</div>;
+  return <div className="grid min-h-72 place-items-center rounded-2xl border border-dashed border-line bg-surface-2/60 p-6 text-center text-sm leading-6 text-ink-muted"><div>{children}<div><a href="/stocks/demo" className="mt-4 inline-flex rounded-full border border-accent/35 px-4 py-2 text-xs font-semibold text-accent hover:bg-accent/10">Open interactive chart demo →</a></div></div></div>;
 }
 
 export function StockHistoryChart({ points = [], sourceLabel = "Source unavailable" }) {
