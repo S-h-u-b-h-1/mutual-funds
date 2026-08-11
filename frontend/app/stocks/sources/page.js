@@ -40,7 +40,7 @@ export default function StockSourcesPage() {
             <div className="grid grid-cols-2 gap-2 text-sm">
               {[
                 [summary.active, "Active feeds"], [summary.ready, "Ready to connect"],
-                [summary.reference, "Direct references"], [summary.categories.size, "Data categories"],
+                [summary.reference, "Direct references"], [summary.licensed, "Licence-gated"],
               ].map(([value, label]) => (
                 <div key={label} className="rounded-2xl bg-surface-2 p-3">
                   <div className="text-xl font-semibold text-ink tnum">{value}</div>
@@ -96,11 +96,11 @@ export default function StockSourcesPage() {
         </div>
 
         <GlassPanel className="mt-10 p-5 sm:p-6">
-          <SectionHeader eyebrow="Next collection milestone" title="Build the NIFTY 50 + BSE 100 company evidence graph" />
+          <SectionHeader eyebrow="Collection roadmap" title="Complete the NIFTY 50 + BSE 100 company evidence graph" />
           <div className="grid gap-4 text-sm leading-6 text-ink-muted md:grid-cols-3">
             <p><span className="font-semibold text-ink">Universe:</span> reconcile companies by ISIN across both official index lists, preserving membership history rather than overwriting it.</p>
             <p><span className="font-semibold text-ink">Company sources:</span> verify one investor-relations root per company and catalogue annual reports, presentations, transcripts and releases.</p>
-            <p><span className="font-semibold text-ink">Evidence:</span> connect every filing and article to a company using exchange identifiers and explain exactly why it appears.</p>
+            <p><span className="font-semibold text-ink">Evidence:</span> connect every filing and article to a company using exchange identifiers and explain exactly why it appears. Historical prices remain licence-gated.</p>
           </div>
           <Link href="/stocks" className="mt-5 inline-flex text-sm font-semibold text-accent">Return to Stocks →</Link>
         </GlassPanel>
@@ -109,4 +109,3 @@ export default function StockSourcesPage() {
     </>
   );
 }
-

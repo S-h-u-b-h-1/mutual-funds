@@ -6,6 +6,6 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["app/lib/stocks/sourceRegistry.test.js", "app/lib/stocks/universe.test.js", "app/lib/stocks/universeResearch.test.js"],
+    include: ["app/lib/stocks/sourceRegistry.test.js", "app/lib/stocks/universe.test.js", "app/lib/stocks/universeResearch.test.js", "app/lib/stocks/companyAnalysis.test.js"],
   },
 });

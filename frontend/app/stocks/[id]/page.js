@@ -12,13 +12,16 @@ import ProductBreadcrumbs from "../../components/ProductBreadcrumbs";
 import GlassPanel from "../../components/ui/GlassPanel";
 import SectionHeader from "../../components/ui/SectionHeader";
 import Badge, { EmptyState } from "../../components/ui/Badge";
+import { FinancialTrendChart, StockHistoryChart } from "../../components/stocks/StockResearchCharts";
 import { getCompanyPageContract } from "../../lib/stocks/companyProfile";
 import { getStatementsForCompany } from "../../lib/stocks/financialStatements";
 import { computeMetrics } from "../../lib/stocks/metrics";
-import { getLatestValuation, getPeerCompanies } from "../../lib/stocks/valuation";
+import { getLatestValuation, getPeerCompanies, getValuationHistory } from "../../lib/stocks/valuation";
 import { getCompanyTimeline, getResultsCalendar } from "../../lib/stocks/timeline";
 import { getCompanyCommodityExposures } from "../../lib/stocks/commodityService";
 import { getSector } from "../../lib/stocks/sectors";
+import { buildCompanyAnalysis } from "../../lib/stocks/companyAnalysis";
+import { getOfficialCompanyResearchLinks } from "../../lib/stocks/universe";
 
 export const revalidate = 0; // live DB-backed research data, not a static/prebuilt bundle like the MF fund page
 
@@ -50,7 +53,7 @@ const EVENT_TYPE_LABELS = {
   credit_rating: "Credit Rating", capacity_expansion: "Capacity Expansion", order: "Order", regulatory: "Regulatory",
 };
 
-const SECTION_LINKS = ["Overview", "Financials", "Valuation", "Peers", "Timeline", "Documents", "Sector", "Raw Materials", "Learn", "Notes"];
+const SECTION_LINKS = ["Overview", "Performance", "Analysis", "Financials", "Valuation", "Peers", "Timeline", "Documents", "Sector", "Learn", "Notes"];
 
 const METRIC_LESSONS = [
   ["ROCE", "Return on capital employed shows how efficiently capital is used. It is most useful when compared across time and against peers, not as a one-year shortcut."],
@@ -84,9 +87,10 @@ export default async function StockPage({ params }) {
   if (!contract) notFound();
   const { company, exchangeListings, ownership, management, subsidiaries, businessSegments } = contract;
 
-  const [pnlStatements, valuation, peers, timeline, resultsCalendar] = await Promise.all([
-    getStatementsForCompany(id, { statementType: "pnl", periodType: "annual", limit: 3 }),
+  const [pnlStatements, valuation, valuationHistory, peers, timeline, resultsCalendar] = await Promise.all([
+    getStatementsForCompany(id, { statementType: "pnl", periodType: "annual", limit: 12 }),
     getLatestValuation(id),
+    getValuationHistory(id, { limit: 5000 }),
     getPeerCompanies(id),
     getCompanyTimeline(id, { limit: 8 }),
     getResultsCalendar(id, { limit: 1 }),
@@ -102,8 +106,17 @@ export default async function StockPage({ params }) {
   const latestPnl = pnlStatements[0] ?? null;
   const hasAnyStatement = Boolean(latestPnl || balanceSheetStatement || cashFlowStatement);
   const metrics = hasAnyStatement
-    ? computeMetrics({ pnl: latestPnl?.fields, balanceSheet: balanceSheetStatement?.fields, cashFlow: cashFlowStatement?.fields, sharesOutstanding: valuation?.sharesOutstanding })
+    ? computeMetrics({
+      pnl: latestPnl?.fields,
+      balanceSheet: balanceSheetStatement?.fields,
+      cashFlow: cashFlowStatement?.fields,
+      previousPeriod: { pnl: pnlStatements[1]?.fields },
+      sharesOutstanding: valuation?.sharesOutstanding,
+    })
     : null;
+  const analysis = buildCompanyAnalysis({ pnlStatements, metrics, valuation, peers: peers.peers });
+  const officialLinks = getOfficialCompanyResearchLinks(company);
+  const priceSources = [...new Set(valuationHistory.map((point) => point.source).filter(Boolean))];
 
   const promoterHolding = ownership.find((o) => o.holderType === "promoter");
 
@@ -157,11 +170,34 @@ export default async function StockPage({ params }) {
           </div>
         </GlassPanel>
 
+        <GlassPanel id="performance" className="p-5 mb-6 scroll-mt-32">
+          <SectionHeader eyebrow="Price evidence" title="Maximum available price history" action={valuationHistory.length ? `${valuationHistory.length} observations` : "Licence-gated"} />
+          <StockHistoryChart points={valuationHistory} sourceLabel={priceSources.join(", ") || "no contracted source connected"} />
+        </GlassPanel>
+
+        <GlassPanel id="analysis" className="p-5 mb-6 scroll-mt-32">
+          <SectionHeader eyebrow="Evidence-led interpretation" title="Strengths, risks and questions" action={`${analysis.coverage.pnlYears} annual statements`} />
+          <p className="mb-4 max-w-3xl text-xs leading-5 text-ink-faint">These observations are deterministic checks on available statements, cash conversion, leverage, return on capital and peer valuation. They are not a rating, recommendation or prediction.</p>
+          <div className="grid gap-3 md:grid-cols-3">
+            {[
+              ["Strengths", analysis.strengths, "text-accent", "Evidence that currently supports quality"],
+              ["Risks", analysis.risks, "text-amber-400", "Evidence that deserves caution"],
+              ["Questions", analysis.questions, "text-sky-300", "What still needs investigation"],
+            ].map(([title, items, tone, fallback]) => (
+              <div key={title} className="rounded-2xl border border-line bg-surface-2 p-4">
+                <h3 className={`text-sm font-semibold ${tone}`}>{title}</h3>
+                {items.length ? <ul className="mt-3 space-y-3">{items.map((item) => <li key={item} className="text-xs leading-5 text-ink-muted">{item}</li>)}</ul> : <p className="mt-3 text-xs leading-5 text-ink-faint">{fallback}; current evidence is insufficient for a defensible statement.</p>}
+              </div>
+            ))}
+          </div>
+        </GlassPanel>
+
         {/* Key metrics */}
         <GlassPanel id="financials" className="p-5 mb-6 scroll-mt-32">
-          <SectionHeader eyebrow="Fundamentals" title="Key metrics" action={latestPnl ? `FY${latestPnl.fiscalYear}, annual` : null} />
+          <SectionHeader eyebrow="Fundamentals" title="Financial performance and key metrics" action={latestPnl ? `Through FY${latestPnl.fiscalYear}` : null} />
+          <FinancialTrendChart statements={pnlStatements} />
           {metrics ? (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
               <MetricTile label="Revenue Growth" value={metrics.revenueGrowth.value} unit={metrics.revenueGrowth.unit} />
               <MetricTile label="EBITDA Margin" value={metrics.ebitdaMargin.value} unit={metrics.ebitdaMargin.unit} />
               <MetricTile label="Net Profit Margin" value={metrics.netProfitMargin.value} unit={metrics.netProfitMargin.unit} />
@@ -239,8 +275,11 @@ export default async function StockPage({ params }) {
         </GlassPanel>
 
         <GlassPanel id="documents" className="p-5 mb-6 scroll-mt-32">
-          <SectionHeader eyebrow="Documents" title="Annual reports, filings and concalls" />
-          <EmptyState icon="📄" title="Document index is not populated for this company yet" hint="Annual reports, investor presentations, concalls and exchange filings will appear only after sourced document ingestion is connected." />
+          <SectionHeader eyebrow="Primary evidence" title="Filings, results and ownership" action={`${officialLinks.length} official routes`} />
+          {officialLinks.length ? <div className="grid gap-3 sm:grid-cols-2">
+            {officialLinks.map((link) => <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" className="rounded-2xl border border-line bg-surface-2 p-4 transition hover:border-accent/35"><div className="text-sm font-semibold text-ink">{link.label} ↗</div><p className="mt-2 text-xs leading-5 text-ink-muted">{link.detail}</p></a>)}
+          </div> : <EmptyState icon="📄" title="No exchange identifier is mapped yet" hint="Official filing routes appear after a verified NSE symbol or BSE security code is attached to this company." />}
+          <p className="mt-4 text-[11px] leading-5 text-ink-faint">Company-hosted annual reports, investor presentations and transcripts are indexed only after the investor-relations root has been verified. Exchange filings remain the factual cross-check.</p>
         </GlassPanel>
 
         <GlassPanel id="sector" className="p-5 mb-6 scroll-mt-32">
