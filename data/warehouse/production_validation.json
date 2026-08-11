@@ -9,7 +9,7 @@
   {
    "check": "Every scheme routable (funds.json == our universe)",
    "pass": true,
-   "detail": "14252 vs 14252"
+   "detail": "14260 vs 14260"
   },
   {
    "check": "No orphan funds outside source",
@@ -51,7 +51,7 @@
  "total": 9,
  "production_ready_pct": 100.0,
  "observations": {
-  "local_snapshot_age_days": 0,
+  "local_snapshot_age_days": 1,
   "note": "prod NAV refreshed daily by cron; local bundle may lag a few days"
  }
 }

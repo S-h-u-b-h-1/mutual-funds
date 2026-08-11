@@ -3,7 +3,7 @@
  "items": [
   {
    "item": "Expense ratio",
-   "missing_count": 14012.0,
+   "missing_count": 14020.0,
    "impact": "high",
    "expected_source": "AMC factsheet PDF",
    "reason": "parser not extracting TER / non-SBI factsheets blocked (pdfplumber on Py3.13)",
@@ -11,7 +11,7 @@
   },
   {
    "item": "Holdings",
-   "missing_count": 14008,
+   "missing_count": 14016,
    "impact": "high",
    "expected_source": "AMC factsheet PDF / monthly portfolio",
    "reason": "monthly portfolio disclosures not yet ingested",
@@ -19,7 +19,7 @@
   },
   {
    "item": "Fund manager",
-   "missing_count": 13429,
+   "missing_count": 13437,
    "impact": "high",
    "expected_source": "AMC factsheet PDF",
    "reason": "non-SBI factsheets unparsed; SBI manager field sparse",
@@ -27,7 +27,7 @@
   },
   {
    "item": "AUM",
-   "missing_count": 13279,
+   "missing_count": 13287,
    "impact": "medium",
    "expected_source": "AMC factsheet PDF / AMFI",
    "reason": "only SBI factsheets parsed",
@@ -43,7 +43,7 @@
   },
   {
    "item": "Benchmark (all schemes)",
-   "missing_count": 2113,
+   "missing_count": 2118,
    "impact": "medium",
    "expected_source": "SEBI category map",
    "reason": "FMP/index/niche categories unmapped",
