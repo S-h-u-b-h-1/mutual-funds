@@ -804,7 +804,7 @@
 {
 "category": "Value",
 "count": 44,
-"avg": 1.44,
+"avg": 1.45,
 "median": 1.4,
 "best": {
 "name": "LIC MF Value Fund-Direct Plan-Growth",
@@ -1207,7 +1207,7 @@
 {
 "amc": "DSP",
 "funds": 32,
-"avg": 1.19,
+"avg": 1.2,
 "pct_outperform": 3,
 "breadth": 94,
 "score": 37.1
