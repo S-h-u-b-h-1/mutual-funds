@@ -176,6 +176,9 @@ export default async function FundPage({ params }) {
   const peerVol = peers.map(x => x.vol90).filter(v => v != null);
   const categoryAvgVol = peerVol.length ? +(peerVol.reduce((s, v) => s + v, 0) / peerVol.length).toFixed(2) : null;
 
+  const peerR1y = peers.map(x => x.r1y).filter(v => v != null);
+  const categoryAvgR1y = peerR1y.length ? +(peerR1y.reduce((s, v) => s + v, 0) / peerR1y.length).toFixed(2) : null;
+
   const peerDvol = peers.map(x => x.dvol90).filter(v => v != null);
   const categoryAvgDvol = peerDvol.length ? +(peerDvol.reduce((s, v) => s + v, 0) / peerDvol.length).toFixed(2) : null;
 
@@ -253,7 +256,7 @@ export default async function FundPage({ params }) {
     <>
       <Nav active="/funds" />
       <Tracker event="fund_view" payload={{ code: f.code, category: f.category, amc: f.amc }} view={{ type: "fund", id: f.code, name: f.name.replace(/ - (Direct|Regular).*/i, ""), amc: f.amc, category: f.category }} />
-      <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} categoryAvgVol={categoryAvgVol} categoryAvgDvol={categoryAvgDvol} categoryAvgMaxdd={categoryAvgMaxdd} categoryAvgConsistency={categoryAvgConsistency} thesis={thesis} strengthsWeak={strengthsWeak} fit={fit} priceContext={priceContext} dna={dna} quality={quality} decisionSupport={decisionSupport} newsInsights={newsInsights} similarPastEvents={similarPastEvents} report={report} />
+      <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} categoryAvgR1y={categoryAvgR1y} categoryAvgVol={categoryAvgVol} categoryAvgDvol={categoryAvgDvol} categoryAvgMaxdd={categoryAvgMaxdd} categoryAvgConsistency={categoryAvgConsistency} thesis={thesis} strengthsWeak={strengthsWeak} fit={fit} priceContext={priceContext} dna={dna} quality={quality} decisionSupport={decisionSupport} newsInsights={newsInsights} similarPastEvents={similarPastEvents} report={report} />
       <Footer note={<span>NAV as of {f.navDate} · daily data, not real-time · past performance ≠ future returns · source AMFI / MFAPI. Platform as of {asOf}.</span>} />
     </>
   );

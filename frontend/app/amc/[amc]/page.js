@@ -7,6 +7,7 @@ import ProductBreadcrumbs from "../../components/ProductBreadcrumbs";
 import WatchButton from "../../components/WatchButton";
 import NextActions from "../../components/NextActions";
 import ProvenanceDisclosure from "../../components/ui/ProvenanceDisclosure";
+import { AllocationDonut, ComparisonBars, RiskReturnMap } from "../../components/ui/ResearchCharts";
 import { getFund, asOf, allFunds } from "../../lib/funds";
 import { getArticlesForEntity, relativeTime } from "../../lib/news";
 import { amcIntel, amcSlugify, gradeTone } from "../../lib/amcIntel";
@@ -14,7 +15,6 @@ import trendData from "../../data/amc_trend.json";
 
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(Number(n || 0));
 const pct = (n, digits = 1) => n == null ? "Not available" : `${Number(n).toFixed(digits)}%`;
-const CLASS_COLOR = { Equity: "#34d399", Debt: "#60a5fa", Hybrid: "#a78bfa", Other: "#fbbf24", Solution: "#f472b6" };
 
 export async function generateMetadata({ params }) {
   return { title: decodeURIComponent(params.amc) };
@@ -60,10 +60,12 @@ function FundRanking({ title, detail, items, tone }) {
 }
 
 function Distribution({ summary, total }) {
+  const items = summary.map((item) => ({ name: item.asset_class, weight: total ? (Number(item.schemes) / total) * 100 : 0 }));
   return (
     <article className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
       <div className="eyebrow text-ink-faint">Fund distribution</div><h2 className="section-title mt-2">Where this AMC is present</h2>
-      <div className="mt-5 space-y-4">{summary.map((item) => { const share = total ? (Number(item.schemes) / total) * 100 : 0; return <div key={item.asset_class}><div className="flex items-center justify-between gap-3 text-xs"><span className="flex items-center gap-2 font-medium text-ink"><span className="h-2.5 w-2.5 rounded-full" style={{ background: CLASS_COLOR[item.asset_class] || "#64748b" }} />{item.asset_class}</span><span className="financial-number text-ink-muted">{fmt(item.schemes)} · {share.toFixed(1)}%</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full" style={{ width: `${share}%`, background: CLASS_COLOR[item.asset_class] || "#64748b" }} /></div></div>; })}</div>
+      <div className="mt-3"><AllocationDonut items={items} centerLabel="schemes" centerValue={fmt(total)} height={255} /></div>
+      <p className="mt-3 border-t border-line pt-3 text-[10.5px] leading-5 text-ink-faint">Share of official scheme-code records by asset class—not assets under management or investor allocation.</p>
     </article>
   );
 }
@@ -111,6 +113,27 @@ export default async function AmcPage({ params }) {
 
         {intel ? <>
           <section className="mt-8"><ScoreEvidence intel={intel} /></section>
+          <section className="mt-8 grid gap-4 xl:grid-cols-[minmax(320px,0.72fr)_minmax(0,1.28fr)]" aria-label="AMC category visual analysis">
+            <article className="overflow-hidden rounded-2xl border border-line bg-surface p-5 sm:p-6">
+              <div className="eyebrow text-accent">Category risk / return map</div><h2 className="section-title mt-2">Where this AMC’s categories sit.</h2>
+              <RiskReturnMap points={intel.categories.map((category, index) => ({ name: category.category, return: category.avgR1y, risk: category.avgVol, size: category.count, highlight: index === 0, detail: `${category.count} canonical fund${category.count === 1 ? "" : "s"}` }))} height={320} />
+              <p className="mt-3 text-[10.5px] leading-5 text-ink-faint">Each bubble is a category average inside this AMC’s dominant asset-class cohort. The first category is outlined for orientation—not declared a universal winner.</p>
+            </article>
+            <article className="overflow-hidden rounded-2xl border border-line bg-surface p-5 sm:p-6">
+              <div className="eyebrow text-accent">Category evidence matrix</div><h2 className="section-title mt-2">Strength is not uniform across a fund house.</h2>
+              <div className="mt-5 rounded-2xl border border-line bg-surface-2/45 p-4">
+                <ComparisonBars
+                  funds={intel.categories.slice(0, 5).map((category, index) => ({ code: `amc-category-${index}`, name: category.category, shortName: category.category, avgR1y: category.avgR1y, avgVol: category.avgVol, avgHealth: category.avgHealth }))}
+                  metrics={[
+                    { key: "avgR1y", label: "Average 1-year return", suffix: "%", help: "Higher observed category average is longer." },
+                    { key: "avgVol", label: "Average volatility", suffix: "%", lowerIsBetter: true, help: "Lower observed volatility is longer." },
+                    { key: "avgHealth", label: "Average fund health", suffix: "/100", digits: 0, help: "Higher deterministic evidence score is longer." },
+                  ]}
+                />
+              </div>
+              <p className="mt-3 text-[10.5px] leading-5 text-ink-faint">Shows up to five categories using only available canonical-fund evidence. Bar lengths are normalized within this AMC, while printed values remain the observations.</p>
+            </article>
+          </section>
           <section className="mt-8 grid gap-4 lg:grid-cols-2"><FundRanking title="Best observed fund health" detail="Highest deterministic fund-health scores within this AMC and asset class—not a buy list." items={intel.best} tone="text-pos" /><FundRanking title="Weakest observed fund health" detail="Lowest available fund-health scores, shown for investigation rather than judgment." items={intel.weakest} tone="text-neg" /></section>
           <section className="mt-8 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,.8fr)]">
             <article className="rounded-2xl border border-line bg-surface p-5 sm:p-6"><div className="eyebrow text-ink-faint">Category presence</div><h2 className="section-title mt-2">Strength varies across categories.</h2><div className="mt-5 grid gap-3 sm:grid-cols-2">{intel.categories.map((category) => <details key={category.category} className="group rounded-xl border border-line p-4"><summary className="cursor-pointer list-none outline-none focus-visible:ring-2 focus-visible:ring-accent"><div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold text-ink">{category.category}</h3><p className="mt-1 text-xs text-ink-faint">{category.count} canonical fund{category.count === 1 ? "" : "s"}</p></div><span className="financial-number shrink-0 text-sm font-semibold text-ink">{category.avgHealth == null ? "—" : `${category.avgHealth}/100`}</span></div></summary><div className="mt-3 border-t border-line pt-3 text-xs leading-5 text-ink-muted"><p>Average 1Y return: {pct(category.avgR1y)} · average volatility: {pct(category.avgVol)}.</p><p className="mt-1">Engine label: {category.rating}. This is based on available canonical fund health, not a standalone category recommendation.</p>{category.topCode && <Link href={`/fund/${category.topCode}`} className="mt-2 inline-block font-semibold text-accent">Open highest observed 1Y fund →</Link>}</div></details>)}</div></article>

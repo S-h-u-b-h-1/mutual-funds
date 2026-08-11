@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Sparkline from "./Sparkline";
+import { ComparisonBars, RiskReturnMap } from "./ui/ResearchCharts";
 import { track } from "../lib/track";
 import { getComparisons, saveComparison, deleteComparison, saveWatchlist } from "../lib/cloudSync";
 
@@ -51,6 +52,8 @@ function summarizeAmc(name, funds, trendPoints) {
     categories: categories.size,
     trend: change(trendPoints),
     avgHealth: avg(funds.map((f) => f._h)),
+    avgReturn: avg(funds.map((f) => f.r1y)),
+    avgVolatility: avg(funds.map((f) => f.vol90)),
     avgConsistency: avg(funds.map((f) => f.consistency)),
     avgDrawdown: avg(funds.map((f) => f.maxdd90)),
     aboveMedianPct: total ? (aboveMedian / total) * 100 : null,
@@ -281,6 +284,31 @@ export default function CompareClient({ amcs, meta = {} }) {
               <DimensionCard label="Above category median" winner={shortAmc(leader("aboveMedianPct")?.name)} detail="Share of funds with available category percentile at or above median." />
               <DimensionCard label="Risk-adjusted consistency" winner={shortAmc(leader("avgConsistency")?.name)} detail="Average consistency field from existing verified fund records." />
               <DimensionCard label="Verified AMC flows" unavailable detail="Verified AMC flow data is not available for this period." />
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-[minmax(320px,0.7fr)_minmax(0,1.3fr)]">
+              <article className="overflow-hidden rounded-[1.5rem] border border-line bg-surface p-5">
+                <div className="eyebrow text-accent">AMC risk / return landscape</div>
+                <RiskReturnMap points={selectedSummaries.map((summary, index) => ({ name: shortAmc(summary.name), return: summary.avgReturn, risk: summary.avgVolatility, size: summary.total, highlight: index === 0, detail: `${summary.total} available scheme records` }))} height={320} />
+                <p className="mt-3 text-[10.5px] leading-5 text-ink-faint">Each point averages available fund observations within the selected AMC. Amber identifies the first selected AMC for orientation, not preference.</p>
+              </article>
+              <article className="overflow-hidden rounded-[1.5rem] border border-line bg-surface p-5">
+                <div className="eyebrow text-accent">AMC evidence matrix</div>
+                <div className="mt-4 rounded-2xl border border-line bg-surface-2/45 p-4">
+                  <ComparisonBars
+                    funds={selectedSummaries.map((summary) => ({ ...summary, code: summary.name, shortName: shortAmc(summary.name) }))}
+                    metrics={[
+                      { key: "avgReturn", label: "Average 1-year return", suffix: "%", help: "Higher observed average is longer." },
+                      { key: "avgVolatility", label: "Average volatility", suffix: "%", lowerIsBetter: true, help: "Lower observed variation is longer." },
+                      { key: "avgHealth", label: "Average fund health", suffix: "/100", digits: 0, help: "Higher deterministic evidence score is longer." },
+                      { key: "topQuartilePct", label: "Top-quartile share", suffix: "%", help: "Higher share of category top-quartile funds is longer." },
+                      { key: "avgConsistency", label: "Average consistency", suffix: "%", help: "Higher observed consistency is longer." },
+                      { key: "completePct", label: "Complete evidence", suffix: "%", help: "Higher comparison-data coverage is longer." },
+                    ]}
+                  />
+                </div>
+                <p className="mt-3 text-[10.5px] leading-5 text-ink-faint">Every row is normalized only across the selected AMCs. Printed values remain the evidence; missing inputs stay blank and are not replaced.</p>
+              </article>
             </div>
           </section>
 

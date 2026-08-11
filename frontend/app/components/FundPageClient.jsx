@@ -17,6 +17,7 @@ import { completenessTone } from "../lib/completeness";
 import { TIER_TONE, CONFIDENCE_LABEL, CONFIDENCE_TONE } from "../lib/decisionEngine";
 import { QUALITY_LABELS } from "../lib/qualityEngine";
 import { TrendArrow, PercentileBar, Sparkline, Gauge } from "./ui/Visualizations";
+import { ComparisonBars, RiskReturnMap } from "./ui/ResearchCharts";
 import { fieldById, computeConfidence } from "../lib/fieldRegistry";
 import { metadataStatus } from "../lib/metadata";
 import fieldCoverage from "../data/fieldCoverage.json";
@@ -139,7 +140,7 @@ export default function FundPageClient({
   fund, cohort, history, sig, rets, bench, meta, port, health, notice, fTone, fLabel,
   sharpe, sortino, riskStats, calReturns, rollReturns, comparisons, relatedNews,
   priority, attentionReasons, completeness, readiness, aRank, asOf,
-  categoryAvgVol, categoryAvgDvol, categoryAvgMaxdd, categoryAvgConsistency,
+  categoryAvgR1y, categoryAvgVol, categoryAvgDvol, categoryAvgMaxdd, categoryAvgConsistency,
   thesis, strengthsWeak, fit, priceContext, dna, quality, decisionSupport, newsInsights, similarPastEvents, report
 }) {
   const [viewMode, setViewMode] = useState("workspace"); // "workspace" (tabbed) or "report" (scroll)
@@ -1014,6 +1015,40 @@ export default function FundPageClient({
           {/* TAB CONTENT: RISK */}
           {(viewMode === "workspace" ? activeTab === "risk" : true) && (
             <section id="sec-risk" className="scroll-mt-24 space-y-6 animate-fade-in">
+
+              <WorkspaceCard title="Fund vs category landscape" subtitle="The same observed measures, translated into position and trade-offs">
+                <div className="grid gap-5 xl:grid-cols-[minmax(300px,0.72fr)_minmax(0,1.28fr)]">
+                  <div>
+                    <div className="eyebrow text-accent">Risk / return position</div>
+                    <RiskReturnMap
+                      points={[
+                        { name: fund.name.replace(/ - (Direct|Regular).*/i, ""), return: fund.r1y, risk: fund.vol90, size: 9, highlight: true },
+                        { name: `${fund.category} category average`, return: categoryAvgR1y, risk: categoryAvgVol, size: 7 },
+                      ]}
+                      height={300}
+                    />
+                    <p className="mt-3 text-[10.5px] leading-5 text-ink-faint">Amber identifies this fund. The peer point uses the same-plan active category cohort; it is a reference, not a target or forecast.</p>
+                  </div>
+                  <div>
+                    <div className="eyebrow text-accent">Peer-relative measures</div>
+                    <div className="mt-4 rounded-2xl border border-line bg-surface-2/45 p-4">
+                      <ComparisonBars
+                        funds={[
+                          { ...fund, shortName: "This fund" },
+                          { code: "category-average", name: `${fund.category} category average`, shortName: "Category average", r1y: categoryAvgR1y, vol90: categoryAvgVol, maxdd90: categoryAvgMaxdd, consistency: categoryAvgConsistency },
+                        ]}
+                        metrics={[
+                          { key: "r1y", label: "1-year return", suffix: "%", help: "Higher observed return is longer." },
+                          { key: "vol90", label: "90-day volatility", suffix: "%", lowerIsBetter: true, help: "Lower observed variation is longer." },
+                          { key: "maxdd90", label: "90-day max drawdown", suffix: "%", help: "A shallower loss, closer to zero, is longer." },
+                          { key: "consistency", label: "Consistency", suffix: "%", help: "Higher share of non-falling days is longer." },
+                        ]}
+                      />
+                    </div>
+                    <p className="mt-3 text-[10.5px] leading-5 text-ink-faint">Bar length is normalized across these two observations only. Read the printed value for magnitude; missing peer evidence remains blank.</p>
+                  </div>
+                </div>
+              </WorkspaceCard>
               
               {/* Volatility, Sharpe, Alpha, Beta */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
