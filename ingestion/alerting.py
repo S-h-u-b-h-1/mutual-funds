@@ -41,11 +41,14 @@ def slack_payload(subject: str, message: str, severity: str) -> dict:
     return {"text": f"{icon} *MF Pulse* — {subject}\n{message}"}
 
 
-def alert_for_run(status: str, latest=None, today=None):
+def alert_for_run(status: str, latest=None, today=None, coverage_state=None, coverage_pct=None):
     """Decide if a pipeline run warrants an alert.
 
     Returns (subject, message, severity) or None. Pure + testable: covers the
-    three trigger conditions — failed run, missing data, and stale NAV.
+    four trigger conditions — failed run, missing data, stale NAV, and (2026-08-11 incident fix)
+    a technically-current-but-incomplete ingestion. `coverage_state`/`coverage_pct` are optional
+    (callers that haven't computed coverage yet, e.g. old tests, still get the original checks)
+    — see ingestion/freshness.py's classify_freshness() for how they're produced.
     """
     from ingestion.freshness import freshness_status, staleness_days
 
@@ -59,6 +62,18 @@ def alert_for_run(status: str, latest=None, today=None):
             "NAV data is stale",
             f"latest NAV {latest} is {staleness_days(latest, today)} days old (status: {fresh})",
             "error" if fresh == "red" else "warning",
+        )
+    # The 2026-08-11 incident: MAX(nav_date) was today's date (fresh == "green" above), but only
+    # 5 of ~8,500 normally-active schemes actually had it — a single-date check alone can never
+    # see this. coverage_state carries that missing dimension.
+    if coverage_state == "PARTIAL":
+        pct = f"{coverage_pct:.0%}" if coverage_pct is not None else "an unknown fraction of"
+        return (
+            "NAV ingestion is incomplete",
+            f"latest NAV date {latest} exists, but only {pct} of the normal scheme universe has it yet "
+            "— AMFI likely hasn't finished publishing for this date. Not a failure; expect the next "
+            "scheduled run to catch up.",
+            "warning",
         )
     return None
 

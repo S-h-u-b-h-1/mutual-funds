@@ -30,7 +30,7 @@ const ago = (ts) => {
 export default async function Status() {
   let byClass = [], headline = [], signals = [], ok = true;
   let chain = { navLatest: null, health: null }, pipelineRuns = [], newsAt = null, factsheetAt = null;
-  let freshness = { explanation: null, rawAheadOfBundle: null };
+  let freshness = { explanation: null, rawAheadOfBundle: null, coverage: null, freshnessState: null, customerMessage: null };
   try {
     [byClass, headline, signals, chain, pipelineRuns, newsAt, factsheetAt, freshness] = await Promise.all([
       sb("mv_asset_class_summary?select=*", { revalidate: 300 }),
@@ -94,6 +94,16 @@ export default async function Status() {
           {[
             { label: "Latest NAV (this site's bundle)", value: asOf, tone: ms.tone },
             { label: "Latest NAV (warehouse)", value: chain.navLatest ?? "unavailable" },
+            // 2026-08-11 incident fix: a date existing in the warehouse never used to mean most
+            // schemes actually had it (real incident: 5 of ~8,500). This row shows the honest
+            // coverage figure alongside the date above, not just the date alone.
+            {
+              label: "Scheme coverage at that date",
+              value: freshness.coverage
+                ? `${fmt(freshness.coverage.schemes_at_source_date ?? 0)}/${fmt(freshness.coverage.schemes_baseline ?? 0)} schemes · ${freshness.freshnessState ?? "UNKNOWN"}`
+                : "unavailable",
+              tone: freshness.freshnessState === "STALE" ? "neg" : freshness.freshnessState === "PARTIAL" ? "warn" : undefined,
+            },
             { label: "Ingestion pipeline last executed", value: lastRun?.finished_at ? `${ago(lastRun.finished_at)} · ${lastRun.status}${lastRun.rows_ingested != null ? ` · ${fmt(lastRun.rows_ingested)} rows` : ""}` : "no run recorded" },
             { label: "Analytics snapshot refreshed", value: chain.health?.captured_at ? `${ago(chain.health.captured_at)} · reflects ${chain.health.nav_latest_date}` : "no snapshot" },
             { label: "News last fetched", value: ago(newsAt) },
@@ -105,6 +115,9 @@ export default async function Status() {
             </div>
           ))}
         </GlassPanel>
+        {freshness.customerMessage && (
+          <p className={`mt-2 text-[13px] ${freshness.freshnessState === "PARTIAL" || freshness.freshnessState === "STALE" ? "text-warn" : "text-ink"}`}>{freshness.customerMessage}</p>
+        )}
         {freshness.explanation && (
           <p className={`mt-2 text-[12px] ${freshness.rawAheadOfBundle ? "text-warn" : "text-ink-muted"}`}>{freshness.explanation}</p>
         )}

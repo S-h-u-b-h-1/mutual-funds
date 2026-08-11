@@ -23,6 +23,22 @@ def test_no_alert_when_fresh():
     assert al.alert_for_run("success", date(2026, 6, 23), today=TODAY) is None  # 1d
 
 
+def test_alert_for_partial_coverage():
+    # 2026-08-11 incident fix: the max date is fresh (0 days old -> would pass the old check
+    # silently), but coverage_state="PARTIAL" must still surface a warning, with the real
+    # percentage in the message.
+    d = al.alert_for_run("success", date(2026, 6, 24), today=TODAY, coverage_state="PARTIAL", coverage_pct=0.0006)
+    assert d is not None
+    subject, message, severity = d
+    assert severity == "warning"
+    assert "incomplete" in subject.lower()
+    assert "0%" in message or "0.1%" in message
+
+
+def test_no_alert_when_coverage_current():
+    assert al.alert_for_run("success", date(2026, 6, 23), today=TODAY, coverage_state="CURRENT", coverage_pct=0.98) is None
+
+
 def test_send_alert_github_only(capsys):
     sent = al.send_alert("Test", "msg", "error")
     assert sent == ["github"]

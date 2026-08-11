@@ -60,10 +60,28 @@ export async function getNeonNewsCount() {
 export async function getNeonPipelineRuns(limit = 5) {
   return safeQuery(
     `select pipeline, status, source, source_date::text as source_date, rows_ingested,
-            duration_ms, error, started_at, finished_at
+            duration_ms, error, started_at, finished_at,
+            coverage_pct, expected_trading_day::text as expected_trading_day,
+            schemes_at_source_date, schemes_baseline, freshness_state
      from fact_pipeline_runs order by finished_at desc limit $1`,
     [limit]
   );
+}
+
+// 2026-08-11 incident fix: the most recent nav_daily run's own coverage read-back (see
+// scripts/cloud_pipeline.py) — the same numbers that decide CURRENT/PARTIAL/STALE, exposed for
+// the customer-facing freshness surfaces (getFreshnessSummary/api/freshness/FreshnessBadge) so
+// they can show something more honest than "the newest date exists somewhere in the warehouse."
+export async function getNeonCoverage() {
+  const rows = await safeQuery(
+    `select source_date::text as source_date, coverage_pct, schemes_at_source_date,
+            schemes_baseline, freshness_state, expected_trading_day::text as expected_trading_day,
+            finished_at
+     from fact_pipeline_runs
+     where pipeline = 'nav_daily' and freshness_state is not null
+     order by finished_at desc limit 1`
+  );
+  return rows?.[0] ?? null;
 }
 
 export async function getNeonMarketQuotes() {

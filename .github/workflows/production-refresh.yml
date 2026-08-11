@@ -23,12 +23,21 @@ name: Production Refresh
 on:
   schedule:
     - cron: "30 14 * * 1-6"   # 14:30 UTC = 8:00pm IST, Mon-Sat (after AMFI publishes)
+    # Late-evening safety net (18:00 UTC = 11:30pm IST, Mon-Sat): 2026-08-11 incident — the 8pm
+    # run caught AMFI's file with only 5 of ~8,500 schemes on the new date (most AMCs hadn't
+    # uploaded yet at 21:00 IST when this actually ran, itself an hour late per GitHub's own
+    # scheduling jitter); nothing else ran again until the next morning, so users saw NAVs 3+
+    # calendar days stale for over 12 hours after AMFI's own data was actually ready. This third
+    # attempt narrows that window without assuming any single exact minute is reliably "late
+    # enough" — assert_pipeline_freshness.py's coverage check (see ingestion/freshness.py) makes
+    # each run's actual completeness observable in the logs either way.
+    - cron: "0 18 * * 1-6"
     # Morning catch-up (05:00 UTC = 10:30am IST, daily): AMFI's NAVAll.txt is updated
-    # progressively as AMCs upload — the evening run can catch a partially-updated file (found
-    # live 2026-07-06: only ~5k of 14k schemes had Monday NAVs at 22:54 IST). NAVAll only ever
-    # carries each scheme's LATEST row, so stragglers that upload overnight would leave permanent
-    # holes in fact_nav_daily's history without this second pass. Idempotent: no new data → no
-    # bundle change → no commit/deploy.
+    # progressively as AMCs upload — an evening run can catch a partially-updated file (found
+    # live 2026-07-06: only ~5k of 14k schemes had Monday NAVs at 22:54 IST; recurred 2026-08-10,
+    # see above). NAVAll only ever carries each scheme's LATEST row, so stragglers that upload
+    # overnight would leave permanent holes in fact_nav_daily's history without this second pass.
+    # Idempotent: no new data → no bundle change → no commit/deploy.
     - cron: "0 5 * * *"
   workflow_dispatch: {}
 
@@ -137,6 +146,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m scripts.assert_pipeline_freshness
 
       - name: 5. Commit refreshed bundles

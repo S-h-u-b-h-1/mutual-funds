@@ -74,6 +74,21 @@ export async function getPipelineRuns(limit = 8) {
   }
 }
 
+// 2026-08-11 incident fix: coverage_pct/freshness_state live only in Neon (see
+// sql/neon/038_pipeline_run_coverage.sql's header comment on why they were never added to
+// Supabase) — this is a Neon read, not a Supabase one, unlike every other function in this file.
+// Degrades to null exactly like its siblings: a missing/unreachable Neon connection must never
+// crash a monitoring page, and the coverage banner below already renders null as "unknown", never
+// a fabricated "current".
+export async function getCoverageHealth() {
+  try {
+    const { getNeonCoverage } = await import("./neonReads");
+    return await getNeonCoverage();
+  } catch {
+    return null;
+  }
+}
+
 export async function getNewsFreshness() {
   try {
     const rows = await sb("news_articles?select=fetched_at&order=fetched_at.desc&limit=1", { revalidate: 300 });

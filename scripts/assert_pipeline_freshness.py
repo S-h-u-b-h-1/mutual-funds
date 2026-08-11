@@ -28,7 +28,8 @@ from datetime import date
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from ingestion.freshness import is_stale, staleness_days, GREEN_MAX  # noqa: E402
+from ingestion.freshness import is_stale, staleness_days, GREEN_MAX, classify_freshness, coverage_baseline  # noqa: E402
+from ingestion import db as neon_db  # noqa: E402
 
 URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
@@ -92,6 +93,38 @@ def main():
             ok = False
         else:
             print(f"OK: JSON bundle vs analytics — daily.json ({bundle_asof}) is caught up with analytics ({health_nav}).")
+
+    # ---- coverage check (2026-08-11 incident fix) ----
+    # The checks above all compare a single MAX(date) figure between stages — exactly the shape
+    # of check that missed the real incident: fact_nav_daily's max nav_date WAS "today", so every
+    # one of them would have reported OK, while only 5 of ~8,500 normally-active schemes actually
+    # had that date. Reads Neon directly (the authoritative warehouse for this figure) rather than
+    # Supabase, since a per-date distinct-scheme-count query is exactly the kind of new capability
+    # that should live on Neon going forward.
+    if not os.environ.get("DATABASE_URL"):
+        print("::warning::Coverage check skipped — DATABASE_URL not set. Cause: this step's env block doesn't pass it, or running outside CI. Not fatal, but this incident-class bug is invisible without it.")
+    else:
+        try:
+            with neon_db.connect() as conn:
+                date_counts = neon_db.nav_coverage_by_date(conn)
+            if not date_counts:
+                print("::warning::Coverage check — fact_nav_daily has no rows in the lookback window. Cause: empty warehouse or DATABASE_URL points at the wrong branch.")
+            else:
+                latest = max(date_counts)
+                schemes_at_latest = date_counts[latest]
+                baseline = coverage_baseline(date_counts, exclude=latest)
+                state = classify_freshness(latest, schemes_at_latest, baseline)
+                pct = (schemes_at_latest / baseline) if baseline else None
+                pct_str = f"{pct:.1%}" if pct is not None else "n/a"
+                if state == "STALE":
+                    print(f"::error::Coverage check — latest nav_date in Neon is {latest}, older than the expected trading day. Cause: ingestion hasn't run in multiple business days, or is silently failing. Location: scripts/cloud_pipeline.py / production-refresh.yml's schedule. Fix: dispatch production-refresh.yml manually and check its logs.")
+                    ok = False
+                elif state == "PARTIAL":
+                    print(f"::warning::Coverage check — {latest} exists but only {schemes_at_latest}/{baseline} schemes ({pct_str}) have it yet. Not failing: AMFI likely hasn't finished publishing for this date (real incident, 2026-08-11: this was 5/8109 at 21:00 IST, complete by the next morning's catch-up run). If this persists across multiple runs, investigate.")
+                else:
+                    print(f"OK: Coverage check — {latest} has {schemes_at_latest}/{baseline} schemes ({pct_str}) -> {state}.")
+        except Exception as e:
+            print(f"::warning::Coverage check failed to run: {e}. Not fatal — the max-date checks above still apply.")
 
     return 0 if ok else 1
 

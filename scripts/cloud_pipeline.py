@@ -25,6 +25,7 @@ from datetime import date, datetime, timezone
 
 from ingestion.amfi_parser import parse_lines
 from ingestion.alerting import alert_for_run, send_alert
+from ingestion import freshness
 from ingestion.freshness import build_health
 from ingestion import db as neon_db
 
@@ -72,6 +73,7 @@ def run() -> int:
     started = datetime.now(timezone.utc)
     t0 = time.time()
     status, rows_ingested, err, src_date = "failed", 0, None, None
+    coverage_state, coverage_pct, schemes_at_src_date, schemes_baseline = None, None, None, None
     try:
         # Prefer a pre-downloaded file when the caller provides one (NAVALL_PATH): AMFI updates
         # NAVAll.txt progressively as AMCs upload through the evening, so two downloads minutes
@@ -119,6 +121,22 @@ def run() -> int:
         neon_db.dual_write(lambda conn: neon_db.upsert(conn, "fact_nav_daily", navs, ["scheme_code", "nav_date"]))
         rows_ingested, status = len(navs), "success"
 
+        # ---- coverage check (2026-08-11 incident fix) ----
+        # A single MAX(nav_date) can be "today" while almost no scheme actually has that date yet
+        # (found live: 5 of ~8,500 schemes, because AMFI hadn't finished publishing when this ran)
+        # — every freshness check that only looks at the max date would call that "current". Read
+        # Neon's own just-updated fact_nav_daily back and judge src_date against how many schemes
+        # normally report on a weekday, not just whether the date exists at all.
+        date_counts = neon_db.dual_write(lambda conn: neon_db.nav_coverage_by_date(conn))
+        if date_counts:
+            schemes_at_src_date = date_counts.get(src_date)
+            schemes_baseline = freshness.coverage_baseline(date_counts, exclude=src_date)
+            coverage_pct = freshness.coverage_ratio(schemes_at_src_date, schemes_baseline)
+            coverage_state = freshness.classify_freshness(src_date, schemes_at_src_date, schemes_baseline, today=started.date())
+            pct_str = f"{coverage_pct:.1%}" if coverage_pct is not None else "n/a"
+            print(f"coverage: {schemes_at_src_date}/{schemes_baseline} schemes at {src_date} "
+                  f"({pct_str}) -> {coverage_state}", file=sys.stderr)
+
         # refresh the materialized analytics layer (fast reads)
         try:
             req = urllib.request.Request(f"{URL}/rest/v1/rpc/refresh_analytics", data=b"{}", method="POST", headers=_headers())
@@ -146,6 +164,24 @@ def run() -> int:
     except Exception as e:
         print(f"could not record run: {e}", file=sys.stderr)
 
+    # ---- coverage columns (Neon-only -- not mirrored to Supabase; see sql/neon/038) ----
+    # A separate targeted UPDATE, not part of run_row above, so Supabase's fact_pipeline_runs
+    # schema (which does not have these columns and never will -- Neon is authoritative for new
+    # capability per this mission) is completely unaffected. Keyed on (pipeline, started_at):
+    # started_at is generated in Python before either write, so it's unique per run without
+    # needing the auto-generated id back from the INSERT above.
+    if coverage_state is not None:
+        try:
+            neon_db.dual_write(lambda conn: conn.execute(
+                "update fact_pipeline_runs set coverage_pct=%s, expected_trading_day=%s, "
+                "schemes_at_source_date=%s, schemes_baseline=%s, freshness_state=%s "
+                "where pipeline=%s and started_at=%s",
+                (coverage_pct, freshness.expected_trading_day(started.date()), schemes_at_src_date,
+                 schemes_baseline, coverage_state, "nav_daily", started),
+            ))
+        except Exception as e:
+            print(f"could not record coverage: {e}", file=sys.stderr)
+
     # ---- freshness snapshot ----
     try:
         if src_date:
@@ -160,8 +196,8 @@ def run() -> int:
     except Exception as e:
         print(f"could not snapshot health: {e}", file=sys.stderr)
 
-    # ---- alerting: failure, missing, or stale-data detection ----
-    decision = alert_for_run(status, src_date)
+    # ---- alerting: failure, missing, stale-data, or incomplete-coverage detection ----
+    decision = alert_for_run(status, src_date, coverage_state=coverage_state, coverage_pct=coverage_pct)
     if decision:
         subject, message, severity = decision
         if status != "success" and err:

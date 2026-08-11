@@ -50,14 +50,34 @@ export default async function DataStatus() {
   } catch {}
   const newsAgo = newsAt ? Math.round((Date.now() - new Date(newsAt).getTime()) / 3600000) : null;
   const h = health[0] || {};
-  let freshness = { explanation: null, rawAheadOfBundle: null, bundleAsOf: null };
+  let freshness = { explanation: null, rawAheadOfBundle: null, bundleAsOf: null, coverage: null, freshnessState: null, customerMessage: null };
   try {
     freshness = await getFreshnessSummary();
   } catch {}
   const latestNav = byClass.map((r) => r.latest_nav_date).sort().at(-1);
   const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
   const stale = daysSince(latestNav);
-  const navStatus = !ok ? "red" : stale == null ? "red" : stale <= 2 ? "green" : stale <= 7 ? "amber" : "red";
+  // 2026-08-11 incident fix: this used to be calendar-days-since-MAX-date only — exactly the
+  // blind spot that missed the real incident (fact_nav_daily's max date WAS "today", so `stale`
+  // was 0 and this reported "green", while only 5 of ~8,500 schemes actually had that date).
+  // Prefer freshnessState (coverage-aware, business-day-aware — see ingestion/freshness.py)
+  // whenever it's available; fall back to the old day-count-only logic only when Neon's coverage
+  // read is unavailable, so this card never regresses to "unknown" just because one signal failed.
+  const navStatus = !ok
+    ? "red"
+    : freshness.freshnessState === "STALE"
+    ? "red"
+    : freshness.freshnessState === "PARTIAL"
+    ? "amber"
+    : freshness.freshnessState === "CURRENT"
+    ? "green"
+    : stale == null
+    ? "red"
+    : stale <= 2
+    ? "green"
+    : stale <= 7
+    ? "amber"
+    : "red";
   // Real since 2026-07-17 (AMFI Monthly Report / MCR, industry-wide per fund category — see
   // docs/DATA_COVERAGE_MATRIX.md's Flow Signals pivot). Same 45-day monthly-cadence staleness
   // threshold used everywhere else in this codebase for factsheet/portfolio-disclosure fields
@@ -108,7 +128,13 @@ export default async function DataStatus() {
             </div>
             <div className="mt-3 text-[26px] font-bold tnum">{stale == null ? "—" : `${stale}d`}</div>
             <div className="text-[12px] text-ink-muted">since latest AMFI NAV ({latestNav || "—"})</div>
+            {freshness.coverage && (
+              <div className="mt-1 text-[12px] text-ink-muted">
+                {fmt(freshness.coverage.schemes_at_source_date ?? 0)}/{fmt(freshness.coverage.schemes_baseline ?? 0)} funds carry that date so far ({freshness.freshnessState})
+              </div>
+            )}
             <div className="mt-2 text-[11px] text-ink-faint">Source: AMFI NAVAll · daily pipeline. {navStatus === "amber" && "Stale — pending next scheduled trading day run (daily at 20:00 IST)."}</div>
+            {freshness.customerMessage && <div className="mt-1 text-[11px] text-ink-muted">{freshness.customerMessage}</div>}
             {freshness.bundleAsOf && <div className="mt-1 text-[11px] text-ink-faint">Site bundle (funds.json/etc.): {freshness.bundleAsOf}{freshness.explanation ? ` — ${freshness.explanation}` : ""}</div>}
           </GlassPanel>
           <GlassPanel className="p-5 sm:p-6">

@@ -99,6 +99,22 @@ def upsert(conn, table: str, rows: list[dict], conflict_cols: list[str] | None =
         cur.executemany(sql, rows)
 
 
+def nav_coverage_by_date(conn, days: int = 12) -> dict:
+    """{date: distinct_scheme_count} for fact_nav_daily over the last `days` calendar days,
+    read from Neon (the authoritative warehouse) -- the raw material for coverage-aware
+    freshness classification (see ingestion/freshness.py's classify_freshness/coverage_baseline).
+    A single grouped query, not one row per scheme, so this stays cheap even at ~14k schemes."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """select nav_date, count(distinct scheme_code) as schemes
+               from fact_nav_daily
+               where nav_date >= (current_date - %s::int)
+               group by nav_date""",
+            (days,),
+        )
+        return {row[0]: row[1] for row in cur.fetchall()}
+
+
 def lookup_id(conn, table: str, where: dict):
     """SELECT id FROM table WHERE <natural key columns> — resolves a Neon-native id after an
     upsert. Deliberately independent from any id fetched from Supabase: the two databases run
