@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { saveWatchlist } from "../lib/cloudSync";
 import { portfolioApi } from "../lib/invest/api";
+import { AllocationDonut } from "./ui/ResearchCharts";
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
 const PAGE_SIZE = 12;
@@ -572,6 +573,7 @@ function AllocationSection({ allocations }) {
     registrar: { label: "Registrar", items: allocations?.registrar || [] },
   };
   const selected = dimensions[dimension];
+  const representedWeight = selected.items.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
   return (
     <section id="portfolio-allocation" className="portfolio-section" aria-labelledby="portfolio-allocation-title">
       <SectionHeader eyebrow="Allocation" title="One concentration lens at a time" detail="The chart and table use the same server-supplied allocation rows. Sector coverage is disclosed rather than treated as complete." />
@@ -583,9 +585,7 @@ function AllocationSection({ allocations }) {
         {dimension === "sector" && <p className="mt-4 text-xs leading-5 text-ink-faint">Sector coverage: {decimal(allocations?.sector?.coveragePct, "%")} of portfolio value with factsheet-sourced sector data.</p>}
         {selected.items.length ? (
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
-            <div className="space-y-3" role="img" aria-label={`${selected.label} allocation. ${selected.items.slice(0, 8).map((item) => `${item.name} ${decimal(item.weight, "%")}`).join(", ")}`}>
-              {selected.items.slice(0, 8).map((item, index) => <div key={`${dimension}-${item.name}`}><div className="flex items-center justify-between gap-3 text-xs"><span className="min-w-0 break-words text-ink-muted">{item.name}</span><span className="financial-number shrink-0 text-ink">{decimal(item.weight, "%")}</span></div><div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-strong"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, Number(item.weight) || 0)}%`, opacity: Math.max(0.45, 1 - index * 0.06) }} /></div></div>)}
-            </div>
+            <AllocationDonut items={selected.items} centerLabel={`${selected.label.toLowerCase()} mix`} centerValue={decimal(representedWeight, "%")} height={270} />
             <div className="overflow-x-auto"><table className="w-full text-sm"><caption className="sr-only">Accessible tabular fallback for {selected.label} allocation.</caption><thead className="text-left text-xs text-ink-faint"><tr><th className="pb-2">{selected.label}</th><th className="pb-2 text-right">Value</th><th className="pb-2 text-right">Weight</th></tr></thead><tbody>{selected.items.slice(0, 8).map((item) => <tr key={item.name} className="border-t border-line"><th scope="row" className="break-words py-3 pr-3 text-left font-medium text-ink">{item.name}</th><td className="financial-number py-3 text-right text-ink">{money(item.value)}</td><td className="financial-number py-3 text-right text-ink">{decimal(item.weight, "%")}</td></tr>)}</tbody></table></div>
           </div>
         ) : <div className="mt-5 rounded-xl bg-surface-2 p-5 text-sm leading-6 text-ink-muted">{selected.label} allocation is not available in the current portfolio response.</div>}

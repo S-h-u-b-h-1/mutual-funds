@@ -18,8 +18,8 @@ export const metadata = {
   title: { default: "MF Pulse — India mutual fund performance intelligence", template: "%s · MF Pulse" },
   description: DESC,
   keywords: ["compare mutual funds India", "best mutual funds research", "mutual fund rolling returns", "XIRR", "CAGR", "Sharpe ratio", "Sortino ratio", "expense ratio", "portfolio overlap", "portfolio health", "NFO analysis", "AMC rankings", "AMFI NAV"],
-  openGraph: { title: "MF Pulse — Evidence-led mutual fund research", description: DESC, url: SITE, siteName: "MF Pulse", type: "website", locale: "en_IN" },
-  twitter: { card: "summary_large_image", title: "MF Pulse", description: DESC },
+  openGraph: { title: "MF Pulse — Evidence-led mutual fund research", description: DESC, url: SITE, siteName: "MF Pulse", type: "website", locale: "en_IN", images: [{ url: "/mf-pulse-research-preview.png", width: 1732, height: 909, alt: "MF Pulse fund comparison, risk and return, and portfolio allocation research visuals" }] },
+  twitter: { card: "summary_large_image", title: "MF Pulse", description: DESC, images: ["/mf-pulse-research-preview.png"] },
   robots: { index: true, follow: true },
 };
 

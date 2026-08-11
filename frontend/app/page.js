@@ -6,6 +6,7 @@ import AlertSignup from "./components/AlertSignup";
 import HomeWatchlistSection from "./components/HomeWatchlistSection";
 import GlassPanel from "./components/ui/GlassPanel";
 import Badge from "./components/ui/Badge";
+import { AllocationDonut, RiskReturnMap } from "./components/ui/ResearchCharts";
 import { SearchLauncher } from "./components/Search";
 import { allFunds, asOf } from "./lib/funds";
 import { getTopHeadlines } from "./lib/news";
@@ -35,6 +36,49 @@ const researchPaths = [
   ["NFO & new AMC evaluation", "Use mandate, people, process, cost and portfolio evidence when a long performance history does not exist.", "/methodology", "New-fund framework"],
   ["NIFTY 50 stock research", "Open source-traceable company briefs with official filings, industry context and linked news.", "/stocks/universe", "Equity research"],
 ];
+
+const median = (values) => {
+  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+};
+
+function assetBucket(category = "") {
+  const value = category.toLowerCase();
+  if (/hybrid|balanced|arbitrage|equity savings|multi asset/.test(value)) return "Hybrid";
+  if (/debt|bond|gilt|liquid|overnight|money market|credit risk|duration|floater/.test(value)) return "Debt";
+  if (/retirement|children|solution/.test(value)) return "Solution-oriented";
+  if (/equity|large cap|mid cap|small cap|flexi cap|multi cap|focused|sector|thematic|value|contra|elss|dividend yield/.test(value)) return "Equity";
+  return "Other";
+}
+
+function visualResearchData(funds) {
+  const mixCounts = new Map();
+  const categories = new Map();
+  for (const fund of funds) {
+    const bucket = assetBucket(fund.category);
+    mixCounts.set(bucket, (mixCounts.get(bucket) || 0) + 1);
+    if (!fund.category || !Number.isFinite(Number(fund.r1y)) || !Number.isFinite(Number(fund.vol90))) continue;
+    const group = categories.get(fund.category) || [];
+    group.push(fund);
+    categories.set(fund.category, group);
+  }
+  const total = [...mixCounts.values()].reduce((sum, count) => sum + count, 0) || 1;
+  const mix = [...mixCounts].map(([name, count]) => ({ name, weight: (count / total) * 100, count }));
+  const riskReturn = [...categories]
+    .filter(([, group]) => group.length >= 5)
+    .map(([name, group]) => ({
+      name,
+      return: median(group.map((fund) => Number(fund.r1y))),
+      risk: median(group.map((fund) => Number(fund.vol90))),
+      size: group.length,
+      detail: `${group.length} schemes in observed cohort`,
+    }))
+    .sort((a, b) => b.size - a.size)
+    .slice(0, 18);
+  return { mix, riskReturn };
+}
 
 // Every card in the daily workspace carries this triplet, per the redesign brief's explicit
 // requirement: no insight is shown without the reader being able to see where it came from,
@@ -85,6 +129,7 @@ export default async function HomePage() {
   const funds = allFunds();
   const amcCount = new Set(funds.map((f) => f.amc).filter(Boolean)).size;
   const market = marketStatus(asOf);
+  const visualData = visualResearchData(funds);
 
   const [headlines, signals, flowHeadline, user] = await Promise.all([
     getTopHeadlines({ limit: 5 }).catch(() => []),
@@ -174,6 +219,33 @@ export default async function HomePage() {
                     <Link href="/data-status" className="font-semibold text-accent">Audit data health →</Link>
                   </div>
                 </div>
+              </GlassPanel>
+            </div>
+
+            <div className="mt-9 grid gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+              <GlassPanel className="overflow-hidden p-5 sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div><div className="eyebrow text-accent">Universe mix</div><h2 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-ink">See the shape before reading the table.</h2></div>
+                  <Badge tone="neutral">Live scheme records</Badge>
+                </div>
+                <AllocationDonut items={visualData.mix} centerLabel="scheme mix" centerValue={fmt(funds.length)} height={230} />
+                <p className="border-t border-line/70 pt-4 text-[11px] leading-5 text-ink-faint">The donut shows the share of tracked scheme records by broad mandate—not investor money or industry AUM.</p>
+              </GlassPanel>
+
+              <GlassPanel className="overflow-hidden p-5 sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div><div className="eyebrow text-accent">Risk / return landscape</div><h2 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-ink">Category medians reveal the trade-off.</h2></div>
+                  <Link href="/funds" className="premium-link text-xs">Open screener →</Link>
+                </div>
+                <RiskReturnMap points={visualData.riskReturn} height={280} />
+                <div className="grid gap-2 border-t border-line/70 pt-4 sm:grid-cols-3">
+                  {[
+                    ["Right", "Higher observed 1-year return"],
+                    ["Up", "Higher observed 90-day volatility"],
+                    ["Bubble", "Larger comparable category sample"],
+                  ].map(([label, detail]) => <div key={label} className="rounded-xl bg-surface-2/70 p-3"><div className="eyebrow text-accent">{label}</div><p className="mt-1 text-[11px] leading-4 text-ink-muted">{detail}</p></div>)}
+                </div>
+                <p className="mt-3 text-[10px] leading-4 text-ink-faint">Medians reduce the influence of outliers. Categories have different mandates, so position is research context—not a cross-category recommendation.</p>
               </GlassPanel>
             </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ComparisonBars, RiskReturnMap } from "./ui/ResearchCharts";
 import { track } from "../lib/track";
 import { saveWatchlist } from "../lib/cloudSync";
 import { buildComparisonReport } from "../lib/reports/comparisonReport";
@@ -165,6 +166,29 @@ export default function CompareFundsClient({ initialFunds }) {
 
       {!activeFunds.length ? <div className="rounded-2xl border border-dashed border-line p-10 text-center"><h2 className="text-base font-semibold text-ink">No funds selected</h2><p className="mt-2 text-sm text-ink-muted">Search above or select funds from the screener to begin an evidence-led comparison.</p></div> : <>
         <section aria-labelledby="comparison-conclusions"><div className="eyebrow">At a glance</div><h2 id="comparison-conclusions" className="section-title mt-2">Observed differences—not a universal winner.</h2><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{conclusions.map(([label, fund, detail]) => <article key={label} className="research-surface p-4"><div className="eyebrow">{label}</div><div className="mt-3 text-sm font-semibold leading-snug text-ink">{fund ? cleanName(fund.name) : "Data unavailable"}</div><div className="financial-number mt-2 text-xs text-ink-muted">{detail}</div></article>)}</div>{incomplete?.count > 0 && <p className="mt-3 rounded-xl border border-missing/30 bg-missing/10 p-3 text-xs text-ink-muted"><b className="text-ink">Most incomplete:</b> {cleanName(incomplete.fund.name)} is missing {incomplete.count} comparison measure{incomplete.count === 1 ? "" : "s"}.</p>}</section>
+
+        {activeFunds.length >= 2 && <section aria-labelledby="visual-comparison" className="space-y-4">
+          <div><div className="eyebrow text-accent">Visual comparison</div><h2 id="visual-comparison" className="section-title mt-2">Read the trade-offs before the raw table.</h2><p className="mt-2 max-w-3xl text-xs leading-5 text-ink-faint">Bars are normalized only within the selected set. Longer means more favourable for that row; the printed number remains the actual observation.</p></div>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+            <article className="research-surface overflow-hidden p-5">
+              <ComparisonBars
+                funds={activeFunds.map((fund) => ({ ...fund, shortName: cleanName(fund.name) }))}
+                metrics={[
+                  { key: "r1y", label: "1-year return", suffix: "%", help: "Higher observed return is longer." },
+                  { key: "vol90", label: "90-day volatility", suffix: "%", lowerIsBetter: true, help: "Lower observed variation is longer." },
+                  { key: "maxdd90", label: "90-day max drawdown", suffix: "%", help: "A shallower loss (closer to zero) is longer." },
+                  { key: "consistency", label: "Consistency", suffix: "/100", help: "Higher rolling-period consistency is longer." },
+                  { key: "_h", label: "Research health", suffix: "/100", digits: 0, help: "Higher verified evidence coverage is longer." },
+                ]}
+              />
+            </article>
+            <article className="research-surface overflow-hidden p-5">
+              <div className="eyebrow text-accent">Risk / return position</div>
+              <RiskReturnMap points={activeFunds.map((fund, index) => ({ name: cleanName(fund.name), return: fund.r1y, risk: fund.vol90, size: 6, highlight: index === 0 }))} height={315} />
+              <p className="text-[10px] leading-4 text-ink-faint">The first selected fund is outlined in amber for orientation, not because it is preferred.</p>
+            </article>
+          </div>
+        </section>}
 
         {overallRecommendation && <section aria-labelledby="overall-recommendation" className="rounded-2xl border border-accent/30 bg-accent/5 p-5 sm:p-6">
           <div className="eyebrow text-accent">Overall recommendation</div>
