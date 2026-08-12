@@ -9,11 +9,11 @@
  "delisted_count": 0,
  "universe": {
   "asset_class": {
-   "Solution": 145,
    "Debt": 7971,
+   "Other": 2303,
    "Equity": 3009,
    "Hybrid": 832,
-   "Other": 2303
+   "Solution": 145
   },
   "scheme_type": {
    "Open Ended Schemes": 9508,
@@ -22,9 +22,9 @@
   },
   "fund_type": {
    "Active/Other": 11932,
+   "ETF": 351,
    "Index Fund": 1290,
-   "Fund of Fund": 687,
-   "ETF": 351
+   "Fund of Fund": 687
   },
   "international": 177,
   "commodity": 209
