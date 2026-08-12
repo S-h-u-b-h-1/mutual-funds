@@ -4,6 +4,7 @@ import MobileNav from "./MobileNav";
 import AuthStatus from "./AuthStatus";
 import Search, { SearchLauncher } from "./Search";
 import ThemeToggle from "./ui/ThemeToggle";
+import DesktopNavMenus from "./DesktopNavMenus";
 import { asOf } from "../lib/funds";
 import { marketStatus } from "../lib/marketStatus";
 import { NAV_GROUPS } from "../lib/navLinks";
@@ -28,13 +29,6 @@ const NAV_MENUS = [
   group("Invest"),
 ].filter(Boolean);
 
-function isActiveLink(active, href) {
-  if (!href || href.includes("#")) return active === href.split("#")[0];
-  if (href === "/") return active === "/";
-  if (href === "/invest") return active === "/invest" || active?.startsWith("/invest/");
-  return active === href || active?.startsWith(`${href}/`);
-}
-
 export default function Nav({ active }) {
   const market = marketStatus(asOf);
 
@@ -54,34 +48,10 @@ export default function Nav({ active }) {
   return (
     <>
     <NavChrome className="hidden xl:block">
-      <div className="container-px pointer-events-auto">
+      <div className="container-px pointer-events-auto relative z-[90]">
         <div className="nav-surface grid min-h-[68px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 sm:px-4">
           {brand}
-
-          <nav className="flex min-w-0 items-center justify-center gap-0.5 2xl:gap-1" aria-label="Primary navigation">
-            {NAV_MENUS.map((menu) => {
-              const isActive = menu.links.some(([, href]) => isActiveLink(active, href));
-              return (
-                <details key={menu.label} className="group relative">
-                  <summary className={`flex min-h-10 cursor-pointer list-none items-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold transition hover:bg-surface hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent/35 2xl:px-3.5 2xl:text-[13px] [&::-webkit-details-marker]:hidden ${isActive ? "bg-surface text-ink shadow-sm" : "text-ink-muted"}`}>
-                    {menu.shortLabel || menu.label}
-                    <svg className="h-3.5 w-3.5 text-ink-faint transition group-open:rotate-180" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                  </summary>
-                  <div className="absolute left-1/2 top-[calc(100%+0.7rem)] z-[75] hidden w-60 -translate-x-1/2 rounded-[1.25rem] border border-line bg-surface p-2 shadow-float group-open:block">
-                    {menu.links.map(([label, href]) => {
-                      const linkActive = isActiveLink(active, href);
-                      return (
-                        <Link key={`${menu.label}-${label}-${href}`} href={href} aria-current={linkActive ? "page" : undefined} className={`flex min-h-10 items-center justify-between rounded-xl px-3 text-sm font-semibold transition ${linkActive ? "bg-accent/10 text-accent" : "text-ink-muted hover:bg-surface-2 hover:text-ink"}`}>
-                          {label}
-                          <span aria-hidden="true" className="text-ink-faint">→</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </details>
-              );
-            })}
-          </nav>
+          <DesktopNavMenus menus={NAV_MENUS} active={active} />
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <div id="search">
@@ -93,7 +63,7 @@ export default function Nav({ active }) {
         </div>
       </div>
 
-      <div className="container-px pointer-events-auto">
+      <div className="container-px pointer-events-auto relative z-0">
         <Link href="/data-status" className="mx-auto mt-1.5 flex min-h-8 max-w-[680px] items-center justify-center gap-2 rounded-full border border-line/70 bg-surface/85 px-4 py-1 text-[10.5px] font-medium text-ink-faint shadow-sm backdrop-blur-xl hover:border-accent/30 hover:text-ink-muted">
           <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
           <span className="truncate">{market.navLine}</span><span aria-hidden="true">·</span><span className="shrink-0">{market.sessionLabel}</span>

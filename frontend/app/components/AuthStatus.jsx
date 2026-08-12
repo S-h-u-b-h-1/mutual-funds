@@ -51,6 +51,14 @@ export default function AuthStatus() {
     };
   }, [open]);
 
+  useEffect(() => {
+    function closeForOtherControl(event) {
+      if (event.detail?.owner !== "account-navigation") setOpen(false);
+    }
+    window.addEventListener("mfp-nav-menu-open", closeForOtherControl);
+    return () => window.removeEventListener("mfp-nav-menu-open", closeForOtherControl);
+  }, []);
+
   if (status === "loading") return null;
 
   if (!session) {
@@ -74,7 +82,11 @@ export default function AuthStatus() {
     <div ref={menuRef} className="relative hidden sm:block">
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          const next = !open;
+          if (next) window.dispatchEvent(new CustomEvent("mfp-nav-menu-open", { detail: { owner: "account-navigation" } }));
+          setOpen(next);
+        }}
         aria-haspopup="menu"
         aria-expanded={open}
         className="flex min-h-10 items-center gap-2 rounded-full border border-line/80 bg-surface px-1.5 py-1 text-[12px] shadow-sm transition hover:border-accent/35 hover:bg-surface-2"
@@ -91,7 +103,7 @@ export default function AuthStatus() {
       </button>
 
       {open && (
-        <div role="menu" className="absolute right-0 top-[calc(100%+0.6rem)] z-[80] w-[280px] overflow-hidden rounded-[1.4rem] border border-line bg-surface shadow-float">
+        <div role="menu" className="absolute right-0 top-[calc(100%+0.6rem)] z-[110] w-[280px] overflow-hidden rounded-[1.4rem] border border-line bg-surface shadow-float">
           <div className="border-b border-line/70 p-4">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-ink text-xs font-bold text-bg" aria-hidden="true">{initials}</span>
