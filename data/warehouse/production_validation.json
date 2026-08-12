@@ -1,5 +1,5 @@
 {
- "asOf": "2026-08-11",
+ "asOf": "2026-08-12",
  "checks": [
   {
    "check": "Every live AMFI scheme covered",
@@ -9,7 +9,7 @@
   {
    "check": "Every scheme routable (funds.json == our universe)",
    "pass": true,
-   "detail": "14260 vs 14260"
+   "detail": "14264 vs 14264"
   },
   {
    "check": "No orphan funds outside source",
@@ -51,7 +51,7 @@
  "total": 9,
  "production_ready_pct": 100.0,
  "observations": {
-  "local_snapshot_age_days": 1,
+  "local_snapshot_age_days": 0,
   "note": "prod NAV refreshed daily by cron; local bundle may lag a few days"
  }
 }

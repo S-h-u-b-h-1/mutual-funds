@@ -1,11 +1,11 @@
 {
- "asOf": "2026-08-11",
+ "asOf": "2026-08-12",
  "scheme_coverage_pct": 100.0,
  "nav_coverage_pct": 98.3,
- "historical_coverage_pct": 90.43,
+ "historical_coverage_pct": 90.41,
  "returns_coverage_pct": 98.88,
- "risk_coverage_pct": 99.02,
- "benchmark_coverage_pct": 85.15,
+ "risk_coverage_pct": 98.97,
+ "benchmark_coverage_pct": 85.11,
  "category_coverage_pct": 100.0,
  "metadata_coverage_pct": 6.82,
  "aum_coverage_pct": 6.82,
@@ -14,9 +14,9 @@
  "holdings_coverage_pct": 1.71,
  "portfolio_coverage_pct": 1.09,
  "document_coverage_pct": 6.82,
- "isin_coverage_pct": 98.77,
+ "isin_coverage_pct": 98.75,
  "structure_coverage_pct": 100.0,
- "performance_completeness_avg_investable": 92.6,
+ "performance_completeness_avg_investable": 92.5,
  "fund_completeness_avg_investable": 57.6,
- "research_readiness_avg_investable": 54.5
+ "research_readiness_avg_investable": 54.4
 }
