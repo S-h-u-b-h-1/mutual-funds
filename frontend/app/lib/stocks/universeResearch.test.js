@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { companyResearchHref, getCompanyResearch, getOfficialCompanyResearchLinks } from "./universe";
+import { companyResearchHref, getCompanyPeers, getCompanyResearch, getOfficialCompanyResearchLinks, getTradingViewSymbol } from "./universe";
 
 describe("stock company research", () => {
   it("resolves a NIFTY company and preserves its official membership evidence", () => {
@@ -20,5 +20,13 @@ describe("stock company research", () => {
 
   it("does not invent a company when an identifier is unknown", () => {
     expect(getCompanyResearch("NOT-A-REAL-SECURITY")).toBeNull();
+  });
+
+  it("builds a market symbol and conservative same-industry peers", () => {
+    const company = getCompanyResearch("RELIANCE");
+    const peers = getCompanyPeers(company);
+    expect(getTradingViewSymbol(company)).toBe("NSE:RELIANCE");
+    expect(peers.every((peer) => peer.industry === company.industry)).toBe(true);
+    expect(peers.every((peer) => peer.nseSymbol !== company.nseSymbol)).toBe(true);
   });
 });
