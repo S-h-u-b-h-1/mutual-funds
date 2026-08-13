@@ -10,6 +10,7 @@ import SectionHeader from "../../../components/ui/SectionHeader";
 import { getArticlesForEntity, relativeTime } from "../../../lib/news";
 import { getCompanyPeers, getCompanyResearch, getOfficialCompanyResearchLinks, getTradingViewSymbol, companyResearchHref } from "../../../lib/stocks/universe";
 import { getStrategiesForIndustry, RESEARCH_LAYERS } from "../../../lib/stocks/strategyFramework";
+import { getEvidenceDossier } from "../../../lib/stocks/evidenceFramework";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function CompanyResearchPage({ params }) {
   const tradingViewSymbol = getTradingViewSymbol(company);
   const peers = getCompanyPeers(company);
   const strategySet = getStrategiesForIndustry(company.industry);
+  const dossier = getEvidenceDossier(company.industry);
   const news = company.nseSymbol ? await getArticlesForEntity({ entityType: "company", entityName: company.nseSymbol, limit: 6 }) : [];
 
   return <>
@@ -54,7 +56,7 @@ export default async function CompanyResearchPage({ params }) {
       </section>
 
       <nav className="sticky top-[76px] z-30 -mx-4 mt-4 flex gap-2 overflow-x-auto border-y border-line bg-bg/92 px-4 py-3 shadow-sm backdrop-blur-xl sm:mx-0 sm:rounded-full sm:border" aria-label="Company research sections">
-        {[["Chart", "#chart"], ["Strategy", "#strategy"], ["Evidence", "#evidence"], ["Peers", "#peers"], ["Filings", "#filings"], ["News", "#news"]].map(([label, href]) => <a key={href} href={href} className="shrink-0 rounded-full px-4 py-2 text-xs font-semibold text-ink-muted hover:bg-surface-2 hover:text-ink">{label}</a>)}
+        {[["Chart", "#chart"], ["Strategy", "#strategy"], ["Dossier", "#dossier"], ["Evidence", "#evidence"], ["Peers", "#peers"], ["Filings", "#filings"], ["News", "#news"]].map(([label, href]) => <a key={href} href={href} className="shrink-0 rounded-full px-4 py-2 text-xs font-semibold text-ink-muted hover:bg-surface-2 hover:text-ink">{label}</a>)}
       </nav>
 
       <section id="chart" className="scroll-mt-40 mt-6 overflow-hidden rounded-[1.5rem] border border-[#284049] bg-[#081116] shadow-float">
@@ -67,6 +69,11 @@ export default async function CompanyResearchPage({ params }) {
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><div className="eyebrow text-accent">Industry-aware strategy desk</div><h2 className="section-title mt-2">Three lenses that fit {company.industry.toLowerCase()}</h2></div><Link href="/stocks/strategies" className="text-sm font-semibold text-accent">View all strategies →</Link></div>
         <div className="grid gap-4 lg:grid-cols-3">{strategySet.strategies.map((strategy) => <GlassPanel key={strategy.key} className="p-5"><div className="flex items-start justify-between gap-3"><h3 className="text-base font-semibold text-ink">{strategy.name}</h3><Badge tone="neutral">{strategy.horizon}</Badge></div><p className="mt-3 text-sm font-medium leading-6 text-ink">{strategy.question}</p><div className="mt-4 space-y-2">{strategy.evidence.slice(0, 3).map((item) => <div key={item} className="flex gap-2 text-xs leading-5 text-ink-muted"><span className="text-accent">○</span><span>{item}</span></div>)}</div><div className="mt-4 rounded-xl bg-surface-2 p-3 text-[11px] leading-5 text-missing">Verdict withheld until the required evidence is available.</div></GlassPanel>)}</div>
         <p className="mt-3 text-xs leading-5 text-ink-muted">{strategySet.note}</p>
+      </section>
+
+      <section id="dossier" className="scroll-mt-40 mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <GlassPanel className="overflow-hidden"><div className="p-5"><SectionHeader eyebrow="Company evidence dossier" title="Documents required before a conviction" action={`${dossier.documents.length} evidence classes`} /></div><div className="divide-y divide-line border-t border-line">{dossier.documents.map((document) => { const route = officialLinks.find((link) => link.label === document.hrefKey); return <div key={document.key} className="grid gap-2 px-5 py-4 sm:grid-cols-[170px_105px_1fr_auto] sm:items-center"><div><div className="text-sm font-semibold text-ink">{document.label}</div><div className="mt-1 text-[10px] text-ink-faint">{document.source}</div></div><Badge tone="neutral">{document.cadence}</Badge><p className="text-xs leading-5 text-ink-muted">{document.why}</p>{route ? <a href={route.href} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-accent">Verify ↗</a> : <span className="text-xs text-missing">Route pending</span>}</div>; })}</div></GlassPanel>
+        <GlassPanel className="p-5"><SectionHeader eyebrow="Industry KPI checklist" title={dossier.operating.title} /><div className="space-y-2">{dossier.operating.metrics.map((metric) => <div key={metric} className="flex items-center justify-between gap-3 rounded-xl bg-surface-2 px-3 py-2.5"><span className="text-xs font-medium text-ink">{metric}</span><span className="shrink-0 text-[10px] text-missing">Needs sourced history</span></div>)}</div><p className="mt-4 text-[11px] leading-5 text-ink-faint">These KPIs define what to collect; they are not inferred from the company&apos;s industry label.</p></GlassPanel>
       </section>
 
       <section id="evidence" className="scroll-mt-40 mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
