@@ -100,6 +100,28 @@ export function companyResearchHref(company) {
   return identifier ? `/stocks/company/${encodeURIComponent(identifier)}` : null;
 }
 
+export function getTradingViewSymbol(company) {
+  if (company?.nseSymbol) return `NSE:${String(company.nseSymbol).toUpperCase()}`;
+  if (company?.bseCode) return `BSE:${String(company.bseCode).toUpperCase()}`;
+  return null;
+}
+
+export function getCompanyPeers(company, limit = 8) {
+  if (!company) return [];
+  const identity = new Set([company.nseSymbol, company.bseCode, company.isin].filter(Boolean).map(String));
+  const seen = new Set();
+  return STOCK_INDEX_KEYS.flatMap((key) => getIndexUniverse(key).constituents)
+    .filter((candidate) => candidate.industry === company.industry)
+    .filter((candidate) => ![candidate.nseSymbol, candidate.bseCode, candidate.isin].filter(Boolean).some((value) => identity.has(String(value))))
+    .filter((candidate) => {
+      const key = candidate.isin || candidate.nseSymbol || candidate.bseCode || normalizeCompanyName(candidate.name);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, limit);
+}
+
 export function getOfficialCompanyResearchLinks(company) {
   const symbol = company?.nseSymbol ? encodeURIComponent(company.nseSymbol) : null;
   const links = [];

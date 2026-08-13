@@ -1,6 +1,6 @@
 export const NAV_GROUPS = [
   { label: "Mutual Funds", links: [["Research Home", "/funds"], ["Compare Funds", "/compare"], ["Categories", "/categories"], ["AMCs", "/amc"], ["Morning Brief", "/brief"]] },
-  { label: "Stocks", links: [["Stocks Home", "/stocks"], ["NIFTY 50 + BSE 100", "/stocks/universe"], ["Company Screener", "/stocks/screener"], ["Sectors", "/stocks/sectors"], ["Data Sources", "/stocks/sources"], ["Stock Learning", "/learn/stocks"]] },
+  { label: "Stocks", links: [["Stocks Home", "/stocks"], ["NIFTY 50 + BSE 100", "/stocks/universe"], ["Strategy Lab", "/stocks/strategies"], ["Company Screener", "/stocks/screener"], ["Sectors", "/stocks/sectors"], ["Data Sources", "/stocks/sources"], ["Stock Learning", "/learn/stocks"]] },
   { label: "Markets", links: [["Market Overview", "/markets"], ["Market Map", "/market-map"], ["Raw Materials", "/markets/raw-materials"], ["News", "/news"], ["Signals", "/signals"]] },
   { label: "Portfolio", links: [["Mutual Fund Portfolio", "/portfolio"], ["Invest Portfolio", "/invest/portfolio"], ["Dashboard", "/dashboard"], ["Watchlist", "/dashboard#watchlist"], ["Research Notebook", "/dashboard#notebook"]] },
   { label: "Learn", links: [["Learning Home", "/learn"], ["Mutual Fund Basics", "/learn#mutual-funds"], ["Stock Research", "/learn/stocks"], ["Methodology", "/methodology"], ["Data Quality", "/data-quality"], ["Data Status", "/data-status"]] },
