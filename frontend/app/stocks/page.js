@@ -21,6 +21,7 @@ async function safeCompanies(query) {
 
 const workflows = [
   ["Research a company", "Start with business, sector, financial quality and source freshness before reading valuation.", "/stocks", "Research"],
+  ["Open the research desk", "Track sourced company, sector and regulatory developments without mixing news with primary evidence.", "/stocks/research-desk", "Live evidence"],
   ["Explore the universe", "Browse the current official NIFTY 50 and BSE 100 constituent snapshots with identifiers.", "/stocks/universe", "150 records"],
   ["Open the strategy lab", "Study quality, valuation, earnings, resilience, cyclical and cash-yield frameworks with explicit rejection rules.", "/stocks/strategies", "6 playbooks"],
   ["Run a screen", "Use backend filters for ROCE, debt, growth, cash flow and dividends. Missing metrics do not pass silently.", "/stocks/screener", "Discover"],

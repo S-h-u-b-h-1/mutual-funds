@@ -129,11 +129,19 @@ export function getOfficialCompanyResearchLinks(company) {
     links.push(
       { label: "NSE announcements", detail: "Board decisions, orders, management changes and other disclosures.", href: `https://www.nseindia.com/companies-listing/corporate-filings-announcements?symbol=${symbol}&tabIndex=equity` },
       { label: "NSE financial results", detail: "Exchange-filed quarterly and annual financial results.", href: `https://www.nseindia.com/companies-listing/corporate-filings-financial-results?symbol=${symbol}` },
-      { label: "NSE shareholding", detail: "Promoter, institutional and public ownership disclosures.", href: `https://www.nseindia.com/companies-listing/corporate-filings-shareholding-pattern?symbol=${symbol}` }
+      { label: "NSE shareholding", detail: "Promoter, institutional and public ownership disclosures.", href: `https://www.nseindia.com/companies-listing/corporate-filings-shareholding-pattern?symbol=${symbol}` },
+      { label: "NSE governance filings", detail: "Board composition, committees and listed-company governance compliance.", href: `https://www.nseindia.com/companies-listing/corporate-filings-governance?symbol=${symbol}` },
+      { label: "NSE BRSR filings", detail: "Business Responsibility and Sustainability Reports for applicable companies.", href: `https://www.nseindia.com/companies-listing/corporate-filings-bussiness-sustainabilitiy-reports?symbol=${symbol}` },
+      { label: "NSE voting results", detail: "Shareholder voting outcomes and dissent on company resolutions.", href: `https://www.nseindia.com/companies-listing/corporate-filings-voting-results?symbol=${symbol}` },
+      { label: "NSE investor complaints", detail: "Periodic statements of investor complaints filed with the exchange.", href: `https://www.nseindia.com/companies-listing/corporate-filings-investor-complaints?symbol=${symbol}` }
     );
   }
   if (company?.bseCode) {
-    links.push({ label: "BSE corporate filings", detail: `Cross-check disclosures using BSE security code ${company.bseCode}.`, href: "https://www.bseindia.com/corporates/ann.html" });
+    links.push(
+      { label: "BSE corporate filings", detail: `Cross-check announcements using BSE security code ${company.bseCode}.`, href: "https://www.bseindia.com/corporates/ann.html" },
+      { label: "BSE financial results", detail: `Cross-check filed results using BSE security code ${company.bseCode}.`, href: "https://www.bseindia.com/corporates/Comp_Resultsnew.aspx" },
+      { label: "BSE shareholding", detail: `Cross-check ownership disclosures using BSE security code ${company.bseCode}.`, href: "https://www.bseindia.com/corporates/Sharehold_Searchnew.aspx" }
+    );
   }
   return links;
 }
