@@ -23,5 +23,8 @@ describe("stock universe snapshot", () => {
     const adaniPower = getCompanyResearch("533096");
     expect(adaniPower.nseSymbol).toBe("ADANIPOWER");
     expect(adaniPower.isin).toBe("INE814H01029");
+    const reportedUuidCompany = getCompanyResearch("500477");
+    expect(reportedUuidCompany.nseSymbol).toBe("ASHOKLEY");
+    expect(reportedUuidCompany.name).toContain("ASHOK LEYLAND");
   });
 });

@@ -1,0 +1,333 @@
+{
+  "schemaVersion": 1,
+  "retrievedAt": "2026-08-14T18:30:17.499993Z",
+  "source": {
+    "name": "Wikidata",
+    "url": "https://www.wikidata.org/wiki/Wikidata:Data_access",
+    "license": "CC0"
+  },
+  "coveredCompanies": 32,
+  "universeCompanies": 100,
+  "profilesByIsin": {
+    "INE423A01024": {
+      "qid": "Q107646415",
+      "label": "Adani Enterprises",
+      "description": "Indian holding company",
+      "officialWebsite": "https://www.adanienterprises.com",
+      "founded": 1993,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Adani_Enterprises",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q107646415",
+      "matchBasis": "verified_isin"
+    },
+    "INE917I01010": {
+      "qid": "Q10910065",
+      "label": "Bajaj Auto",
+      "description": "Indian two-wheeler and three-wheeler manufacturing company",
+      "officialWebsite": "https://www.bajajauto.com",
+      "founded": 1945,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Bajaj_Auto",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q10910065",
+      "matchBasis": "verified_isin"
+    },
+    "INE417T01026": {
+      "qid": "Q109701861",
+      "label": "PB Fintech Ltd",
+      "description": "Indian financial technology company",
+      "officialWebsite": "https://www.pbfintech.in/",
+      "founded": 2008,
+      "wikipediaUrl": null,
+      "sourceUrl": "https://www.wikidata.org/wiki/Q109701861",
+      "matchBasis": "verified_isin"
+    },
+    "INE067A01029": {
+      "qid": "Q1140875",
+      "label": "CG Power and Industrial Solutions",
+      "description": "company",
+      "officialWebsite": "http://www.cgglobal.com/",
+      "founded": 1878,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/CG_Power_and_Industrial_Solutions",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q1140875",
+      "matchBasis": "verified_isin"
+    },
+    "INE522F01014": {
+      "qid": "Q124976",
+      "label": "Coal India",
+      "description": "Indian state-owned company",
+      "officialWebsite": "http://www.coalindia.in/",
+      "founded": 1975,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Coal_India",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q124976",
+      "matchBasis": "verified_isin"
+    },
+    "INE242A01010": {
+      "qid": "Q1289348",
+      "label": "Indian Oil Corporation",
+      "description": "oil company based in India",
+      "officialWebsite": "http://www.iocl.com/",
+      "founded": 1964,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Indian_Oil_Corporation",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q1289348",
+      "matchBasis": "verified_isin"
+    },
+    "INE467B01029": {
+      "qid": "Q13227919",
+      "label": "Tata Consultancy Services",
+      "description": "Information technology consulting company",
+      "officialWebsite": "https://www.tcs.com/",
+      "founded": 1968,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Tata_Consultancy_Services",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q13227919",
+      "matchBasis": "verified_isin"
+    },
+    "INE075A01022": {
+      "qid": "Q1364176",
+      "label": "Wipro",
+      "description": "Indian information technology services corporation headquartered in Bengaluru, India",
+      "officialWebsite": "https://www.wipro.com/",
+      "founded": 1945,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Wipro",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q1364176",
+      "matchBasis": "verified_isin"
+    },
+    "INE040H01021": {
+      "qid": "Q1402563",
+      "label": "Suzlon Energy",
+      "description": "Indian wind turbine company",
+      "officialWebsite": "https://www.suzlon.com/",
+      "founded": 1995,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Suzlon",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q1402563",
+      "matchBasis": "verified_isin"
+    },
+    "INE213A01029": {
+      "qid": "Q1430541",
+      "label": "Oil and Natural Gas Corporation",
+      "description": "Indian state-owned oil and gas company",
+      "officialWebsite": "https://www.ongcindia.com/",
+      "founded": 1955,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Oil_and_Natural_Gas_Corporation",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q1430541",
+      "matchBasis": "verified_isin"
+    },
+    "INE742F01042": {
+      "qid": "Q16058076",
+      "label": "Adani Ports & SEZ",
+      "description": "Indian private multi-port operator",
+      "officialWebsite": "https://www.adaniports.com/",
+      "founded": 1998,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Adani_Ports_%26_SEZ",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q16058076",
+      "matchBasis": "verified_isin"
+    },
+    "INE158A01026": {
+      "qid": "Q1613763",
+      "label": "Hero MotoCorp",
+      "description": "Indian motorcycle and scooter manufacturer",
+      "officialWebsite": "https://www.heromotocorp.com/",
+      "founded": 1984,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Hero_MotoCorp",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q1613763",
+      "matchBasis": "verified_isin"
+    },
+    "INE090A01021": {
+      "qid": "Q1653258",
+      "label": "ICICI Bank",
+      "description": "Indian multinational Bank",
+      "officialWebsite": "https://www.icicibank.com/",
+      "founded": 1994,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/ICICI_Bank",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q1653258",
+      "matchBasis": "verified_isin"
+    },
+    "INE154A01025": {
+      "qid": "Q1655008",
+      "label": "ITC Limited",
+      "description": "Indian company",
+      "officialWebsite": "https://www.itcportal.com/",
+      "founded": 1910,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/ITC_Limited",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q1655008",
+      "matchBasis": "verified_isin"
+    },
+    "INE245A01021": {
+      "qid": "Q1814429",
+      "label": "Tata Power",
+      "description": "Indian electric utility company based in Mumbai",
+      "officialWebsite": "http://www.tatapower.com/",
+      "founded": 1910,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Tata_Power",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q1814429",
+      "matchBasis": "verified_isin"
+    },
+    "INE155A01022": {
+      "qid": "Q188514",
+      "label": "Tata Motors Ltd",
+      "description": "Indian multinational automotive manufacturing company",
+      "officialWebsite": "https://www.tatamotors.com/",
+      "founded": 1945,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Tata_Motors",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q188514",
+      "matchBasis": "verified_isin"
+    },
+    "INE733E01010": {
+      "qid": "Q1967805",
+      "label": "NTPC Limited",
+      "description": "Indian state-owned enterprise engaged in the business of generation of electricity and allied activities",
+      "officialWebsite": "http://www.ntpc.co.in/",
+      "founded": 1975,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/NTPC_Limited",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q1967805",
+      "matchBasis": "verified_isin"
+    },
+    "INE028A01039": {
+      "qid": "Q2003797",
+      "label": "Bank of Baroda",
+      "description": "Indian public sector multinational banking company",
+      "officialWebsite": "http://www.bankofbaroda.com/",
+      "founded": 1908,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Bank_of_Baroda",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q2003797",
+      "matchBasis": "verified_isin"
+    },
+    "INE238A01034": {
+      "qid": "Q2003549",
+      "label": "Axis Bank",
+      "description": "Indian private sector bank",
+      "officialWebsite": "https://www.axisbank.com/",
+      "founded": 1990,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Axis_Bank",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q2003549",
+      "matchBasis": "verified_isin"
+    },
+    "INE129A01019": {
+      "qid": "Q2512333",
+      "label": "GAIL",
+      "description": "natural gas company in India",
+      "officialWebsite": "http://www.gailonline.com/final_site/index.html",
+      "founded": 1984,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/GAIL",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q2512333",
+      "matchBasis": "verified_isin"
+    },
+    "INE021A01026": {
+      "qid": "Q28171825",
+      "label": "Asian Paints",
+      "description": "Indian Multi-National Paint and Coating Manufacturing Company",
+      "officialWebsite": "http://www.asianpaints.com/",
+      "founded": 1942,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Asian_Paints",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q28171825",
+      "matchBasis": "verified_isin"
+    },
+    "INE271C01023": {
+      "qid": "Q3011374",
+      "label": "DLF Limited",
+      "description": "Indian commercial real estate",
+      "officialWebsite": "http://www.dlf.in",
+      "founded": 1946,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/DLF_%28company%29",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q3011374",
+      "matchBasis": "verified_isin"
+    },
+    "INE044A01036": {
+      "qid": "Q3291801",
+      "label": "Sun Pharmaceutical",
+      "description": "Indian multinational pharmaceutical company",
+      "officialWebsite": "http://www.sunpharma.com",
+      "founded": 1983,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Sun_Pharma",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q3291801",
+      "matchBasis": "verified_isin"
+    },
+    "INE494B01023": {
+      "qid": "Q3300084",
+      "label": "TVS Motor Company",
+      "description": "2- and 3-wheeler manufacturer from Chennai, India",
+      "officialWebsite": "https://www.tvsmotor.com/",
+      "founded": 1979,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/TVS_Motor_Company",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q3300084",
+      "matchBasis": "verified_isin"
+    },
+    "INE860A01027": {
+      "qid": "Q5629103",
+      "label": "HCL Technologies",
+      "description": "information technology consulting, outsourcing services and software development company",
+      "officialWebsite": "https://www.hcltech.com",
+      "founded": 1991,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/HCLTech",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q5629103",
+      "matchBasis": "verified_isin"
+    },
+    "INE121J01017": {
+      "qid": "Q6027444",
+      "label": "Indus Towers",
+      "description": "Indian telecommunications tower company",
+      "officialWebsite": "https://www.industowers.com/",
+      "founded": 2007,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Indus_Towers",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q6027444",
+      "matchBasis": "verified_isin"
+    },
+    "INE208A01029": {
+      "qid": "Q726193",
+      "label": "Ashok Leyland",
+      "description": "company",
+      "officialWebsite": "https://ashokleyland.com",
+      "founded": 1948,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Ashok_Leyland",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q726193",
+      "matchBasis": "verified_isin"
+    },
+    "INE029A01011": {
+      "qid": "Q854826",
+      "label": "Bharat Petroleum",
+      "description": "Indian oil and gas company",
+      "officialWebsite": "https://www.bharatpetroleum.in",
+      "founded": 1903,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Bharat_Petroleum",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q854826",
+      "matchBasis": "verified_isin"
+    },
+    "INE059A01026": {
+      "qid": "Q905572",
+      "label": "Cipla",
+      "description": "Indian multi-national pharmaceutical and biotechnology company",
+      "officialWebsite": "http://www.cipla.com",
+      "founded": 1935,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Cipla",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q905572",
+      "matchBasis": "verified_isin"
+    },
+    "INE002A01018": {
+      "qid": "Q908931",
+      "label": "Reliance Industries Limited",
+      "description": "Indian company",
+      "officialWebsite": "https://www.ril.com/",
+      "founded": 1958,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Reliance_Industries",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q908931",
+      "matchBasis": "verified_isin"
+    },
+    "INE585B01010": {
+      "qid": "Q963718",
+      "label": "Maruti Suzuki",
+      "description": "Japanese-Indian automobile manufacturer",
+      "officialWebsite": "https://www.marutisuzuki.com/",
+      "founded": 1981,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Maruti_Suzuki",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q963718",
+      "matchBasis": "verified_isin"
+    },
+    "INE092T01019": {
+      "qid": "Q22031467",
+      "label": "IDFC FIRST Bank",
+      "description": "Indian banking company",
+      "officialWebsite": "https://www.idfcbank.com",
+      "founded": 2015,
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/IDFC_First_Bank",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q22031467",
+      "matchBasis": "verified_isin"
+    }
+  }
+}
