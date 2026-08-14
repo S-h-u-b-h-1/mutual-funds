@@ -5,7 +5,7 @@
 // functions" pattern the fund page already uses, not an internal fetch() round-trip). No section
 // here fabricates a figure: every empty state below reflects a real absence of data, not a bug —
 // see docs/STOCK_DATA_SOURCE_MATRIX.md for why (no live external data source is wired in yet).
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import ProductBreadcrumbs from "../../components/ProductBreadcrumbs";
@@ -21,7 +21,7 @@ import { getCompanyTimeline, getResultsCalendar } from "../../lib/stocks/timelin
 import { getCompanyCommodityExposures } from "../../lib/stocks/commodityService";
 import { getSector } from "../../lib/stocks/sectors";
 import { buildCompanyAnalysis } from "../../lib/stocks/companyAnalysis";
-import { getOfficialCompanyResearchLinks } from "../../lib/stocks/universe";
+import { getCompanyResearch, getOfficialCompanyResearchLinks } from "../../lib/stocks/universe";
 
 export const revalidate = 0; // live DB-backed research data, not a static/prebuilt bundle like the MF fund page
 
@@ -86,6 +86,16 @@ export default async function StockPage({ params }) {
   const contract = await getCompanyPageContract(id);
   if (!contract) notFound();
   const { company, exchangeListings, ownership, management, subsidiaries, businessSegments } = contract;
+
+  // Early stock-master imports predate the evidence pipeline, leaving many UUID rows with only a
+  // name and BSE code. A verified index match has a much richer terminal, so do not strand the
+  // reader on eleven empty panels. DB-native pages continue below once their own profile and
+  // classification data exists.
+  const universeCompany = getCompanyResearch(company.nseSymbol || company.bseCode || company.isin);
+  const isThinMasterRecord = !company.description && !company.sectorId && !company.industryId;
+  if (universeCompany && isThinMasterRecord) {
+    redirect(`/stocks/company/${encodeURIComponent(universeCompany.nseSymbol || universeCompany.bseCode || universeCompany.isin)}`);
+  }
 
   const [pnlStatements, valuation, valuationHistory, peers, timeline, resultsCalendar] = await Promise.all([
     getStatementsForCompany(id, { statementType: "pnl", periodType: "annual", limit: 12 }),

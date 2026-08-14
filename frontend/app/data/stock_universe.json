@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "retrievedAt": "2026-08-10T10:10:44+00:00",
+  "schemaVersion": 2,
+  "retrievedAt": "2026-08-14T05:28:39+00:00",
   "handling": "Constituent metadata only; no price, weight, recommendation or full-document redistribution.",
   "indices": {
     "NIFTY50": {
@@ -436,11 +436,14 @@
       "sourceUrl": "https://www.bseindices.com/indices-details/code/22/",
       "sourceEndpoint": "https://www.bseindices.com/AsiaIndexAPI/api/Codewise_Indices/w?code=22",
       "sourceChecksumSha256": "18eef75fae3fbd197c087c1b32f7e7ee7b20aaabbc62eaac8ef43173fec24713",
+      "identifierEnrichmentSourceUrl": "https://archives.nseindia.com/content/equities/EQUITY_L.csv",
+      "identifierEnrichmentChecksumSha256": "1dcb094f67b441c2a7c65d0e1889c6fbe01f74b77be019d45b973b538ec5bf99",
+      "identifierEnrichmentMatches": 100,
       "sourceEffectiveDate": "2026-07-31",
       "constituentCount": 100,
       "identifierCoverage": {
-        "isin": 0,
-        "nseSymbol": 0,
+        "isin": 100,
+        "nseSymbol": 100,
         "bseCode": 100
       },
       "industryCounts": [
@@ -493,502 +496,702 @@
         {
           "name": "ADANI ENTERPRISES LTD.",
           "industry": "Commodities",
-          "bseCode": "512599"
+          "bseCode": "512599",
+          "nseSymbol": "ADANIENT",
+          "isin": "INE423A01024"
         },
         {
           "name": "ADANI PORTS AND SPECIAL ECONOM",
           "industry": "Services",
-          "bseCode": "532921"
+          "bseCode": "532921",
+          "nseSymbol": "ADANIPORTS",
+          "isin": "INE742F01042"
         },
         {
           "name": "ADANI POWER LTD.",
           "industry": "Utilities",
-          "bseCode": "533096"
+          "bseCode": "533096",
+          "nseSymbol": "ADANIPOWER",
+          "isin": "INE814H01029"
         },
         {
           "name": "APOLLO HOSPITALS ENTERPRISE LT",
           "industry": "Healthcare",
-          "bseCode": "508869"
+          "bseCode": "508869",
+          "nseSymbol": "APOLLOHOSP",
+          "isin": "INE437A01024"
         },
         {
           "name": "ASHOK LEYLAND LTD.",
           "industry": "Industrials",
-          "bseCode": "500477"
+          "bseCode": "500477",
+          "nseSymbol": "ASHOKLEY",
+          "isin": "INE208A01029"
         },
         {
           "name": "ASIAN PAINTS LTD.",
           "industry": "Consumer Discretionary",
-          "bseCode": "500820"
+          "bseCode": "500820",
+          "nseSymbol": "ASIANPAINT",
+          "isin": "INE021A01026"
         },
         {
           "name": "AU Small Finance Bank Limited",
           "industry": "Financial Services",
-          "bseCode": "540611"
+          "bseCode": "540611",
+          "nseSymbol": "AUBANK",
+          "isin": "INE949L01017"
         },
         {
           "name": "AXIS BANK LTD.",
           "industry": "Financial Services",
-          "bseCode": "532215"
+          "bseCode": "532215",
+          "nseSymbol": "AXISBANK",
+          "isin": "INE238A01034"
         },
         {
           "name": "Avenue Supermarts Limited",
           "industry": "Consumer Discretionary",
-          "bseCode": "540376"
+          "bseCode": "540376",
+          "nseSymbol": "DMART",
+          "isin": "INE192R01011"
         },
         {
           "name": "BAJAJ AUTO LTD.",
           "industry": "Consumer Discretionary",
-          "bseCode": "532977"
+          "bseCode": "532977",
+          "nseSymbol": "BAJAJ-AUTO",
+          "isin": "INE917I01010"
         },
         {
           "name": "BAJAJ FINANCE LIMITED",
           "industry": "Financial Services",
-          "bseCode": "500034"
+          "bseCode": "500034",
+          "nseSymbol": "BAJFINANCE",
+          "isin": "INE296A01032"
         },
         {
           "name": "BAJAJ FINSERV LTD.",
           "industry": "Financial Services",
-          "bseCode": "532978"
+          "bseCode": "532978",
+          "nseSymbol": "BAJAJFINSV",
+          "isin": "INE918I01026"
         },
         {
           "name": "BAJAJ HOLDINGS & INVESTMENT LT",
           "industry": "Financial Services",
-          "bseCode": "500490"
+          "bseCode": "500490",
+          "nseSymbol": "BAJAJHLDNG",
+          "isin": "INE118A01012"
         },
         {
           "name": "BANK OF BARODA",
           "industry": "Financial Services",
-          "bseCode": "532134"
+          "bseCode": "532134",
+          "nseSymbol": "BANKBARODA",
+          "isin": "INE028A01039"
         },
         {
           "name": "BHARAT ELECTRONICS LTD.",
           "industry": "Industrials",
-          "bseCode": "500049"
+          "bseCode": "500049",
+          "nseSymbol": "BEL",
+          "isin": "INE263A01024"
         },
         {
           "name": "BHARAT PETROLEUM CORPORATION L",
           "industry": "Energy",
-          "bseCode": "500547"
+          "bseCode": "500547",
+          "nseSymbol": "BPCL",
+          "isin": "INE029A01011"
         },
         {
           "name": "BHARTI AIRTEL LTD.",
           "industry": "Telecommunication",
-          "bseCode": "532454"
+          "bseCode": "532454",
+          "nseSymbol": "BHARTIARTL",
+          "isin": "INE397D01024"
         },
         {
           "name": "BRITANNIA INDUSTRIES LTD.",
           "industry": "Fast Moving Consumer Goods",
-          "bseCode": "500825"
+          "bseCode": "500825",
+          "nseSymbol": "BRITANNIA",
+          "isin": "INE216A01030"
         },
         {
           "name": "CANARA BANK",
           "industry": "Financial Services",
-          "bseCode": "532483"
+          "bseCode": "532483",
+          "nseSymbol": "CANBK",
+          "isin": "INE476A01022"
         },
         {
           "name": "CG Power and Industrial Soluti",
           "industry": "Industrials",
-          "bseCode": "500093"
+          "bseCode": "500093",
+          "nseSymbol": "CGPOWER",
+          "isin": "INE067A01029"
         },
         {
           "name": "CHOLAMANDALAM INVESTMENT AND F",
           "industry": "Financial Services",
-          "bseCode": "511243"
+          "bseCode": "511243",
+          "nseSymbol": "CHOLAFIN",
+          "isin": "INE121A01024"
         },
         {
           "name": "CIPLA LTD.",
           "industry": "Healthcare",
-          "bseCode": "500087"
+          "bseCode": "500087",
+          "nseSymbol": "CIPLA",
+          "isin": "INE059A01026"
         },
         {
           "name": "COAL INDIA LTD.",
           "industry": "Energy",
-          "bseCode": "533278"
+          "bseCode": "533278",
+          "nseSymbol": "COALINDIA",
+          "isin": "INE522F01014"
         },
         {
           "name": "COFORGE LIMITED",
           "industry": "Information Technology",
-          "bseCode": "532541"
+          "bseCode": "532541",
+          "nseSymbol": "COFORGE",
+          "isin": "INE591G01025"
         },
         {
           "name": "CUMMINS INDIA LTD.",
           "industry": "Industrials",
-          "bseCode": "500480"
+          "bseCode": "500480",
+          "nseSymbol": "CUMMINSIND",
+          "isin": "INE298A01020"
         },
         {
           "name": "DIVIS LABORATORIES LTD.",
           "industry": "Healthcare",
-          "bseCode": "532488"
+          "bseCode": "532488",
+          "nseSymbol": "DIVISLAB",
+          "isin": "INE361B01024"
         },
         {
           "name": "DLF LTD.",
           "industry": "Consumer Discretionary",
-          "bseCode": "532868"
+          "bseCode": "532868",
+          "nseSymbol": "DLF",
+          "isin": "INE271C01023"
         },
         {
           "name": "DR.REDDYS LABORATORIES LTD.",
           "industry": "Healthcare",
-          "bseCode": "500124"
+          "bseCode": "500124",
+          "nseSymbol": "DRREDDY",
+          "isin": "INE089A01031"
         },
         {
           "name": "Dixon Technologies (India) Lim",
           "industry": "Consumer Discretionary",
-          "bseCode": "540699"
+          "bseCode": "540699",
+          "nseSymbol": "DIXON",
+          "isin": "INE935N01020"
         },
         {
           "name": "EICHER MOTORS LTD.",
           "industry": "Consumer Discretionary",
-          "bseCode": "505200"
+          "bseCode": "505200",
+          "nseSymbol": "EICHERMOT",
+          "isin": "INE066A01021"
         },
         {
           "name": "Eternal Limited",
           "industry": "Consumer Discretionary",
-          "bseCode": "543320"
+          "bseCode": "543320",
+          "nseSymbol": "ETERNAL",
+          "isin": "INE758T01015"
         },
         {
           "name": "FEDERAL BANK LTD.",
           "industry": "Financial Services",
-          "bseCode": "500469"
+          "bseCode": "500469",
+          "nseSymbol": "FEDERALBNK",
+          "isin": "INE171A01029"
         },
         {
           "name": "GAIL (INDIA) LTD.",
           "industry": "Energy",
-          "bseCode": "532155"
+          "bseCode": "532155",
+          "nseSymbol": "GAIL",
+          "isin": "INE129A01019"
         },
         {
           "name": "GODREJ CONSUMER PRODUCTS LTD.",
           "industry": "Fast Moving Consumer Goods",
-          "bseCode": "532424"
+          "bseCode": "532424",
+          "nseSymbol": "GODREJCP",
+          "isin": "INE102D01028"
         },
         {
           "name": "GRASIM INDUSTRIES LTD.",
           "industry": "Commodities",
-          "bseCode": "500300"
+          "bseCode": "500300",
+          "nseSymbol": "GRASIM",
+          "isin": "INE047A01021"
         },
         {
           "name": "HAVELLS INDIA LTD.",
           "industry": "Consumer Discretionary",
-          "bseCode": "517354"
+          "bseCode": "517354",
+          "nseSymbol": "HAVELLS",
+          "isin": "INE176B01034"
         },
         {
           "name": "HCL TECHNOLOGIES LTD.",
           "industry": "Information Technology",
-          "bseCode": "532281"
+          "bseCode": "532281",
+          "nseSymbol": "HCLTECH",
+          "isin": "INE860A01027"
         },
         {
           "name": "HDFC Asset Management Company",
           "industry": "Financial Services",
-          "bseCode": "541729"
+          "bseCode": "541729",
+          "nseSymbol": "HDFCAMC",
+          "isin": "INE127D01025"
         },
         {
           "name": "HDFC BANK LTD.",
           "industry": "Financial Services",
-          "bseCode": "500180"
+          "bseCode": "500180",
+          "nseSymbol": "HDFCBANK",
+          "isin": "INE040A01034"
         },
         {
           "name": "HDFC LIFE INSURANCE COMPANY LI",
           "industry": "Financial Services",
-          "bseCode": "540777"
+          "bseCode": "540777",
+          "nseSymbol": "HDFCLIFE",
+          "isin": "INE795G01014"
         },
         {
           "name": "HERO MOTOCORP LTD.",
           "industry": "Consumer Discretionary",
-          "bseCode": "500182"
+          "bseCode": "500182",
+          "nseSymbol": "HEROMOTOCO",
+          "isin": "INE158A01026"
         },
         {
           "name": "HINDALCO INDUSTRIES LTD.",
           "industry": "Commodities",
-          "bseCode": "500440"
+          "bseCode": "500440",
+          "nseSymbol": "HINDALCO",
+          "isin": "INE038A01020"
         },
         {
           "name": "HINDUSTAN UNILEVER LTD.",
           "industry": "Fast Moving Consumer Goods",
-          "bseCode": "500696"
+          "bseCode": "500696",
+          "nseSymbol": "HINDUNILVR",
+          "isin": "INE030A01027"
         },
         {
           "name": "Hindustan Aeronautics Limited",
           "industry": "Industrials",
-          "bseCode": "541154"
+          "bseCode": "541154",
+          "nseSymbol": "HAL",
+          "isin": "INE066F01020"
         },
         {
           "name": "ICICI BANK LTD.",
           "industry": "Financial Services",
-          "bseCode": "532174"
+          "bseCode": "532174",
+          "nseSymbol": "ICICIBANK",
+          "isin": "INE090A01021"
         },
         {
           "name": "ICICI Lombard General Insuranc",
           "industry": "Financial Services",
-          "bseCode": "540716"
+          "bseCode": "540716",
+          "nseSymbol": "ICICIGI",
+          "isin": "INE765G01017"
         },
         {
           "name": "IDFC FIRST BANK LIMITED",
           "industry": "Financial Services",
-          "bseCode": "539437"
+          "bseCode": "539437",
+          "nseSymbol": "IDFCFIRSTB",
+          "isin": "INE092T01019"
         },
         {
           "name": "INDIAN OIL CORPORATION LTD.",
           "industry": "Energy",
-          "bseCode": "530965"
+          "bseCode": "530965",
+          "nseSymbol": "IOC",
+          "isin": "INE242A01010"
         },
         {
           "name": "INDUS TOWERS LIMITED",
           "industry": "Telecommunication",
-          "bseCode": "534816"
+          "bseCode": "534816",
+          "nseSymbol": "INDUSTOWER",
+          "isin": "INE121J01017"
         },
         {
           "name": "INDUSIND BANK LTD.",
           "industry": "Financial Services",
-          "bseCode": "532187"
+          "bseCode": "532187",
+          "nseSymbol": "INDUSINDBK",
+          "isin": "INE095A01012"
         },
         {
           "name": "INFO EDGE (INDIA) LTD.",
           "industry": "Consumer Discretionary",
-          "bseCode": "532777"
+          "bseCode": "532777",
+          "nseSymbol": "NAUKRI",
+          "isin": "INE663F01032"
         },
         {
           "name": "INFOSYS LTD.",
           "industry": "Information Technology",
-          "bseCode": "500209"
+          "bseCode": "500209",
+          "nseSymbol": "INFY",
+          "isin": "INE009A01021"
         },
         {
           "name": "ITC LTD.",
           "industry": "Fast Moving Consumer Goods",
-          "bseCode": "500875"
+          "bseCode": "500875",
+          "nseSymbol": "ITC",
+          "isin": "INE154A01025"
         },
         {
           "name": "InterGlobe Aviation Limited",
           "industry": "Services",
-          "bseCode": "539448"
+          "bseCode": "539448",
+          "nseSymbol": "INDIGO",
+          "isin": "INE646L01027"
         },
         {
           "name": "JSW STEEL LTD.",
           "industry": "Commodities",
-          "bseCode": "500228"
+          "bseCode": "500228",
+          "nseSymbol": "JSWSTEEL",
+          "isin": "INE019A01038"
         },
         {
           "name": "Jio Financial Services Limited",
           "industry": "Financial Services",
-          "bseCode": "543940"
+          "bseCode": "543940",
+          "nseSymbol": "JIOFIN",
+          "isin": "INE758E01017"
         },
         {
           "name": "KOTAK MAHINDRA BANK LTD.",
           "industry": "Financial Services",
-          "bseCode": "500247"
+          "bseCode": "500247",
+          "nseSymbol": "KOTAKBANK",
+          "isin": "INE237A01036"
         },
         {
           "name": "LARSEN & TOUBRO LTD.",
           "industry": "Industrials",
-          "bseCode": "500510"
+          "bseCode": "500510",
+          "nseSymbol": "LT",
+          "isin": "INE018A01030"
         },
         {
           "name": "LTM LIMITED",
           "industry": "Information Technology",
-          "bseCode": "540005"
+          "bseCode": "540005",
+          "nseSymbol": "LTM",
+          "isin": "INE214T01019"
         },
         {
           "name": "LUPIN LTD.",
           "industry": "Healthcare",
-          "bseCode": "500257"
+          "bseCode": "500257",
+          "nseSymbol": "LUPIN",
+          "isin": "INE326A01037"
         },
         {
           "name": "MAHINDRA & MAHINDRA LTD.",
           "industry": "Consumer Discretionary",
-          "bseCode": "500520"
+          "bseCode": "500520",
+          "nseSymbol": "M&M",
+          "isin": "INE101A01026"
         },
         {
           "name": "MARICO LTD.",
           "industry": "Fast Moving Consumer Goods",
-          "bseCode": "531642"
+          "bseCode": "531642",
+          "nseSymbol": "MARICO",
+          "isin": "INE196A01026"
         },
         {
           "name": "MARUTI SUZUKI INDIA LTD.",
           "industry": "Consumer Discretionary",
-          "bseCode": "532500"
+          "bseCode": "532500",
+          "nseSymbol": "MARUTI",
+          "isin": "INE585B01010"
         },
         {
           "name": "Max Healthcare Institute Limit",
           "industry": "Healthcare",
-          "bseCode": "543220"
+          "bseCode": "543220",
+          "nseSymbol": "MAXHEALTH",
+          "isin": "INE027H01010"
         },
         {
           "name": "NESTLE INDIA LTD.",
           "industry": "Fast Moving Consumer Goods",
-          "bseCode": "500790"
+          "bseCode": "500790",
+          "nseSymbol": "NESTLEIND",
+          "isin": "INE239A01024"
         },
         {
           "name": "NTPC LTD.",
           "industry": "Utilities",
-          "bseCode": "532555"
+          "bseCode": "532555",
+          "nseSymbol": "NTPC",
+          "isin": "INE733E01010"
         },
         {
           "name": "OIL AND NATURAL GAS CORPORATIO",
           "industry": "Energy",
-          "bseCode": "500312"
+          "bseCode": "500312",
+          "nseSymbol": "ONGC",
+          "isin": "INE213A01029"
         },
         {
           "name": "One 97 Communications Limited",
           "industry": "Financial Services",
-          "bseCode": "543396"
+          "bseCode": "543396",
+          "nseSymbol": "PAYTM",
+          "isin": "INE982J01020"
         },
         {
           "name": "PB Fintech Limited",
           "industry": "Financial Services",
-          "bseCode": "543390"
+          "bseCode": "543390",
+          "nseSymbol": "POLICYBZR",
+          "isin": "INE417T01026"
         },
         {
           "name": "PERSISTENT SYSTEMS LTD.",
           "industry": "Information Technology",
-          "bseCode": "533179"
+          "bseCode": "533179",
+          "nseSymbol": "PERSISTENT",
+          "isin": "INE262H01021"
         },
         {
           "name": "PIDILITE INDUSTRIES LTD.",
           "industry": "Commodities",
-          "bseCode": "500331"
+          "bseCode": "500331",
+          "nseSymbol": "PIDILITIND",
+          "isin": "INE318A01026"
         },
         {
           "name": "POWER FINANCE CORPORATION LTD.",
           "industry": "Financial Services",
-          "bseCode": "532810"
+          "bseCode": "532810",
+          "nseSymbol": "PFC",
+          "isin": "INE134E01011"
         },
         {
           "name": "POWER GRID CORPORATION OF INDI",
           "industry": "Utilities",
-          "bseCode": "532898"
+          "bseCode": "532898",
+          "nseSymbol": "POWERGRID",
+          "isin": "INE752E01010"
         },
         {
           "name": "PUNJAB NATIONAL BANK",
           "industry": "Financial Services",
-          "bseCode": "532461"
+          "bseCode": "532461",
+          "nseSymbol": "PNB",
+          "isin": "INE160A01022"
         },
         {
           "name": "REC LIMITED",
           "industry": "Financial Services",
-          "bseCode": "532955"
+          "bseCode": "532955",
+          "nseSymbol": "RECLTD",
+          "isin": "INE020B01018"
         },
         {
           "name": "RELIANCE INDUSTRIES LTD.",
           "industry": "Energy",
-          "bseCode": "500325"
+          "bseCode": "500325",
+          "nseSymbol": "RELIANCE",
+          "isin": "INE002A01018"
         },
         {
           "name": "SBI Life Insurance Company Lim",
           "industry": "Financial Services",
-          "bseCode": "540719"
+          "bseCode": "540719",
+          "nseSymbol": "SBILIFE",
+          "isin": "INE123W01016"
         },
         {
           "name": "SHREE CEMENT LTD.",
           "industry": "Commodities",
-          "bseCode": "500387"
+          "bseCode": "500387",
+          "nseSymbol": "SHREECEM",
+          "isin": "INE070A01015"
         },
         {
           "name": "SRF LTD.",
           "industry": "Commodities",
-          "bseCode": "503806"
+          "bseCode": "503806",
+          "nseSymbol": "SRF",
+          "isin": "INE647A01010"
         },
         {
           "name": "STATE BANK OF INDIA",
           "industry": "Financial Services",
-          "bseCode": "500112"
+          "bseCode": "500112",
+          "nseSymbol": "SBIN",
+          "isin": "INE062A01020"
         },
         {
           "name": "SUN PHARMACEUTICAL INDUSTRIES",
           "industry": "Healthcare",
-          "bseCode": "524715"
+          "bseCode": "524715",
+          "nseSymbol": "SUNPHARMA",
+          "isin": "INE044A01036"
         },
         {
           "name": "SUZLON ENERGY LTD.",
           "industry": "Industrials",
-          "bseCode": "532667"
+          "bseCode": "532667",
+          "nseSymbol": "SUZLON",
+          "isin": "INE040H01021"
         },
         {
           "name": "Samvardhana Motherson Internat",
           "industry": "Consumer Discretionary",
-          "bseCode": "517334"
+          "bseCode": "517334",
+          "nseSymbol": "MOTHERSON",
+          "isin": "INE775A01035"
         },
         {
           "name": "Shriram Finance Limited",
           "industry": "Financial Services",
-          "bseCode": "511218"
+          "bseCode": "511218",
+          "nseSymbol": "SHRIRAMFIN",
+          "isin": "INE721A01047"
         },
         {
           "name": "TATA CONSULTANCY SERVICES LTD.",
           "industry": "Information Technology",
-          "bseCode": "532540"
+          "bseCode": "532540",
+          "nseSymbol": "TCS",
+          "isin": "INE467B01029"
         },
         {
           "name": "TATA CONSUMER PRODUCTS LIMITED",
           "industry": "Fast Moving Consumer Goods",
-          "bseCode": "500800"
+          "bseCode": "500800",
+          "nseSymbol": "TATACONSUM",
+          "isin": "INE192A01025"
         },
         {
           "name": "TATA MOTORS PASSENGER VEHICLES",
           "industry": "Consumer Discretionary",
-          "bseCode": "500570"
+          "bseCode": "500570",
+          "nseSymbol": "TMPV",
+          "isin": "INE155A01022"
         },
         {
           "name": "TATA POWER CO.LTD.",
           "industry": "Utilities",
-          "bseCode": "500400"
+          "bseCode": "500400",
+          "nseSymbol": "TATAPOWER",
+          "isin": "INE245A01021"
         },
         {
           "name": "TATA STEEL LTD.",
           "industry": "Commodities",
-          "bseCode": "500470"
+          "bseCode": "500470",
+          "nseSymbol": "TATASTEEL",
+          "isin": "INE081A01020"
         },
         {
           "name": "TECH MAHINDRA LTD.",
           "industry": "Information Technology",
-          "bseCode": "532755"
+          "bseCode": "532755",
+          "nseSymbol": "TECHM",
+          "isin": "INE669C01036"
         },
         {
           "name": "THE INDIAN HOTELS COMPANY LTD",
           "industry": "Consumer Discretionary",
-          "bseCode": "500850"
+          "bseCode": "500850",
+          "nseSymbol": "INDHOTEL",
+          "isin": "INE053A01029"
         },
         {
           "name": "TITAN COMPANY LIMITED",
           "industry": "Consumer Discretionary",
-          "bseCode": "500114"
+          "bseCode": "500114",
+          "nseSymbol": "TITAN",
+          "isin": "INE280A01028"
         },
         {
           "name": "TRENT LTD.",
           "industry": "Consumer Discretionary",
-          "bseCode": "500251"
+          "bseCode": "500251",
+          "nseSymbol": "TRENT",
+          "isin": "INE849A01020"
         },
         {
           "name": "TVS MOTOR COMPANY LTD.",
           "industry": "Consumer Discretionary",
-          "bseCode": "532343"
+          "bseCode": "532343",
+          "nseSymbol": "TVSMOTOR",
+          "isin": "INE494B01023"
         },
         {
           "name": "Tata Motors Limited",
           "industry": "Industrials",
-          "bseCode": "544569"
+          "bseCode": "544569",
+          "nseSymbol": "TMCV",
+          "isin": "INE1TAE01010"
         },
         {
           "name": "ULTRATECH CEMENT LTD.",
           "industry": "Commodities",
-          "bseCode": "532538"
+          "bseCode": "532538",
+          "nseSymbol": "ULTRACEMCO",
+          "isin": "INE481G01011"
         },
         {
           "name": "UNITED SPIRITS LTD.",
           "industry": "Fast Moving Consumer Goods",
-          "bseCode": "532432"
+          "bseCode": "532432",
+          "nseSymbol": "UNITDSPR",
+          "isin": "INE854D01024"
         },
         {
           "name": "Varun Beverages Limited",
           "industry": "Fast Moving Consumer Goods",
-          "bseCode": "540180"
+          "bseCode": "540180",
+          "nseSymbol": "VBL",
+          "isin": "INE200M01039"
         },
         {
           "name": "WIPRO LTD.",
           "industry": "Information Technology",
-          "bseCode": "507685"
+          "bseCode": "507685",
+          "nseSymbol": "WIPRO",
+          "isin": "INE075A01022"
         },
         {
           "name": "YES BANK LTD.",
           "industry": "Financial Services",
-          "bseCode": "532648"
+          "bseCode": "532648",
+          "nseSymbol": "YESBANK",
+          "isin": "INE528G01035"
         }
       ]
     }
