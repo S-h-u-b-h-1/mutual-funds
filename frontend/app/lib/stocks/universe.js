@@ -35,6 +35,37 @@ export function getStockUniverseSummary() {
   };
 }
 
+export function getUniqueStockUniverse() {
+  const companies = new Map();
+  for (const indexKey of STOCK_INDEX_KEYS) {
+    const index = getIndexUniverse(indexKey);
+    for (const company of index.constituents) {
+      const key = company.isin || company.nseSymbol || company.bseCode;
+      const current = companies.get(key);
+      companies.set(key, {
+        ...(current || company),
+        ...company,
+        memberships: [...(current?.memberships || []), {
+          key: index.key,
+          name: index.name,
+          provider: index.provider,
+          sourceUrl: index.sourceUrl,
+          sourceEffectiveDate: index.sourceEffectiveDate,
+        }],
+        retrievedAt: snapshot.retrievedAt,
+      });
+    }
+  }
+  return [...companies.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function getStockIndustryGroups() {
+  return getUniqueStockUniverse().reduce((groups, company) => {
+    (groups[company.industry || "Unclassified"] ||= []).push(company);
+    return groups;
+  }, {});
+}
+
 function normalizeIdentifier(value) {
   try {
     return decodeURIComponent(String(value || "")).trim().toUpperCase();

@@ -16,6 +16,8 @@ const authorityLabels = {
   company_primary: "Company primary source",
   business_media: "Publisher coverage",
   licensed_vendor: "Licensed market data",
+  government_data: "Official public statistics",
+  open_knowledge: "Open structured data",
 };
 
 export default function StockSourcesPage() {
@@ -32,7 +34,7 @@ export default function StockSourcesPage() {
             <div className="eyebrow text-accent">Stock intelligence sources</div>
             <h1 className="page-title mt-3 max-w-4xl">Know the source before trusting the conclusion.</h1>
             <p className="measure mt-4 text-sm leading-6 text-ink-muted">
-              MF Pulse prioritises exchange filings, regulator releases and company investor-relations documents. News adds context, but it does not override a primary filing. Every collected item keeps its publisher, timestamp and original link.
+              MF Pulse prioritises exchange filings, regulator releases, official statistics and company investor-relations documents. Open profile data is reconciled by ISIN. News adds context, but never overrides a primary filing; every item keeps its publisher, timestamp and original link.
             </p>
           </div>
           <GlassPanel className="p-5">

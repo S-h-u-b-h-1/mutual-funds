@@ -3,146 +3,71 @@ import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
 import ProductBreadcrumbs from "../../components/ProductBreadcrumbs";
 import GlassPanel from "../../components/ui/GlassPanel";
-import Badge, { EmptyState } from "../../components/ui/Badge";
+import Badge from "../../components/ui/Badge";
 import SectionHeader from "../../components/ui/SectionHeader";
-import { EXAMPLE_SCREENS } from "../../lib/stocks/screener";
-import { query } from "../../lib/db";
-import { runScreener } from "../../lib/stocks/screener";
+import { companyResearchHref, getUniqueStockUniverse } from "../../lib/stocks/universe";
+import { getOpenCompanyProfile } from "../../lib/stocks/researchProfiles";
 
-export const dynamic = "force-dynamic";
+export const metadata = { title: "Indian Stock Screener & Research Explorer — MF Pulse" };
 
-const STARTER_SCREEN_KEYS = [
-  "highRoce",
-  "lowDebtToEquity",
-  "strongSalesGrowth",
-  "cashFlowGenerators",
-  "qualityAndSafe",
-  "dividendStocks",
-];
+const INDEX_FILTERS = [["all", "All covered companies"], ["NIFTY50", "NIFTY 50"], ["BSE100", "BSE 100"], ["both", "In both indices"]];
 
-async function loadScreenableCompanies() {
-  const r = await query(
-    `select distinct on (c.id)
-        c.id as company_id, c.display_name, c.nse_symbol, c.bse_code, c.sector_id, c.industry_id,
-        cvs.market_cap, cvs.pe, cvs.pb, cvs.ev_ebitda, cvs.dividend_yield
-       from companies c
-       left join company_valuation_snapshots cvs on cvs.company_id = c.id
-      where c.listing_status = 'listed'
-      order by c.id, cvs.as_of_date desc`
-  );
-  return r.rows.map((row) => ({
-    companyId: row.company_id,
-    displayName: row.display_name,
-    nseSymbol: row.nse_symbol,
-    bseCode: row.bse_code,
-    sectorId: row.sector_id,
-    industryId: row.industry_id,
-    marketCap: row.market_cap === null ? null : Number(row.market_cap),
-    pe: row.pe === null ? null : Number(row.pe),
-    pb: row.pb === null ? null : Number(row.pb),
-    evEbitda: row.ev_ebitda === null ? null : Number(row.ev_ebitda),
-    dividendYield: row.dividend_yield === null ? null : Number(row.dividend_yield),
-  }));
-}
-
-async function runSelectedScreen(screenKey) {
-  const selected = EXAMPLE_SCREENS[screenKey] ? screenKey : "highRoce";
-  try {
-    const companies = await loadScreenableCompanies();
-    return { selected, result: runScreener(companies, EXAMPLE_SCREENS[selected].filterGroup, { sortBy: "marketCap", limit: 25 }), error: null };
-  } catch (error) {
-    return { selected, result: { results: [], matchedCount: 0, totalCount: 0 }, error: error?.message || "Screener API unavailable." };
-  }
-}
-
-function CriteriaList({ filterGroup }) {
-  const filters = filterGroup.filters || [];
-  return (
-    <ul className="mt-3 grid gap-2 text-xs leading-5 text-ink-muted">
-      {filters.map((filter, index) => (
-        <li key={index} className="rounded-xl bg-surface-2 p-3">
-          {"filters" in filter ? `${filter.combinator} group with ${filter.filters.length} checks` : `${filter.field} ${filter.operator} ${Array.isArray(filter.value) ? filter.value.join(" to ") : filter.value}`}
-        </li>
-      ))}
-    </ul>
-  );
+function filterCompanies(companies, { q = "", index = "all", industry = "all" }) {
+  const needle = String(q).trim().toLowerCase();
+  return companies.filter((company) => {
+    const memberships = company.memberships.map((item) => item.key);
+    const indexMatch = index === "all" || (index === "both" ? memberships.includes("NIFTY50") && memberships.includes("BSE100") : memberships.includes(index));
+    const industryMatch = industry === "all" || company.industry === industry;
+    const searchMatch = !needle || [company.name, company.nseSymbol, company.bseCode, company.isin, company.industry].filter(Boolean).some((value) => String(value).toLowerCase().includes(needle));
+    return indexMatch && industryMatch && searchMatch;
+  });
 }
 
 export default async function StockScreenerPage({ searchParams }) {
   const params = await searchParams;
-  const requested = params?.screen || "highRoce";
-  const { selected, result, error } = await runSelectedScreen(requested);
-  const screen = EXAMPLE_SCREENS[selected];
+  const companies = getUniqueStockUniverse();
+  const industries = [...new Set(companies.map((company) => company.industry))].sort();
+  const filters = { q: params?.q || "", index: params?.index || "all", industry: params?.industry || "all" };
+  const results = filterCompanies(companies, filters);
 
-  return (
-    <>
-      <Nav active="/stocks/screener" />
-      <main id="main-content" className="container-px py-10 sm:py-14">
-        <ProductBreadcrumbs items={[["Stocks", "/stocks"], ["Screener", null]]} />
-        <div className="eyebrow text-accent">Stock screener</div>
-        <h1 className="page-title mt-3 max-w-4xl">Powerful screens, with missing data treated honestly.</h1>
-        <p className="measure mt-4 text-sm leading-6 text-ink-muted">
-          These are backend filter definitions, not editorial lists. If ROCE, debt, growth, cash-flow or dividend fields are not populated for a company, that company does not pass the screen silently.
-        </p>
+  return <>
+    <Nav active="/stocks/screener" />
+    <main id="main-content" className="container-px py-10 sm:py-14">
+      <ProductBreadcrumbs items={[["Stocks", "/stocks"], ["Screener", null]]} />
+      <div className="eyebrow text-accent">Working research explorer</div>
+      <h1 className="page-title mt-3 max-w-4xl">Find a company by index, industry or verified identifier.</h1>
+      <p className="measure mt-4 text-sm leading-6 text-ink-muted">This screen searches the complete 100-company official universe now. Ratio screens will be activated only when normalized, comparable statements cover the required companies and periods.</p>
 
-        <section className="mt-8 grid gap-6 lg:grid-cols-[330px_minmax(0,1fr)]">
-          <GlassPanel className="p-4">
-            <SectionHeader eyebrow="Screens" title="Common starting points" />
-            <div className="grid gap-2">
-              {STARTER_SCREEN_KEYS.map((key) => {
-                const item = EXAMPLE_SCREENS[key];
-                return (
-                <Link key={key} href={`/stocks/screener?screen=${key}`} aria-current={key === selected ? "page" : undefined} className={`rounded-2xl border p-3 text-left transition ${key === selected ? "border-accent bg-accent/10" : "border-line bg-surface-2 hover:border-accent/35"}`}>
-                  <div className="text-sm font-semibold text-ink">{item.label}</div>
-                  <div className="mt-1 text-xs leading-5 text-ink-muted">{item.description}</div>
-                </Link>
-                );
-              })}
-            </div>
-          </GlassPanel>
+      <GlassPanel className="mt-8 p-5 sm:p-6">
+        <form className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_220px_260px_auto]" action="/stocks/screener">
+          <label className="sr-only" htmlFor="company-search">Search companies</label>
+          <input id="company-search" name="q" defaultValue={filters.q} placeholder="Name, NSE symbol, BSE code or ISIN" className="min-h-12 rounded-xl border border-line bg-surface-2 px-4 text-sm text-ink outline-none focus:border-accent" />
+          <label className="sr-only" htmlFor="index-filter">Index</label>
+          <select id="index-filter" name="index" defaultValue={filters.index} className="min-h-12 rounded-xl border border-line bg-surface-2 px-4 text-sm text-ink outline-none focus:border-accent">{INDEX_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+          <label className="sr-only" htmlFor="industry-filter">Industry</label>
+          <select id="industry-filter" name="industry" defaultValue={filters.industry} className="min-h-12 rounded-xl border border-line bg-surface-2 px-4 text-sm text-ink outline-none focus:border-accent"><option value="all">All industries</option>{industries.map((industry) => <option key={industry} value={industry}>{industry}</option>)}</select>
+          <button className="btn-premium-primary min-h-12" type="submit">Apply filters</button>
+        </form>
+        <div className="mt-4 flex flex-wrap gap-2">{INDEX_FILTERS.slice(1).map(([value, label]) => <Link key={value} href={`/stocks/screener?index=${value}`} className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-muted hover:border-accent hover:text-accent">{label}</Link>)}</div>
+      </GlassPanel>
 
-          <div className="grid gap-6">
-            <GlassPanel className="p-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <SectionHeader eyebrow="Selected screen" title={screen.label} />
-                  <p className="text-sm leading-6 text-ink-muted">{screen.description}</p>
-                </div>
-                <Badge tone={error ? "warn" : "accent"}>{result.matchedCount} of {result.totalCount} confirmed</Badge>
-              </div>
-              <CriteriaList filterGroup={screen.filterGroup} />
-            </GlassPanel>
+      <section className="mt-8">
+        <SectionHeader eyebrow="Results" title={`${results.length} matching ${results.length === 1 ? "company" : "companies"}`} action={`${companies.length} covered`} />
+        <div className="grid gap-3 lg:grid-cols-2">
+          {results.map((company) => {
+            const profile = getOpenCompanyProfile(company);
+            return <Link key={company.isin || company.nseSymbol} href={companyResearchHref(company)} className="group rounded-2xl border border-line bg-surface p-5 shadow-glass transition hover:-translate-y-0.5 hover:border-accent/40">
+              <div className="flex items-start justify-between gap-4"><div><h2 className="text-base font-semibold text-ink group-hover:text-accent">{company.name}</h2><p className="mt-1 font-mono text-[11px] text-accent">{company.nseSymbol || "NSE —"} · BSE {company.bseCode || "—"}</p></div><div className="flex flex-wrap justify-end gap-1">{company.memberships.map((membership) => <Badge key={membership.key} tone="neutral">{membership.key}</Badge>)}</div></div>
+              <p className="mt-3 line-clamp-2 text-sm leading-6 text-ink-muted">{profile.description}</p>
+              <div className="mt-4 flex items-center justify-between border-t border-line pt-3"><span className="text-xs text-ink-faint">{company.industry}</span><span className="text-xs font-semibold text-accent">Open full study →</span></div>
+            </Link>;
+          })}
+        </div>
+        {!results.length && <GlassPanel className="p-8 text-center"><h2 className="text-lg font-semibold text-ink">No companies match these filters</h2><p className="mt-2 text-sm text-ink-muted">Try a broader index or industry, or clear the search phrase.</p><Link href="/stocks/screener" className="mt-4 inline-flex text-sm font-semibold text-accent">Reset filters →</Link></GlassPanel>}
+      </section>
 
-            <GlassPanel className="p-5">
-              <SectionHeader eyebrow="Results" title="Companies that pass every required check" />
-              {result.results.length ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[680px] text-sm">
-                    <caption className="sr-only">Stock screener results</caption>
-                    <thead className="border-y border-line bg-surface-2 text-left text-xs text-ink-faint">
-                      <tr><th className="px-3 py-3">Company</th><th className="px-3 py-3">Ticker</th><th className="px-3 py-3 text-right">Market cap</th><th className="px-3 py-3 text-right">P/E</th><th className="px-3 py-3 text-right">Dividend yield</th></tr>
-                    </thead>
-                    <tbody>
-                      {result.results.map((company) => (
-                        <tr key={company.companyId} className="border-b border-line">
-                          <th className="px-3 py-3 text-left"><Link href={`/stocks/${company.companyId}`} className="font-semibold text-ink hover:text-accent">{company.displayName}</Link></th>
-                          <td className="px-3 py-3 font-mono text-xs text-ink-muted">{company.nseSymbol || company.bseCode || "—"}</td>
-                          <td className="px-3 py-3 text-right tnum text-ink-muted">{company.marketCap == null ? "—" : `₹${Math.round(company.marketCap).toLocaleString("en-IN")} Cr`}</td>
-                          <td className="px-3 py-3 text-right tnum text-ink-muted">{company.pe == null ? "—" : `${company.pe.toFixed(1)}x`}</td>
-                          <td className="px-3 py-3 text-right tnum text-ink-muted">{company.dividendYield == null ? "—" : `${company.dividendYield.toFixed(1)}%`}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <EmptyState icon="🔎" title="No confirmed matches for this screen yet" hint={error || "This usually means the backend has not populated the metrics required by this screen. MF Pulse will not show fake matches."} />
-              )}
-            </GlassPanel>
-          </div>
-        </section>
-      </main>
-      <Footer note={<span>Screening is discovery, not a recommendation. Criteria and data coverage must be reviewed before any thesis.</span>} />
-    </>
-  );
+      <GlassPanel className="mt-8 border-missing/25 p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-sm font-semibold text-ink">Why ROCE/P-E screens are not mixed into these results</div><p className="mt-1 text-xs leading-5 text-ink-muted">A blank metric is not zero, and banks cannot be compared with manufacturers using the same ratios. Financial screens will state coverage, period, formula and sector rules before ranking anything.</p></div><Badge tone="warn">Fundamentals ingestion pending</Badge></div></GlassPanel>
+    </main>
+    <Footer note={<span>Screening is discovery, not a recommendation. Verify the latest filings and suitability independently.</span>} />
+  </>;
 }

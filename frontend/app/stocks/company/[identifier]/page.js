@@ -11,6 +11,7 @@ import { getArticlesForEntity, relativeTime } from "../../../lib/news";
 import { getCompanyPeers, getCompanyResearch, getOfficialCompanyResearchLinks, getTradingViewSymbol, companyResearchHref } from "../../../lib/stocks/universe";
 import { getStrategiesForIndustry, RESEARCH_LAYERS } from "../../../lib/stocks/strategyFramework";
 import { getEvidenceDossier } from "../../../lib/stocks/evidenceFramework";
+import { getIndustryResearchModel, getOpenCompanyProfile } from "../../../lib/stocks/researchProfiles";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,11 @@ const studyChecks = [
 export async function generateMetadata({ params }) {
   const { identifier } = await params;
   const company = getCompanyResearch(identifier);
-  return company ? { title: `${company.name} Share Price & Research — MF Pulse`, description: `Study ${company.name} price action, filings, peers, risks and evidence-gated strategies.` } : { title: "Company not found — MF Pulse" };
+  if (!company) return { title: "Company not found — MF Pulse" };
+  const profile = getOpenCompanyProfile(company);
+  const title = `${company.name} Share Price & Research — MF Pulse`;
+  const description = `${profile.description} Study its business model, industry KPIs, risks, filings, peers and price chart.`;
+  return { title, description, openGraph: { title, description, type: "article" }, twitter: { card: "summary_large_image", title, description } };
 }
 
 export default async function CompanyResearchPage({ params }) {
@@ -38,6 +43,8 @@ export default async function CompanyResearchPage({ params }) {
   const peers = getCompanyPeers(company);
   const strategySet = getStrategiesForIndustry(company.industry);
   const dossier = getEvidenceDossier(company.industry);
+  const profile = getOpenCompanyProfile(company);
+  const researchModel = getIndustryResearchModel(company.industry);
   const news = company.nseSymbol ? await getArticlesForEntity({ entityType: "company", entityName: company.nseSymbol, limit: 6 }) : [];
 
   return <>
@@ -56,8 +63,36 @@ export default async function CompanyResearchPage({ params }) {
       </section>
 
       <nav className="sticky top-[76px] z-30 -mx-4 mt-4 flex gap-2 overflow-x-auto border-y border-line bg-bg/92 px-4 py-3 shadow-sm backdrop-blur-xl sm:mx-0 sm:rounded-full sm:border" aria-label="Company research sections">
-        {[["Chart", "#chart"], ["Strategy", "#strategy"], ["Dossier", "#dossier"], ["Evidence", "#evidence"], ["Peers", "#peers"], ["Filings", "#filings"], ["News", "#news"]].map(([label, href]) => <a key={href} href={href} className="shrink-0 rounded-full px-4 py-2 text-xs font-semibold text-ink-muted hover:bg-surface-2 hover:text-ink">{label}</a>)}
+        {[["Overview", "#overview"], ["Chart", "#chart"], ["Strategy", "#strategy"], ["Dossier", "#dossier"], ["Evidence", "#evidence"], ["Peers", "#peers"], ["Filings", "#filings"], ["News", "#news"]].map(([label, href]) => <a key={href} href={href} className="shrink-0 rounded-full px-4 py-2 text-xs font-semibold text-ink-muted hover:bg-surface-2 hover:text-ink">{label}</a>)}
       </nav>
+
+      <section id="overview" className="scroll-mt-40 mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+        <GlassPanel className="p-5 sm:p-6">
+          <SectionHeader eyebrow="Company profile" title="What this business is" action={profile.matchBasis === "verified_isin" ? "Identity verified by ISIN" : "Official index classification"} />
+          <p className="text-base leading-7 text-ink">{profile.description}</p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {profile.founded && <Badge tone="neutral">Founded {profile.founded}</Badge>}
+            <Badge tone="neutral">{company.industry}</Badge>
+            {company.isin && <Badge tone="neutral">ISIN {company.isin}</Badge>}
+          </div>
+          <div className="mt-5 flex flex-wrap gap-4 text-sm font-semibold">
+            {profile.officialWebsite && <a href={profile.officialWebsite} target="_blank" rel="noopener noreferrer" className="text-accent">Official website ↗</a>}
+            {profile.sourceUrl && <a href={profile.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-accent">Profile source ↗</a>}
+          </div>
+          <p className="mt-4 text-[11px] leading-5 text-ink-faint">{profile.sourceName} · snapshot {new Date(profile.retrievedAt).toLocaleDateString("en-IN")} · descriptive identity only, not an investment conclusion.</p>
+        </GlassPanel>
+        <GlassPanel className="p-5 sm:p-6">
+          <SectionHeader eyebrow="Business-model lens" title={`How to study ${company.industry.toLowerCase()}`} />
+          <p className="text-sm leading-6 text-ink-muted">{researchModel.model}</p>
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            {researchModel.drivers.map((driver) => <div key={driver} className="rounded-xl bg-surface-2 p-3 text-xs leading-5 text-ink">{driver}</div>)}
+          </div>
+        </GlassPanel>
+      </section>
+
+      <section className="mt-6 grid gap-4 md:grid-cols-3">
+        {[["Operating KPIs", researchModel.kpis], ["Risks to disprove", researchModel.risks], ["Valuation lenses", researchModel.valuation]].map(([title, items]) => <GlassPanel key={title} className="p-5"><h2 className="text-sm font-semibold text-ink">{title}</h2><div className="mt-3 space-y-2">{items.map((item) => <div key={item} className="flex gap-2 text-xs leading-5 text-ink-muted"><span className="text-accent">○</span><span>{item}</span></div>)}</div></GlassPanel>)}
+      </section>
 
       <section id="chart" className="scroll-mt-40 mt-6 overflow-hidden rounded-[1.5rem] border border-[#284049] bg-[#081116] shadow-float">
         <div className="flex flex-col gap-2 border-b border-white/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#70d6bd]">Market chart</div><h2 className="mt-1 text-base font-semibold text-white">{company.name} price action</h2></div><div className="rounded-full border border-[#d6a542]/30 bg-[#d6a542]/10 px-3 py-1.5 text-[10px] font-semibold text-[#e1b75d]">Live or delayed by exchange entitlement</div></div>
