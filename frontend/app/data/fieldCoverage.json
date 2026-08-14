@@ -1,10 +1,10 @@
 {
- "asOf": "2026-08-14",
- "amfiLastUpdated": "2026-08-14",
+ "asOf": "2026-08-15",
+ "amfiLastUpdated": "2026-08-15",
  "factsheetLastUpdated": "2026-08-05",
  "denominators": {
   "universe": 14273,
-  "active": 8544,
+  "active": 8543,
   "investable": 3485
  },
  "fields": {
@@ -34,10 +34,10 @@
     "investable_n": 3485
    },
    "Benchmark": {
-    "universe_pct": 85.12,
-    "universe_n": 12149,
-    "investable_pct": 71.28,
-    "investable_n": 2484
+    "universe_pct": 85.09,
+    "universe_n": 12145,
+    "investable_pct": 71.22,
+    "investable_n": 2482
    }
   },
   "Performance": {
@@ -48,10 +48,10 @@
     "investable_n": 3485
    },
    "NAV History (90d)": {
-    "universe_pct": 27.98,
-    "universe_n": 3993,
-    "investable_pct": 98.85,
-    "investable_n": 3445
+    "universe_pct": 28.02,
+    "universe_n": 3999,
+    "investable_pct": 99.02,
+    "investable_n": 3451
    },
    "1M": {
     "universe_pct": 28.0,
@@ -66,10 +66,10 @@
     "investable_n": 3414
    },
    "6M": {
-    "universe_pct": 26.57,
-    "universe_n": 3792,
-    "investable_pct": 95.15,
-    "investable_n": 3316
+    "universe_pct": 0.0,
+    "universe_n": 0,
+    "investable_pct": 0.0,
+    "investable_n": 0
    },
    "1Y": {
     "universe_pct": 25.07,
@@ -90,16 +90,16 @@
     "investable_n": 0
    },
    "Volatility": {
-    "universe_pct": 27.98,
-    "universe_n": 3993,
-    "investable_pct": 98.85,
-    "investable_n": 3445
+    "universe_pct": 28.02,
+    "universe_n": 3999,
+    "investable_pct": 99.02,
+    "investable_n": 3451
    },
    "Drawdown": {
-    "universe_pct": 27.98,
-    "universe_n": 3993,
-    "investable_pct": 98.85,
-    "investable_n": 3445
+    "universe_pct": 28.02,
+    "universe_n": 3999,
+    "investable_pct": 99.02,
+    "investable_n": 3451
    }
   },
   "Metadata": {

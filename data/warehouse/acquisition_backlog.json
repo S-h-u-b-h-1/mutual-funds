@@ -1,5 +1,5 @@
 {
- "asOf": "2026-08-14",
+ "asOf": "2026-08-15",
  "items": [
   {
    "item": "Expense ratio",
@@ -43,7 +43,7 @@
   },
   {
    "item": "Benchmark (all schemes)",
-   "missing_count": 2124,
+   "missing_count": 2128,
    "impact": "medium",
    "expected_source": "SEBI category map",
    "reason": "FMP/index/niche categories unmapped",

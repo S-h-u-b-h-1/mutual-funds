@@ -1,5 +1,5 @@
 {
- "asOf": "2026-08-14",
+ "asOf": "2026-08-15",
  "live_amfi_fetched": true,
  "live_amfi_schemes": 14273,
  "mfpulse_schemes": 14273,
@@ -22,9 +22,9 @@
   },
   "fund_type": {
    "Active/Other": 11941,
-   "ETF": 351,
    "Index Fund": 1290,
-   "Fund of Fund": 691
+   "Fund of Fund": 691,
+   "ETF": 351
   },
   "international": 177,
   "commodity": 209
@@ -36,8 +36,8 @@
   "nav_coverage_pct": 98.3,
   "historical_coverage_pct": 90.3,
   "returns_coverage_pct": 98.82,
-  "risk_coverage_pct": 98.85,
-  "benchmark_coverage_pct": 85.12,
+  "risk_coverage_pct": 99.02,
+  "benchmark_coverage_pct": 85.09,
   "category_coverage_pct": 100.0,
   "metadata_coverage_pct": 6.82,
   "aum_coverage_pct": 6.82,
