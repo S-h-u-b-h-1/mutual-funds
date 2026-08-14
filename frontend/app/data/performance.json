@@ -577,7 +577,7 @@
 "category": "Sectoral/ Thematic",
 "count": 462,
 "avg": 3.26,
-"median": 3.22,
+"median": 3.23,
 "best": {
 "name": "SBI Automotive Opportunities Fund - Direct Plan - Growth",
 "amc": "SBI",
@@ -1053,6 +1053,14 @@
 "score": 65.9
 },
 {
+"amc": "Kotak Mahindra",
+"funds": 54,
+"avg": 3.12,
+"pct_outperform": 48,
+"breadth": 96,
+"score": 65.6
+},
+{
 "amc": "WhiteOak Capital",
 "funds": 28,
 "avg": 2.85,
@@ -1067,14 +1075,6 @@
 "pct_outperform": 47,
 "breadth": 100,
 "score": 65.0
-},
-{
-"amc": "Kotak Mahindra",
-"funds": 54,
-"avg": 3.11,
-"pct_outperform": 44,
-"breadth": 96,
-"score": 63.5
 },
 {
 "amc": "Bank of India",
