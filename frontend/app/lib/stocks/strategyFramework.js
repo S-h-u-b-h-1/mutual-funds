@@ -51,7 +51,7 @@ export const STOCK_STRATEGIES = [
 
 const sectorRules = [
   { pattern: /bank|finance|insurance|financial/i, keys: ["quality-compounder", "balance-sheet-resilience", "growth-at-a-reasonable-price"], note: "For financials, replace industrial debt ratios with asset quality, capital adequacy, liability franchise, credit cost and underwriting evidence." },
-  { pattern: /metal|mining|oil|gas|power|cement|commodity/i, keys: ["cyclical-inflection", "balance-sheet-resilience", "cash-yield"], note: "For cyclicals, normalise margins across a cycle and separate volume, realisation and input-cost effects." },
+  { pattern: /metal|mining|oil|gas|power|energy|utilit|cement|commodity/i, keys: ["cyclical-inflection", "balance-sheet-resilience", "cash-yield"], note: "For cyclicals and utilities, normalise margins across a cycle and separate volume, utilisation, tariff or realisation, fuel cost and leverage effects." },
   { pattern: /software|technology|telecom|consumer|pharma|health|services/i, keys: ["quality-compounder", "growth-at-a-reasonable-price", "earnings-acceleration"], note: "Prioritise organic growth, customer or product concentration, unit economics and the durability of reinvestment returns." },
   { pattern: /auto|capital goods|construction|industrial|manufactur|realty/i, keys: ["earnings-acceleration", "cyclical-inflection", "balance-sheet-resilience"], note: "Track order conversion, utilisation, working capital and input-cost pass-through before relying on headline earnings." },
 ];

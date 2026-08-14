@@ -6,6 +6,7 @@ describe("stock evidence framework", () => {
     const bank = getEvidenceDossier("Private Sector Bank");
     expect(bank.operating.title).toContain("Banking");
     expect(bank.operating.metrics).toContain("GNPA / NNPA and credit cost");
+    expect(getEvidenceDossier("Utilities").operating.title).toContain("utility");
   });
 
   it("fails back to a useful generic operating checklist", () => {
