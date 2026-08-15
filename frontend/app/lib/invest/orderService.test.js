@@ -57,32 +57,32 @@ describe("orderService (integration, real Neon, disposable investment-ready user
 
   it("refuses to place an order for a user who hasn't completed compliance", async () => {
     await expect(orderService.createOrder(freshUserId, {
-      schemeCode: "119551", orderType: "purchase", amount: 5000,
+      schemeCode: "108273", orderType: "purchase", amount: 5000,
     })).rejects.toThrow(/Compliance must be fully completed/);
   });
 
   it("validates order input before touching the provider", async () => {
-    await expect(orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "not_a_type", amount: 100 }))
+    await expect(orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "not_a_type", amount: 100 }))
       .rejects.toThrow(/orderType must be one of/);
-    await expect(orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase" }))
+    await expect(orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase" }))
       .rejects.toThrow(/Either amount or units/);
-    await expect(orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "switch_in", amount: 100 }))
+    await expect(orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "switch_in", amount: 100 }))
       .rejects.toThrow(/relatedSchemeCode is required/);
   });
 
   // Backend Hardening (2026-07-24): amount/units were only null-checked before this — a
   // negative or zero value reached the provider/DB layer unvalidated.
   it("rejects a negative or zero amount/units before touching the provider", async () => {
-    await expect(orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 0 }))
+    await expect(orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 0 }))
       .rejects.toThrow(/amount must be greater than 0/);
-    await expect(orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: -500 }))
+    await expect(orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: -500 }))
       .rejects.toThrow(/amount must be greater than 0/);
-    await expect(orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", units: -1 }))
+    await expect(orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", units: -1 }))
       .rejects.toThrow(/units must be greater than 0/);
   });
 
   it("draft:true creates without submitting (no provider call, stays in draft)", async () => {
-    const order = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 5000, draft: true });
+    const order = await orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 5000, draft: true });
     expect(order.status).toBe("draft");
     expect(order.provider_order_id).toBeNull();
   });
@@ -93,7 +93,7 @@ describe("orderService (integration, real Neon, disposable investment-ready user
     // share state with any other test in this file.
     const regressUserId = await makeInvestmentReadyUser("order-readiness-regress");
     try {
-      const draft = await orderService.createOrder(regressUserId, { schemeCode: "119551", orderType: "purchase", amount: 5000, draft: true });
+      const draft = await orderService.createOrder(regressUserId, { schemeCode: "108273", orderType: "purchase", amount: 5000, draft: true });
       expect(draft.status).toBe("draft");
 
       // Simulates the account becoming unavailable after the draft was created (nothing in
@@ -113,7 +113,7 @@ describe("orderService (integration, real Neon, disposable investment-ready user
   });
 
   it("creates and immediately submits by default, writing a timeline entry", async () => {
-    const order = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 5000 });
+    const order = await orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 5000 });
     expect(["submitted", "failed"]).toContain(order.status); // mock gateway rejects ~8% of the time by design
 
     const { timeline } = await orderService.getOrderWithTimeline(readyUserId, order.id);
@@ -124,8 +124,8 @@ describe("orderService (integration, real Neon, disposable investment-ready user
   it("C1: two concurrent createOrder calls with the same idempotencyKey create exactly one order", async () => {
     const idempotencyKey = `concurrency-key-${Date.now()}-${Math.random()}`;
     const [a, b] = await Promise.all([
-      orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 6001, idempotencyKey }),
-      orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 6001, idempotencyKey }),
+      orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 6001, idempotencyKey }),
+      orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 6001, idempotencyKey }),
     ]);
     expect(a.id).toBe(b.id);
     const orders = await orderService.listOrders(readyUserId);
@@ -136,17 +136,17 @@ describe("orderService (integration, real Neon, disposable investment-ready user
     // The backend-native backstop — proves duplicate-submit protection does not depend on the
     // caller ever sending an idempotencyKey ("do not rely solely on frontend button disabling").
     const [a, b] = await Promise.all([
-      orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 6002 }),
-      orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 6002 }),
+      orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 6002 }),
+      orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 6002 }),
     ]);
     expect(a.id).toBe(b.id);
     const orders = await orderService.listOrders(readyUserId);
-    const matching = orders.filter((o) => o.scheme_code === "119551" && o.order_type === "purchase" && Number(o.amount) === 6002);
+    const matching = orders.filter((o) => o.scheme_code === "108273" && o.order_type === "purchase" && Number(o.amount) === 6002);
     expect(matching).toHaveLength(1);
   });
 
   it("C1: two concurrent submitOrder calls on the same draft order — only one reaches the provider, the other is refused", async () => {
-    const draft = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 6003, draft: true });
+    const draft = await orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 6003, draft: true });
     const results = await Promise.allSettled([
       orderService.submitOrder(readyUserId, draft.id),
       orderService.submitOrder(readyUserId, draft.id),
@@ -165,7 +165,7 @@ describe("orderService (integration, real Neon, disposable investment-ready user
   });
 
   it("GET-equivalent refresh never regresses a terminal order and is safe to call repeatedly", async () => {
-    const order = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 1000 });
+    const order = await orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 1000 });
     if (order.status === "failed") return; // hit the ~8% immediate-rejection branch — nothing to progress, test the other path next run
     const first = await orderService.refreshOrderStatus(readyUserId, order.id);
     const second = await orderService.refreshOrderStatus(readyUserId, order.id);
@@ -173,7 +173,7 @@ describe("orderService (integration, real Neon, disposable investment-ready user
   });
 
   it("cancelling a submitted order works; cancelling a cancelled order does not", async () => {
-    const order = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 2000 });
+    const order = await orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 2000 });
     if (order.status === "failed") return;
     const cancelled = await orderService.cancelOrder(readyUserId, order.id);
     expect(cancelled.status).toBe("cancelled");
@@ -181,14 +181,14 @@ describe("orderService (integration, real Neon, disposable investment-ready user
   });
 
   it("one user cannot see or act on another user's order", async () => {
-    const order = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 3000 });
+    const order = await orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 3000 });
     const asOtherUser = await orderService.getOrderRaw(freshUserId, order.id);
     expect(asOtherUser).toBeNull();
   });
 
   it("creates a SIP mandate for an investment-ready user, rejects for one who isn't", async () => {
     const sip = await orderService.createSipMandate(readyUserId, {
-      schemeCode: "119551", amount: 2000, frequency: "monthly", startDate: "2026-08-01",
+      schemeCode: "108273", amount: 2000, frequency: "monthly", startDate: "2026-08-01",
     });
     // Provider Metadata: mandate_status now reflects a real (mock) payment-authorization
     // outcome — paymentProvider.initiateMandate() rejects ~5% of the time by design, same
@@ -198,7 +198,7 @@ describe("orderService (integration, real Neon, disposable investment-ready user
     expect(sip.payment_reference).toMatch(/^mandate_/);
 
     await expect(orderService.createSipMandate(freshUserId, {
-      schemeCode: "119551", amount: 2000, frequency: "monthly", startDate: "2026-08-01",
+      schemeCode: "108273", amount: 2000, frequency: "monthly", startDate: "2026-08-01",
     })).rejects.toThrow(/Compliance must be fully completed/);
   });
 
@@ -207,7 +207,7 @@ describe("orderService (integration, real Neon, disposable investment-ready user
   // for a purchase order/SIP mandate, since redemption/switch never go through submitOrder's
   // purchase-payment branch (see submitOrder's own comment on why).
   it("stamps Provider Metadata fields (plan/option/payment) on a purchase order and a SIP mandate", async () => {
-    const draft = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 1200, draft: true });
+    const draft = await orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 1200, draft: true });
     expect(draft.plan).toBeTruthy();
     expect(draft.option).toBeTruthy();
 
@@ -217,7 +217,7 @@ describe("orderService (integration, real Neon, disposable investment-ready user
     expect(submitted.payment_bank_account_id).toBeTruthy();
 
     const sip = await orderService.createSipMandate(readyUserId, {
-      schemeCode: "119551", amount: 1500, frequency: "monthly", startDate: "2026-08-01",
+      schemeCode: "108273", amount: 1500, frequency: "monthly", startDate: "2026-08-01",
     });
     expect(sip.plan).toBeTruthy();
     expect(sip.option).toBeTruthy();
@@ -228,12 +228,12 @@ describe("orderService (integration, real Neon, disposable investment-ready user
   // mandate placed with no distributor attribution at all would be a genuine data-integrity gap,
   // not just a missing-nice-to-have field, so this asserts the real values, not just "truthy".
   it("stamps the real Suasion Securities distributor attribution on every order and SIP mandate at creation", async () => {
-    const order = await orderService.createOrder(readyUserId, { schemeCode: "119551", orderType: "purchase", amount: 1500, draft: true });
+    const order = await orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 1500, draft: true });
     expect(order.distributor_arn).toBe("289322");
     expect(order.distributor_euin).toBe("E544323");
 
     const sip = await orderService.createSipMandate(readyUserId, {
-      schemeCode: "119551", amount: 1000, frequency: "monthly", startDate: "2026-09-01",
+      schemeCode: "108273", amount: 1000, frequency: "monthly", startDate: "2026-09-01",
     });
     expect(sip.distributor_arn).toBe("289322");
     expect(sip.distributor_euin).toBe("E544323");

@@ -127,6 +127,7 @@ export async function GET(req) {
   }
 
   const q = (req.nextUrl.searchParams.get("q") || "").trim();
+  const plan = (req.nextUrl.searchParams.get("plan") || "").trim().toLowerCase();
   if (q.length < 2) return NextResponse.json({ results: [] });
   const qLower = q.toLowerCase();
 
@@ -151,12 +152,17 @@ export async function GET(req) {
     groups.get(k).variants.push(f);
   }
   const isDG = (f) => f.isDirect && f.isGrowth;
+  const isRG = (f) => !f.isDirect && f.isGrowth && /\bregular\b/i.test(String(f.plan || f.name || ""));
   const results = [...groups.values()]
     .map((g) => {
-      const pick = g.variants.find(isDG) || g.variants.find((v) => v.isGrowth) || g.variants[0];
+      const pick = plan === "regular"
+        ? g.variants.find(isRG)
+        : g.variants.find(isDG) || g.variants.find((v) => v.isGrowth) || g.variants[0];
+      if (!pick) return null;
       const health = fundHealth(pick);
       return { ...researchResult(pick, g.matchType), name: g.name, variantCount: g.variants.length, staleDays: pick.staleDays, _h: health?.overall ?? null, _g: health?.grade ?? null };
     })
+    .filter(Boolean)
     .sort((a, b) => (a.staleDays ?? 999) - (b.staleDays ?? 999)) // freshest/most-active first
     .slice(0, 12);
 
