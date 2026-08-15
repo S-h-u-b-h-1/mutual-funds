@@ -1,4 +1,4 @@
-// Switch Contract tests — real Neon, no mocks. Real scheme codes: 119551 (Aditya Birla Sun Life
+// Switch Contract tests — real Neon, no mocks. Real scheme codes: 108273 (Aditya Birla Sun Life
 // Banking and PSU Debt) as source, 100033 (Aditya Birla Sun Life Large & Mid Cap, SAME AMC) as
 // an eligible destination, 100219 (JM Large Cap, DIFFERENT AMC) as an ineligible destination.
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
@@ -8,7 +8,7 @@ import * as redemptionService from "./redemptionService.js";
 import * as switchService from "./switchService.js";
 import { makeInvestmentReadyUser, deleteTestUser } from "./testHelpers.js";
 
-const SOURCE_SCHEME = "119551";
+const SOURCE_SCHEME = "108273";
 const SAME_AMC_DESTINATION = "100033";
 const DIFFERENT_AMC_DESTINATION = "100219";
 

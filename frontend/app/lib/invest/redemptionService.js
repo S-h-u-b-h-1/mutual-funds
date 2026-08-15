@@ -18,6 +18,7 @@ import { assertInvestmentReady, submitOrder } from "./orderService.js";
 import { logAudit } from "./audit.js";
 import { getDefaultDistributorAttribution } from "../platform/distributor/core.js";
 import { getVerifiedBankAccount } from "./bankAccounts.js";
+import { assertDistributorPlanAllowed, assertLiveInvestmentExecutionReady } from "./distributionCompliance.js";
 
 const ELSS_LOCK_IN_DAYS = 3 * 365;
 // A redemption order in any of these statuses is genuinely resolved — its units are free again.
@@ -157,6 +158,8 @@ export async function createRedemptionOrder(userId, { schemeCode, folioNumber, a
   // amount/units request through to order creation. Same idiom as orderService's own guard.
   if (amount != null && !(amount > 0)) throw new Error("amount must be greater than 0.");
   if (units != null && !(units > 0)) throw new Error("units must be greater than 0.");
+  assertDistributorPlanAllowed(getFund(schemeCode));
+  if (!draft) await assertLiveInvestmentExecutionReady();
 
   // C2 (docs/BACKEND_AUDIT_REPORT.md, docs/BACKEND_TECHNICAL_DEBT.md): getRedemptionEligibility's
   // read of "units held minus units already pending redemption" and this function's insert used

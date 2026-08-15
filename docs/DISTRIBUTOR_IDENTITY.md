@@ -8,9 +8,10 @@ provider adapter (BSE StAR MF, CAMS, KFintech).
 Code: [frontend/app/lib/platform/distributor/core.js](../frontend/app/lib/platform/distributor/core.js)
 · Schema: [sql/neon/017_distributor_identity.sql](../sql/neon/017_distributor_identity.sql)
 
-Confirmed production values (2026-07-24): **ARN 289322**, **EUIN E544323**, distributor name
-**Suasion Securities**. These are real, seeded directly by the migration — not placeholders, and
-not hardcoded into application code anywhere (see "No hardcoding" below).
+Recorded distributor values (2026-07-24): **ARN 289322**, **EUIN E544323**, distributor name
+**Suasion Securities**. These are seeded directly by the migration rather than configured in UI
+code. Their current AMFI status and ARN validity date still require documentary verification;
+presence in the database must not be interpreted as production authorization.
 
 ## 1. Why two tables, not one
 
@@ -85,20 +86,18 @@ Everywhere attribution flows from that one stamped snapshot, not a fresh lookup:
 - **Advisor-assisted order placement.** `getDistributorAttributionForAdvisor()` exists and is
   tested, but nothing calls it yet — no order-placement path accepts an advisor context today.
   This is Journey 5 (CRM) scope, not this slice's.
-- **Redemption-specific wiring.** `createOrder` and `createSipMandate` are the only two order/
-  mandate creation paths that currently exist; redemption doesn't have a distinct creation path
-  yet (see `docs/INVEST_PLATFORM_BENCHMARK_AND_ROADMAP.md` §2.3). Attribution flows through
-  whatever creation path exists — no redemption-specific code was needed or written.
+- **Live transaction activation.** Attribution is wired through purchase, SIP, redemption and
+  switch records, but every production transaction remains gated until the controls in
+  `docs/MUTUAL_FUND_EXECUTION_COMPLIANCE.md` are verified and production providers replace mocks.
 - **Branch/contact data.** `distributor_euins.branch_name`/`contact_email`/etc. are nullable and
   left null in the seed migration — not fabricated. Populate them when Suasion supplies that data.
 
 ## 5. No hardcoding
 
-The ARN and EUIN values appear in exactly one place in the entire codebase: the seed `insert`
-statements in `sql/neon/017_distributor_identity.sql`. Every consumer — `orderService.js`, the
-UI, the test suite — reads them through `getDefaultDistributorAttribution()` or the row values it
-returns. Changing the distributor's EUIN roster (adding a second advisor's EUIN, rotating the
-default) is a database operation, not a code change or a redeploy.
+Runtime consumers read ARN/EUIN through `getDefaultDistributorAttribution()` or the transaction
+snapshot rows it returns; they do not use UI constants. Tests and documentation may repeat the
+expected values as assertions and disclosure text. Changing the runtime EUIN roster (adding a
+second adviser EUIN or rotating the default) is a database operation, not a UI code change.
 
 ## 6. Verification record
 

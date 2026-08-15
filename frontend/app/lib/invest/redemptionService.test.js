@@ -1,6 +1,6 @@
 // Redemption Contract tests — real Neon, no mocks. Uses real scheme codes from the live fund
 // universe so category-driven tax/exit-load classification is exercised for real, not against a
-// fixture that doesn't actually resolve through getFund(): 119551 (Banking and PSU -> debt),
+// fixture that doesn't actually resolve through getFund(): 108273 (Banking and PSU -> debt),
 // 100219 (Large Cap -> equity-oriented), 100175 (ELSS -> equity-oriented + lock-in).
 import { describe, it, expect, vi, afterEach, beforeAll, afterAll } from "vitest";
 import { query } from "../db.js";
@@ -10,7 +10,7 @@ import { makeInvestmentReadyUser, createTestUser, deleteTestUser } from "./testH
 
 afterEach(() => vi.restoreAllMocks());
 
-const DEBT_SCHEME = "119551";
+const DEBT_SCHEME = "108273";
 const EQUITY_SCHEME = "100219";
 const ELSS_SCHEME = "100175";
 

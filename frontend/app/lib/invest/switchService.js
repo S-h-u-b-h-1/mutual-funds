@@ -13,6 +13,7 @@ import { assertInvestmentReady, submitOrder } from "./orderService.js";
 import { getRedemptionEligibility } from "./redemptionService.js";
 import { logAudit } from "./audit.js";
 import { getDefaultDistributorAttribution } from "../platform/distributor/core.js";
+import { assertDistributorPlanAllowed, assertLiveInvestmentExecutionReady } from "./distributionCompliance.js";
 
 // queryFn threads through to getRedemptionEligibility — see that function's own comment. Only
 // matters when createSwitchOrder calls this from inside its advisory-locked transaction; the
@@ -58,6 +59,9 @@ export async function createSwitchOrder(userId, { sourceSchemeCode, destinationS
   // which a negative value would always pass.
   if (amount != null && !(amount > 0)) throw new Error("amount must be greater than 0.");
   if (units != null && !(units > 0)) throw new Error("units must be greater than 0.");
+  assertDistributorPlanAllowed(getFund(sourceSchemeCode));
+  assertDistributorPlanAllowed(getFund(destinationSchemeCode));
+  if (!draft) await assertLiveInvestmentExecutionReady();
 
   // C2 (docs/BACKEND_AUDIT_REPORT.md, docs/BACKEND_TECHNICAL_DEBT.md): a switch's source leg is a
   // redemption of that folio, tax- and eligibility-wise (see this file's own header comment) —

@@ -14,6 +14,7 @@ import { generateDocument } from "./documentService.js";
 import { getDefaultDistributorAttribution } from "../platform/distributor/core.js";
 import { getVerifiedBankAccount } from "./bankAccounts.js";
 import { getFund } from "../funds.js";
+import { assertDistributorPlanAllowed, assertLiveInvestmentExecutionReady } from "./distributionCompliance.js";
 
 export const ORDER_TYPES = ["purchase", "redemption", "switch_in", "switch_out"];
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled", "reversed", "retry_required"]);
@@ -186,6 +187,7 @@ export async function createOrder(userId, input) {
   validateOrderInput(input);
   await assertInvestmentReady(userId);
   const { schemeCode, relatedSchemeCode = null, orderType, amount = null, units = null, draft = false, idempotencyKey = null } = input;
+  if (!draft) await assertLiveInvestmentExecutionReady();
 
   // Distributor attribution is stamped once, here, at creation — not re-derived later. It's a
   // snapshot of who gets commission/audit credit for this specific order, so it must freeze at
@@ -198,6 +200,7 @@ export async function createOrder(userId, input) {
   // reaching this point (compliance/eligibility gates upstream never call createOrder with an
   // unresolvable code), so a missing fund here is not a case this needs to guard against.
   const fund = getFund(schemeCode);
+  assertDistributorPlanAllowed(fund);
 
   // C1 (order idempotency, sql/neon/022_order_idempotency.sql): a double-click submit or a
   // client retry after a timed-out request must not create two separate orders. Two independent
@@ -278,6 +281,7 @@ export async function submitOrder(userId, orderId) {
   const existing = await getOrderRaw(userId, orderId);
   if (!existing) throw new Error("Order not found.");
   if (existing.status !== "draft") throw new Error(`Only a draft order can be submitted (current status: ${existing.status}).`);
+  assertDistributorPlanAllowed(getFund(existing.scheme_code));
   // Auth+onboarding truth audit, Phase 1/12: createOrder() checks readiness once, at draft
   // creation — but a draft can sit unsubmitted for an arbitrary amount of time before this runs,
   // and nothing re-verified readiness at the actual moment money/units are about to move. Cheap
@@ -285,6 +289,7 @@ export async function submitOrder(userId, orderId) {
   // since nothing today revokes compliance/deactivates an account after the fact) gap between
   // "was ready when the draft was made" and "is still ready right now."
   await assertInvestmentReady(userId);
+  await assertLiveInvestmentExecutionReady();
   // C1: claim the order before contacting any provider — a concurrent/retried second call that
   // loses this race must never reach the payment/investment provider at all, not just disagree
   // about the final status.
@@ -360,6 +365,9 @@ export async function refreshOrderStatus(userId, orderId) {
   const order = await getOrderRaw(userId, orderId);
   if (!order) return null;
   if (order.status === "draft" || TERMINAL_STATUSES.has(order.status)) return order;
+  // Production must never manufacture a settlement timeline for a mock order. Historical mock
+  // rows remain visible, but only a verified provider webhook/reconciliation job may advance them.
+  if (process.env.NODE_ENV === "production" && String(order.provider || "").startsWith("mock")) return order;
 
   const elapsedSeconds = (Date.now() - new Date(order.submitted_at).getTime()) / 1000;
   const next = decideNextStatus(order.status, elapsedSeconds);
@@ -400,6 +408,8 @@ export async function retryOrder(userId, orderId) {
   const existing = await getOrderRaw(userId, orderId);
   if (!existing) throw new Error("Order not found.");
   if (existing.status !== "retry_required") throw new Error(`Only an order in retry_required can be retried (current status: ${existing.status}).`);
+  assertDistributorPlanAllowed(getFund(existing.scheme_code));
+  await assertLiveInvestmentExecutionReady();
   // C1: same claim as submitOrder — a concurrent/retried second retryOrder() call must lose this
   // race before touching the provider, not just disagree about the final status afterward.
   const order = await claimForSubmission(existing, "retry_required");
@@ -440,6 +450,8 @@ export async function createSipMandate(userId, { schemeCode, amount, frequency, 
   // Same freeze-at-creation reasoning as createOrder — see sql/neon/017_distributor_identity.sql.
   const distributor = await getDefaultDistributorAttribution();
   const fund = getFund(schemeCode);
+  assertDistributorPlanAllowed(fund);
+  await assertLiveInvestmentExecutionReady();
 
   // Provider Metadata: a SIP mandate is a standing NACH/UPI Autopay authorization, not itself a
   // fund movement — paymentProvider.initiateMandate() (not .initiatePayment(), which is for a

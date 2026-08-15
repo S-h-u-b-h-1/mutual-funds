@@ -18,8 +18,8 @@ export function useInvestData() {
   const refresh = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const [profile, compliance] = await Promise.all([investApi.getProfile(), investApi.getCompliance()]);
-      setData({ ...profile, compliance });
+      const [profile, compliance, execution] = await Promise.all([investApi.getProfile(), investApi.getCompliance(), investApi.getExecutionReadiness()]);
+      setData({ ...profile, compliance, execution: execution.readiness });
     } catch (e) {
       if (e?.status === 401) {
         const target = `${window.location.pathname}${window.location.search}${window.location.hash}`;

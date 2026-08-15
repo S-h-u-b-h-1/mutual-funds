@@ -81,6 +81,7 @@ export const investApi = {
   getProfile: () => requestJson("/api/v1/invest/profile"),
   updateProfile: (payload) => requestJson("/api/v1/invest/profile", { method: "PUT", body: JSON.stringify(payload) }),
   getCompliance: () => requestJson("/api/v1/invest/compliance"),
+  getExecutionReadiness: () => requestJson("/api/v1/invest/execution-readiness"),
   submitCompliance: (itemKey, payload) => requestJson(`/api/v1/invest/compliance/items/${itemKey}`, { method: "POST", body: JSON.stringify(payload) }),
   updateRiskProfile: (payload) => requestJson("/api/v1/invest/risk-profile", { method: "PUT", body: JSON.stringify(payload) }),
   updatePreferences: (payload) => requestJson("/api/v1/invest/preferences", { method: "PUT", body: JSON.stringify(payload) }),
@@ -94,7 +95,11 @@ export const investApi = {
 };
 
 export const fundsApi = {
-  search: (query) => requestJson(`/api/search?q=${encodeURIComponent(query)}`),
+  search: (query, { plan = null } = {}) => {
+    const params = new URLSearchParams({ q: query });
+    if (plan) params.set("plan", plan);
+    return requestJson(`/api/search?${params.toString()}`);
+  },
 };
 
 export const redemptionApi = {
