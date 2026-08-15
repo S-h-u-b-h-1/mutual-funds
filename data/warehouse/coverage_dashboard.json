@@ -1,5 +1,5 @@
 {
- "asOf": "2026-08-15",
+ "asOf": "2026-08-16",
  "live_amfi_fetched": true,
  "live_amfi_schemes": 14273,
  "mfpulse_schemes": 14273,
@@ -11,8 +11,8 @@
   "asset_class": {
    "Debt": 7977,
    "Equity": 3017,
-   "Other": 2302,
    "Hybrid": 832,
+   "Other": 2302,
    "Solution": 145
   },
   "scheme_type": {
@@ -36,7 +36,7 @@
   "nav_coverage_pct": 98.3,
   "historical_coverage_pct": 90.3,
   "returns_coverage_pct": 98.82,
-  "risk_coverage_pct": 99.02,
+  "risk_coverage_pct": 99.08,
   "benchmark_coverage_pct": 85.09,
   "category_coverage_pct": 100.0,
   "metadata_coverage_pct": 6.82,

@@ -1,6 +1,6 @@
 {
- "asOf": "2026-08-15",
- "amfiLastUpdated": "2026-08-15",
+ "asOf": "2026-08-16",
+ "amfiLastUpdated": "2026-08-16",
  "factsheetLastUpdated": "2026-08-05",
  "denominators": {
   "universe": 14273,
@@ -48,10 +48,10 @@
     "investable_n": 3485
    },
    "NAV History (90d)": {
-    "universe_pct": 28.02,
-    "universe_n": 3999,
-    "investable_pct": 99.02,
-    "investable_n": 3451
+    "universe_pct": 28.03,
+    "universe_n": 4001,
+    "investable_pct": 99.08,
+    "investable_n": 3453
    },
    "1M": {
     "universe_pct": 28.0,
@@ -90,16 +90,16 @@
     "investable_n": 0
    },
    "Volatility": {
-    "universe_pct": 28.02,
-    "universe_n": 3999,
-    "investable_pct": 99.02,
-    "investable_n": 3451
+    "universe_pct": 28.03,
+    "universe_n": 4001,
+    "investable_pct": 99.08,
+    "investable_n": 3453
    },
    "Drawdown": {
-    "universe_pct": 28.02,
-    "universe_n": 3999,
-    "investable_pct": 99.02,
-    "investable_n": 3451
+    "universe_pct": 28.03,
+    "universe_n": 4001,
+    "investable_pct": 99.08,
+    "investable_n": 3453
    }
   },
   "Metadata": {
