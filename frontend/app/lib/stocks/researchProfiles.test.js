@@ -19,6 +19,8 @@ describe("open company research profiles", () => {
   it("provides sector-specific KPI and risk frameworks", () => {
     expect(getIndustryResearchModel("Financial Services").kpis).toContain("NIM / VNB margin");
     expect(getIndustryResearchModel("Commodities").risks).toContain("Peak-cycle extrapolation");
+    expect(getIndustryResearchModel("Consumer Durables").kpis).toContain("Volume growth");
+    expect(getIndustryResearchModel("Metals & Mining").risks).toContain("Peak-cycle extrapolation");
     expect(Object.keys(getStockIndustryGroups()).length).toBeGreaterThan(8);
     expect(getProfileCoverage()).toMatchObject({ sourced: 32, total: 100 });
   });

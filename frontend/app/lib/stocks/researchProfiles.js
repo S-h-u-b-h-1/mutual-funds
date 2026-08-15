@@ -89,7 +89,16 @@ export const INDUSTRY_RESEARCH_MODELS = {
 };
 
 export function getIndustryResearchModel(industry) {
-  return INDUSTRY_RESEARCH_MODELS[industry] || DEFAULT_MODEL;
+  if (INDUSTRY_RESEARCH_MODELS[industry]) return INDUSTRY_RESEARCH_MODELS[industry];
+  const aliases = [
+    [/automobile|consumer durable|consumer service/i, "Consumer Discretionary"],
+    [/capital goods|construction(?! material)/i, "Industrials"],
+    [/construction material|metal|mining/i, "Commodities"],
+    [/oil|gas|consumable fuel/i, "Energy"],
+    [/power/i, "Utilities"],
+  ];
+  const match = aliases.find(([pattern]) => pattern.test(industry || ""));
+  return match ? INDUSTRY_RESEARCH_MODELS[match[1]] : DEFAULT_MODEL;
 }
 
 export function getOpenCompanyProfile(company) {
