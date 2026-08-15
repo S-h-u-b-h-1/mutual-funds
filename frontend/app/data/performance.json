@@ -359,16 +359,16 @@
 "r1y": -1.75
 },
 {
-"code": "133516",
-"name": "Aditya Birla Sun Life Manufacturing Equity Fund - Direct Plan - Growth",
-"amc": "Aditya Birla Sun Life",
+"code": "152462",
+"name": "Kotak Technology Fund - Direct Plan - Growth Option",
+"amc": "Kotak Mahindra",
 "category": "Sectoral/ Thematic",
-"nav": 44.63,
-"r1w": 0.72,
-"r1m": 7.1,
-"r3m": 12.7,
+"nav": 11.009,
+"r1w": 0.69,
+"r1m": 7.14,
+"r3m": 13.13,
 "r6m": null,
-"r1y": 29.97
+"r1y": -3.09
 }
 ],
 "bottom": [
@@ -576,7 +576,7 @@
 {
 "category": "Sectoral/ Thematic",
 "count": 458,
-"avg": 2.56,
+"avg": 2.57,
 "median": 2.5,
 "best": {
 "name": "Aditya Birla Sun Life Transportation and Logistics Fund-Direct Growth",
@@ -1055,7 +1055,7 @@
 {
 "amc": "Kotak Mahindra",
 "funds": 54,
-"avg": 2.38,
+"avg": 2.4,
 "pct_outperform": 48,
 "breadth": 96,
 "score": 64.4
