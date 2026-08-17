@@ -556,8 +556,8 @@
 "categories": [
 {
 "category": "Thematic",
-"count": 27,
-"avg": 2.89,
+"count": 31,
+"avg": 2.9,
 "median": 2.91,
 "best": {
 "name": "Invesco India Manufacturing Fund - Direct Plan - Growth",
@@ -571,12 +571,12 @@
 "ret": -1.66,
 "code": "148621"
 },
-"breadth": 93
+"breadth": 87
 },
 {
 "category": "Sectoral/ Thematic",
-"count": 458,
-"avg": 2.57,
+"count": 452,
+"avg": 2.56,
 "median": 2.5,
 "best": {
 "name": "Aditya Birla Sun Life Transportation and Logistics Fund-Direct Growth",
@@ -670,14 +670,14 @@
 },
 {
 "category": "ELSS- Tax Saver",
-"count": 8,
-"avg": 2.25,
-"median": 2.27,
+"count": 10,
+"avg": 2.31,
+"median": 2.39,
 "best": {
-"name": "NJ ELSS Tax Saver Scheme Direct Growth",
-"amc": "NJ",
-"ret": 2.57,
-"code": "151611"
+"name": "HSBC ELSS Tax saver Fund - Direct Growth",
+"amc": "HSBC",
+"ret": 2.59,
+"code": "151078"
 },
 "worst": {
 "name": "Groww ELSS Tax Saver Fund (formerly known as Indiabulls Tax Savings Fund)-Regular Plan-Growth Option",
@@ -765,9 +765,9 @@
 },
 {
 "category": "ELSS",
-"count": 93,
-"avg": 1.58,
-"median": 1.59,
+"count": 91,
+"avg": 1.56,
+"median": 1.39,
 "best": {
 "name": "Samco ELSS Tax Saver Fund - Direct Plan - Growth Option",
 "amc": "Samco",
@@ -781,6 +781,25 @@
 "code": "105628"
 },
 "breadth": 89
+},
+{
+"category": "Sectoral",
+"count": 10,
+"avg": 1.26,
+"median": -0.38,
+"best": {
+"name": "Invesco India Technology Fund - Direct Plan - Growth",
+"amc": "Invesco",
+"ret": 6.2,
+"code": "152863"
+},
+"worst": {
+"name": "Invesco India Financial Services Fund - Regular Plan - Growth",
+"amc": "Invesco",
+"ret": -1.8,
+"code": "108378"
+},
+"breadth": 40
 },
 {
 "category": "Value",
@@ -838,25 +857,6 @@
 "code": "153707"
 },
 "breadth": 91
-},
-{
-"category": "Sectoral",
-"count": 8,
-"avg": 0.76,
-"median": -0.68,
-"best": {
-"name": "Invesco India Technology Fund - Direct Plan - Growth",
-"amc": "Invesco",
-"ret": 6.2,
-"code": "152863"
-},
-"worst": {
-"name": "Invesco India Financial Services Fund - Regular Plan - Growth",
-"amc": "Invesco",
-"ret": -1.8,
-"code": "108378"
-},
-"breadth": 25
 }
 ],
 "amcs": [
@@ -877,14 +877,6 @@
 "score": 96.7
 },
 {
-"amc": "NJ",
-"funds": 4,
-"avg": 2.61,
-"pct_outperform": 100,
-"breadth": 100,
-"score": 94.2
-},
-{
 "amc": "JM Financial",
 "funds": 16,
 "avg": 3.17,
@@ -899,6 +891,14 @@
 "pct_outperform": 78,
 "breadth": 100,
 "score": 82.1
+},
+{
+"amc": "NJ",
+"funds": 4,
+"avg": 2.61,
+"pct_outperform": 75,
+"breadth": 100,
+"score": 80.4
 },
 {
 "amc": "Motilal Oswal",
@@ -949,6 +949,14 @@
 "score": 76.5
 },
 {
+"amc": "Aditya Birla Sun Life",
+"funds": 66,
+"avg": 3.04,
+"pct_outperform": 68,
+"breadth": 94,
+"score": 75.9
+},
+{
 "amc": "Baroda BNP Paribas",
 "funds": 38,
 "avg": 2.4,
@@ -963,14 +971,6 @@
 "pct_outperform": 67,
 "breadth": 100,
 "score": 75.1
-},
-{
-"amc": "Aditya Birla Sun Life",
-"funds": 66,
-"avg": 3.04,
-"pct_outperform": 67,
-"breadth": 94,
-"score": 75.0
 },
 {
 "amc": "WhiteOak Capital",
@@ -1061,20 +1061,20 @@
 "score": 64.4
 },
 {
+"amc": "Bank of India",
+"funds": 28,
+"avg": 1.96,
+"pct_outperform": 50,
+"breadth": 93,
+"score": 63.8
+},
+{
 "amc": "Samco",
 "funds": 14,
 "avg": 2.23,
 "pct_outperform": 43,
 "breadth": 100,
 "score": 62.1
-},
-{
-"amc": "Bank of India",
-"funds": 28,
-"avg": 1.96,
-"pct_outperform": 46,
-"breadth": 93,
-"score": 61.9
 },
 {
 "amc": "ITI",
@@ -1101,12 +1101,20 @@
 "score": 60.7
 },
 {
+"amc": "Quantum",
+"funds": 10,
+"avg": 1.88,
+"pct_outperform": 40,
+"breadth": 100,
+"score": 60.0
+},
+{
 "amc": "Groww",
 "funds": 32,
 "avg": 1.71,
-"pct_outperform": 44,
+"pct_outperform": 41,
 "breadth": 88,
-"score": 58.7
+"score": 57.0
 },
 {
 "amc": "SBI",
@@ -1115,14 +1123,6 @@
 "pct_outperform": 36,
 "breadth": 89,
 "score": 55.6
-},
-{
-"amc": "Quantum",
-"funds": 10,
-"avg": 1.88,
-"pct_outperform": 30,
-"breadth": 100,
-"score": 54.5
 },
 {
 "amc": "Jio BlackRock",
@@ -1222,7 +1222,7 @@
 }
 ],
 "insights": [
-"Thematic led equity categories at +2.9% (1-month NAV), outpacing Sectoral (+0.8%) by 2.1 pts.",
+"Thematic led equity categories at +2.9% (1-month NAV), outpacing Equity Savings (+1.0%) by 1.9 pts.",
 "The top 10 equity funds averaged +10.2% over 1 month, led by Aditya Birla Sun Life Transportation and (+11.3%).",
 "Across 1,221 equity Growth funds, 90% posted positive 1-month NAV returns.",
 "Old Bridge ranks #1 on AMC quality (100% of its funds beat their category median)."
