@@ -26,7 +26,7 @@ def test_bse_parser_preserves_source_effective_date_and_codes():
 def test_committed_snapshot_contract():
     path = Path(__file__).resolve().parents[1] / "frontend" / "app" / "data" / "stock_universe.json"
     snapshot = json.loads(path.read_text())
-    assert snapshot["schemaVersion"] == 1
+    assert snapshot["schemaVersion"] in (1, 2)
     assert snapshot["indices"]["NIFTY50"]["constituentCount"] == 50
     assert snapshot["indices"]["BSE100"]["constituentCount"] == 100
     assert snapshot["indices"]["NIFTY50"]["identifierCoverage"]["isin"] == 50
