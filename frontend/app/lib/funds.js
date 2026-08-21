@@ -1,6 +1,6 @@
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const data = require("../data/funds.json");
+// Server-only access to the scheme-level bundle (funds.json). Imported once here so the
+// 4MB dataset is a single shared module, never shipped to the client.
+import data from "../data/funds.json";
 
 export const asOf = data.asOf;
 export const coverage = data.coverage;

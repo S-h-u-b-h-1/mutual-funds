@@ -1,6 +1,4 @@
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const profiles = require("../../data/stock_profiles.json");
+import profiles from "../../data/stock_profiles.json";
 
 const DEFAULT_MODEL = {
   model: "Map products, customers, pricing power, capacity and the reinvestment required to grow.",

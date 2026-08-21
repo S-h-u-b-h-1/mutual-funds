@@ -1,8 +1,6 @@
 // Factsheet metadata access. Reads the ingestion bundle (metadata.json) — 973 real schemes
 // across SBI/HDFC/ICICI Prudential as of 2026-07-19 (scripts/ingest_factsheets.py). Funds
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const data = require("../data/metadata.json");
+import data from "../data/metadata.json";
 
 const byCode = {};
 // manager (cleaned) -> { name, codes:Set, funds:Set }
