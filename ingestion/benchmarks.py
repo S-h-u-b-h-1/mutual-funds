@@ -127,7 +127,10 @@ def resolve_benchmark(category: str, scheme_name: str = "", asset_class: str = "
     if any(k in name for k in ("index fund", "index scheme", "etf", "exchange traded")):
         nb = derive_index_benchmark(scheme_name)
         if nb:
-            return nb, True
+            if asset_class == "Debt" and nb.startswith(("NIFTY", "S&P BSE", "BSE")):
+                pass
+            else:
+                return nb, True
     if cat in CATEGORY_BENCHMARK:
         return CATEGORY_BENCHMARK[cat], True
     blob = f"{cat} {scheme_name}".lower()
@@ -136,7 +139,11 @@ def resolve_benchmark(category: str, scheme_name: str = "", asset_class: str = "
     # never the diversified-equity default, which would be wrong for a sector/theme fund.
     if any(k in blob for k in ("index", "etf", "sectoral", "thematic", "gold", "silver", "exchange traded")):
         nb = derive_index_benchmark(scheme_name)
-        return (nb, True) if nb else (None, False)
+        if nb:
+            if asset_class == "Debt" and nb.startswith(("NIFTY", "S&P BSE", "BSE")):
+                return None, False
+            return nb, True
+        return None, False
     if any(k in blob for k in VARIES_KEYS):
         return None, False
     # diversified equity not explicitly listed → NIFTY 500 TRI (flagged non-standard)

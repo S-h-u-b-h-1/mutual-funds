@@ -42,7 +42,7 @@ describe("sipInstallmentRun (integration, real Neon)", () => {
     const firstPass = await query(`select * from investment_orders where user_id = $1 and idempotency_key = $2`, [userId, key]);
     expect(firstPass.rows).toHaveLength(1);
     expect(firstPass.rows[0].order_type).toBe("purchase");
-    expect(firstPass.rows[0].scheme_code).toBe("119551");
+    expect(firstPass.rows[0].scheme_code).toBe("100033");
     expect(Number(firstPass.rows[0].amount)).toBe(1000);
 
     await sipInstallmentRun();

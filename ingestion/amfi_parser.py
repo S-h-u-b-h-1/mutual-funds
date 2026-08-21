@@ -136,14 +136,21 @@ def parse_lines(lines: Iterable[str]) -> Iterator[NavRecord]:
         # Data rows have semicolons and a numeric scheme code as the first field.
         if ";" in stripped:
             parts = stripped.split(";")
-            if len(parts) >= 6 and parts[0].strip().isdigit():
+            if parts[0].strip().isdigit():
+                if len(parts) >= 8:
+                    nav_idx, date_idx = 6, 7
+                elif len(parts) >= 6:
+                    nav_idx, date_idx = 4, 5
+                else:
+                    continue
+
                 yield NavRecord(
                     scheme_code=parts[0].strip(),
                     isin_growth=_clean(parts[1]),
                     isin_reinvest=_clean(parts[2]),
                     scheme_name=parts[3].strip(),
-                    nav_value=_parse_nav(parts[4]),
-                    nav_date=_parse_date(parts[5]),
+                    nav_value=_parse_nav(parts[nav_idx]),
+                    nav_date=_parse_date(parts[date_idx]),
                     amc_name=current_amc,
                     scheme_type=current_type,
                     category_raw=current_category,
