@@ -266,7 +266,7 @@ describe("real wiring (integration, real Neon) — the additive emitEvent() call
     // until one clears BOTH branches, asserting only against the attempt that succeeded.
     let order;
     for (let attempt = 0; attempt < 10; attempt++) {
-      order = await orderService.createOrder(userId, { schemeCode: "120465", orderType: "purchase", amount: 5000 });
+      order = await orderService.createOrder(userId, { schemeCode: "100033", orderType: "purchase", amount: 5000 });
       if (order.status !== "submitted") continue; // hit the ~8% immediate-rejection branch — try again
       await query(`update investment_orders set submitted_at = now() - interval '30 seconds' where id = $1`, [order.id]);
       order = await orderService.refreshOrderStatus(userId, order.id);

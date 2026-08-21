@@ -9,10 +9,10 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Resend from "next-auth/providers/resend";
 import bcrypt from "bcryptjs";
-import { NeonAdapter } from "./authAdapter";
-import { hasDatabaseUrl, query } from "./db";
-import { checkRateLimit, getClientIp } from "./platform/rateLimit/core";
-import { jwtSecurityStampCallback } from "./authSecurityStamp";
+import { NeonAdapter } from "./authAdapter.js";
+import { hasDatabaseUrl, query } from "./db.js";
+import { checkRateLimit, getClientIp } from "./platform/rateLimit/core.js";
+import { jwtSecurityStampCallback } from "./authSecurityStamp.js";
 
 const hasGoogle = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 const hasGitHub = Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);

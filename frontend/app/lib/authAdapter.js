@@ -16,7 +16,7 @@
 // GitHub's tokens for calling their APIs, not this app's session) — those are the two places
 // "JWT" and "refresh tokens" genuinely apply here; a session-persistence layer that is BOTH
 // stateless JWT and server-revocable database rows at once is not a coherent thing to build.
-import { query } from "./db";
+import { query } from "./db.js";
 
 const row = (r) => (r.rows[0] ?? null);
 

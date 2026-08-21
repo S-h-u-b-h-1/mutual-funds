@@ -1,6 +1,6 @@
-import { query } from "../db";
-import { getFund } from "../funds";
-import { buildHolding, computeWeights } from "./normalizer";
+import { query } from "../db.js";
+import { getFund } from "../funds.js";
+import { buildHolding, computeWeights } from "./normalizer.js";
 
 // Reads a user's persisted portfolio_holdings and enriches each with live fund data — the read
 // counterpart to normalizeHoldings' import path. scheme_code is already resolved (stored at

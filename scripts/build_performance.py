@@ -115,25 +115,14 @@ def fetch_series_db(start_date, end_date):
         return {}
 
 
-def fetch_series(asof, days):
-    """Dense daily NAV series per scheme over the last `days`. DB-first, HTTP only for the gap
-    (2026-07-29): the original order tried AMFI's HTTP history endpoint for the ENTIRE window
-    first, merging in fact_nav_daily's own (fast, reliable) coverage only afterward. That meant a
-    GH-Actions-specific problem with the HTTP endpoint blocked every run for 4+ days straight
-    (2026-07-25..29) even though the DB already held the data needed -- confirmed live: the same
-    endpoint returns real, well-formed data in seconds when called from outside GH Actions'
-    runners, and every GH Actions attempt in that window either timed out or came back as a
-    fixed-size (13694-byte) unparseable response, the signature of a block/rate-limit response
-    page rather than a genuine multi-day AMFI outage (which would vary in size and self-heal
-    within hours, not persist for days). Root cause is network-path/IP-range specific, not fixable
-    from this script -- but daily ingestion (cloud_pipeline, a separate step that has kept
-    succeeding throughout this incident) already deposits fresh rows into fact_nav_daily every
-    run, so the DB alone is fully sufficient for any chunk it already covers. Only genuinely
-    uncovered chunks (older than this platform's own ingestion history, e.g. real 6mo/1y/3y/5y
-    anchors) still need the HTTP path -- and if THAT also fails, the resulting nulls only degrade
-    long-window returns, not the r1m/r1w/r1d metrics assert_returns_usable gates on."""
+def fetch_series(asof, days, now_nav=None):
+    """Dense daily NAV series per scheme over the last `days`. DB-first, HTTP only for the gap."""
     start = asof - timedelta(days=days)
     series = fetch_series_db(start, asof)
+    if now_nav and asof:
+        for code, nav in now_nav.items():
+            if nav and float(nav) > 0:
+                series.setdefault(str(code), {})[asof] = float(nav)
     covered_dates = {d for m in series.values() for d in m.keys()}
 
     cur = start
@@ -255,7 +244,7 @@ def main():
     now_nav = {c: r.nav_value for c, r in dim.items() if r.nav_value}
 
     print("-- fetching 90-day daily series…", file=sys.stderr)
-    series = fetch_series(asof, 95)
+    series = fetch_series(asof, 95, now_nav)
     anchors = {key: anchor_nav(asof, days) for key, days in ANCHORS}
     print(f"-- series for {len(series)} schemes, {len(anchors)} long-window anchors", file=sys.stderr)
 

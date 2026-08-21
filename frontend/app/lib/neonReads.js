@@ -2,7 +2,7 @@
 // only; once READ_FROM_NEON is flipped on, real page read paths would call these too. Every
 // function is individually safe regardless of Neon's availability — returns null/empty and
 // never throws, so a canary page or a flagged read path degrades gracefully instead of crashing.
-import { hasDatabaseUrl, query } from "./db";
+import { hasDatabaseUrl, query } from "./db.js";
 
 // node-postgres parses SQL date/timestamp columns into native JS Date objects (unlike
 // PostgREST/Supabase, which always serializes them as strings) — a raw Date rendered directly

@@ -5,7 +5,7 @@ import * as portfolioService from "./portfolioService.js";
 import { makeInvestmentReadyUser, createTestUser, deleteTestUser } from "./testHelpers.js";
 import * as orderService from "./orderService.js";
 
-const REAL_SCHEME_CODE = "119551"; // reused from orderService.test.js — already established as a resolvable fixture
+const REAL_SCHEME_CODE = "100033"; // Regular-plan scheme code required for distributor order compliance
 // Two more real, active, resolvable schemes, kept distinct from REAL_SCHEME_CODE and from each
 // other — the reconcileCompletedOrder tests below all share one reconcileUserId and now correctly
 // accumulate units across multiple reconciliations for the SAME scheme (that's the point of the

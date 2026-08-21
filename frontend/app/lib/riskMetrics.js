@@ -7,8 +7,9 @@
 // IMPORTANT, disclosed everywhere this is shown: the index series used is the PRICE index
 // (no dividend reinvestment), not the TRI a fund is actually benchmarked to — no free real TRI
 // series exists. This is a genuine, honestly-disclosed approximation, not the fund's official
-// factsheet alpha/beta.
-import indexData from "../data/index_history.json";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const indexData = require("../data/index_history.json");
 
 const MIN_OVERLAP_DAYS = 180; // ~9 months of overlapping trading days — shorter windows produce unstable beta estimates
 const EXACT_BENCHMARKS = new Set(["NIFTY 50 TRI", "S&P BSE SENSEX TRI"]);

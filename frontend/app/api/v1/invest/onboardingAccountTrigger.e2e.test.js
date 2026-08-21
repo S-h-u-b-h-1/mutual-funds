@@ -118,7 +118,7 @@ describe("Onboarding account-open trigger, driven through the real routes in the
     // Prove the full chain: this investor can now actually place an order -- the real-world
     // consequence of the bug was a raw, unactionable "active investment account is required"
     // error at exactly this call, with no account ever having been opened.
-    const order = await (await orderRoute.POST(jsonRequest({ schemeCode: "119551", orderType: "purchase", amount: 1000, draft: true }))).json();
+    const order = await (await orderRoute.POST(jsonRequest({ schemeCode: "100033", orderType: "purchase", amount: 1000, draft: true }))).json();
     expect(order.order).toBeTruthy();
     expect(order.order.status).toBe("draft");
   }, 180000);

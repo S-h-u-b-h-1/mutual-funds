@@ -3,9 +3,9 @@
 // every sync/portfolio/alert route calls requireUser() first and 401s without a session. This
 // is also where every handler gets its user_id — never trust a client-supplied one (see
 // sql/neon/002_auth_and_user_data.sql's no-RLS rationale).
-import { auth } from "./auth";
-import { query } from "./db";
-import { setRequestUserId } from "./platform/observability/core";
+import { auth } from "./auth.js";
+import { query } from "./db.js";
+import { setRequestUserId } from "./platform/observability/core.js";
 
 export async function requireUser() {
   const session = await auth();

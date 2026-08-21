@@ -42,4 +42,4 @@ jobs:
         working-directory: frontend
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: node scripts/jobs_worker_tick.mjs
+        run: npx tsx scripts/jobs_worker_tick.mjs

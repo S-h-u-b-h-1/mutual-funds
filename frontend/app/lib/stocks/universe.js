@@ -1,4 +1,6 @@
-import snapshot from "../../data/stock_universe.json";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const snapshot = require("../../data/stock_universe.json");
 
 export const STOCK_INDEX_KEYS = ["NIFTY50", "BSE100"];
 

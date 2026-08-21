@@ -26,7 +26,7 @@ describe("sipInstallmentRun (integration, real Neon)", () => {
     const originalRandom = Math.random;
     Math.random = () => 0.1;
     try {
-      const mandate = await orderService.createSipMandate(userId, { schemeCode: "119551", amount: 1000, frequency, startDate, endDate });
+      const mandate = await orderService.createSipMandate(userId, { schemeCode: "100033", amount: 1000, frequency, startDate, endDate });
       expect(mandate.mandate_status).toBe("active");
       return mandate;
     } finally {

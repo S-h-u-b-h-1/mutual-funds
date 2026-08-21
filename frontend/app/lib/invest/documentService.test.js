@@ -173,7 +173,7 @@ describe("documentService (integration, real Neon, disposable users)", () => {
     const userId = await makeInvestmentReadyUser("doc-order-confirm");
     try {
       vi.spyOn(Math, "random").mockReturnValue(0.1); // keeps placeOrder accepted AND decideNextStatus on 'completed'
-      const order = await orderService.createOrder(userId, { schemeCode: "119551", orderType: "purchase", amount: 4000 });
+      const order = await orderService.createOrder(userId, { schemeCode: "100033", orderType: "purchase", amount: 4000 });
       await query(`update investment_orders set submitted_at = now() - interval '30 seconds' where id = $1`, [order.id]);
       const completed = await orderService.refreshOrderStatus(userId, order.id);
       expect(completed.status).toBe("completed");

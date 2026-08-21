@@ -4,8 +4,9 @@
 // Never imported from a "use client" component — mirrors funds.js's own server-only contract.
 import { allFunds, benchmarkSlug } from "./funds";
 import { fundHealth } from "./fundHealth";
-import { canonicalKey } from "./canonical";
-import metaData from "../data/metadata.json";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const metaData = require("../data/metadata.json");
 
 // Mirrors ingestion/market_reaction.py's RULE_META exactly — that Python file is the source of
 // truth (this file has no runtime link to it). Keep both in sync by hand if a rule changes.
