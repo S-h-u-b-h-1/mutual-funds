@@ -19,7 +19,7 @@
   {
    "check": "No duplicate canonical funds (Direct-Growth)",
    "pass": true,
-   "detail": "8 dup keys"
+   "detail": "9 dup keys"
   },
   {
    "check": "No fabricated returns on dormant/unpriced",
@@ -51,7 +51,7 @@
  "total": 9,
  "production_ready_pct": 100.0,
  "observations": {
-  "local_snapshot_age_days": 0,
+  "local_snapshot_age_days": -1,
   "note": "prod NAV refreshed daily by cron; local bundle may lag a few days"
  }
 }

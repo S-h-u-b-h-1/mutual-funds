@@ -3,8 +3,8 @@
  "scheme_coverage_pct": 100.0,
  "nav_coverage_pct": 98.32,
  "historical_coverage_pct": 0.0,
- "returns_coverage_pct": 98.21,
- "risk_coverage_pct": 97.62,
+ "returns_coverage_pct": 98.55,
+ "risk_coverage_pct": 98.72,
  "benchmark_coverage_pct": 75.49,
  "category_coverage_pct": 100.0,
  "metadata_coverage_pct": 6.17,
@@ -16,7 +16,7 @@
  "document_coverage_pct": 6.17,
  "isin_coverage_pct": 98.79,
  "structure_coverage_pct": 100.0,
- "performance_completeness_avg_investable": 75.2,
- "fund_completeness_avg_investable": 50.7,
- "research_readiness_avg_investable": 52.8
+ "performance_completeness_avg_investable": 75.6,
+ "fund_completeness_avg_investable": 50.8,
+ "research_readiness_avg_investable": 53.1
 }
