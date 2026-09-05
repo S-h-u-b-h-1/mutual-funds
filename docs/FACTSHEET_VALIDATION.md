@@ -1,12 +1,12 @@
 # MF Pulse — Factsheet Validation Report (Phase 7)
 
-_Generated from 973 ingested scheme rows. Reference date 2026-06-23._
+_Generated from 884 ingested scheme rows. Reference date 2026-06-23._
 
 | Check | Flagged |
 |---|---|
-| Stale factsheet (>120d) | 140 |
-| Missing holdings | 729 |
-| Missing sectors | 817 |
+| Stale factsheet (>120d) | 106 |
+| Missing holdings | 643 |
+| Missing sectors | 774 |
 | Impossible AUM | 0 |
 | Impossible expense ratio | 0 |
 | Over-attributed manager | 0 |
