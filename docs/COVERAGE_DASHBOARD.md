@@ -18,8 +18,8 @@
 | scheme coverage pct | 100.0% |
 | nav coverage pct | 98.32% |
 | historical coverage pct | 0.0% |
-| returns coverage pct | 100.0% |
-| risk coverage pct | 95.83% |
+| returns coverage pct | 98.21% |
+| risk coverage pct | 97.62% |
 | benchmark coverage pct | 75.49% |
 | category coverage pct | 100.0% |
 | metadata coverage pct | 6.17% |
@@ -31,9 +31,9 @@
 | document coverage pct | 6.17% |
 | isin coverage pct | 98.79% |
 | structure coverage pct | 100.0% |
-| performance completeness avg investable | 73.5 |
-| fund completeness avg investable | 46.9 |
-| research readiness avg investable | 48.6 |
+| performance completeness avg investable | 75.2 |
+| fund completeness avg investable | 50.7 |
+| research readiness avg investable | 52.8 |
 
 ## Trust components
 | Component | Score |
@@ -47,7 +47,7 @@
 | validation score | 100.0 |
 | parser health | 75.0 |
 | acquisition health | 64 |
-| data completeness | 93.5 |
+| data completeness | 93.0 |
 
 Missing-by-AMC / category / type / launch-year breakdowns + per-missing-scheme records:
 `data/warehouse/coverage_dashboard.json`. Acquisition backlog: `ACQUISITION_BACKLOG.md`.
