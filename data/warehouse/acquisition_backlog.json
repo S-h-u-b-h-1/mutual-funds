@@ -1,9 +1,9 @@
 {
- "asOf": "2026-08-16",
+ "asOf": "2026-09-06",
  "items": [
   {
    "item": "Expense ratio",
-   "missing_count": 14032.0,
+   "missing_count": 14169.0,
    "impact": "high",
    "expected_source": "AMC factsheet PDF",
    "reason": "parser not extracting TER / non-SBI factsheets blocked (pdfplumber on Py3.13)",
@@ -11,7 +11,7 @@
   },
   {
    "item": "Holdings",
-   "missing_count": 14029,
+   "missing_count": 14098,
    "impact": "high",
    "expected_source": "AMC factsheet PDF / monthly portfolio",
    "reason": "monthly portfolio disclosures not yet ingested",
@@ -19,7 +19,7 @@
   },
   {
    "item": "Fund manager",
-   "missing_count": 13450,
+   "missing_count": 13567,
    "impact": "high",
    "expected_source": "AMC factsheet PDF",
    "reason": "non-SBI factsheets unparsed; SBI manager field sparse",
@@ -27,26 +27,26 @@
   },
   {
    "item": "AUM",
-   "missing_count": 13300,
+   "missing_count": 13455,
    "impact": "medium",
    "expected_source": "AMC factsheet PDF / AMFI",
    "reason": "only SBI factsheets parsed",
    "priority": "P2"
   },
   {
-   "item": "Index-return alpha",
-   "missing_count": 3485,
-   "impact": "medium",
-   "expected_source": "index NAV series",
-   "reason": "benchmark index NAV series not ingested \u2014 peer-relative only",
-   "priority": "P2"
-  },
-  {
    "item": "Benchmark (all schemes)",
-   "missing_count": 2128,
+   "missing_count": 3515,
    "impact": "medium",
    "expected_source": "SEBI category map",
    "reason": "FMP/index/niche categories unmapped",
+   "priority": "P2"
+  },
+  {
+   "item": "Index-return alpha",
+   "missing_count": 24,
+   "impact": "medium",
+   "expected_source": "index NAV series",
+   "reason": "benchmark index NAV series not ingested \u2014 peer-relative only",
    "priority": "P2"
   }
  ]

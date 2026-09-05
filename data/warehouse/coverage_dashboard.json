@@ -1,55 +1,55 @@
 {
- "asOf": "2026-08-16",
+ "asOf": "2026-09-06",
  "live_amfi_fetched": true,
- "live_amfi_schemes": 14273,
- "mfpulse_schemes": 14273,
- "covered": 14273,
+ "live_amfi_schemes": 14339,
+ "mfpulse_schemes": 14339,
+ "covered": 14339,
  "coverage_pct": 100.0,
  "missing_count": 0,
  "delisted_count": 0,
  "universe": {
   "asset_class": {
-   "Hybrid": 832,
-   "Debt": 7985,
-   "Equity": 3017,
-   "Other": 2294,
+   "Equity": 3184,
+   "Debt": 8056,
+   "Other": 2111,
+   "Hybrid": 843,
    "Solution": 145
   },
   "scheme_type": {
-   "Open Ended Schemes": 9521,
    "Close Ended Schemes": 4711,
+   "Open Ended Schemes": 9587,
    "Interval Fund Schemes": 41
   },
   "fund_type": {
-   "Active/Other": 11941,
-   "Index Fund": 1290,
-   "ETF": 351,
-   "Fund of Fund": 691
+   "Active/Other": 11967,
+   "Index Fund": 1310,
+   "Fund of Fund": 703,
+   "ETF": 359
   },
   "international": 177,
-  "commodity": 209
+  "commodity": 212
  },
  "missing_schemes": [],
  "delisted_schemes": [],
  "kpis": {
   "scheme_coverage_pct": 100.0,
-  "nav_coverage_pct": 98.3,
-  "historical_coverage_pct": 90.3,
-  "returns_coverage_pct": 98.82,
-  "risk_coverage_pct": 99.08,
-  "benchmark_coverage_pct": 85.09,
+  "nav_coverage_pct": 98.32,
+  "historical_coverage_pct": 0.0,
+  "returns_coverage_pct": 100.0,
+  "risk_coverage_pct": 95.83,
+  "benchmark_coverage_pct": 75.49,
   "category_coverage_pct": 100.0,
-  "metadata_coverage_pct": 6.82,
-  "aum_coverage_pct": 6.82,
-  "expense_ratio_coverage_pct": 1.69,
-  "manager_coverage_pct": 5.77,
-  "holdings_coverage_pct": 1.71,
-  "portfolio_coverage_pct": 1.09,
-  "document_coverage_pct": 6.82,
-  "isin_coverage_pct": 98.74,
+  "metadata_coverage_pct": 6.17,
+  "aum_coverage_pct": 6.17,
+  "expense_ratio_coverage_pct": 1.19,
+  "manager_coverage_pct": 5.38,
+  "holdings_coverage_pct": 1.68,
+  "portfolio_coverage_pct": 0.77,
+  "document_coverage_pct": 6.17,
+  "isin_coverage_pct": 98.79,
   "structure_coverage_pct": 100.0,
-  "performance_completeness_avg_investable": 92.5,
-  "fund_completeness_avg_investable": 57.6,
-  "research_readiness_avg_investable": 54.4
+  "performance_completeness_avg_investable": 73.5,
+  "fund_completeness_avg_investable": 46.9,
+  "research_readiness_avg_investable": 48.6
  }
 }

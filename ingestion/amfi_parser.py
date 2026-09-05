@@ -49,6 +49,8 @@ class NavRecord:
     scheme_type: str          # "Open Ended Schemes", "Close Ended Schemes", ...
     category_raw: str         # text inside the parentheses, e.g. "Debt Scheme - Banking and PSU Fund"
     asset_class: str          # derived: Equity / Debt / Hybrid / Solution / Other
+    plan_label: Optional[str] = None   # 8-col format: "Direct Plan" / "Regular Plan" / None
+    option_label: Optional[str] = None # 8-col format: "Growth Option" / "IDCW" etc. / None
 
     def as_dict(self) -> dict:
         d = asdict(self)
@@ -137,10 +139,24 @@ def parse_lines(lines: Iterable[str]) -> Iterator[NavRecord]:
         if ";" in stripped:
             parts = stripped.split(";")
             if parts[0].strip().isdigit():
+                plan_label = None
+                option_label = None
                 if len(parts) >= 8:
                     nav_idx, date_idx = 6, 7
+                    plan_label = _clean(parts[4])
+                    option_label = _clean(parts[5])
+                    # Synthesize a full scheme name matching the old 6-col convention
+                    # so downstream is_growth/is_direct/is_idcw checks work unchanged.
+                    raw_name = parts[3].strip()
+                    suffixes = []
+                    if plan_label:
+                        suffixes.append(plan_label)
+                    if option_label:
+                        suffixes.append(option_label)
+                    full_name = f"{raw_name} - {' - '.join(suffixes)}" if suffixes else raw_name
                 elif len(parts) >= 6:
                     nav_idx, date_idx = 4, 5
+                    full_name = parts[3].strip()
                 else:
                     continue
 
@@ -148,13 +164,15 @@ def parse_lines(lines: Iterable[str]) -> Iterator[NavRecord]:
                     scheme_code=parts[0].strip(),
                     isin_growth=_clean(parts[1]),
                     isin_reinvest=_clean(parts[2]),
-                    scheme_name=parts[3].strip(),
+                    scheme_name=full_name,
                     nav_value=_parse_nav(parts[nav_idx]),
                     nav_date=_parse_date(parts[date_idx]),
                     amc_name=current_amc,
                     scheme_type=current_type,
                     category_raw=current_category,
                     asset_class=_derive_asset_class(current_type, current_category),
+                    plan_label=plan_label,
+                    option_label=option_label,
                 )
                 continue
             # Semicolon line that isn't a valid data row — skip defensively.

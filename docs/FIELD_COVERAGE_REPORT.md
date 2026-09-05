@@ -1,6 +1,6 @@
-# Field Coverage Report — 2026-07-16
+# Field Coverage Report — 2026-09-06
 
-Denominators: **universe** = all 14,227 routable schemes; **investable** = active Growth non-IDCW = 3,454.
+Denominators: **universe** = all 14,339 routable schemes; **investable** = active Growth non-IDCW = 24.
 Every % auto-computed from funds.json + metadata.json. Missing values are classified, never blank-faked.
 
 ### Identity
@@ -11,63 +11,63 @@ Every % auto-computed from funds.json + metadata.json. Missing values are classi
 | AMC | 100.0% | 100.0% |
 | Category | 100.0% | 100.0% |
 | Asset Class | 100.0% | 100.0% |
-| Benchmark | 85.91% | 72.09% |
+| Benchmark | 75.49% | 45.83% |
 
 ### Performance
 
 | Field | Universe % | Investable % |
 |---|---:|---:|
-| Latest NAV | 98.29% | 100.0% |
-| NAV History (90d) | 28.04% | 99.62% |
-| 1M | 28.33% | 99.48% |
-| 3M | 28.07% | 98.7% |
-| 6M | 26.53% | 95.57% |
-| 1Y | 24.88% | 90.07% |
-| 3Y | 18.92% | 68.99% |
-| 5Y | 13.34% | 48.99% |
-| Volatility | 28.04% | 99.62% |
-| Drawdown | 28.04% | 99.62% |
+| Latest NAV | 98.32% | 100.0% |
+| NAV History (90d) | 58.69% | 95.83% |
+| 1M | 59.11% | 100.0% |
+| 3M | 58.4% | 95.83% |
+| 6M | 0.0% | 0.0% |
+| 1Y | 0.0% | 0.0% |
+| 3Y | 0.0% | 0.0% |
+| 5Y | 0.0% | 0.0% |
+| Volatility | 58.69% | 95.83% |
+| Drawdown | 58.69% | 95.83% |
 
 ### Metadata
 
 | Field | Universe % | Investable % |
 |---|---:|---:|
-| Expense Ratio | 1.69% | 2.9% |
-| AUM | 6.84% | 8.02% |
-| Riskometer | 4.81% | 4.83% |
-| Manager | 5.78% | 6.43% |
-| Launch Date | 5.9% | 7.56% |
-| Exit Load | 5.1% | 5.67% |
+| Expense Ratio | 1.19% | 0.0% |
+| AUM | 6.17% | 0.0% |
+| Riskometer | 4.64% | 0.0% |
+| Manager | 5.38% | 0.0% |
+| Launch Date | 5.22% | 0.0% |
+| Exit Load | 4.69% | 0.0% |
 | SIP Minimum | 0.0% | 0.0% |
-| Lumpsum Minimum | 3.47% | 3.18% |
+| Lumpsum Minimum | 3.62% | 0.0% |
 
 ### Portfolio
 
 | Field | Universe % | Investable % |
 |---|---:|---:|
-| Holdings | 1.72% | 1.74% |
-| Sector Allocation | 1.27% | 1.71% |
+| Holdings | 1.68% | 0.0% |
+| Sector Allocation | 0.77% | 0.0% |
 
 ### Documents
 
 | Field | Universe % | Investable % |
 |---|---:|---:|
-| Factsheet | 6.84% | 8.02% |
+| Factsheet | 6.17% | 0.0% |
 
 ## Performance completeness (0–100 per scheme)
-- Investable average: **92.9/100** (96.06% score ≥80)
-- Universe average: 46.7/100 (26.99% ≥80)
+- Investable average: **73.5/100** (45.83% score ≥80)
+- Universe average: 56.7/100 (36.84% ≥80)
 
 ## Fund Completeness & Research Readiness (Phases 5–6)
 | Score | Investable | Universe |
 |---|---:|---:|
-| Fund Completeness (9 dimensions) | 57.9/100 | 40.5/100 |
-| Research Readiness (9 questions) | 54.8/100 | 32.2/100 |
-| ISIN coverage | 98.82% | 98.82% |
+| Fund Completeness (9 dimensions) | 46.9/100 | 43.8/100 |
+| Research Readiness (9 questions) | 48.6/100 | 41.0/100 |
+| ISIN coverage | 98.79% | 98.79% |
 | Scheme-structure coverage | 100.0% | 100.0% |
 
 ## Honest read
 - **Identity / category / NAV / performance**: near-complete on the investable set.
-- **Metadata / portfolio / documents**: factsheet-sourced, currently **SBI only (6.84% of universe)**.
-  Expense ratio 1.69%, manager 5.78%, holdings 1.72%.
+- **Metadata / portfolio / documents**: factsheet-sourced, currently **SBI only (6.17% of universe)**.
+  Expense ratio 1.19%, manager 5.38%, holdings 1.68%.
   This is the acquisition frontier — blocked on non-SBI factsheet PDF parsing (pdfplumber/Py3.13), never fabricated.
