@@ -8,8 +8,25 @@ vi.mock("./auth.js", () => ({ auth: vi.fn() }));
 const { auth } = await import("./auth.js");
 const root = resolve("app/api/v1");
 const routes = readdirSync(root, { recursive: true }).filter(file => file.endsWith("route.js"))
-  .map(file => resolve(root, file)).filter(file => /requireUser/.test(readFileSync(file, "utf8")));
+  .map(file => resolve(root, file)).filter(file => /import\s*\{[^}]*\brequireUser\b[^}]*\}\s*from/.test(readFileSync(file, "utf8")));
 const uuid = "00000000-0000-4000-8000-000000000001";
+
+describe("operator alert endpoint is secret-gated, not investor-session-gated", () => {
+  it("fails closed with 503 when its operator capability is unconfigured", async () => {
+    vi.stubEnv("ALERTS_INTERNAL_SECRET", "");
+    try {
+      const { POST } = await import("../api/v1/internal/alerts/run/route.js");
+      expect((await POST(new Request("http://localhost/api/test", { method: "POST" }))).status).toBe(503);
+    } finally { vi.unstubAllEnvs(); }
+  });
+  it("rejects an absent operator secret with 401 when configured", async () => {
+    vi.stubEnv("ALERTS_INTERNAL_SECRET", "disposable-test-only-operator-secret");
+    try {
+      const { POST } = await import("../api/v1/internal/alerts/run/route.js");
+      expect((await POST(new Request("http://localhost/api/test", { method: "POST" }))).status).toBe(401);
+    } finally { vi.unstubAllEnvs(); }
+  });
+});
 
 describe("every directly authenticated v1 route rejects an absent session", () => {
   for (const file of routes) {

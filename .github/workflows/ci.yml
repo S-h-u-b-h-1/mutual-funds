@@ -114,6 +114,8 @@ jobs:
 
   browser-regression:
     name: Research browser regression
+    # Share one isolated DB without overlapping browser writes and the integration job queue.
+    needs: [backend-tests, frontend-build, frontend-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
