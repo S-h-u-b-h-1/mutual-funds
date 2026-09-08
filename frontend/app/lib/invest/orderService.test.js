@@ -113,7 +113,9 @@ describe("orderService (integration, real Neon, disposable investment-ready user
   });
 
   it("creates and immediately submits by default, writing a timeline entry", async () => {
-    const order = await orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 5000 });
+    // A fresh request, distinct from the draft-only test above. Reusing its amount on a
+    // fast runner intentionally hits createOrder's recent-draft duplicate protection.
+    const order = await orderService.createOrder(readyUserId, { schemeCode: "108273", orderType: "purchase", amount: 5007 });
     expect(["submitted", "failed"]).toContain(order.status); // mock gateway rejects ~8% of the time by design
 
     const { timeline } = await orderService.getOrderWithTimeline(readyUserId, order.id);
