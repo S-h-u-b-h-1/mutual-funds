@@ -54,6 +54,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
+      - name: Application schema release gate (read-only; never auto-migrates)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m scripts.check_release_schema
 
       - name: 0. Download today's AMFI file ONCE — shared by ingestion and bundle rebuild
         run: |
@@ -116,6 +120,7 @@ jobs:
         run: |
           # data/NAVAll.txt was downloaded once in step 0 — the same snapshot step 1 ingested.
           python -m scripts.build_performance
+          python -m scripts.reconcile_coverage
           python -m scripts.build_daily
           # Institutional Mission 1: refreshes frontend/app/data/fieldCoverage.json (the live
           # /internal/data-completeness dashboard's data source) from the funds.json/metadata.json
@@ -124,6 +129,7 @@ jobs:
           # the scheme-level diff, so a network blip here must never fail the NAV pipeline that
           # already succeeded above.
           python -m scripts.market_coverage_audit || echo "::warning::market_coverage_audit failed — fieldCoverage.json/data/warehouse not refreshed this run, last-known copies stay committed"
+          python -m scripts.publication_contract
           # data/warehouse/*.json (production_validation.json, coverage_dashboard.json, etc.) must
           # be diffed and committed alongside the frontend bundles — Completion Sprint Phase 2 gap
           # found 2026-07-23: this audit ran here and gated step 4 fine (fresh, snapshot-matched),
@@ -155,7 +161,7 @@ jobs:
         run: |
           git config user.name "mfpulse-bot"
           git config user.email "bot@mfpulse.local"
-          git add frontend/app/data/funds.json frontend/app/data/performance.json frontend/app/data/daily.json frontend/app/data/fieldCoverage.json data/warehouse/
+          git add frontend/app/data/funds.json frontend/app/data/performance.json frontend/app/data/daily.json frontend/app/data/fieldCoverage.json frontend/app/data/publication.json data/warehouse/
           git commit -m "chore(refresh): production data refresh $(date -u +%Y-%m-%d)"
           git push
           echo "pushed=true" >> "$GITHUB_OUTPUT"

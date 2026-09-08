@@ -1,7 +1,8 @@
 import { requireUser, unauthorized } from "../../../../../../lib/apiAuth";
 import { query } from "../../../../../../lib/db";
 
-export async function POST(request, { params }) {
+export async function POST(request, props) {
+  const params = await props.params;
   const user = await requireUser();
   if (!user) return unauthorized();
 

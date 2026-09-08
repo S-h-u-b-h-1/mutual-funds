@@ -98,13 +98,25 @@ describe("computePortfolioXirr — unavailable states carry a reason, never a fa
 
   it("computes a real value (not a reason) when real dated cash flows exist both ways", () => {
     const transactions = [{ schemeCode: "100064", transactionType: "purchase", transactionDate: "2025-01-01", amount: 10000 }];
-    const holdings = [{ schemeCode: "100064", currentValue: 12000 }];
+    const holdings = [{ schemeCode: "100064", currentValue: 12000, navDate: "2026-01-01" }];
     const result = computePortfolioXirr(transactions, holdings);
 
     expect(result.byStatus["100064"].available).toBe(true);
     expect(result.byStatus["100064"].reason).toBeNull();
     expect(typeof result.byStatus["100064"].value).toBe("number");
     expect(result.byScheme["100064"]).toBe(result.byStatus["100064"].value); // both fields agree
+    expect(result.portfolio).toBeCloseTo(20, 1);
+  });
+
+  it("does not repeat a scheme's cash flows when it has multiple folios", () => {
+    const transactions = [{ schemeCode: "100064", transactionType: "purchase", transactionDate: "2025-01-01", amount: 10000 }];
+    const holdings = [5000, 7000].map(currentValue => ({ schemeCode: "100064", currentValue, navDate: "2026-01-01" }));
+    expect(computePortfolioXirr(transactions, holdings).portfolio).toBeCloseTo(20, 1);
+  });
+
+  it("does not assign today's date to an undated NAV", () => {
+    const transactions = [{ schemeCode: "100064", transactionType: "purchase", transactionDate: "2025-01-01", amount: 10000 }];
+    expect(computePortfolioXirr(transactions, [{ schemeCode: "100064", currentValue: 12000 }]).portfolio).toBeNull();
   });
 });
 

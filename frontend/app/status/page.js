@@ -33,7 +33,7 @@ export default async function Status() {
   let freshness = { explanation: null, rawAheadOfBundle: null, coverage: null, freshnessState: null, customerMessage: null };
   try {
     [byClass, headline, signals, chain, pipelineRuns, newsAt, factsheetAt, freshness] = await Promise.all([
-      sb("mv_asset_class_summary?select=*", { revalidate: 300 }),
+      sb("v_public_asset_class_summary?select=*", { revalidate: 300 }),
       sb("v_flow_headline?select=*", { revalidate: 300 }),
       sb("v_signals?select=z_score", { revalidate: 300 }),
       getFreshnessChain(),

@@ -7,15 +7,16 @@ import { buildHolding, computeWeights } from "./normalizer.js";
 // import time), so this looks funds up directly rather than by ISIN/name match. Rows whose
 // scheme_code no longer resolves (a fund removed from the active universe) are reported, not
 // silently dropped, since that's a real data-integrity fact the caller should know about.
-export async function getUserHoldings(userId) {
-  const r = await query(
+export async function getUserHoldings(userId, readQuery = query) {
+  const r = await readQuery(
     `select scheme_code, units, avg_cost, source, folio_number, imported_at
      from portfolio_holdings where user_id = $1 order by imported_at desc`,
     [userId]
   );
 
   const holdings = [];
-  const unresolved = [];
+  const pending = await readQuery("select raw_scheme_name, resolution_status, resolution_reason from portfolio_unresolved_holdings where user_id = $1 and status = 'open'", [userId]);
+  const unresolved = pending.rows.map(row => ({ schemeName: row.raw_scheme_name, status: row.resolution_status, reason: row.resolution_reason }));
   for (const row of r.rows) {
     const fund = getFund(row.scheme_code);
     if (!fund) {
@@ -42,8 +43,8 @@ export async function getUserHoldings(userId) {
 // Read counterpart for portfolio_transactions — parallel to getUserHoldings above. Used by the
 // intelligence route to compute XIRR from real dated cash flows; returns the raw stored rows
 // (no fund enrichment needed, revaluation.js only needs schemeCode/type/date/amount).
-export async function getUserTransactions(userId) {
-  const r = await query(
+export async function getUserTransactions(userId, readQuery = query) {
+  const r = await readQuery(
     `select scheme_code, transaction_type, transaction_date, amount
      from portfolio_transactions where user_id = $1 order by transaction_date asc`,
     [userId]

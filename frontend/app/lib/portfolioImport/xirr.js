@@ -51,7 +51,23 @@ export function computeXirr(cashflows) {
     }
     rate = nextRate;
   }
-  if (!converged) return null;
+  if (!converged) {
+    // Newton can jump below -100% on a valid loss-making portfolio. A bracketed
+    // fallback converges without crossing that mathematical boundary.
+    let low = -0.99, high = 50;
+    let lowNpv = npv(low, flows, t0);
+    const highNpv = npv(high, flows, t0);
+    if (!Number.isFinite(lowNpv) || !Number.isFinite(highNpv) || lowNpv * highNpv > 0) return null;
+    for (let i = 0; i < 200; i++) {
+      rate = (low + high) / 2;
+      const value = npv(rate, flows, t0);
+      if (!Number.isFinite(value)) return null;
+      if (Math.abs(value) < 1e-8 || high - low < 1e-12) { converged = true; break; }
+      if (lowNpv * value <= 0) high = rate;
+      else { low = rate; lowNpv = value; }
+    }
+    if (!converged) return null;
+  }
 
   // Verify: NPV at the solved rate must be near zero relative to the size of the cash flows
   // (Newton's method can converge to a numerically-stationary point that isn't a true root), and

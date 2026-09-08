@@ -5,11 +5,12 @@ import SentryInit from "./components/SentryInit";
 import PageView from "./components/PageView";
 import SyncPrompt from "./components/SyncPrompt";
 import AuthGate from "./components/AuthGate";
+import { siteUrl } from "./lib/siteUrl";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-research-sans", display: "swap" });
 const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-research-mono", display: "swap" });
 
-const SITE = "https://mf-pulse.vercel.app";
+const SITE = siteUrl();
 const DESC =
   "Compare Indian mutual funds with AMFI-backed returns, rolling performance, volatility, drawdown, Sharpe and Sortino ratios, expense ratios, AMC research and explainable portfolio health.";
 

@@ -29,7 +29,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from email.utils import parsedate_to_datetime
 
 from ingestion.market_reaction import classify, strip_html
@@ -78,6 +78,41 @@ def _get(path):
         return json.loads(r.read())
 
 
+def lookup_articles(urls):
+    """Bounded, encoded PostgREST filters: raw #/& in publisher URLs corrupt a query.
+
+    CNBC's 200-item feed also exceeded common request-target limits in a single lookup.
+    Keep both item count and encoded byte length bounded; preserve exact stored URLs.
+    """
+    out, batch = [], []
+    def path_for(values):
+        expression = "in.(" + ",".join(json.dumps(u) for u in values) + ")"
+        return "news_articles?" + urllib.parse.urlencode({"url": expression, "select": "id,url,fetched_at"})
+    for url in dict.fromkeys(urls):
+        if batch and (len(batch) >= 10 or len(path_for(batch + [url])) > 6000):
+            out.extend(_get(path_for(batch)))
+            batch = []
+        batch.append(url)
+    if batch:
+        out.extend(_get(path_for(batch)))
+    return out
+
+
+def parse_publication_time(pub, feed_url):
+    try:
+        parsed = parsedate_to_datetime(pub)
+        if parsed.tzinfo is None:
+            # RBI publishes Indian local clock times without an offset. Never let the
+            # runner's timezone silently reinterpret them (CI is UTC, local dev is IST).
+            if urllib.parse.urlsplit(feed_url).hostname not in {"www.rbi.org.in", "rbi.org.in"}:
+                return None
+            parsed = parsed.replace(tzinfo=timezone(timedelta(hours=5, minutes=30)))
+        return parsed.astimezone(timezone.utc).isoformat()
+    except (ValueError, TypeError, OverflowError):
+        # SEBI's date-only format is not an exact publication instant; keep it unknown.
+        return None
+
+
 def fetch_rss(url):
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=20) as r:
@@ -91,10 +126,7 @@ def fetch_rss(url):
         pub = it.findtext("pubDate") or ""
         if not title or not link:
             continue
-        try:
-            published = parsedate_to_datetime(pub).astimezone(timezone.utc).isoformat()
-        except Exception:
-            published = None
+        published = parse_publication_time(pub, url)
         items.append({"title": title, "url": link, "summary": strip_html(desc), "published_at": published})
     return items
 
@@ -163,6 +195,8 @@ def run_source(name, source_type, url, credibility):
         source_id = ensure_source(name, source_type, url, credibility)
         items = fetch_rss(url)
         fetched = len(items)
+        if not items:
+            raise ValueError("Feed parsed but returned no valid articles; source health degraded")
 
         article_rows = []
         for it in items:
@@ -183,14 +217,14 @@ def run_source(name, source_type, url, credibility):
 
         before_ids = {r["url"]: None for r in article_rows}
         clean_rows = [{k: v for k, v in r.items() if not k.startswith("_")} for r in article_rows]
-        _post("news_articles", clean_rows, on_conflict="url", prefer="resolution=ignore-duplicates,return=representation")
+        inserted = _post("news_articles", clean_rows, on_conflict="url", prefer="resolution=ignore-duplicates,return=representation")
+        inserted_ids = {r["id"] for r in inserted}
 
         # figure out which URLs are genuinely new this run (ignore-duplicates means Supabase
         # silently skips existing ones; look up the resulting ids only for URLs we just tried).
-        urls_q = ",".join(f'"{u}"' for u in before_ids)
-        stored = _get(f"news_articles?url=in.({urls_q})&select=id,url,fetched_at")
+        stored = lookup_articles(before_ids)
         by_url = {r["url"]: r["id"] for r in stored}
-        new = sum(1 for r in stored if r["fetched_at"] >= started[:10])  # rough same-day new-vs-existing signal
+        new = len(inserted_ids)  # exact INSERT RETURNING count, not every article fetched today
         dup = fetched - new if fetched >= new else 0
 
         # market-reaction links (only meaningful for articles we can resolve an id for)
@@ -205,7 +239,7 @@ def run_source(name, source_type, url, credibility):
                 eid = entity_ids.get((e["entity_type"], e["name"]))
                 if eid:
                     link_rows.append({"article_id": aid, "entity_id": eid, "relation": e["relation"], "rule_id": e["rule_id"]})
-            if r["sentiment_label"] != "neutral" or r["_matched"]:
+            if aid in inserted_ids and (r["sentiment_label"] != "neutral" or r["_matched"]):
                 sentiment_rows.append({"article_id": aid, "label": r["sentiment_label"], "matched_keywords": r["_matched"]})
         if link_rows:
             _post("news_market_links", link_rows, on_conflict="article_id,entity_id", prefer="resolution=ignore-duplicates,return=minimal")

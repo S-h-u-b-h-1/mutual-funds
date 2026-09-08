@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { sb } from "../lib/supabase";
 import { buildBrief } from "../lib/brief";
 import Nav from "../components/Nav";
@@ -43,7 +44,7 @@ export default async function Brief() {
       sb("v_flow_headline?select=*", { revalidate: 600 }),
       sb("v_amc_flows?select=amc_name,asset_class,net_flow_cr,category", { revalidate: 600 }),
       sb("v_signals?select=*", { revalidate: 600 }),
-      sb("mv_asset_class_summary?select=*", { revalidate: 600 }),
+      sb("v_public_asset_class_summary?select=*", { revalidate: 600 }),
       sb("fact_pipeline_runs?pipeline=eq.nav_daily&select=finished_at,status&order=finished_at.desc&limit=1", { revalidate: 600 }),
     ]);
   } catch {}
@@ -132,7 +133,7 @@ export default async function Brief() {
         {/* Signals */}
         {signals.length > 0 && (
           <section className="mt-9 max-w-3xl">
-            <SectionHeader eyebrow="05" title="Flagged signals" action={<a className="hover:text-ink" href="/signals">All →</a>} />
+            <SectionHeader eyebrow="05" title="Flagged signals" action={<Link className="hover:text-ink" href="/signals">All →</Link>} />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {signals.slice(0, 6).map((s, i) => (
                 <SignalCard key={i} assetClass={s.asset_class} signal={s.signal} z={Number(s.z_score).toFixed(1)} value={inr(s.net_flow_cr)} />

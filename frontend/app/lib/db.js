@@ -26,7 +26,8 @@ function getPool() {
     // setup were ever bypassed or misconfigured. Never runs outside a Vitest process: production
     // and the cron worker never have VITEST set, so this line does nothing for them.
     if (process.env.VITEST === "true") assertSafeTestDatabase();
-    pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    pool = new Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 15000, query_timeout: 45000, idleTimeoutMillis: 10000 });
+    pool.on("error", () => console.error("Database idle connection failed; a new connection will be attempted."));
     attachDatabasePool(pool);
   }
   return pool;

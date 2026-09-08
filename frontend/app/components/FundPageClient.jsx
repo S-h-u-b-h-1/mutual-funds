@@ -366,7 +366,7 @@ export default function FundPageClient({
             <span className="text-[10px] text-ink-faint uppercase font-bold block">NAV</span>
             <span className="text-[14.5px] font-bold font-mono text-ink">₹{fund.nav != null ? fund.nav.toFixed(2) : "—"}</span>
           </div>
-          {health && (
+          {health?.eligible && (
             <div className="text-right hidden sm:block">
               <span className="text-[10px] text-ink-faint uppercase font-bold block">Health</span>
               <span className={`text-[14.5px] font-bold ${
@@ -560,7 +560,9 @@ export default function FundPageClient({
                     <div className="mt-4 pt-4 border-t border-line flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-ink-faint">
                       <span>Factsheet (portfolio) date: <strong className="text-ink-muted">{meta.source_date || "unknown"}</strong></span>
                       <span>Source: <strong className="text-ink-muted">{meta.source || "AMC factsheet PDF"}</strong></span>
-                      <span>Validation: <strong className="text-pos">Passed</strong> <span className="text-ink-faint">(range/sanity checks at parse time)</span></span>
+                      <span>Range checks passed at parse time; this does not certify freshness.</span>
+                      {(!meta.source_date || Date.parse(fund.navDate) - Date.parse(meta.source_date) > 90 * 86400000) && <strong className="text-warn">Historical / stale factsheet — not current holdings or AUM</strong>}
+                      <span>Fetch time: {meta.fetched_at || "not recorded in this publication"}; parse time: {meta.parsed_at || "not recorded in this publication"}.</span>
                       {meta.source_url && (
                         <a href={meta.source_url} target="_blank" rel="noopener noreferrer" className="text-accent-soft hover:underline font-semibold">
                           View original filing ↗
@@ -571,7 +573,7 @@ export default function FundPageClient({
                 ) : (
                   <p className="text-[12.5px] text-ink-faint leading-relaxed">
                     MF Pulse has verified factsheet coverage for {metadataStatus.populated.toLocaleString("en-IN")} schemes across three AMC pipelines
-                    (SBI, HDFC, ICICI Prudential) as of {fieldCoverage?.factsheetLastUpdated || "date unavailable"}. <strong className="text-ink-muted">{fund.amc}</strong> isn’t
+                    (SBI, HDFC, ICICI Prudential); coverage bundle generated {fieldCoverage?.factsheetLastUpdated || "date unavailable"}, not the underlying document date. <strong className="text-ink-muted">{fund.amc}</strong> isn’t
                     in that set yet, so benchmark, AUM, expense ratio, exit load, and the other fields normally shown here aren’t fabricated or estimated —
                     they simply aren’t acquired for this fund. Everything above the fold (NAV, returns, category) still comes from AMFI’s official daily feed
                     and is unaffected by this.
@@ -698,7 +700,13 @@ export default function FundPageClient({
               )}
 
               {/* Dynamic Health Score Ring & Ratios */}
-              {health && (
+              {health && !health.eligible && (
+                <WorkspaceCard title="Health score unavailable" subtitle={`Evidence coverage: ${health.evidenceCoveragePct}%`}>
+                  <p className="text-sm text-ink-muted">{health.unavailableReason || "Insufficient verified history for a comparable score."}</p>
+                  <p className="mt-2 text-xs text-ink-faint">Missing: {(health.missingFactors || []).join(", ")}. This fund is excluded from health rankings.</p>
+                </WorkspaceCard>
+              )}
+              {health?.eligible && (
                 <WorkspaceCard
                   title="Dynamic Health Diagnostics"
                   subtitle="Dynamically updated using recent AMFI daily NAV history"

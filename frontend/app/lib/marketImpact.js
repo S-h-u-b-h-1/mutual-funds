@@ -3,6 +3,7 @@
 // category surfaced here is real and every route it links to is one that actually resolves.
 // Never imported from a "use client" component — mirrors funds.js's own server-only contract.
 import { allFunds, benchmarkSlug } from "./funds";
+import { canonicalKey } from "./canonical";
 import { fundHealth } from "./fundHealth";
 import metaData from "../data/metadata.json";
 
@@ -148,7 +149,7 @@ export function fundsWorthResearching(link, { limit = 3 } = {}) {
   pool = pool.filter((f) => f.active !== false && f.nav != null);
   const scored = pool.map((f) => {
     const h = fundHealth(f);
-    return { code: f.code, name: f.name, amc: f.amc, category: f.category, r1m: f.r1m ?? null, health: h?.overall ?? null, grade: h?.grade ?? null };
+    return { code: f.code, name: f.name, amc: f.amc, category: f.category, r1m: f.r1m ?? null, health: h?.eligible ? h.overall : null, grade: h?.grade ?? null };
   });
   // Dedupe Direct/Regular/Growth/IDCW variants of the same underlying fund (canonicalKey, same
   // normalization the search/rankings surfaces already use) — without this, a fund's Direct and

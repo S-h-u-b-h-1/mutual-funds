@@ -10,7 +10,8 @@ function SetupContent({ searchParams }) {
   return <ProfileForm mode="setup" callbackUrl={callbackUrl} />;
 }
 
-export default function ProfileSetupPage({ searchParams }) {
+export default async function ProfileSetupPage(props) {
+  const searchParams = await props.searchParams;
   return (
     <>
       <Nav active="/profile" />

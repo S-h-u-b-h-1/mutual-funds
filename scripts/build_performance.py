@@ -27,10 +27,12 @@ from statistics import mean, median, pstdev
 
 from ingestion.amfi_parser import parse_file
 from ingestion.benchmarks import resolve_benchmark
+from ingestion.amfi_history import parse_history, HistorySchemaError, months_before, trailing_return
+from scripts.publication_contract import assert_publication_coverage
 
 FRESH_MAX_DAYS = 7  # a NAV this old or newer counts as "active" / current; shared by every freshness gate below
 REPORT = "https://portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx"
-ANCHORS = [("r6m", 182), ("r1y", 365), ("r3y", 1095), ("r5y", 1825)]
+ANCHORS = [("r6m", 6), ("r1y", 12), ("r3y", 36), ("r5y", 60)]
 DATA = "frontend/app/data"
 SQRT252 = 252 ** 0.5
 
@@ -68,23 +70,14 @@ def _fetch_window(frm, to):
                     print(f"AMFI warning returned for {frm} to {to} (attempt {attempt+1}/4). Retrying in 4s...", file=sys.stderr)
                     time.sleep(4)
                     continue
-                out = {}
-                for raw in content.splitlines():
-                    p = raw.strip().split(";")
-                    if len(p) < 8 or not p[0].strip().isdigit():
-                        continue
-                    try:
-                        nav = float(p[4].strip().replace(",", ""))
-                        d = datetime.strptime(p[7].strip(), "%d-%b-%Y").date()
-                    except ValueError:
-                        continue
-                    if nav > 0:
-                        out.setdefault(p[0].strip(), {})[d] = nav
+                out = parse_history(content, frm, to)
                 if not out:
                     print(f"AMFI returned 0 parseable rows for {frm} to {to} ({len(content)} bytes, attempt {attempt+1}/4). Retrying in 4s...", file=sys.stderr)
                     time.sleep(4)
                     continue
                 return out
+        except HistorySchemaError:
+            raise  # schema changes are not transient; stop publication visibly
         except Exception as e:
             print(f"AMFI fetch error for {frm} to {to}: {e} (attempt {attempt+1}/4). Retrying in 4s...", file=sys.stderr)
             time.sleep(4)
@@ -116,45 +109,34 @@ def fetch_series_db(start_date, end_date):
 
 
 def fetch_series(asof, days, now_nav=None):
-    """Dense daily NAV series per scheme over the last `days`. DB-first, HTTP only for the gap."""
+    """Reconcile dated DB observations against every bounded official history window."""
     start = asof - timedelta(days=days)
     series = fetch_series_db(start, asof)
-    if now_nav and asof:
-        for code, nav in now_nav.items():
-            if nav and float(nav) > 0:
-                series.setdefault(str(code), {})[asof] = float(nav)
-    covered_dates = {d for m in series.values() for d in m.keys()}
-
+    # A latest NAV without its individual source date must never be stamped with the
+    # universe's latest date. Older/wound-up schemes otherwise gain invented observations.
     cur = start
     while cur <= asof:
         chunk_to = min(cur + timedelta(days=44), asof)
-        # "Any" coverage, not "full" coverage: cloud_pipeline ingests one shared NAVAll.txt
-        # snapshot per run covering every scheme at once, so one scheme having a date inside this
-        # chunk is a reliable proxy for "ingestion reached this chunk" -- no need for a slower
-        # per-scheme/per-day completeness check to get the benefit of skipping a doomed HTTP call.
-        if not any(cur <= d <= chunk_to for d in covered_dates):
-            part = _fetch_window(cur, chunk_to)
-            for code, m in part.items():
-                series.setdefault(code, {}).update(m)
+        # DB row presence does not prove source completeness. Until a verified window manifest
+        # exists, reconcile each bounded window with official publication observations. AMFI
+        # itself defines available dates, including holidays, inception and wound-up schemes.
+        part = _fetch_window(cur, chunk_to)
+        if not part:
+            raise RuntimeError(f"Cannot verify history completeness for {cur} through {chunk_to}")
+        for code, m in part.items():
+            series.setdefault(code, {}).update(m)
         cur = chunk_to + timedelta(days=1)
 
     return series
 
 
-def anchor_nav(asof, days):
-    window_start, window_end = asof - timedelta(days=days + 7), asof - timedelta(days=days)
-    db_series = fetch_series_db(window_start, window_end)
-    out = {c: m[max(m)] for c, m in db_series.items() if m}
-    if not out:
-        # No DB coverage at all in this window -- expected for anchors older than this platform's
-        # own ingestion history (see fetch_series' docstring above for the full incident context).
-        # HTTP is the only possible source here; if it also fails, this anchor stays null rather
-        # than blocking the run, same tradeoff as fetch_series' per-chunk skip.
-        w = _fetch_window(window_start, window_end)
-        for c, m in w.items():
-            if m:
-                out[c] = m[max(m)]
-    return out
+def anchor_nav(asof, months):
+    window_end = months_before(asof, months)
+    window_start = window_end - timedelta(days=7)
+    result = _fetch_window(window_start, window_end)
+    if not result:
+        raise RuntimeError(f"Official {months}-month anchor unavailable; publication stopped")
+    return result
 
 
 def risk_from_series(navs_by_date):
@@ -244,7 +226,7 @@ def main():
     now_nav = {c: r.nav_value for c, r in dim.items() if r.nav_value}
 
     print("-- fetching 90-day daily series…", file=sys.stderr)
-    series = fetch_series(asof, 95, now_nav)
+    series = fetch_series(asof, 105)
     anchors = {key: anchor_nav(asof, days) for key, days in ANCHORS}
     print(f"-- series for {len(series)} schemes, {len(anchors)} long-window anchors", file=sys.stderr)
 
@@ -266,31 +248,28 @@ def main():
         }
         s = series.get(code, {})
         # short windows from the dense series (more accurate than separate anchors)
-        def ret_at(days_back):
-            target = asof - timedelta(days=days_back)
-            past = [(d, v) for d, v in s.items() if d <= target]
-            if not past:
-                return None
-            v0 = max(past)[1]
-            return round((now - v0) / v0 * 100, 2) if v0 > 0 else None
-        rec["r1d"] = ret_at(1)
-        rec["r1w"] = ret_at(7)
-        rec["r1m"] = ret_at(30)
-        rec["r3m"] = ret_at(90)
+        rec["returnsAsOf"] = r.nav_date.isoformat() if r.nav_date else None
+        rec["returnMethodology"] = "calendar-month-nearest-prior-7d; 3Y/5Y CAGR"
+        rec["r1d"] = trailing_return(s, now, r.nav_date, days=1) if r.nav_date else None
+        rec["r1w"] = trailing_return(s, now, r.nav_date, days=7) if r.nav_date else None
+        rec["r1m"] = trailing_return(s, now, r.nav_date, months=1) if r.nav_date else None
+        rec["r3m"] = trailing_return(s, now, r.nav_date, months=3) if r.nav_date else None
         # Long-window (6M/1Y/3Y/5Y) returns compare `now` against an anchor NAV — but if `now`
         # itself is a stale NAV (fund stopped publishing), the figure isn't really "as of today";
         # it's a shorter, mislabeled window dressed up as "1Y". Only compute when the reference
         # NAV is genuinely current (<=7d), matching the site's own freshness bar everywhere else.
         if stale_days <= FRESH_MAX_DAYS:
-            for key, days in ANCHORS:
-                a = anchors[key].get(code)
-                rec[key] = round((now - a) / a * 100, 2) if a and a > 0 else None
+            for key, months in ANCHORS:
+                rec[key] = trailing_return(anchors[key].get(code, {}), now, r.nav_date, months=months, annualized=months > 12) if r.nav_date else None
         else:
             for key, _ in ANCHORS:
                 rec[key] = None
-        risk = risk_from_series(s)
+        risk_series = {day: value for day, value in s.items() if r.nav_date and r.nav_date - timedelta(days=90) <= day <= r.nav_date}
+        risk = risk_from_series(risk_series)
         if risk:
             rec.update(risk)
+        ordered = sorted(s.items())
+        discontinuity = any(abs(right[1] / left[1] - 1) > .40 for left, right in zip(ordered, ordered[1:]))
         bm, std = resolve_benchmark(rec["category"], name, r.asset_class)
         if bm:
             rec["benchmark"], rec["benchmarkStd"] = bm, std
@@ -301,7 +280,9 @@ def main():
         for k, (lo, hi) in BANDS.items():
             if rec.get(k) is not None and not (lo <= rec[k] <= hi):
                 rec[k] = None
-        if idcw:
+        if idcw or discontinuity:
+            if discontinuity:
+                rec["performanceUnavailableReason"] = "unadjusted_nav_discontinuity"
             # IDCW plans pay out distributions → NAV drops on payout, so NAV-only returns and
             # risk metrics are distorted and not defensible. Suppress rather than display them.
             for k in ("r1d", "r1w", "r1m", "r3m", "r6m", "r1y", "r3y", "r5y"):
@@ -378,6 +359,7 @@ def main():
     # Dormant/stale schemes carry null returns — honest, never fabricated. The unpriced
     # tail (no NAV at all) is added by scripts/reconcile_coverage.py, run right after this.
     keep = funds
+    assert_publication_coverage(keep)
     with open(f"{DATA}/funds.json", "w") as fh:
         json.dump({"asOf": asof.isoformat(), "source": "AMFI NAV + 90d NAV history",
                    "coverage": coverage, "cohorts": cohorts, "funds": keep}, fh, separators=(",", ":"))

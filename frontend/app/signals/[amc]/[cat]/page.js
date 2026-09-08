@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import Nav from "../../../components/Nav";
 import Footer from "../../../components/Footer";
@@ -19,7 +20,8 @@ export const revalidate = 600;
 
 const pct = (v, dp = 1) => (v == null ? <span className="text-ink-faint">—</span> : <span className={v >= 0 ? "text-pos tnum" : "text-neg tnum"}>{v >= 0 ? "+" : ""}{v.toFixed(dp)}%</span>);
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata(props) {
+  const params = await props.params;
   const it = amcIntel(allFunds(), params.amc, params.cat);
   return { title: it ? `${it.amcName} · ${it.assetClass} — AMC Intelligence` : "AMC Intelligence" };
 }
@@ -34,7 +36,8 @@ const fundCols = [
   { key: "maxdd90", label: "MaxDD", align: "right", render: (r) => (r.maxdd90 == null ? <span className="text-ink-faint">—</span> : <span className="tnum text-neg">{r.maxdd90}</span>) },
 ];
 
-export default async function AmcIntel({ params }) {
+export default async function AmcIntel(props) {
+  const params = await props.params;
   const it = amcIntel(allFunds(), params.amc, params.cat);
   if (!it) notFound();
 
@@ -45,7 +48,7 @@ export default async function AmcIntel({ params }) {
       <Nav active="/signals" />
       <Tracker event="amc_intel_view" payload={{ amc: it.amcName, category: it.assetClass }} />
       <main className="container-px py-8">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint"><a className="hover:text-ink" href="/signals">Flow signals</a> · AMC Intelligence</div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint"><Link className="hover:text-ink" href="/signals">Flow signals</Link> · AMC Intelligence</div>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-[24px] sm:text-[30px] font-bold tracking-tightest text-ink">{it.amcName} · {it.assetClass}</h1>
@@ -85,7 +88,7 @@ export default async function AmcIntel({ params }) {
           <SectionHeader title="Flow signal context" />
           <p className="text-[13px] text-ink-faint">
             Flow signals are tracked industry-wide by fund category (AMFI Monthly Report), not per AMC —
-            see <a className="text-ink-muted hover:text-ink" href="/signals">all flow signals</a>. The
+            see <Link className="text-ink-muted hover:text-ink" href="/signals">all flow signals</Link>. The
             intelligence below is computed from verified AMFI NAV performance.
           </p>
         </GlassPanel>

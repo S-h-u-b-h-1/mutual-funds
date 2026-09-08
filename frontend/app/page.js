@@ -27,7 +27,7 @@ const pctStr = (n, dp = 1) => `${n >= 0 ? "+" : ""}${Number(n).toFixed(dp)}%`;
 const freshnessTone = (tone) => (tone === "pos" ? "current" : tone === "neg" ? "stale" : "delayed");
 
 const researchPaths = [
-  ["Compare mutual funds", "Line up returns, 90-day volatility, max drawdown, consistency and data completeness.", "/compare", "Peer comparison"],
+  ["Compare AMCs", "Compare fund-house performance, breadth and category coverage.", "/compare", "AMC comparison"],
   ["Best mutual funds—for whom?", "Screen within category and inspect why a fund ranks strongly instead of trusting a generic winner list.", "/funds", "Fund screener"],
   ["XIRR, CAGR & rolling returns", "Use the right return measure for SIP cash flows, long periods and consistency across start dates.", "/learn", "Returns explained"],
   ["Sharpe, Sortino & downside risk", "Study risk-adjusted returns, volatility and drawdown before judging headline performance.", "/methodology", "Risk analysis"],
@@ -178,7 +178,7 @@ export default async function HomePage() {
                   Compare Indian mutual funds using CAGR, rolling returns, volatility, max drawdown, Sharpe and Sortino ratios, expense ratios and category context—then diagnose portfolio XIRR, overlap and concentration with visible source freshness.
                 </p>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                  <Link href="/compare" className="btn-premium-primary min-h-12 px-6">Compare mutual funds <span className="ml-2" aria-hidden="true">→</span></Link>
+                  <Link href="/compare" className="btn-premium-primary min-h-12 px-6">Compare AMCs <span className="ml-2" aria-hidden="true">→</span></Link>
                   <Link href="/portfolio" className="btn-premium-secondary min-h-12 px-6">Check portfolio health</Link>
                 </div>
                 <div className="mt-7 grid max-w-2xl grid-cols-3 gap-2 sm:gap-3">
@@ -204,7 +204,7 @@ export default async function HomePage() {
                   <div className="mt-5"><SearchLauncher /></div>
                   <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                     {[
-                      ["Which fund is more consistent?", "/compare"],
+                      ["How do these fund houses compare?", "/compare"],
                       ["Is my portfolio over-diversified?", "/portfolio"],
                       ["How risky is this small-cap fund?", "/discover"],
                       ["How should I judge an NFO?", "/methodology"],
@@ -399,7 +399,7 @@ export default async function HomePage() {
           <WorkspaceSection n="05" title="Industry Snapshot" action={<Link href="/brief" className="premium-link">Full industry brief <span aria-hidden="true">→</span></Link>}>
             <GlassPanel className="p-5 sm:p-6">
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div><div className="text-[11px] uppercase tracking-[0.08em] text-ink-faint">Total industry AUM</div><div className="mt-1 financial-number text-lg font-semibold text-ink">{flowHeadline.total_aum_cr ? lakhCr(flowHeadline.total_aum_cr) : "—"}</div></div>
+                <div><div className="text-[11px] uppercase tracking-[0.08em] text-ink-faint">Covered category AUM</div><div className="mt-1 financial-number text-lg font-semibold text-ink">{flowHeadline.total_aum_cr ? lakhCr(flowHeadline.total_aum_cr) : "—"}</div></div>
                 <div><div className="text-[11px] uppercase tracking-[0.08em] text-ink-faint">Equity net (month)</div><div className={`mt-1 financial-number text-lg font-semibold ${(flowHeadline.equity_net_cr ?? 0) >= 0 ? "text-pos" : "text-neg"}`}>{flowHeadline.equity_net_cr != null ? signedInrCr(flowHeadline.equity_net_cr) : "—"}</div></div>
                 <div><div className="text-[11px] uppercase tracking-[0.08em] text-ink-faint">1-day breadth</div><div className="mt-1 financial-number text-lg font-semibold text-ink">{daily.industry?.breadth1d != null ? `${daily.industry.breadth1d}%` : "—"}</div></div>
                 <div><div className="text-[11px] uppercase tracking-[0.08em] text-ink-faint">Risk regime</div><div className="mt-1 text-lg font-semibold text-ink">{daily.industry?.riskRegime || "—"}</div></div>
@@ -433,7 +433,7 @@ export default async function HomePage() {
                 <div>
                   <div className="text-[11px] uppercase tracking-[0.08em] text-ink-faint">Fund-level detail (manager, expense, holdings)</div>
                   <div className="mt-1 text-[14px] font-semibold text-ink">{fmt(metaN)} verified schemes · {factsheetAmcCount} AMC factsheet engines</div>
-                  <Provenance source="AMC factsheet PDF" timestamp={fieldCoverage.factsheetLastUpdated} confidence="Low" />
+                  <Provenance source="AMC factsheet PDF · dates vary by fund; historical records include 2022–2023" confidence="Low" />
                 </div>
               </div>
               <p className="mt-4 border-t border-line pt-3 text-[11px] leading-relaxed text-ink-faint">

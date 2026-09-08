@@ -21,6 +21,13 @@ ROOT = Path(__file__).resolve().parents[1]
 pytestmark = pytest.mark.skipif(not neon_db.neon_enabled(), reason="DATABASE_URL not set — no live database to check schema against")
 
 
+def test_current_release_prerequisites():
+    from scripts.check_release_schema import missing_objects
+    with neon_db.connect() as conn:
+        missing = missing_objects(conn)
+    assert not missing, f"Release blocked: missing application schema objects {missing}"
+
+
 def _columns(conn, table):
     with conn.cursor() as cur:
         cur.execute(

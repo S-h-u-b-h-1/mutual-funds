@@ -1,5 +1,5 @@
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
-import { query } from "../../../../lib/db";
+import { withTransaction } from "../../../../lib/db";
 import { getUserHoldings, getUserTransactions } from "../../../../lib/portfolioImport/holdingsRead";
 import { buildHealthReport } from "../../../../lib/portfolioIntelligence/healthReport";
 import { getFund } from "../../../../lib/funds";
@@ -40,18 +40,28 @@ export async function GET() {
   const user = await requireUser();
   if (!user) return unauthorized();
 
-  const { holdings: rawHoldings, unresolved } = await getUserHoldings(user.id);
+  return withTransaction(async (client) => {
+  const query = (sql, params) => client.query(sql, params);
+  await query("set transaction isolation level repeatable read");
+  const { holdings: rawHoldings, unresolved } = await getUserHoldings(user.id, query);
   if (rawHoldings.length === 0) {
     return Response.json({ error: "No holdings to analyze. Import a portfolio first via POST /api/v1/portfolio/upload." }, { status: 400 });
   }
 
-  const transactions = await getUserTransactions(user.id);
+  const transactions = await getUserTransactions(user.id, query);
   const valuation = revaluePortfolio(rawHoldings.map(toValuationHolding), getFund, transactions);
-  const leaders = computePerformanceLeaders(rawHoldings.map(toLeaderHolding));
-  const latestOfficialNavDate = valuation.holdingValuations.reduce(
-    (latest, v) => (v.navDate && (!latest || v.navDate > latest) ? v.navDate : latest),
-    null
-  );
+  if (!valuation.complete || unresolved.length) {
+    return Response.json({ error: "A complete valuation on one NAV date is unavailable.", status: "unavailable", reason: unresolved.length ? "unresolved_holdings" : valuation.unavailableReason, valuation, unresolvedHoldings: unresolved }, { status: 422 });
+  }
+  const valuedHoldings = rawHoldings.map((holding, index) => ({
+    ...holding,
+    currentValue: valuation.holdingValuations[index].marketValue,
+    nav: valuation.holdingValuations[index].nav,
+    navDate: valuation.valuationDate,
+    weight: valuation.totalMarketValue > 0 ? valuation.holdingValuations[index].marketValue / valuation.totalMarketValue * 100 : 0,
+  }));
+  const leaders = computePerformanceLeaders(valuedHoldings.map(toLeaderHolding));
+  const latestOfficialNavDate = valuation.valuationDate;
   const valuationConfidence =
     valuation.staleHoldingCount === 0 && valuation.latestNavCoveragePct === 100
       ? "High"
@@ -59,7 +69,7 @@ export async function GET() {
         ? "Partial"
         : "Low";
 
-  const report = buildHealthReport(rawHoldings);
+  const report = buildHealthReport(valuedHoldings);
   const a = report._analytics;
 
   const metricsRow = await query(
@@ -69,7 +79,7 @@ export async function GET() {
      returning id, computed_at`,
     [
       user.id,
-      a.totalValue,
+      valuation.totalMarketValue,
       a.volatility,
       a.expectedDrawdown,
       a.diversificationScore,
@@ -77,7 +87,7 @@ export async function GET() {
       a.qualityScore,
       a.healthScore,
       a.stockOverlap.duplicateExposurePct,
-      JSON.stringify({ healthScoreBreakdown: a.healthScoreBreakdown, effectiveHoldings: a.effectiveHoldings, effectiveAmcs: a.effectiveAmcs, effectiveCategories: a.effectiveCategories }),
+      JSON.stringify({ valuation, healthScoreBreakdown: a.healthScoreBreakdown, effectiveHoldings: a.effectiveHoldings, effectiveAmcs: a.effectiveAmcs, effectiveCategories: a.effectiveCategories }),
     ]
   );
 
@@ -92,6 +102,9 @@ export async function GET() {
   const { _analytics, ...reportForStorage } = report;
   reportForStorage.portfolioSummary = {
     ...reportForStorage.portfolioSummary,
+    totalValue: valuation.totalMarketValue,
+    currentValue: valuation.totalMarketValue,
+    valuationDate: valuation.valuationDate,
     investedValue: valuation.totalInvestedValue,
     gainLoss: valuation.absoluteGain,
     gainLossPct: valuation.absoluteReturnPct,
@@ -102,6 +115,8 @@ export async function GET() {
     latestNavCoveragePct: valuation.latestNavCoveragePct,
   };
   reportForStorage.performanceLeaders = leaders;
+  reportForStorage.valuation = valuation;
+  reportForStorage.containsSimulatedPositions = valuedHoldings.some(holding => ["mock-connected", "invest-order"].includes(holding.source));
 
   const reportRow = await query(
     `insert into portfolio_reports (user_id, report_type, summary) values ($1, 'portfolio_health', $2) returning id, generated_at`,
@@ -112,7 +127,7 @@ export async function GET() {
     `insert into portfolio (user_id, total_value, holdings_count, last_computed_at, updated_at)
      values ($1, $2, $3, now(), now())
      on conflict (user_id) do update set total_value = excluded.total_value, holdings_count = excluded.holdings_count, last_computed_at = now(), updated_at = now()`,
-    [user.id, a.totalValue, a.holdingsCount]
+    [user.id, valuation.totalMarketValue, a.holdingsCount]
   );
 
   return Response.json({
@@ -121,5 +136,6 @@ export async function GET() {
     computedAt: metricsRow.rows[0].computed_at,
     unresolvedHoldings: unresolved,
     report: reportForStorage,
+  });
   });
 }

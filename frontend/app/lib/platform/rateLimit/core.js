@@ -21,9 +21,9 @@ function windowStart(windowSeconds) {
 // locking on the conflicting row), so two simultaneous requests against the same bucket can't
 // both undercount each other.
 //
-// Fails OPEN (allowed: true) on a query error, after logging it: a rate limiter that becomes a
-// new way to 500 legitimate auth traffic is a worse outcome than occasionally under-enforcing a
-// limit because Postgres had a transient blip.
+// Fail closed for abuse-sensitive operations. A storage outage must never grant unbounded
+// authentication attempts. Each request retries the durable store; recovery is immediate when
+// it returns. This does not invalidate existing authenticated sessions.
 export async function checkRateLimit(action, identifier, { limit, windowSeconds }) {
   const bucketKey = `${action}:${identifier}`;
   const start = windowStart(windowSeconds);
@@ -41,12 +41,12 @@ export async function checkRateLimit(action, identifier, { limit, windowSeconds 
     return { allowed, count, limit };
   } catch (err) {
     logError({ event: "rate_limit_check_failed", action, errorMessage: err?.message ?? String(err) });
-    return { allowed: true, count: 0, limit };
+    return { allowed: false, count: null, limit, unavailable: true, retryAfter: 30 };
   }
 }
 
 export function rateLimitResponse() {
-  return Response.json({ error: "Too many attempts. Please try again later." }, { status: 429 });
+  return Response.json({ error: "Attempts are temporarily limited. Please try again shortly." }, { status: 429, headers: { "Retry-After": "30", "Cache-Control": "no-store" } });
 }
 
 // Vercel sets x-forwarded-for reliably on every request; the first entry is the actual client,

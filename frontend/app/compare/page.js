@@ -13,11 +13,12 @@ import trendData from "../data/amc_trend.json";
 export const metadata = { title: "Compare center" };
 export const revalidate = 3600;
 
-export default async function Compare({ searchParams }) {
+export default async function Compare(props) {
+  const searchParams = await props.searchParams;
   const fundsQuery = searchParams?.funds || "";
   const fundMode = searchParams?.mode === "funds" || Boolean(fundsQuery);
   const allFundsList = allFunds();
-  
+
   if (fundMode) {
     const codes = fundsQuery.split(",").map(c => c.trim()).filter(Boolean);
     const initialFunds = codes.map(code => {
@@ -55,7 +56,7 @@ export default async function Compare({ searchParams }) {
 
   let summary = [];
   try {
-    summary = await sb("mv_amc_summary?select=*", { revalidate: 3600 });
+    summary = await sb("v_public_amc_summary?select=*", { revalidate: 3600 });
   } catch {}
 
   const meta = {};

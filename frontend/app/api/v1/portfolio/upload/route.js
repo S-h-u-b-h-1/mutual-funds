@@ -1,5 +1,5 @@
 import { requireUser, unauthorized } from "../../../../lib/apiAuth";
-import { query } from "../../../../lib/db";
+import { query, withTransaction } from "../../../../lib/db";
 import { parsePortfolio, PORTFOLIO_SOURCES } from "../../../../lib/portfolioImport";
 import { handleCasUpload } from "./casUpload";
 
@@ -30,6 +30,9 @@ export async function POST(request) {
       return Response.json({ error: "file is required" }, { status: 400 });
     }
     filename = file.name || null;
+    if (file.size > MAX_CAS_FILE_BYTES) {
+      return Response.json({ error: "Upload exceeds the 15MB limit", code: "file_too_large" }, { status: 413 });
+    }
 
     // CAS is a PDF, not text: branched here, before any `.text()` call, so a binary upload is
     // never lossily decoded as a string the way the CSV path below requires. Fully separate code
@@ -45,7 +48,14 @@ export async function POST(request) {
       if (buffer.length > MAX_CAS_FILE_BYTES) {
         return Response.json({ error: `This file is too large (${(buffer.length / (1024 * 1024)).toFixed(1)}MB). CAS statements are not expected to exceed ${MAX_CAS_FILE_BYTES / (1024 * 1024)}MB.`, code: "file_too_large" }, { status: 413 });
       }
-      return handleCasUpload({ user, filename, buffer, selectedStatementType: source, query });
+      try {
+        return await withTransaction(async (client) => handleCasUpload({
+          user, filename, buffer, selectedStatementType: source,
+          query: client.query.bind(client),
+        }));
+      } catch {
+        return Response.json({ error: "Statement import failed; no portfolio changes were saved.", code: "import_unavailable" }, { status: 503 });
+      }
     }
 
     input = await file.text();
@@ -66,6 +76,9 @@ export async function POST(request) {
   if (source === "manual" && !Array.isArray(input)) {
     return Response.json({ error: "entries (array) is required for manual source" }, { status: 400 });
   }
+  if (Array.isArray(input) && input.length > 10000) {
+    return Response.json({ error: "Maximum 10,000 entries per upload" }, { status: 413 });
+  }
   if (source !== "manual" && typeof input !== "string") {
     return Response.json({ error: "file is required for CSV sources" }, { status: 400 });
   }
@@ -80,6 +93,9 @@ export async function POST(request) {
   try {
     const { holdings, errors, warnings } = parsePortfolio(source, input);
     const status = holdings.length === 0 ? "failed" : errors.length > 0 ? "partial" : "success";
+
+    return await withTransaction(async (client) => {
+    const query = client.query.bind(client);
 
     const uploadRow = await query(
       `insert into portfolio_uploads (user_id, source, filename, status, rows_parsed, rows_imported, rows_skipped, errors)
@@ -112,6 +128,7 @@ export async function POST(request) {
       { upload: uploadRow.rows[0], imported: holdings.length, holdings, errors, warnings },
       { status: 201 }
     );
+    });
   } catch (error) {
     try {
       await query(
@@ -124,7 +141,7 @@ export async function POST(request) {
       // rather than let a secondary exception mask the original one.
     }
     return Response.json(
-      { error: "This file could not be processed. Check that it's a valid export from the selected source and try again.", imported: 0, holdings: [], errors: [{ reason: String(error?.message || error) }], warnings: [] },
+      { error: "This file could not be processed. Check that it's a valid export from the selected source and try again.", imported: 0, holdings: [], errors: [{ reason: "Import failed; no portfolio changes saved." }], warnings: [] },
       { status: 400 }
     );
   }

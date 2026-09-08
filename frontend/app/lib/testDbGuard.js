@@ -15,10 +15,13 @@
 //      the case where someone points TEST_DATABASE_URL at production by mistake (condition 1
 //      alone would pass in that case, since both vars would agree).
 const PRODUCTION_NEON_HOST = "ep-autumn-wind-atiwaldh-pooler.c-9.us-east-1.aws.neon.tech";
+const APPROVED_TEST_HOST = "ep-bitter-union-atj8og0c.c-9.us-east-1.aws.neon.tech";
 
 function hostOf(connectionString) {
   try {
-    return new URL(connectionString).host;
+    const parsed = new URL(connectionString);
+    if (!["postgres:", "postgresql:"].includes(parsed.protocol)) return null;
+    return parsed.hostname.toLowerCase().replace("-pooler.", ".");
   } catch {
     return null;
   }
@@ -52,12 +55,19 @@ export function assertSafeTestDatabase() {
   }
 
   const host = hostOf(dbUrl);
-  if (host === PRODUCTION_NEON_HOST) {
+  if (!host || host === PRODUCTION_NEON_HOST.replace("-pooler.", ".")) {
     throw new Error(
       `Refusing to run: DATABASE_URL resolves to the production Neon host ` +
         `(${PRODUCTION_NEON_HOST}). This suite creates and deletes real rows and must never run ` +
         `against production, regardless of what TEST_DATABASE_URL claims. Point both env vars ` +
         `at the dedicated Neon "test" branch instead. See docs/TEST_DATABASE_AND_CI.md.`
     );
+  }
+  const parsed = new URL(dbUrl);
+  if (host !== APPROVED_TEST_HOST || parsed.pathname !== "/neondb" || parsed.searchParams.has("options")) {
+    throw new Error("Refusing to run: endpoint/database is not the approved isolated test target, or connection options could override identity.");
+  }
+  if (process.env.MFPULSE_CI_DATABASE_GUARD === "1" && decodeURIComponent(parsed.username) !== "mf_pulse_ci_20260908") {
+    throw new Error("Refusing to run: CI requires the isolated, non-administrative test role.");
   }
 }

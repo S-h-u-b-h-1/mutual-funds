@@ -36,8 +36,14 @@ def dsn() -> str:
 def connect():
     if psycopg is None:
         raise RuntimeError("psycopg is not installed — cannot open a Postgres connection. Fix: pip install -r requirements.txt")
+    ci_guard = os.getenv("MFPULSE_CI_DATABASE_GUARD") == "1"
+    if ci_guard:
+        from scripts.ci_database_guard import assert_url, assert_connection
+        assert_url()
     conn = psycopg.connect(dsn())
     try:
+        if ci_guard:
+            assert_connection(conn)
         yield conn
         conn.commit()
     except Exception:

@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import dynamic from "next/dynamic";
 import Nav from "../../components/Nav";
 import FundPageClient from "../../components/FundPageClient";
 import Footer from "../../components/Footer";
@@ -7,7 +6,7 @@ import Tracker from "../../components/Tracker";
 import NavChart from "../../components/NavChart";
 import VolatilityChart from "../../components/VolatilityChart";
 
-const RollingReturnChart = dynamic(() => import("../../components/RollingReturnChart"), { ssr: false });
+import RollingReturnChart from "../../components/RollingReturnChart";
 import SectionHeader from "../../components/ui/SectionHeader";
 import GlassPanel from "../../components/ui/GlassPanel";
 import Badge from "../../components/ui/Badge";
@@ -36,7 +35,8 @@ import { buildResearchReport } from "../../lib/researchReport";
 
 export const revalidate = 3600;
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata(props) {
+  const params = await props.params;
   const f = getFund(params.scheme_code);
   return { title: f ? `${f.name.replace(/ - (Direct|Regular).*/i, "")} — ${f.amc}` : "Fund" };
 }
@@ -110,7 +110,8 @@ function Metric({ label, value, tone }) {
   );
 }
 
-export default async function FundPage({ params }) {
+export default async function FundPage(props) {
+  const params = await props.params;
   const f = getFund(params.scheme_code);
   if (!f) notFound();
 

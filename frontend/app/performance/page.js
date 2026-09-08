@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import Tracker from "../components/Tracker";
@@ -72,7 +73,7 @@ export default function Performance() {
 
         {/* AMC quality leaders */}
         <section className="mt-9">
-          <SectionHeader eyebrow="% of funds beating category median (1M)" title="AMC quality leaders" action={<a className="hover:text-ink" href="/categories">Categories →</a>} />
+          <SectionHeader eyebrow="% of funds beating category median (1M)" title="AMC quality leaders" action={<Link className="hover:text-ink" href="/categories">Categories →</Link>} />
           <DataTable columns={amcCols} rows={topAmcs} footnote="Quality = 0.55·(% beating category median) + 0.25·breadth + 0.20·avg-return factor. Real NAV, last month." />
         </section>
       </main>

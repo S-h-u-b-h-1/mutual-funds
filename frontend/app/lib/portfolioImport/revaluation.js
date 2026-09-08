@@ -18,7 +18,7 @@ import { computeXirr } from "./xirr.js";
  */
 export function revalueHolding(holding, getFund) {
   const fund = getFund(holding.schemeCode);
-  if (!fund || fund.nav == null) {
+  if (!fund || !Number.isFinite(holding.unitBalance) || holding.unitBalance < 0 || !Number.isFinite(fund.nav) || fund.nav <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(fund.navDate || "") || !Number.isFinite(Date.parse(fund.navDate))) {
     return { holdingId: holding.id, navDate: null, nav: null, unitBalance: holding.unitBalance, marketValue: null, stale: true };
   }
   return {
@@ -49,30 +49,44 @@ export function revalueHolding(holding, getFund) {
 export function revaluePortfolio(holdings, getFund, transactions = []) {
   const holdingValuations = holdings.map((h) => revalueHolding(h, getFund));
 
-  const totalMarketValue = +holdingValuations.reduce((s, v) => s + (v.marketValue || 0), 0).toFixed(2);
+  const coveredMarketValue = +holdingValuations.reduce((s, v) => s + (v.marketValue ?? 0), 0).toFixed(2);
   const coveredCount = holdingValuations.filter((v) => v.marketValue != null).length;
   const staleHoldingCount = holdingValuations.filter((v) => v.stale).length;
+  const sourceDates = [...new Set(holdingValuations.map((v) => v.navDate).filter(Boolean))].sort();
+  // A snapshot is authoritative only when every holding has a price on the same source date.
+  // Mixed-date/missing prices remain visible as coverage, never as a complete portfolio value.
+  // Callers may supply a common-date lookup to value a heterogeneous set historically.
+  const complete = holdings.length > 0 && coveredCount === holdings.length && sourceDates.length === 1;
+  const valuationDate = complete ? sourceDates[0] : null;
+  const totalMarketValue = complete ? coveredMarketValue : null;
 
-  const hasFullInvestedData = holdings.every((h) => h.investedValue != null);
+  const hasFullInvestedData = holdings.every((h) => Number.isFinite(h.investedValue));
   const totalInvestedValue = hasFullInvestedData ? +holdings.reduce((s, h) => s + h.investedValue, 0).toFixed(2) : null;
-  const absoluteGain = totalInvestedValue != null ? +(totalMarketValue - totalInvestedValue).toFixed(2) : null;
+  const absoluteGain = totalMarketValue != null && totalInvestedValue != null ? +(totalMarketValue - totalInvestedValue).toFixed(2) : null;
   const absoluteReturnPct = absoluteGain != null && totalInvestedValue > 0 ? +((absoluteGain / totalInvestedValue) * 100).toFixed(2) : null;
 
   const OUTFLOW = new Set(["purchase", "sip", "switch_in"]);
   const INFLOW = new Set(["redemption", "switch_out", "dividend_payout"]);
   const flows = transactions
-    .filter((t) => OUTFLOW.has(t.transactionType) || INFLOW.has(t.transactionType))
+    .filter((t) => Number.isFinite(t.amount) && (OUTFLOW.has(t.transactionType) || INFLOW.has(t.transactionType)))
     .map((t) => ({ date: t.transactionDate, amount: OUTFLOW.has(t.transactionType) ? -Math.abs(t.amount) : Math.abs(t.amount) }));
-  if (totalMarketValue > 0) flows.push({ date: new Date().toISOString().slice(0, 10), amount: totalMarketValue });
+  const futureFlows = flows.some((flow) => new Date(flow.date) > new Date(valuationDate));
+  if (complete && totalMarketValue > 0) flows.push({ date: valuationDate, amount: totalMarketValue });
 
   return {
     holdingValuations,
+    valuationDate,
+    asOf: valuationDate,
+    sourceDates,
+    complete,
+    coveredMarketValue,
+    unavailableReason: complete ? null : coveredCount < holdings.length ? "missing_nav" : "mixed_nav_dates",
     totalMarketValue,
     totalInvestedValue,
     absoluteGain,
     absoluteReturnPct,
     latestNavCoveragePct: holdings.length > 0 ? +((coveredCount / holdings.length) * 100).toFixed(1) : 0,
     staleHoldingCount,
-    xirr: computeXirr(flows),
+    xirr: complete && !futureFlows ? computeXirr(flows) : null,
   };
 }

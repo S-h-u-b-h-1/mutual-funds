@@ -8,7 +8,7 @@
 // canonical source regardless of origin — CAS import, a completed Journey 2 order, or an explicit
 // mock-connect action all write into the same two tables, tagged by `source`. Nothing downstream
 // (allocation, health score, valuation) needs to know which.
-import { query } from "../db.js";
+import { query, withTransaction } from "../db.js";
 import { getFund, asOf as fundsDatasetAsOf } from "../funds.js";
 import { getUserHoldings, getUserTransactions } from "../portfolioImport/holdingsRead.js";
 import { revaluePortfolio } from "../portfolioImport/revaluation.js";
@@ -35,15 +35,29 @@ const EMPTY_SUMMARY = {
   latestNavCoveragePct: null, staleHoldingCount: 0, latestNavDayChange: null,
 };
 
+function emptyOrUnresolvedSummary(unresolved) {
+  return unresolved.length ? { ...EMPTY_SUMMARY, totalValue: null, investedValue: null, gainLoss: null, valuationConfidence: "Review required" } : EMPTY_SUMMARY;
+}
+
 async function loadHoldingsAndReport(userId) {
-  const { holdings: rawHoldings, unresolved } = await getUserHoldings(userId);
+  return withTransaction(async client => {
+  const readQuery = client.query.bind(client);
+  await readQuery("set transaction isolation level repeatable read, read only");
+  const { holdings: rawHoldings, unresolved } = await getUserHoldings(userId, readQuery);
   if (rawHoldings.length === 0) return { rawHoldings: [], unresolved, report: null, valuation: null, leaders: [] };
 
-  const transactions = await getUserTransactions(userId);
+  const transactions = await getUserTransactions(userId, readQuery);
   const valuation = revaluePortfolio(rawHoldings.map(toValuationHolding), getFund, transactions);
-  const leaders = computePerformanceLeaders(rawHoldings.map(toLeaderHolding));
-  const report = buildHealthReport(rawHoldings);
-  return { rawHoldings, unresolved, report, valuation, leaders };
+  const valuedHoldings = rawHoldings.map((holding, index) => ({ ...holding,
+    currentValue: valuation.holdingValuations[index].marketValue,
+    nav: valuation.holdingValuations[index].nav,
+    navDate: valuation.holdingValuations[index].navDate,
+    weight: valuation.complete && valuation.totalMarketValue > 0 ? valuation.holdingValuations[index].marketValue / valuation.totalMarketValue * 100 : null,
+  }));
+  const leaders = computePerformanceLeaders(valuedHoldings.map(toLeaderHolding));
+  const report = buildHealthReport(valuedHoldings);
+  return { rawHoldings: valuedHoldings, unresolved, report, valuation, leaders };
+  });
 }
 
 // GET /portfolio — everything in one response, for a single-call dashboard render.
@@ -51,7 +65,7 @@ export async function getPortfolio(userId) {
   const { rawHoldings, unresolved, report, valuation, leaders } = await loadHoldingsAndReport(userId);
   if (!report) {
     return {
-      holdings: [], unresolved, summary: EMPTY_SUMMARY, allocation: null, topHoldings: [], performanceLeaders: [],
+      holdings: [], unresolved, summary: emptyOrUnresolvedSummary(unresolved), allocation: null, topHoldings: [], performanceLeaders: [],
       valueHistory: [], valueHistoryRanges: [],
       dataQuality: buildDataQuality(rawHoldings, unresolved, valuation),
     };
@@ -66,9 +80,9 @@ export async function getPortfolio(userId) {
     holdings: rawHoldings,
     unresolved,
     summary,
-    allocation: report.allocations,
-    topHoldings: report.topHoldings,
-    performanceLeaders: leaders,
+    allocation: valuation.complete && !unresolved.length ? report.allocations : null,
+    topHoldings: valuation.complete && !unresolved.length ? report.topHoldings : [],
+    performanceLeaders: valuation.complete && !unresolved.length ? leaders : [],
     strengths: report.strengths,
     weaknesses: report.weaknesses,
     bottomLine: report.bottomLine,
@@ -88,6 +102,7 @@ function latestNavDateFromValuation(valuation) {
 function buildValuationConfidence(valuation, unresolved) {
   if (!valuation || valuation.latestNavCoveragePct == null) return null;
   if (unresolved.length > 0) return "Review required";
+  if (!valuation.complete) return "Review required";
   if (valuation.latestNavCoveragePct === 100 && valuation.staleHoldingCount === 0) return "High";
   if (valuation.latestNavCoveragePct >= 80) return "Partial";
   return "Low";
@@ -116,7 +131,8 @@ function buildLatestNavDayChange(rawHoldings) {
 
 function buildCurrentValueHistory(summary, dataQuality) {
   if (!summary || summary.totalValue == null || summary.totalValue <= 0) return [];
-  const date = summary.latestOfficialNavDate || dataQuality?.navDateRange?.newest || new Date().toISOString().slice(0, 10);
+  const date = summary.valuationDate;
+  if (!date) return [];
   return [{
     id: `current-${date}`,
     date,
@@ -128,16 +144,16 @@ function buildCurrentValueHistory(summary, dataQuality) {
 }
 
 function buildSummary(a, valuation, dataQuality = null, unresolved = [], storedHoldingsCount = a.holdingsCount) {
-  const latestOfficialNavDate = latestNavDateFromValuation(valuation) || dataQuality?.navDateRange?.newest || null;
+  const latestOfficialNavDate = valuation.valuationDate;
   return {
-    totalValue: a.totalValue,
+    totalValue: unresolved.length ? null : valuation.totalMarketValue,
     investedValue: valuation.totalInvestedValue,
-    gainLoss: valuation.absoluteGain,
-    gainLossPct: valuation.absoluteReturnPct,
-    xirr: valuation.xirr,
+    gainLoss: unresolved.length ? null : valuation.absoluteGain,
+    gainLossPct: unresolved.length ? null : valuation.absoluteReturnPct,
+    xirr: unresolved.length ? null : valuation.xirr,
     holdingsCount: storedHoldingsCount,
-    healthScore: a.healthScore,
-    qualityScore: a.qualityScore,
+    healthScore: valuation.complete && !unresolved.length ? a.healthScore : null,
+    qualityScore: valuation.complete && !unresolved.length ? a.qualityScore : null,
     effectiveHoldings: a.effectiveHoldings,
     effectiveAmcs: a.effectiveAmcs,
     effectiveCategories: a.effectiveCategories,
@@ -147,7 +163,7 @@ function buildSummary(a, valuation, dataQuality = null, unresolved = [], storedH
     valuationDate: latestOfficialNavDate,
     computedAt: dataQuality?.calculatedAt || new Date().toISOString(),
     valuationConfidence: buildValuationConfidence(valuation, unresolved),
-    latestNavDayChange: buildLatestNavDayChange(a.holdings || []),
+    latestNavDayChange: valuation.complete && !unresolved.length ? buildLatestNavDayChange(a.holdings || []) : null,
   };
 }
 
@@ -193,7 +209,7 @@ export async function getPortfolioDataQuality(userId) {
 
 export async function getPortfolioSummary(userId) {
   const { rawHoldings, unresolved, report, valuation } = await loadHoldingsAndReport(userId);
-  if (!report) return EMPTY_SUMMARY;
+  if (!report) return emptyOrUnresolvedSummary(unresolved);
   return buildSummary(report._analytics, valuation, buildDataQuality(rawHoldings, unresolved, valuation), unresolved, rawHoldings.length);
 }
 
@@ -204,23 +220,24 @@ export async function getPortfolioHoldings(userId) {
 }
 
 export async function getPortfolioAllocation(userId) {
-  const { report } = await loadHoldingsAndReport(userId);
-  if (!report) return { amc: [], category: [], benchmark: [], sector: null };
+  const { report, valuation, unresolved } = await loadHoldingsAndReport(userId);
+  if (!report) return { amc: [], category: [], benchmark: [], sector: null, ...(unresolved.length ? { status: "unavailable", reason: "unresolved_holdings" } : {}) };
+  if (!valuation.complete || unresolved.length) return { amc: [], category: [], benchmark: [], sector: null, status: "unavailable", reason: "incomplete_valuation" };
   return report.allocations;
 }
 
 export async function getPortfolioPerformance(userId) {
-  const { report, valuation, leaders } = await loadHoldingsAndReport(userId);
+  const { report, valuation, leaders, unresolved } = await loadHoldingsAndReport(userId);
   const snapshots = await query(
-    `select snapshot_date, total_value, holdings_count from portfolio_snapshots where user_id = $1 order by snapshot_date`,
+    `select snapshot_date, total_value, holdings_count from portfolio_snapshots where user_id = $1 and allocation->>'valuationKind' = 'common_date_nav' order by snapshot_date`,
     [userId]
   );
   if (!report) {
     return { valuation: null, performanceLeaders: [], history: snapshots.rows, historyNote: "No holdings yet." };
   }
   return {
-    valuation: { investedValue: valuation.totalInvestedValue, currentValue: valuation.totalMarketValue, gainLoss: valuation.absoluteGain, gainLossPct: valuation.absoluteReturnPct, xirr: valuation.xirr },
-    performanceLeaders: leaders,
+    valuation: unresolved.length ? null : { investedValue: valuation.totalInvestedValue, currentValue: valuation.totalMarketValue, gainLoss: valuation.absoluteGain, gainLossPct: valuation.absoluteReturnPct, xirr: valuation.xirr, valuationDate: valuation.valuationDate, complete: valuation.complete },
+    performanceLeaders: valuation.complete && !unresolved.length ? leaders : [],
     history: snapshots.rows,
     historyNote: snapshots.rows.length < 3
       ? `Only ${snapshots.rows.length} historical snapshot(s) recorded — too little to chart a trend yet. This grows over time, never backfilled with estimates.`

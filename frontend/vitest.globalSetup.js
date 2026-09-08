@@ -3,9 +3,16 @@
 // exists. A thrown error here aborts the whole run before a single connection is opened.
 import { assertSafeTestDatabase } from "./app/lib/testDbGuard.js";
 import { sweepStaleTestData } from "./app/lib/testDataSweep.js";
+import { query } from "./app/lib/db.js";
+import { assertConnectedTestDatabase } from "./app/lib/testDatabaseIdentity.mjs";
 
 export default async function setup() {
   assertSafeTestDatabase();
+  try {
+    await assertConnectedTestDatabase(query);
+  } catch {
+    throw new Error("Integration infrastructure unavailable: cannot connect to the explicitly configured test database. Check branch/endpoint state and network access before running tests.");
+  }
 
   // Best-effort, non-fatal: a sweep failure (network blip, permissions) must never block the
   // actual test run over a hygiene pass — log and continue. See testDataSweep.js for what this

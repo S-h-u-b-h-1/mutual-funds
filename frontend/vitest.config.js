@@ -3,6 +3,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
+    maxWorkers: 4,
+    minWorkers: 1,
     include: ["app/**/*.test.js"],
     // Hard-refuses to run this real-Postgres integration suite against production — see
     // app/lib/testDbGuard.js and docs/TEST_DATABASE_AND_CI.md. Runs once before any test file.

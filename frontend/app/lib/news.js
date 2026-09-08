@@ -2,6 +2,7 @@
 // scripts/ingest_news.py. Every field returned here traces to a real DB row; nothing is
 // computed or guessed in this file beyond simple sorting/grouping of what's already stored.
 import { sb } from "./supabase";
+import { sourceHealth } from "./newsStatus";
 
 const ARTICLE_SELECT =
   "id,title,url,summary,published_at,fetched_at,category,importance_score,market_relevance_score,sentiment_label," +
@@ -150,6 +151,15 @@ export async function getIngestionRuns({ limit = 20 } = {}) {
     return await sb(`news_ingestion_runs?select=*,news_sources(name)&order=finished_at.desc&limit=${limit}`, { revalidate: 60 });
   } catch {
     return [];
+  }
+}
+
+export async function getNewsSourceHealth() {
+  try {
+    const rows = await sb("news_sources?select=id,name,active,news_articles(published_at,fetched_at),news_ingestion_runs(status,finished_at)&news_articles.order=fetched_at.desc&news_articles.limit=1&news_ingestion_runs.order=finished_at.desc&news_ingestion_runs.limit=20", { revalidate: 60 });
+    return rows.map(row => sourceHealth(row));
+  } catch {
+    return null; // unavailable is different from zero healthy sources
   }
 }
 

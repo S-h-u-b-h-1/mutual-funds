@@ -12,6 +12,11 @@ import { KYCProvider, DocumentProvider, InvestmentProvider, PaymentProvider, Por
 import { registerProvider, deriveCapabilities } from "../../platform/providerRegistry/core.js";
 import { getProviderConfig } from "../../platform/config/core.js";
 
+if (process.env.INVEST_PROVIDER_MODE === "live") {
+  throw new Error("Live investing is unavailable: this build contains sandbox providers only.");
+}
+export const providerMode = "sandbox";
+
 export const kycProvider = new MockKYCProvider();
 export const documentProvider = new MockDocumentProvider();
 export const investmentProvider = new MockInvestmentProvider();

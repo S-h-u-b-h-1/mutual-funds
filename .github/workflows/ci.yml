@@ -2,9 +2,16 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/mf-pulse-remediation-2026-09-08]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  MFPULSE_CI_DATABASE_GUARD: "1"
 
 # Scoped per-branch/per-PR (github.ref), not global — a new push to one PR shouldn't cancel a
 # different PR's run. This exists mainly for frontend-tests: it claims real rows in the shared
@@ -25,16 +32,22 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
+      - name: Require integration database
+        env:
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+        run: test -n "$TEST_DATABASE_URL" || { echo "::error::TEST_DATABASE_URL is required for schema verification"; exit 1; }
+      - name: Verify connected test project and branch
+        run: python -m scripts.ci_database_guard
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
       # -m adds the repo root to sys.path so `ingestion` imports cleanly.
       # DATABASE_URL here is the TEST branch (same secret frontend-tests uses) — tests/test_migrations.py
-      # is the ONLY file in tests/ that touches it (confirmed: it's read-only, information_schema/
-      # pg_constraint/pg_indexes queries plus a couple of `select count(*)`), so this can't change any
-      # other test's behavior. If the secret isn't set yet (see docs/TEST_DATABASE_AND_CI.md), that one
-      # file's own pytest.mark.skipif no-ops gracefully — this job doesn't hard-fail on a missing
-      # secret the way frontend-tests does, since every OTHER file in this job needs no database at all.
+      # only inspects schema here. Missing credentials fail above, never silently skip this gate.
       - run: python -m pytest tests/ -q
         env:
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
 
   frontend-build:
     name: Next.js build
@@ -50,6 +63,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run build
         env:
           # The anon key is publishable (RLS-protected) — safe as a default.
@@ -80,17 +94,56 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - name: Guard — TEST_DATABASE_URL secret present
-        id: guard
+        env:
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
         run: |
-          if [ -z "${{ secrets.TEST_DATABASE_URL }}" ]; then
-            echo "::warning::Cause: TEST_DATABASE_URL repo secret not set in GitHub Actions. Skipping live Neon integration tests in CI. Location: repo Settings -> Secrets and variables -> Actions."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+          if [ -z "$TEST_DATABASE_URL" ]; then
+            echo "::error::TEST_DATABASE_URL is required for integration and tenant-isolation verification."
+            exit 1
           fi
+      - name: Verify connected test project and branch
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+        run: node scripts/check-test-database.mjs
       - name: Run test suite
-        if: steps.guard.outputs.skip != 'true'
         env:
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
           TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
         run: npm test
+
+  browser-regression:
+    name: Research browser regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+      TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+      AUTH_SECRET: ci-only-disposable-browser-session-secret
+      NEXTAUTH_URL: http://localhost:3011
+      NEXT_PUBLIC_SUPABASE_URL: https://fffxwcpptpyjuifknayj.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmZnh3Y3BwdHB5anVpZmtuYXlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyODY4OTAsImV4cCI6MjA5Nzg2Mjg5MH0.u1_fN5z4T6N8pbbH62y97LnDexYNI3dm1qbNBg4VyvU' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: test -n "$TEST_DATABASE_URL" || { echo "::error::Missing isolated browser-test database"; exit 1; }
+      - run: npm ci
+      - name: Verify connected test project and branch before browser fixtures
+        run: node scripts/check-test-database.mjs
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-regression-evidence
+          path: |
+            output/playwright/remediation/
+            frontend/test-results/

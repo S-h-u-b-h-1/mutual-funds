@@ -1,8 +1,8 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { track } from "../lib/track";
 import { saveSearch, getSearchHistory, getHistory, saveHistory } from "../lib/cloudSync";
-import { SUPA } from "../lib/supabase";
 
 // Predefined suggestion data for a premium experience
 const SUGGESTED_AMCS = ["SBI Mutual Fund", "HDFC Mutual Fund", "ICICI Prudential Mutual Fund", "Nippon India Mutual Fund", "Axis Mutual Fund", "Quant Mutual Fund"];
@@ -56,7 +56,10 @@ export function SearchLauncher({ className = "inline-flex w-full", compact = fal
   return (
     <button
       type="button"
-      onClick={() => window.dispatchEvent(new Event("mfp-open-search"))}
+      onClick={() => {
+        window.__mfpPendingSearch = true;
+        window.dispatchEvent(new Event("mfp-open-search"));
+      }}
       aria-label="Open global search"
       className={`${className} items-center justify-between rounded-full border border-line/80 bg-surface px-3 py-2 text-left text-[12.5px] font-semibold text-ink-muted shadow-sm transition-all hover:border-accent/30 hover:bg-surface-2 hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent/40`}
     >
@@ -73,6 +76,8 @@ export function SearchLauncher({ className = "inline-flex w-full", compact = fal
 }
 
 export default function Search({ listenForOpenRequest = false, triggerClassName = "inline-flex", compact = true }) {
+  const [portalReady, setPortalReady] = useState(false);
+  useEffect(() => { setPortalReady(true); }, []);
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
@@ -88,6 +93,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
   const inputRef = useRef(null);
   const dialogRef = useRef(null);
   const triggerRef = useRef(null);
+  const openerRef = useRef(null);
   const listRef = useRef(null);
 
   // Sync recent, popular, pinned and recent visits from storage
@@ -116,12 +122,8 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
 
   useEffect(() => {
     syncStorage();
-    fetch(`${SUPA.URL}/rest/v1/v_top_searches?select=query,searches&limit=5`, {
-      headers: { apikey: SUPA.KEY, Authorization: `Bearer ${SUPA.KEY}` }
-    })
-      .then((r) => r.json())
-      .then((d) => setPopular(Array.isArray(d) ? d : []))
-      .catch(() => {});
+    // Raw visitor queries are private. Suggested entities below are curated catalog entries.
+    setPopular([]);
   }, [open, syncStorage]);
 
   // Toggle pinning an item
@@ -145,6 +147,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
 
   // Open and close dialog helpers
   const openPalette = useCallback(() => {
+    openerRef.current = document.activeElement;
     setOpen(true);
     syncStorage();
     if (dialogRef.current && !dialogRef.current.open) dialogRef.current.showModal();
@@ -159,12 +162,21 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
     setQ("");
     setResults([]);
     setActiveIndex(0);
+    openerRef.current?.focus?.();
   }, []);
 
   useEffect(() => {
+    if (open && portalReady && dialogRef.current && !dialogRef.current.open) {
+      dialogRef.current.showModal();
+      inputRef.current?.focus();
+    }
+  }, [open, portalReady]);
+
+  useEffect(() => {
     if (!listenForOpenRequest) return undefined;
-    function handleOpenRequest() { openPalette(); }
+    function handleOpenRequest() { window.__mfpPendingSearch = false; openPalette(); }
     window.addEventListener("mfp-open-search", handleOpenRequest);
+    if (window.__mfpPendingSearch) handleOpenRequest();
     return () => window.removeEventListener("mfp-open-search", handleOpenRequest);
   }, [listenForOpenRequest, openPalette]);
 
@@ -195,21 +207,12 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
 
     const handleOutsideClick = (e) => {
       if (e.target !== dialog) return;
-      const rect = dialog.getBoundingClientRect();
-      const isInside = (
-        rect.top <= e.clientY &&
-        e.clientY <= rect.top + rect.height &&
-        rect.left <= e.clientX &&
-        e.clientX <= rect.left + rect.width
-      );
-      if (!isInside) {
-        closePalette();
-      }
+      closePalette();
     };
 
     dialog.addEventListener("click", handleOutsideClick);
     return () => dialog.removeEventListener("click", handleOutsideClick);
-  }, [closePalette]);
+  }, [closePalette, portalReady]);
 
   function runSearch(term) {
     setQ(term);
@@ -340,7 +343,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
       </button>
 
       {/* dialog command palette */}
-      <dialog
+      {portalReady && createPortal(<dialog
         ref={dialogRef}
         closedby="any"
         onClose={closePalette}
@@ -757,7 +760,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
           </div>
 
         </div>
-      </dialog>
+      </dialog>, document.body)}
     </div>
   );
 }

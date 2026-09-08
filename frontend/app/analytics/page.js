@@ -28,7 +28,7 @@ export default async function Analytics() {
   try {
     [events, searches, durations, charts, [funnel], topFunds] = await Promise.all([
       sb("v_event_summary?select=*", { revalidate: 120 }),
-      sb("v_top_searches?select=*", { revalidate: 120 }),
+      Promise.resolve([]), // raw visitor queries are never public analytics
       sb("v_session_duration_by_page?select=*", { revalidate: 120 }).catch(() => []),
       sb("v_chart_interactions?select=*", { revalidate: 120 }).catch(() => []),
       sb("v_advisor_funnel?select=*", { revalidate: 120 }).catch(() => [null]),

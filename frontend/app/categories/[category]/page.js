@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import Nav from "../../components/Nav";
 import Footer from "../../components/Footer";
@@ -16,7 +17,8 @@ import { getArticlesForEntity, relativeTime } from "../../lib/news";
 
 export const revalidate = 3600;
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata(props) {
+  const params = await props.params;
   return { title: `${decodeURIComponent(params.category)} funds` };
 }
 
@@ -39,7 +41,8 @@ const cols = [
   { key: "vol90", label: "Vol", align: "right", render: (r) => (r.vol90 == null ? <span className="text-ink-faint">—</span> : <span className="tnum text-ink-muted">{r.vol90}</span>) },
 ];
 
-export default async function CategoryDetail({ params }) {
+export default async function CategoryDetail(props) {
+  const params = await props.params;
   const category = decodeURIComponent(params.category);
   const funds = allFunds()
     .filter((f) => f.category === category && f.isGrowth && !f.isIdcw && f.assetClass === "Equity" && f.r1m != null)
@@ -69,7 +72,7 @@ export default async function CategoryDetail({ params }) {
       <Tracker event="category_view" payload={{ category, funds: funds.length }} view={{ type: "category", id: category, name: category }} />
       <main className="container-px py-10 sm:py-14">
         <ProductBreadcrumbs items={[["Mutual Funds", "/funds"], ["Categories", "/categories"], [category, null]]} />
-        <div className="eyebrow text-accent"><a className="hover:text-ink" href="/categories">Categories</a> · {category}</div>
+        <div className="eyebrow text-accent"><Link className="hover:text-ink" href="/categories">Categories</Link> · {category}</div>
         <h1 className="page-title mt-3">{category}</h1>
         <p className="mt-2 max-w-2xl text-[14px] text-ink-muted">
           {funds.length} equity Growth funds · momentum is <b className="text-ink">{momentum}</b> ({improving} improving / {weakening} weakening) · risk is <b className="text-ink">{riskLevel.toLowerCase()}</b>. Real AMFI NAV, as of {asOf}.
