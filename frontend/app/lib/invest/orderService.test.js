@@ -205,17 +205,20 @@ describe("orderService (integration, real Neon, disposable investment-ready user
   it("SIP recent-submit deduplication includes both schedule dates and still merges an identical retry", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0.1);
     const base = { schemeCode: "108273", amount: 2107, frequency: "monthly", startDate: "2026-09-01" };
-    const first = await orderService.createSipMandate(readyUserId, base);
-    // Keep only this disposable fixture inside the five-second candidate window even on
-    // high-latency local runs. This must not depend on how quickly a CI runner connects.
-    await query("update sip_mandates set created_at = now() + interval '5 minutes' where id = $1", [first.id]);
+    // Seed disposable candidates inside the window, independent of connection latency.
+    // Use existing INSERT privileges; CI does not need UPDATE on historical SIP timestamps.
+    const seed = async endDate => (await query(`insert into sip_mandates
+      (user_id,scheme_code,amount,frequency,start_date,end_date,mandate_status,created_at)
+      values ($1,$2,$3,$4,$5,$6,'active',now() + interval '5 minutes') returning *`,
+    [readyUserId, base.schemeCode, base.amount, base.frequency, base.startDate, endDate])).rows[0];
+    const first = await seed(null);
+    const finiteEnd = await seed("2027-09-01");
     const retry = await orderService.createSipMandate(readyUserId, base);
     expect(retry.id).toBe(first.id);
     const laterStart = await orderService.createSipMandate(readyUserId, { ...base, startDate: "2026-10-01" });
     expect(laterStart.id).not.toBe(first.id);
-    const finiteEnd = await orderService.createSipMandate(readyUserId, { ...base, endDate: "2027-09-01" });
-    expect(finiteEnd.id).not.toBe(first.id);
-    await query("update sip_mandates set created_at = now() + interval '5 minutes' where id = $1", [finiteEnd.id]);
+    const finiteRetry = await orderService.createSipMandate(readyUserId, { ...base, endDate: "2027-09-01" });
+    expect(finiteRetry.id).toBe(finiteEnd.id);
     const differentEnd = await orderService.createSipMandate(readyUserId, { ...base, endDate: "2028-09-01" });
     expect(differentEnd.id).not.toBe(finiteEnd.id);
     expect(new Set([first.id, laterStart.id, finiteEnd.id, differentEnd.id]).size).toBe(4);

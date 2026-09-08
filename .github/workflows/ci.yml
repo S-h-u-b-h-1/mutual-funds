@@ -48,7 +48,7 @@ jobs:
       # -m adds the repo root to sys.path so `ingestion` imports cleanly.
       # DATABASE_URL here is the TEST branch (same secret frontend-tests uses) — tests/test_migrations.py
       # only inspects schema here. Missing credentials fail above, never silently skip this gate.
-      - run: python -m pytest tests/ -q
+      - run: python -m pytest tests/ -q -rs
         env:
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
           TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
