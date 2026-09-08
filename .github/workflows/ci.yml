@@ -12,6 +12,10 @@ permissions:
 
 env:
   MFPULSE_CI_DATABASE_GUARD: "1"
+  # No production public-mirror reads or analytics writes from builds/browser tests.
+  # CI exercises the honest unavailable-mirror state; live source checks are separate.
+  NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-only-unconfigured-public-mirror
 
 # Scoped per-branch/per-PR (github.ref), not global — a new push to one PR shouldn't cancel a
 # different PR's run. This exists mainly for frontend-tests: it claims real rows in the shared
@@ -69,14 +73,6 @@ jobs:
       - run: npm ci
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run build
-        env:
-          # The anon key is publishable (RLS-protected) — safe as a default.
-          # Override via repo secrets of the same name if you prefer.
-          # 2026-07-03: the previous fallback pointed at "autijihzocnxduipeaop" — the OLD FinPulse
-          # project, deleted when this project migrated to MF-Pulse ("fffxwcpptpyjuifknayj"). CI
-          # was silently building against a dead project this whole time; fixed to the real one.
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://fffxwcpptpyjuifknayj.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmZnh3Y3BwdHB5anVpZmtuYXlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyODY4OTAsImV4cCI6MjA5Nzg2Mjg5MH0.u1_fN5z4T6N8pbbH62y97LnDexYNI3dm1qbNBg4VyvU' }}
 
   frontend-tests:
     name: Frontend lint + test suite (isolated Neon test branch)
@@ -130,8 +126,6 @@ jobs:
       TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
       AUTH_SECRET: ci-only-disposable-browser-session-secret
       NEXTAUTH_URL: http://localhost:3011
-      NEXT_PUBLIC_SUPABASE_URL: https://fffxwcpptpyjuifknayj.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmZnh3Y3BwdHB5anVpZmtuYXlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyODY4OTAsImV4cCI6MjA5Nzg2Mjg5MH0.u1_fN5z4T6N8pbbH62y97LnDexYNI3dm1qbNBg4VyvU' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
