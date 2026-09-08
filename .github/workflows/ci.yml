@@ -29,7 +29,7 @@ jobs:
     env:
       # libpq needs an explicit CA store on a fresh runner. Keep verify-full TLS;
       # use the operating system trust roots, never disable certificate checks.
-      PGSSLROOTCERT: system
+      PGSSLROOTCERT: /etc/ssl/certs/ca-certificates.crt
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

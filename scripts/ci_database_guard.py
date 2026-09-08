@@ -35,6 +35,10 @@ def assert_connection(conn):
 def safe_failure_category(error):
     """Fixed labels only: driver messages can contain credentials or connection strings."""
     message = str(error).lower()
+    if "root certificate file" in message and "does not exist" in message:
+        return "TLS CA bundle unavailable"
+    if "server certificate for" in message:
+        return "TLS hostname mismatch"
     if "certificate" in message or "sslrootcert" in message:
         return "TLS certificate verification"
     if getattr(error, "sqlstate", None) == "28P01":
