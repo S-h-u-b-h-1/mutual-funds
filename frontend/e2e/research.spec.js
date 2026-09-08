@@ -46,6 +46,10 @@ for (const path of ["/funds", "/compare", "/data-status", "/news", "/brief", "/s
       const response = await page.goto(path);
       expect(response.status()).toBe(200);
       await expect(page.locator("h1").first()).toBeVisible();
+      const overflowing = await page.evaluate(() => Array.from(document.querySelectorAll("main *"))
+        .filter(el => el.getBoundingClientRect().right > innerWidth + 1)
+        .slice(0, 5).map(el => ({ tag: el.tagName, className: el.className, right: el.getBoundingClientRect().right })));
+      if (overflowing.length) console.error("Horizontal overflow diagnostics:", overflowing);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
       if (path === "/invest") {
         await expect(page.getByText(/No real investment is executed|Sign in required|Welcome back to MF Pulse/).first()).toBeVisible();
@@ -75,10 +79,12 @@ test("search keyboard navigation survives resize and browser back", async ({ pag
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/fund\/100033/);
   await page.goBack();
-  await page.getByRole("button", { name: "Open global search", exact: true }).filter({ visible: true }).first().click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).not.toBeVisible();
+  for (let reopen = 0; reopen < 3; reopen++) {
+    await page.getByRole("button", { name: "Open global search", exact: true }).filter({ visible: true }).first().click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+  }
 });
 
 test("public publication identity and browser security headers are explicit", async ({ request }) => {

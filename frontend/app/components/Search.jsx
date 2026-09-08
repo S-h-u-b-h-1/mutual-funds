@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { track } from "../lib/track";
 import { saveSearch, getSearchHistory, getHistory, saveHistory } from "../lib/cloudSync";
 
@@ -76,6 +77,7 @@ export function SearchLauncher({ className = "inline-flex w-full", compact = fal
 }
 
 export default function Search({ listenForOpenRequest = false, triggerClassName = "inline-flex", compact = true }) {
+  const router = useRouter();
   const [portalReady, setPortalReady] = useState(false);
   useEffect(() => { setPortalReady(true); }, []);
   const [q, setQ] = useState("");
@@ -306,17 +308,17 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
     } else if (item.type === "fund") {
       track("search_click", { scheme_code: item.payload, name: item.value });
       saveHistory({ type: "fund", id: item.payload, name: item.value });
-      window.location.href = `/fund/${item.payload}`;
       closePalette();
+      router.push(`/fund/${item.payload}`);
     } else if (item.type === "result") {
       const result = item.payload || {};
       track("search_click", { code: result.code, name: item.value, kind: result.kind || "fund" });
       if ((result.kind || "fund") === "fund") saveHistory({ type: "fund", id: result.code, name: item.value });
-      window.location.href = result.path || `/fund/${result.code}`;
       closePalette();
+      router.push(result.path || `/fund/${result.code}`);
     } else if (item.type === "pinned" || item.type === "visit" || item.type === "shortcut") {
-      window.location.href = item.payload;
       closePalette();
+      router.push(item.payload);
     }
   };
 
@@ -346,7 +348,11 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
       {portalReady && createPortal(<dialog
         ref={dialogRef}
         closedby="any"
-        onClose={closePalette}
+        onClose={() => {
+          // Native close events are queued. A previous close (including before Back)
+          // must not dismiss a dialog the user has already reopened.
+          if (!dialogRef.current?.open) closePalette();
+        }}
         aria-labelledby="global-search-title"
         className="cmd-dialog fixed inset-0 z-50 m-0 hidden h-full w-full max-h-none max-w-none overflow-hidden bg-transparent p-0 pt-[8vh] outline-none open:flex open:items-start open:justify-center"
       >
