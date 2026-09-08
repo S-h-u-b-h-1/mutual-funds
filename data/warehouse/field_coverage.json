@@ -1,103 +1,103 @@
 {
- "asOf": "2026-09-06",
+ "asOf": "2026-09-07",
  "denominators": {
-  "universe": 14339,
-  "active": 8601,
-  "investable": 3527
+  "universe": 14347,
+  "active": 8609,
+  "investable": 3529
  },
  "fields": {
   "Identity": {
    "Scheme Name": {
     "universe_pct": 100.0,
-    "universe_n": 14339,
+    "universe_n": 14347,
     "investable_pct": 100.0,
-    "investable_n": 3527
+    "investable_n": 3529
    },
    "AMC": {
     "universe_pct": 100.0,
-    "universe_n": 14339,
+    "universe_n": 14347,
     "investable_pct": 100.0,
-    "investable_n": 3527
+    "investable_n": 3529
    },
    "Category": {
     "universe_pct": 100.0,
-    "universe_n": 14339,
+    "universe_n": 14347,
     "investable_pct": 100.0,
-    "investable_n": 3527
+    "investable_n": 3529
    },
    "Asset Class": {
     "universe_pct": 100.0,
-    "universe_n": 14339,
+    "universe_n": 14347,
     "investable_pct": 100.0,
-    "investable_n": 3527
+    "investable_n": 3529
    },
    "Benchmark": {
-    "universe_pct": 75.49,
-    "universe_n": 10824,
-    "investable_pct": 62.6,
+    "universe_pct": 75.47,
+    "universe_n": 10828,
+    "investable_pct": 62.57,
     "investable_n": 2208
    }
   },
   "Performance": {
    "Latest NAV": {
     "universe_pct": 98.32,
-    "universe_n": 14098,
+    "universe_n": 14106,
     "investable_pct": 100.0,
-    "investable_n": 3527
+    "investable_n": 3529
    },
    "NAV History (90d)": {
-    "universe_pct": 29.17,
-    "universe_n": 4183,
-    "investable_pct": 97.62,
-    "investable_n": 3443
+    "universe_pct": 29.48,
+    "universe_n": 4230,
+    "investable_pct": 98.61,
+    "investable_n": 3480
    },
    "1M": {
-    "universe_pct": 29.42,
-    "universe_n": 4218,
-    "investable_pct": 98.21,
-    "investable_n": 3464
+    "universe_pct": 29.44,
+    "universe_n": 4224,
+    "investable_pct": 98.55,
+    "investable_n": 3478
    },
    "3M": {
-    "universe_pct": 29.04,
-    "universe_n": 4164,
-    "investable_pct": 97.19,
+    "universe_pct": 28.63,
+    "universe_n": 4108,
+    "investable_pct": 97.14,
     "investable_n": 3428
    },
    "6M": {
-    "universe_pct": 0.0,
-    "universe_n": 0,
-    "investable_pct": 0.0,
-    "investable_n": 0
+    "universe_pct": 28.01,
+    "universe_n": 4018,
+    "investable_pct": 95.07,
+    "investable_n": 3355
    },
    "1Y": {
-    "universe_pct": 0.0,
-    "universe_n": 0,
-    "investable_pct": 0.0,
-    "investable_n": 0
+    "universe_pct": 26.31,
+    "universe_n": 3775,
+    "investable_pct": 90.0,
+    "investable_n": 3176
    },
    "3Y": {
-    "universe_pct": 0.0,
-    "universe_n": 0,
-    "investable_pct": 0.0,
-    "investable_n": 0
+    "universe_pct": 19.94,
+    "universe_n": 2861,
+    "investable_pct": 68.04,
+    "investable_n": 2401
    },
    "5Y": {
-    "universe_pct": 0.0,
-    "universe_n": 0,
-    "investable_pct": 0.0,
-    "investable_n": 0
+    "universe_pct": 14.33,
+    "universe_n": 2056,
+    "investable_pct": 48.94,
+    "investable_n": 1727
    },
    "Volatility": {
-    "universe_pct": 29.17,
-    "universe_n": 4183,
-    "investable_pct": 97.62,
-    "investable_n": 3443
+    "universe_pct": 29.48,
+    "universe_n": 4230,
+    "investable_pct": 98.61,
+    "investable_n": 3480
    },
    "Drawdown": {
-    "universe_pct": 29.17,
-    "universe_n": 4183,
-    "investable_pct": 97.62,
-    "investable_n": 3443
+    "universe_pct": 29.48,
+    "universe_n": 4230,
+    "investable_pct": 98.61,
+    "investable_n": 3480
    }
   },
   "Metadata": {
@@ -108,7 +108,7 @@
     "investable_n": 79
    },
    "AUM": {
-    "universe_pct": 6.17,
+    "universe_pct": 6.16,
     "universe_n": 884,
     "investable_pct": 7.14,
     "investable_n": 252
@@ -122,7 +122,7 @@
    "Manager": {
     "universe_pct": 5.38,
     "universe_n": 772,
-    "investable_pct": 5.93,
+    "investable_pct": 5.92,
     "investable_n": 209
    },
    "Launch Date": {
@@ -132,9 +132,9 @@
     "investable_n": 236
    },
    "Exit Load": {
-    "universe_pct": 4.69,
+    "universe_pct": 4.68,
     "universe_n": 672,
-    "investable_pct": 5.25,
+    "investable_pct": 5.24,
     "investable_n": 185
    },
    "SIP Minimum": {
@@ -166,7 +166,7 @@
   },
   "Documents": {
    "Factsheet": {
-    "universe_pct": 6.17,
+    "universe_pct": 6.16,
     "universe_n": 884,
     "investable_pct": 7.14,
     "investable_n": 252
@@ -174,16 +174,16 @@
   }
  },
  "performance_completeness": {
-  "universe_avg": 41.9,
-  "investable_avg": 75.2,
-  "investable_ge80": 61.07,
-  "universe_ge80": 18.98
+  "universe_avg": 46.6,
+  "investable_avg": 91.4,
+  "investable_ge80": 95.44,
+  "universe_ge80": 28.43
  },
  "fund_completeness": {
-  "fund_completeness_avg_universe": 37.9,
-  "fund_completeness_avg_investable": 50.7,
-  "research_readiness_avg_universe": 31.2,
-  "research_readiness_avg_investable": 52.8,
+  "fund_completeness_avg_universe": 39.6,
+  "fund_completeness_avg_investable": 56.4,
+  "research_readiness_avg_universe": 31.3,
+  "research_readiness_avg_investable": 53.0,
   "isin_coverage_pct": 98.79,
   "structure_coverage_pct": 100.0
  }

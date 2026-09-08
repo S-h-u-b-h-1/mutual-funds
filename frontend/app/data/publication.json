@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "publicationId": "2026-09-07-d55ad5f47447",
-  "createdAt": "2026-09-08T10:49:11.844261+00:00",
+  "publicationId": "2026-09-07-b38408ba2e0a",
+  "createdAt": "2026-09-08T14:25:04.424349+00:00",
   "sourceAsOf": "2026-09-07",
   "source": "AMFI official NAV publication and history",
   "sourceRowCounts": {
@@ -41,8 +41,8 @@
   },
   "outputs": {
     "funds.json": {
-      "sha256": "84f10bdb6361260c7012ff1a560071d127db095b2683c5d2ebecd240869d910e",
-      "bytes": 11408254
+      "sha256": "d109e6ed6ba831432c08e0ec753b3b89e398cdb670f91c32ce2b0504ad830865",
+      "bytes": 11465864
     },
     "performance.json": {
       "sha256": "b76f87ee74e35bcb9cdc7e9ecbb2cd9f97f53c24adb02232894599f3efe77307",
@@ -53,19 +53,19 @@
       "bytes": 939500
     },
     "daily.json": {
-      "sha256": "af6471652af13cfc5b8a30c675dff9fac4993654e06b45430f161fead64e35d8",
-      "bytes": 4501
+      "sha256": "b562504d1d5084760bfc541b5b01537bd0c052523f7d94aa33dfd79b82eebddc",
+      "bytes": 17080
     },
     "amc_trend.json": {
       "sha256": "8c5255ee10901221c891ca5da7769525acd37e0e62a40cbffdd5f827a0e1a917",
       "bytes": 26830
     },
     "fieldCoverage.json": {
-      "sha256": "2713db1366e573d7a23b024157bf7f82fdf177cf57b17ffb03b88330a3dd8058",
-      "bytes": 3545
+      "sha256": "df20531f239d48d9982ef89eb247a0b87aa1c8508ecf105023c16359d49d7dcc",
+      "bytes": 3585
     }
   },
-  "checksum": "d55ad5f47447b219dad1e3888e03201c56188a794d5e35864e01a5254834b12e",
+  "checksum": "b38408ba2e0aa576ec39f2460f16de959a2715993760c075f85d83f1303fd375",
   "requiredCoverage": {
     "eligible": 4251,
     "r1m": 4177,
@@ -77,5 +77,5 @@
     "vol90": 4180
   },
   "pipelineStatus": "verified",
-  "buildCommit": "4621516403d6cbe918823fe5c14bf7c3f6f5624e"
+  "buildCommit": "5bb1f86742c1094ad1add21632d2532cf062773c"
 }

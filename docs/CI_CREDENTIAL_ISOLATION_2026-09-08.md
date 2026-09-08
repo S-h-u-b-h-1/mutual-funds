@@ -43,6 +43,14 @@ An additional artifact-upload gate scans the exact configured test URL and decod
 
 ## Remaining release work
 
+## Reconciled publication checkpoint
+
+Latest origin/main is `9403eadcc641950358652adc71b6d1d2994f4d3d`; the mirror main has no unique commits and is 456 commits behind it. Reconciliation incorporates that origin history on the remediation branch only. Neither main branch is changed. The two financial-bundle conflicts retain the corrected calculation outputs; comparison against origin confirmed no NAV or scheme-identity divergence. A post-rebuild comparison confirmed zero unintended financial/identity changes.
+
+The daily summary and coverage artifacts were regenerated from the corrected funds and a fresh official NAVAll fetch: **14,347 source schemes, zero missing, zero delisted**. All original origin rank-history bytes remain intact; the normal builder appended its new snapshot. Funds, performance and daily summaries now agree on **7 September 2026**.
+
+Publication ID: `2026-09-07-b38408ba2e0a`; aggregate checksum: `b38408ba2e0aa576ec39f2460f16de959a2715993760c075f85d83f1303fd375`. Its `buildCommit` records the actual generator source checkout `5bb1f86742c1094ad1add21632d2532cf062773c`; data inputs/outputs are separately identified by their checksums. It is not presented as a self-referential final release commit. Forty focused financial/publication/search/data tests passed after reconciliation. Full exact-candidate CI in both repositories is the remaining gate at this committed report checkpoint.
+
 **First complete isolated hosted pass:** [34237466961](https://github.com/S-h-u-b-h-1/mutual-funds/actions/runs/34237466961), commit `2700574a758408731e88279b445081dd41d88c0c`, passed all four jobs: 876 frontend tests, 197 Python tests and 42 browser checks, zero skips/failures. This is the pre-reconciliation checkpoint, not the final candidate. The new publication-date gate independently caught the old daily bundle's 4 September date versus the corrected funds/performance date of 7 September; reconciliation must rebuild it before the next release-gate run.
 
 Independent official-source refresh at **14:12:31 UTC** again matched **11/11** sampled schemes with no calculation differences. At approximately **14:14 UTC**, a separate read-only production schema/integrity check again found no missing columns, zero orphan relationships and zero unvalidated foreign keys. All five approved migration checksums still match disk and ledger; production users/holdings/uploads/transactions remain 33/28/44/6. This operator check did not use the CI credential and is not part of CI database access.
