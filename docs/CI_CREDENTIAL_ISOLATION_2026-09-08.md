@@ -41,6 +41,8 @@ Browser checks wait for the Python, build and frontend integration gates to prev
 
 An additional artifact-upload gate scans the exact configured test URL and decoded password in report files and decompressed ZIP trace entries. Any match or scan error blocks upload, including after a failed browser run. Regression tests cover plain files, password-only leaks, compressed traces and missing scan credentials. No secret values appear in diagnostic output.
 
+The reconciled candidate `ed22462b64a56da0c29d9a11347fb9f48b2fd51e` passed all origin gates in [34238269253](https://github.com/S-h-u-b-h-1/mutual-funds/actions/runs/34238269253): 876 frontend, 205 Python and 42 browser checks; artifact scan passed. Its first mirror run [34240660463](https://github.com/S-h-u-b-h-1/MF-Pulse/actions/runs/34240660463) verified the isolated identity and passed Python, but two password-reset assertions received 429 because repeated suites shared the durable `unknown` IP bucket. Fixtures now use a unique documentation-range IPv6 address, and an additional assertion confirms both attempts still reach the real rate limiter. No application limit or database privilege is weakened. Both repositories must rerun the resulting test-only candidate revision.
+
 ## Remaining release work
 
 ## Reconciled publication checkpoint
