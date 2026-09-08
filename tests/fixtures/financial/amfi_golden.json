@@ -1,6 +1,6 @@
 {
   "asOf": "2026-09-07",
-  "fetchedAt": "2026-09-08T11:25:09.197671+00:00",
+  "fetchedAt": "2026-09-08T14:12:31.017316+00:00",
   "selection": "Ten random schemes (seed 20260908; active non-IDCW, current NAV and 1Y history), plus original discrepancy scheme 100033",
   "sources": [
     {
@@ -29,7 +29,7 @@
     },
     {
       "url": "https://portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx?frmdt=31-Aug-2021&todt=07-Sep-2021",
-      "sha256": "8ccd361ed740099d763f72cc298bdd06e8ca7f425139af5b1d06028ef5d9db03"
+      "sha256": "24562582d18522fa974a65ef8093328f383ce01bd2261f104c128814d750c3d3"
     }
   ],
   "samples": [

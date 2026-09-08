@@ -32,3 +32,11 @@ def test_database_jobs_guard_identity_before_tests():
         guard = next(i for i, command in enumerate(commands) if "ci_database_guard" in command or "check-test-database.mjs" in command)
         run = next(i for i, command in enumerate(commands) if "pytest tests/" in command or "npm test" in command or "npm run test:e2e" in command)
         assert guard < run
+
+
+def test_artifact_upload_requires_a_successful_secret_scan():
+    steps = WORKFLOW["jobs"]["browser-regression"]["steps"]
+    scan = next(i for i, step in enumerate(steps) if step.get("id") == "artifact-secrets")
+    upload = next(i for i, step in enumerate(steps) if step.get("uses", "").startswith("actions/upload-artifact@"))
+    assert scan < upload
+    assert "steps.artifact-secrets.outcome == 'success'" in steps[upload]["if"]

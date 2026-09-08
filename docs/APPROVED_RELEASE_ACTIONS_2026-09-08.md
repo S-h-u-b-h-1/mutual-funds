@@ -1,5 +1,7 @@
 # Approved release actions — 8 September 2026
 
+**Superseding credential checkpoint:** the user subsequently approved a new least-privilege CI role on the isolated test branch. Its credential was rejected by production and stored encrypted in both approved GitHub repositories. The old shared credential described below was not uploaded. Hosted release gates are in progress; no application deployment has occurred. See [CI credential isolation and current gates](CI_CREDENTIAL_ISOLATION_2026-09-08.md). The migration evidence below remains current; the original credential-blocker narrative is retained as history.
+
 ## Outcome
 
 Only production Neon migrations **029, 030, 031, 032 and 034** were applied at **13:03:48 UTC** to project `super-surf-43536488`, production branch `br-raspy-glitter-atut1ur7`. The immediate, separate read-only post-commit schema/referential-integrity gate passed.

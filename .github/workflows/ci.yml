@@ -140,8 +140,13 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run build
       - run: npm run test:e2e
-      - uses: actions/upload-artifact@v4
+      - name: Refuse credentials in browser artifacts
+        id: artifact-secrets
         if: always()
+        working-directory: .
+        run: python3 scripts/check_ci_artifacts.py
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.artifact-secrets.outcome == 'success'
         with:
           name: browser-regression-evidence
           path: |
