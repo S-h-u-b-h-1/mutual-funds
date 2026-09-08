@@ -26,6 +26,10 @@ jobs:
   backend-tests:
     name: Python data-quality tests
     runs-on: ubuntu-latest
+    env:
+      # libpq needs an explicit CA store on a fresh runner. Keep verify-full TLS;
+      # use the operating system trust roots, never disable certificate checks.
+      PGSSLROOTCERT: system
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

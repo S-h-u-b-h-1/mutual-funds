@@ -32,14 +32,26 @@ def assert_connection(conn):
         raise RuntimeError("CI database connected identity check failed") from None
 
 
+def safe_failure_category(error):
+    """Fixed labels only: driver messages can contain credentials or connection strings."""
+    message = str(error).lower()
+    if "certificate" in message or "sslrootcert" in message:
+        return "TLS certificate verification"
+    if getattr(error, "sqlstate", None) == "28P01":
+        return "authentication rejected"
+    if isinstance(error, RuntimeError):
+        return "connected identity mismatch"
+    return "connection unavailable"
+
+
 def main():
     import psycopg
     assert_url()
     try:
         with psycopg.connect(os.environ["TEST_DATABASE_URL"], connect_timeout=15) as conn:
             assert_connection(conn)
-    except Exception:
-        raise SystemExit("CI database preflight failed; no tests may run") from None
+    except Exception as error:
+        raise SystemExit(f"CI database preflight failed ({safe_failure_category(error)}); no tests may run") from None
     print("CI database identity verified: approved project, test branch, endpoint, database and CI role")
 
 

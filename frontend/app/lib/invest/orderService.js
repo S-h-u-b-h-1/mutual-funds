@@ -480,9 +480,10 @@ export async function createSipMandate(userId, { schemeCode, amount, frequency, 
     const recent = await client.query(
       `select * from sip_mandates
        where user_id = $1 and scheme_code = $2 and amount = $3 and frequency = $4
+         and start_date = $5::date and end_date is not distinct from $6::date
          and created_at > now() - interval '5 seconds'
        order by created_at desc limit 1`,
-      [userId, schemeCode, amount, frequency]
+      [userId, schemeCode, amount, frequency, startDate, endDate]
     );
     if (recent.rows.length > 0) return { mandate: recent.rows[0], isNew: false };
 

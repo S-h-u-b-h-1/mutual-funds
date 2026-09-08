@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { DEFAULT_PROFILE, PROFILE_OPTIONS, getStoredProfile, optionLabel } from "../lib/userProfile";
@@ -165,7 +166,7 @@ export default function ProfileForm({ mode = "setup", callbackUrl = "/dashboard"
         >
           {saveState === "saving" ? "Saving…" : saveState === "retrying" ? "Retrying…" : mode === "setup" ? "Save profile and enter workspace" : "Save profile"}
         </button>
-        {mode === "setup" && <a href="/" className="inline-flex min-h-12 items-center rounded-2xl px-4 text-sm font-semibold text-ink-muted hover:text-ink">Return to landing page</a>}
+        {mode === "setup" && <Link href="/" className="inline-flex min-h-12 items-center rounded-2xl px-4 text-sm font-semibold text-ink-muted hover:text-ink">Return to landing page</Link>}
       </div>
     </form>
   );

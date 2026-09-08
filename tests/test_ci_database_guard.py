@@ -1,5 +1,5 @@
 import pytest
-from scripts.ci_database_guard import EXPECTED, HOST, assert_url, assert_connection
+from scripts.ci_database_guard import EXPECTED, HOST, assert_url, assert_connection, safe_failure_category
 
 
 def test_approved_url(monkeypatch):
@@ -45,3 +45,12 @@ def test_connected_identity_fails_closed(position):
     row[position] = None
     with pytest.raises(RuntimeError):
         assert_connection(Connection(row))
+
+
+@pytest.mark.parametrize("error, category", [
+    (Exception("root certificate missing postgresql://private:secret@example/db"), "TLS certificate verification"),
+    (RuntimeError("private identity details"), "connected identity mismatch"),
+    (Exception("postgresql://private:secret@example/db"), "connection unavailable"),
+])
+def test_failure_category_does_not_disclose_driver_details(error, category):
+    assert safe_failure_category(error) == category
