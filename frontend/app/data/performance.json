@@ -633,13 +633,13 @@
 {
 "category": "Sectoral",
 "count": 38,
-"avg": -1.02,
+"avg": -1.03,
 "median": -1.5,
 "best": {
-"name": "DSP Healthcare Fund - Direct Plan - Growth",
-"amc": "DSP",
-"ret": 1.57,
-"code": "145454"
+"name": "WhiteOak Capital Pharma and Healthcare Fund - Direct Plan - Growth Option",
+"amc": "WhiteOak Capital",
+"ret": 1.56,
+"code": "152349"
 },
 "worst": {
 "name": "BANDHAN Infrastructure Fund - Regular Plan - Growth",
@@ -652,8 +652,8 @@
 {
 "category": "Sectoral/ Thematic",
 "count": 345,
-"avg": -1.45,
-"median": -1.64,
+"avg": -1.53,
+"median": -1.79,
 "best": {
 "name": "Motilal Oswal Digital India Fund - Direct Plan - Growth",
 "amc": "Motilal Oswal",
@@ -666,7 +666,7 @@
 "ret": -6.94,
 "code": "100352"
 },
-"breadth": 24
+"breadth": 23
 },
 {
 "category": "Thematic",
@@ -685,12 +685,12 @@
 "ret": -6.23,
 "code": "152058"
 },
-"breadth": 27
+"breadth": 29
 },
 {
 "category": "Large & Mid Cap",
 "count": 73,
-"avg": -1.66,
+"avg": -1.69,
 "median": -1.78,
 "best": {
 "name": "Motilal Oswal Large and Midcap Fund - Direct Plan - Growth",
@@ -699,17 +699,17 @@
 "code": "147704"
 },
 "worst": {
-"name": "DSP Large & Mid Cap Fund - Regular Plan - Growth",
-"amc": "DSP",
-"ret": -3.87,
-"code": "103819"
+"name": "SBI LARGE & MIDCAP FUND - Regular Plan - Growth",
+"amc": "SBI",
+"ret": -4.24,
+"code": "103024"
 },
 "breadth": 8
 },
 {
 "category": "Flexi Cap",
 "count": 89,
-"avg": -1.92,
+"avg": -1.95,
 "median": -1.97,
 "best": {
 "name": "Capitalmind Flexi Cap Fund - Direct Plan - Growth",
@@ -726,28 +726,9 @@
 "breadth": 11
 },
 {
-"category": "Contra",
-"count": 7,
-"avg": -1.94,
-"median": -2.43,
-"best": {
-"name": "Motilal Oswal Contra Fund - Regular Plan - Growth",
-"amc": "Motilal Oswal",
-"ret": 1.74,
-"code": "154338"
-},
-"worst": {
-"name": "Kotak Contra Fund - Regular Plan - Growth",
-"amc": "Kotak Mahindra",
-"ret": -3.03,
-"code": "103040"
-},
-"breadth": 14
-},
-{
 "category": "Focused",
 "count": 56,
-"avg": -2.02,
+"avg": -2.04,
 "median": -2.47,
 "best": {
 "name": "Bandhan Focused Fund - Direct Plan - Growth",
@@ -760,6 +741,25 @@
 "amc": "Tata",
 "ret": -4.7,
 "code": "147760"
+},
+"breadth": 11
+},
+{
+"category": "Contra",
+"count": 7,
+"avg": -2.07,
+"median": -2.86,
+"best": {
+"name": "Motilal Oswal Contra Fund - Regular Plan - Growth",
+"amc": "Motilal Oswal",
+"ret": 1.74,
+"code": "154338"
+},
+"worst": {
+"name": "Kotak Contra Fund - Regular Plan - Growth",
+"amc": "Kotak Mahindra",
+"ret": -3.03,
+"code": "103040"
 },
 "breadth": 14
 },
@@ -1002,7 +1002,7 @@
 {
 "amc": "Axis",
 "funds": 64,
-"avg": -1.77,
+"avg": -1.79,
 "pct_outperform": 58,
 "breadth": 25,
 "score": 45.2
@@ -1026,10 +1026,26 @@
 {
 "amc": "Aditya Birla Sun Life",
 "funds": 65,
-"avg": -1.66,
-"pct_outperform": 54,
+"avg": -1.74,
+"pct_outperform": 51,
 "breadth": 22,
-"score": 42.3
+"score": 40.5
+},
+{
+"amc": "Bajaj Finserv",
+"funds": 20,
+"avg": -1.21,
+"pct_outperform": 45,
+"breadth": 20,
+"score": 37.8
+},
+{
+"amc": "HDFC",
+"funds": 47,
+"avg": -1.91,
+"pct_outperform": 47,
+"breadth": 19,
+"score": 37.5
 },
 {
 "amc": "WhiteOak Capital",
@@ -1042,34 +1058,10 @@
 {
 "amc": "SBI",
 "funds": 56,
-"avg": -1.96,
+"avg": -2.1,
 "pct_outperform": 46,
-"breadth": 18,
-"score": 36.9
-},
-{
-"amc": "Edelweiss",
-"funds": 28,
-"avg": -1.49,
-"pct_outperform": 43,
-"breadth": 21,
-"score": 36.5
-},
-{
-"amc": "HDFC",
-"funds": 47,
-"avg": -1.91,
-"pct_outperform": 45,
-"breadth": 19,
-"score": 36.3
-},
-{
-"amc": "Bajaj Finserv",
-"funds": 20,
-"avg": -1.21,
-"pct_outperform": 40,
-"breadth": 20,
-"score": 35.1
+"breadth": 14,
+"score": 35.7
 },
 {
 "amc": "The Wealth Company",
@@ -1104,20 +1096,20 @@
 "score": 32.8
 },
 {
-"amc": "Kotak Mahindra",
-"funds": 54,
-"avg": -1.86,
-"pct_outperform": 39,
-"breadth": 17,
-"score": 32.6
+"amc": "Edelweiss",
+"funds": 28,
+"avg": -1.59,
+"pct_outperform": 36,
+"breadth": 21,
+"score": 32.5
 },
 {
-"amc": "Sundaram",
-"funds": 33,
-"avg": -1.92,
-"pct_outperform": 36,
-"breadth": 15,
-"score": 30.7
+"amc": "Tata",
+"funds": 38,
+"avg": -2.47,
+"pct_outperform": 42,
+"breadth": 5,
+"score": 30.5
 },
 {
 "amc": "Taurus",
@@ -1128,36 +1120,36 @@
 "score": 30.4
 },
 {
-"amc": "Tata",
-"funds": 38,
-"avg": -2.47,
-"pct_outperform": 39,
-"breadth": 5,
-"score": 29.1
+"amc": "Kotak Mahindra",
+"funds": 54,
+"avg": -1.95,
+"pct_outperform": 35,
+"breadth": 15,
+"score": 29.9
 },
 {
 "amc": "DSP",
 "funds": 32,
-"avg": -2.31,
+"avg": -2.29,
 "pct_outperform": 34,
-"breadth": 12,
-"score": 28.3
+"breadth": 19,
+"score": 29.9
 },
 {
 "amc": "Baroda BNP Paribas",
 "funds": 40,
 "avg": -2.14,
-"pct_outperform": 32,
+"pct_outperform": 35,
 "breadth": 10,
-"score": 27.0
+"score": 28.3
 },
 {
-"amc": "Franklin Templeton",
-"funds": 30,
-"avg": -2.13,
-"pct_outperform": 27,
-"breadth": 20,
-"score": 26.3
+"amc": "Sundaram",
+"funds": 33,
+"avg": -1.95,
+"pct_outperform": 30,
+"breadth": 15,
+"score": 27.3
 },
 {
 "amc": "NJ",
@@ -1176,12 +1168,28 @@
 "score": 25.0
 },
 {
+"amc": "Franklin Templeton",
+"funds": 30,
+"avg": -2.27,
+"pct_outperform": 27,
+"breadth": 13,
+"score": 24.4
+},
+{
 "amc": "Nippon India",
 "funds": 42,
-"avg": -1.95,
+"avg": -1.96,
 "pct_outperform": 19,
 "breadth": 14,
 "score": 20.9
+},
+{
+"amc": "ICICI Prudential",
+"funds": 62,
+"avg": -3.09,
+"pct_outperform": 23,
+"breadth": 3,
+"score": 18.3
 },
 {
 "amc": "Canara Robeco",
@@ -1190,14 +1198,6 @@
 "pct_outperform": 15,
 "breadth": 8,
 "score": 16.8
-},
-{
-"amc": "ICICI Prudential",
-"funds": 62,
-"avg": -2.98,
-"pct_outperform": 16,
-"breadth": 3,
-"score": 14.9
 },
 {
 "amc": "Navi",
@@ -1226,10 +1226,10 @@
 {
 "amc": "PPFAS",
 "funds": 6,
-"avg": -3.57,
+"avg": -3.79,
 "pct_outperform": 0,
 "breadth": 0,
-"score": 4.3
+"score": 3.9
 },
 {
 "amc": "Shriram",
@@ -1243,7 +1243,7 @@
 "insights": [
 "Small Cap led equity categories at +1.8% (1-month NAV), outpacing Large Cap (-3.5%) by 5.3 pts.",
 "The top 10 equity funds averaged +9.2% over 1 month, led by Samco Small Cap Fund - Direct Plan - Gro (+10.6%).",
-"Across 1,286 equity Growth funds, 22% posted positive 1-month NAV returns.",
+"Across 1,286 equity Growth funds, 21% posted positive 1-month NAV returns.",
 "Trust ranks #1 on AMC quality (100% of its funds beat their category median)."
 ]
 }
