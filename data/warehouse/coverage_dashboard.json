@@ -16,15 +16,15 @@
    "Hybrid": 851
   },
   "scheme_type": {
-   "Open Ended Schemes": 9609,
    "Close Ended Schemes": 4711,
+   "Open Ended Schemes": 9609,
    "Interval Fund Schemes": 41
   },
   "fund_type": {
    "Active/Other": 11985,
-   "ETF": 359,
    "Index Fund": 1310,
-   "Fund of Fund": 707
+   "Fund of Fund": 707,
+   "ETF": 359
   },
   "international": 177,
   "commodity": 212
