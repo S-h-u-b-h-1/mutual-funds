@@ -11,9 +11,9 @@
   "asset_class": {
    "Equity": 3190,
    "Debt": 8061,
-   "Solution": 145,
    "Other": 2114,
-   "Hybrid": 851
+   "Hybrid": 851,
+   "Solution": 145
   },
   "scheme_type": {
    "Open Ended Schemes": 9609,
@@ -22,8 +22,8 @@
   },
   "fund_type": {
    "Active/Other": 11985,
-   "Fund of Fund": 707,
    "Index Fund": 1310,
+   "Fund of Fund": 707,
    "ETF": 359
   },
   "international": 177,
