@@ -10,8 +10,8 @@
  "universe": {
   "asset_class": {
    "Debt": 8061,
-   "Other": 2114,
    "Equity": 3190,
+   "Other": 2114,
    "Hybrid": 851,
    "Solution": 145
   },
@@ -21,10 +21,10 @@
    "Interval Fund Schemes": 41
   },
   "fund_type": {
+   "Index Fund": 1310,
    "Active/Other": 11985,
-   "ETF": 359,
    "Fund of Fund": 707,
-   "Index Fund": 1310
+   "ETF": 359
   },
   "international": 177,
   "commodity": 212
