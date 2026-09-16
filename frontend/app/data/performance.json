@@ -1,5 +1,5 @@
 {
-"asOf": "2026-09-15",
+"asOf": "2026-09-16",
 "universe": 1290,
 "source": "AMFI NAV history \u00b7 equity Direct/Growth plans \u00b7 point-to-point NAV returns",
 "windows": [
@@ -15,10 +15,10 @@
 "name": "Motilal Oswal Digital India Fund - Direct Plan - Growth",
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
-"nav": 11.6872,
-"r1w": 4.31,
-"r1m": 13.48,
-"r3m": 25.96,
+"nav": 11.611,
+"r1w": 2.96,
+"r1m": 13.27,
+"r3m": 25.54,
 "r6m": null,
 "r1y": null
 },
@@ -27,10 +27,10 @@
 "name": "Motilal Oswal Digital India Fund - Direct Plan - Growth",
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
-"nav": 11.6868,
-"r1w": 4.31,
-"r1m": 13.48,
-"r3m": 25.96,
+"nav": 11.6107,
+"r1w": 2.96,
+"r1m": 13.27,
+"r3m": 25.54,
 "r6m": null,
 "r1y": null
 },
@@ -39,10 +39,10 @@
 "name": "Motilal Oswal Digital India Fund - Regular Plan - Growth",
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
-"nav": 11.3755,
-"r1w": 4.29,
-"r1m": 13.35,
-"r3m": 25.53,
+"nav": 11.301,
+"r1w": 2.94,
+"r1m": 13.14,
+"r3m": 25.12,
 "r6m": null,
 "r1y": null
 },
@@ -51,10 +51,10 @@
 "name": "Motilal Oswal Digital India Fund - Regular Plan - Growth",
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
-"nav": 11.3754,
-"r1w": 4.29,
-"r1m": 13.35,
-"r3m": 25.53,
+"nav": 11.3009,
+"r1w": 2.94,
+"r1m": 13.14,
+"r3m": 25.12,
 "r6m": null,
 "r1y": null
 },
@@ -63,10 +63,10 @@
 "name": "Samco Small Cap Fund - Direct Plan - Growth",
 "amc": "Samco",
 "category": "Small Cap",
-"nav": 12.7,
-"r1w": -0.63,
-"r1m": 8.83,
-"r3m": 19.81,
+"nav": 12.59,
+"r1w": -1.95,
+"r1m": 8.53,
+"r3m": 17.66,
 "r6m": null,
 "r1y": null
 },
@@ -75,34 +75,10 @@
 "name": "Samco Small Cap Fund - Regular Plan - Growth",
 "amc": "Samco",
 "category": "Small Cap",
-"nav": 12.55,
-"r1w": -0.63,
-"r1m": 8.66,
-"r3m": 19.41,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "118421",
-"name": "Bandhan Focused Fund - Direct Plan - Growth",
-"amc": "Bandhan",
-"category": "Focused",
-"nav": 107.951,
-"r1w": -1.36,
-"r1m": 2.26,
-"r3m": 3.37,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "108592",
-"name": "Bandhan Focused Fund - Regular Plan - Growth",
-"amc": "Bandhan",
-"category": "Focused",
-"nav": 90.327,
-"r1w": -1.39,
-"r1m": 2.15,
-"r3m": 3.05,
+"nav": 12.44,
+"r1w": -1.97,
+"r1m": 8.36,
+"r3m": 17.25,
 "r6m": null,
 "r1y": null
 },
@@ -111,10 +87,22 @@
 "name": "Samco Active Momentum Fund - Direct Plan - Growth",
 "amc": "Samco",
 "category": "Thematic",
-"nav": 15.96,
-"r1w": -4.03,
-"r1m": 2.05,
-"r3m": 7.91,
+"nav": 15.88,
+"r1w": -4.62,
+"r1m": 2.06,
+"r3m": 6.51,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "118421",
+"name": "Bandhan Focused Fund - Direct Plan - Growth",
+"amc": "Bandhan",
+"category": "Focused",
+"nav": 107.673,
+"r1w": -1.62,
+"r1m": 1.98,
+"r3m": 2.74,
 "r6m": null,
 "r1y": null
 },
@@ -123,34 +111,22 @@
 "name": "Samco Active Momentum Fund - Regular Plan - Growth",
 "amc": "Samco",
 "category": "Thematic",
-"nav": 15.26,
-"r1w": -4.03,
-"r1m": 1.94,
-"r3m": 7.54,
+"nav": 15.18,
+"r1w": -4.65,
+"r1m": 1.95,
+"r3m": 6.15,
 "r6m": null,
 "r1y": null
 },
 {
-"code": "152214",
-"name": "Kotak Healthcare Fund - Direct Plan - Growth Option",
-"amc": "Kotak Mahindra",
-"category": "Sectoral/ Thematic",
-"nav": 17.724,
-"r1w": -0.68,
-"r1m": 1.82,
-"r3m": 11.9,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "152216",
-"name": "Kotak Healthcare Fund - Regular Plan - Growth Option",
-"amc": "Kotak Mahindra",
-"category": "Sectoral/ Thematic",
-"nav": 16.944,
-"r1w": -0.71,
-"r1m": 1.68,
-"r3m": 11.48,
+"code": "108592",
+"name": "Bandhan Focused Fund - Regular Plan - Growth",
+"amc": "Bandhan",
+"category": "Focused",
+"nav": 90.091,
+"r1w": -1.64,
+"r1m": 1.87,
+"r3m": 2.42,
 "r6m": null,
 "r1y": null
 },
@@ -159,10 +135,10 @@
 "name": "Motilal Oswal Active Momentum Fund - Direct Plan - Growth",
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
-"nav": 14.4329,
-"r1w": -1.62,
-"r1m": 1.65,
-"r3m": 5.43,
+"nav": 14.3953,
+"r1w": -1.64,
+"r1m": 1.73,
+"r3m": 4.33,
 "r6m": null,
 "r1y": null
 },
@@ -171,22 +147,94 @@
 "name": "Motilal Oswal Active Momentum Fund - Regular Plan - Growth",
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
-"nav": 14.4109,
-"r1w": -1.62,
-"r1m": 1.64,
-"r3m": 5.4,
+"nav": 14.3733,
+"r1w": -1.65,
+"r1m": 1.72,
+"r3m": 4.3,
 "r6m": null,
 "r1y": null
 },
 {
-"code": "153258",
-"name": "Motilal Oswal Innovation Opportunities Fund - Direct Plan - Growth",
-"amc": "Motilal Oswal",
+"code": "152214",
+"name": "Kotak Healthcare Fund - Direct Plan - Growth Option",
+"amc": "Kotak Mahindra",
 "category": "Sectoral/ Thematic",
-"nav": 15.0181,
-"r1w": -1.2,
-"r1m": 1.51,
-"r3m": 7.47,
+"nav": 17.615,
+"r1w": -1.99,
+"r1m": 1.22,
+"r3m": 10.14,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "152216",
+"name": "Kotak Healthcare Fund - Regular Plan - Growth Option",
+"amc": "Kotak Mahindra",
+"category": "Sectoral/ Thematic",
+"nav": 16.839,
+"r1w": -2.02,
+"r1m": 1.09,
+"r3m": 9.73,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "152586",
+"name": "Samco Special Opportunities Fund - Direct Plan - Growth",
+"amc": "Samco",
+"category": "Sectoral/ Thematic",
+"nav": 9.2,
+"r1w": -3.46,
+"r1m": 0.99,
+"r3m": 2.45,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "151853",
+"name": "quant Healthcare Fund - Direct Plan - Growth Option",
+"amc": "quant",
+"category": "Sectoral/ Thematic",
+"nav": 19.0437,
+"r1w": -1.49,
+"r1m": 0.96,
+"r3m": 9.63,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "153705",
+"name": "quant Equity Savings Fund - Direct Plan - Growth Option",
+"amc": "quant",
+"category": "Equity Savings",
+"nav": 10.993,
+"r1w": -1.03,
+"r1m": 0.84,
+"r3m": 3.97,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "151855",
+"name": "quant Healthcare Fund - Regular Plan - Growth Option",
+"amc": "quant",
+"category": "Sectoral/ Thematic",
+"nav": 18.0839,
+"r1w": -1.52,
+"r1m": 0.82,
+"r3m": 9.19,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "152587",
+"name": "Samco Special Opportunities Fund - Regular Plan - Growth",
+"amc": "Samco",
+"category": "Sectoral/ Thematic",
+"nav": 8.87,
+"r1w": -3.48,
+"r1m": 0.8,
+"r3m": 2.07,
 "r6m": null,
 "r1y": null
 },
@@ -195,10 +243,46 @@
 "name": "ITI Business Cycle Fund - Direct Plan - Growth Option",
 "amc": "ITI",
 "category": "Sectoral/ Thematic",
-"nav": 10.779,
-"r1w": -1.7,
-"r1m": 1.48,
-"r3m": 3.24,
+"nav": 10.7534,
+"r1w": -1.9,
+"r1m": 0.72,
+"r3m": 2.55,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "154338",
+"name": "Motilal Oswal Contra Fund - Regular Plan - Growth",
+"amc": "Motilal Oswal",
+"category": "Contra",
+"nav": 10.5032,
+"r1w": -2.43,
+"r1m": 0.7,
+"r3m": 2.65,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "153707",
+"name": "quant Equity Savings Fund - Regular Plan - Growth Option",
+"amc": "quant",
+"category": "Equity Savings",
+"nav": 10.7778,
+"r1w": -1.07,
+"r1m": 0.7,
+"r3m": 3.53,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "154063",
+"name": "Groww Small Cap Fund - Direct Plan - Growth",
+"amc": "Groww",
+"category": "Small Cap",
+"nav": 12.7214,
+"r1w": -1.79,
+"r1m": 0.69,
+"r3m": 9.91,
 "r6m": null,
 "r1y": null
 },
@@ -207,10 +291,10 @@
 "name": "Motilal Oswal Special Opportunities Fund - Direct Plan - Growth",
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
-"nav": 12.5133,
-"r1w": -2.04,
-"r1m": 1.47,
-"r3m": 8.73,
+"nav": 12.4003,
+"r1w": -2.59,
+"r1m": 0.63,
+"r3m": 7.13,
 "r6m": null,
 "r1y": null
 },
@@ -219,21 +303,9 @@
 "name": "Motilal Oswal Special Opportunities Fund - Regular Plan - Growth",
 "amc": "Motilal Oswal",
 "category": "Sectoral/ Thematic",
-"nav": 12.4986,
-"r1w": -2.04,
-"r1m": 1.46,
-"r3m": 8.7,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "153256",
-"name": "Motilal Oswal Innovation Opportunities Fund - Regular Plan - Growth",
-"amc": "Motilal Oswal",
-"category": "Sectoral/ Thematic",
-"nav": 14.6897,
-"r1w": -1.22,
-"r1m": 1.39,
+"nav": 12.3857,
+"r1w": -2.6,
+"r1m": 0.62,
 "r3m": 7.1,
 "r6m": null,
 "r1y": null
@@ -243,106 +315,34 @@
 "name": "ITI Business Cycle Fund - Regular Plan - Growth Option",
 "amc": "ITI",
 "category": "Sectoral/ Thematic",
-"nav": 10.6787,
-"r1w": -1.74,
-"r1m": 1.32,
-"r3m": 2.8,
+"nav": 10.6528,
+"r1w": -1.93,
+"r1m": 0.58,
+"r3m": 2.11,
 "r6m": null,
 "r1y": null
 },
 {
-"code": "151853",
-"name": "quant Healthcare Fund - Direct Plan - Growth Option",
-"amc": "quant",
-"category": "Sectoral/ Thematic",
-"nav": 18.9203,
-"r1w": -2.8,
-"r1m": 1.22,
-"r3m": 10.69,
+"code": "118883",
+"name": "Taurus Flexi Cap Fund - Direct Plan - Growth",
+"amc": "Taurus",
+"category": "Flexi Cap",
+"nav": 246.9,
+"r1w": -0.73,
+"r1m": 0.57,
+"r3m": 6.88,
 "r6m": null,
 "r1y": null
 },
 {
-"code": "153705",
-"name": "quant Equity Savings Fund - Direct Plan - Growth Option",
-"amc": "quant",
-"category": "Equity Savings",
-"nav": 11.0392,
-"r1w": -1.07,
-"r1m": 1.19,
-"r3m": 4.7,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "151855",
-"name": "quant Healthcare Fund - Regular Plan - Growth Option",
-"amc": "quant",
-"category": "Sectoral/ Thematic",
-"nav": 17.9674,
-"r1w": -2.83,
-"r1m": 1.08,
-"r3m": 10.25,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "153707",
-"name": "quant Equity Savings Fund - Regular Plan - Growth Option",
-"amc": "quant",
-"category": "Equity Savings",
-"nav": 10.8236,
-"r1w": -1.1,
-"r1m": 1.04,
-"r3m": 4.25,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "142388",
-"name": "Edelweiss Recently Listed IPO Fund - Direct Plan - Growth",
-"amc": "Edelweiss",
-"category": "Sectoral/ Thematic",
-"nav": 35.3009,
-"r1w": -2.61,
-"r1m": 1.03,
-"r3m": 7.46,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "154063",
-"name": "Groww Small Cap Fund - Direct Plan - Growth",
-"amc": "Groww",
-"category": "Small Cap",
-"nav": 12.6846,
-"r1w": -2.48,
-"r1m": 0.96,
-"r3m": 9.85,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "142383",
-"name": "Edelweiss Recently Listed IPO Fund - Regular Plan - Growth",
-"amc": "Edelweiss",
-"category": "Sectoral/ Thematic",
-"nav": 32.4913,
-"r1w": -2.63,
-"r1m": 0.92,
-"r3m": 7.13,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "153157",
-"name": "Bajaj Finserv Healthcare Fund - Direct Plan - Growth",
-"amc": "Bajaj Finserv",
-"category": "Sectoral/ Thematic",
-"nav": 12.084,
-"r1w": -2.78,
-"r1m": 0.89,
-"r3m": 12.49,
+"code": "100476",
+"name": "Taurus Flexi Cap Fund - Regular Plan - Growth",
+"amc": "Taurus",
+"category": "Flexi Cap",
+"nav": 237.14,
+"r1w": -0.73,
+"r1m": 0.56,
+"r3m": 6.87,
 "r6m": null,
 "r1y": null
 },
@@ -351,22 +351,22 @@
 "name": "Groww Small Cap Fund - Regular Plan - Growth",
 "amc": "Groww",
 "category": "Small Cap",
-"nav": 12.5427,
-"r1w": -2.52,
-"r1m": 0.8,
-"r3m": 9.37,
+"nav": 12.5785,
+"r1w": -1.82,
+"r1m": 0.54,
+"r3m": 9.43,
 "r6m": null,
 "r1y": null
 },
 {
-"code": "153155",
-"name": "Bajaj Finserv Healthcare Fund - Regular Plan - Growth",
-"amc": "Bajaj Finserv",
-"category": "Sectoral/ Thematic",
-"nav": 11.739,
-"r1w": -2.81,
-"r1m": 0.75,
-"r3m": 12.02,
+"code": "120828",
+"name": "Quant Small Cap Fund - Direct Plan - Growth Option",
+"amc": "quant",
+"category": "Small Cap",
+"nav": 314.1783,
+"r1w": -3.16,
+"r1m": 0.48,
+"r3m": 3.6,
 "r6m": null,
 "r1y": null
 }
@@ -377,10 +377,10 @@
 "name": "UTI BSE Housing Index Fund - Regular Plan - Growth",
 "amc": "UTI",
 "category": "Equitys",
-"nav": 12.9323,
-"r1w": -5.15,
+"nav": 12.968,
+"r1w": -3.83,
 "r1m": -9.62,
-"r3m": -6.47,
+"r3m": -6.57,
 "r6m": null,
 "r1y": null
 },
@@ -389,10 +389,34 @@
 "name": "UTI BSE Housing Index Fund - Direct Plan - Growth",
 "amc": "UTI",
 "category": "Equitys",
-"nav": 13.121,
-"r1w": -5.14,
+"nav": 13.1573,
+"r1w": -3.82,
 "r1m": -9.59,
-"r3m": -6.38,
+"r3m": -6.47,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "153232",
+"name": "Groww Nifty India Railways PSU Index Fund - Regular Plan - Growth",
+"amc": "Groww",
+"category": "Equitys",
+"nav": 7.1985,
+"r1w": -3.62,
+"r1m": -8.43,
+"r3m": -12.03,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "153230",
+"name": "Groww Nifty India Railways PSU Index Fund - Direct Plan - Growth",
+"amc": "Groww",
+"category": "Equitys",
+"nav": 7.2614,
+"r1w": -3.61,
+"r1m": -8.39,
+"r3m": -11.93,
 "r6m": null,
 "r1y": null
 },
@@ -401,9 +425,9 @@
 "name": "HDFC Nifty Auto Index Fund - Regular Plan - Growth Option",
 "amc": "HDFC",
 "category": "Equitys",
-"nav": 9.7984,
-"r1w": -3.69,
-"r1m": -8.47,
+"nav": 9.8484,
+"r1w": -2.77,
+"r1m": -7.9,
 "r3m": null,
 "r6m": null,
 "r1y": null
@@ -413,34 +437,34 @@
 "name": "HDFC Nifty Auto Index Fund - Direct Plan - Growth Option",
 "amc": "HDFC",
 "category": "Equitys",
-"nav": 9.8095,
-"r1w": -3.68,
-"r1m": -8.42,
+"nav": 9.8597,
+"r1w": -2.76,
+"r1m": -7.85,
 "r3m": null,
 "r6m": null,
 "r1y": null
 },
 {
-"code": "153232",
-"name": "Groww Nifty India Railways PSU Index Fund - Regular Plan - Growth",
-"amc": "Groww",
+"code": "154327",
+"name": "Axis Nifty India Defence Index Fund - Regular Plan - Growth\t Option",
+"amc": "Axis",
 "category": "Equitys",
-"nav": 7.2093,
-"r1w": -3.51,
-"r1m": -8.3,
-"r3m": -11.53,
+"nav": 10.0918,
+"r1w": -7.72,
+"r1m": -7.31,
+"r3m": -4.28,
 "r6m": null,
 "r1y": null
 },
 {
-"code": "153230",
-"name": "Groww Nifty India Railways PSU Index Fund - Direct Plan - Growth",
-"amc": "Groww",
+"code": "152800",
+"name": "Aditya Birla Sun Life Nifty India Defence Index Fund - Regular Plan - GROWTH",
+"amc": "Aditya Birla Sun Life",
 "category": "Equitys",
-"nav": 7.2723,
-"r1w": -3.5,
-"r1m": -8.26,
-"r3m": -11.43,
+"nav": 12.8765,
+"r1w": -7.72,
+"r1m": -7.29,
+"r3m": -4.21,
 "r6m": null,
 "r1y": null
 },
@@ -449,10 +473,34 @@
 "name": "SBI CONSUMPTION OPPORTUNITIES FUND - Regular Plan - Growth",
 "amc": "SBI",
 "category": "Sectoral/ Thematic",
-"nav": 270.4952,
-"r1w": -2.54,
-"r1m": -7.64,
-"r3m": -4.85,
+"nav": 271.4309,
+"r1w": -1.91,
+"r1m": -7.28,
+"r3m": -4.77,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "154326",
+"name": "Axis Nifty India Defence Index Fund - Direct Plan - Growth Option",
+"amc": "Axis",
+"category": "Equitys",
+"nav": 10.1233,
+"r1w": -7.7,
+"r1m": -7.25,
+"r3m": -4.09,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "152798",
+"name": "Aditya Birla Sun Life Nifty India Defence Index Fund - Direct Plan - GROWTH",
+"amc": "Aditya Birla Sun Life",
+"category": "Equitys",
+"nav": 13.07,
+"r1w": -7.71,
+"r1m": -7.24,
+"r3m": -4.05,
 "r6m": null,
 "r1y": null
 },
@@ -461,22 +509,34 @@
 "name": "SBI CONSUMPTION OPPORTUNITIES FUND - Direct Plan - Growth",
 "amc": "SBI",
 "category": "Sectoral/ Thematic",
-"nav": 312.3274,
-"r1w": -2.52,
-"r1m": -7.56,
-"r3m": -4.61,
+"nav": 313.4162,
+"r1w": -1.89,
+"r1m": -7.2,
+"r3m": -4.53,
 "r6m": null,
 "r1y": null
 },
 {
-"code": "153969",
-"name": "Kotak Rural Opportunities Fund - Regular Plan - Growth",
-"amc": "Kotak Mahindra",
-"category": "Sectoral/ Thematic",
-"nav": 9.202,
-"r1w": -2.82,
-"r1m": -7.53,
-"r3m": -3.29,
+"code": "149449",
+"name": "Samco Flexi Cap Fund - Regular Plan - Growth",
+"amc": "Samco",
+"category": "Flexi Cap",
+"nav": 9.3,
+"r1w": -3.63,
+"r1m": -7.19,
+"r3m": -6.91,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "149450",
+"name": "Samco Flexi Cap Fund - Direct Plan - Growth",
+"amc": "Samco",
+"category": "Flexi Cap",
+"nav": 9.94,
+"r1w": -3.68,
+"r1m": -7.1,
+"r3m": -6.58,
 "r6m": null,
 "r1y": null
 },
@@ -485,147 +545,87 @@
 "name": "Bandhan Multi-Factor Fund - Regular Plan - Growth",
 "amc": "Bandhan",
 "category": "Thematic",
-"nav": 9.236,
-"r1w": -3.67,
-"r1m": -7.49,
+"nav": 9.263,
+"r1w": -2.82,
+"r1m": -6.97,
 "r3m": -6.2,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "112171",
-"name": "Invesco India PSU Equity Fund - Regular Plan - Growth",
-"amc": "Invesco",
-"category": "Thematic",
-"nav": 61.8,
-"r1w": -4.23,
-"r1m": -7.42,
-"r3m": -6.93,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "153970",
-"name": "Kotak Rural Opportunities Fund - Direct Plan - Growth",
-"amc": "Kotak Mahindra",
-"category": "Sectoral/ Thematic",
-"nav": 9.319,
-"r1w": -2.79,
-"r1m": -7.39,
-"r3m": -2.91,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "153722",
-"name": "Bandhan Multi-Factor Fund - Direct Plan - Growth",
-"amc": "Bandhan",
-"category": "Thematic",
-"nav": 9.401,
-"r1w": -3.65,
-"r1m": -7.37,
-"r3m": -5.84,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "120395",
-"name": "Invesco India PSU Equity Fund - Direct Plan - Growth",
-"amc": "Invesco",
-"category": "Thematic",
-"nav": 74.36,
-"r1w": -4.2,
-"r1m": -7.3,
-"r3m": -6.64,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "106425",
-"name": "UTI - India Consumer Fund - Regular Plan - Growth",
-"amc": "UTI",
-"category": "Thematic",
-"nav": 55.7379,
-"r1w": -2.86,
-"r1m": -6.95,
-"r3m": -0.69,
 "r6m": null,
 "r1y": null
 }
 ],
 "categories": [
 {
-"category": "Small Cap",
-"count": 71,
-"avg": -1.07,
-"median": -1.32,
-"best": {
-"name": "Samco Small Cap Fund - Direct Plan - Growth",
-"amc": "Samco",
-"ret": 8.83,
-"code": "153868"
-},
-"worst": {
-"name": "Edelweiss Small Cap Fund - Regular Plan - Growth",
-"amc": "Edelweiss",
-"ret": -3.46,
-"code": "146193"
-},
-"breadth": 18
-},
-{
 "category": "Equity Savings",
 "count": 46,
-"avg": -1.14,
-"median": -1.21,
+"avg": -0.92,
+"median": -0.98,
 "best": {
 "name": "quant Equity Savings Fund - Direct Plan - Growth Option",
 "amc": "quant",
-"ret": 1.19,
+"ret": 0.84,
 "code": "153705"
 },
 "worst": {
 "name": "Baroda BNP Paribas Equity Savings Fund - Regular Plan - Growth Option",
 "amc": "Baroda BNP Paribas",
-"ret": -2.11,
+"ret": -1.87,
 "code": "147494"
 },
 "breadth": 4
 },
 {
-"category": "Sectoral",
-"count": 38,
-"avg": -3.04,
-"median": -3.29,
+"category": "Small Cap",
+"count": 71,
+"avg": -1.37,
+"median": -1.57,
 "best": {
-"name": "WhiteOak Capital Pharma and Healthcare Fund - Direct Plan - Growth Option",
-"amc": "WhiteOak Capital",
-"ret": -0.42,
-"code": "152349"
+"name": "Samco Small Cap Fund - Direct Plan - Growth",
+"amc": "Samco",
+"ret": 8.53,
+"code": "153868"
 },
 "worst": {
-"name": "BANDHAN TRANSPORTATION AND LOGISTICS FUND - Regular Plan - Growth",
+"name": "Edelweiss Small Cap Fund - Regular Plan - Growth",
+"amc": "Edelweiss",
+"ret": -3.97,
+"code": "146193"
+},
+"breadth": 10
+},
+{
+"category": "Sectoral",
+"count": 38,
+"avg": -2.83,
+"median": -2.65,
+"best": {
+"name": "Groww Banking & Financial Services Fund - Direct Plan - Growth",
+"amc": "Groww",
+"ret": -0.28,
+"code": "152254"
+},
+"worst": {
+"name": "BANDHAN Infrastructure Fund - Regular Plan - Growth",
 "amc": "Bandhan",
-"ret": -5.77,
-"code": "150717"
+"ret": -6.04,
+"code": "114476"
 },
 "breadth": 0
 },
 {
 "category": "Multi Cap",
 "count": 63,
-"avg": -3.14,
-"median": -3.05,
+"avg": -3.17,
+"median": -3.27,
 "best": {
 "name": "Samco Multi Cap Fund - Direct Plan - Growth",
 "amc": "Samco",
-"ret": -0.11,
+"ret": -0.33,
 "code": "152847"
 },
 "worst": {
 "name": "ICICI Prudential Multi Cap Fund - Regular Plan - Growth",
 "amc": "ICICI Prudential",
-"ret": -5.09,
+"ret": -5.05,
 "code": "101228"
 },
 "breadth": 0
@@ -633,170 +633,132 @@
 {
 "category": "Sectoral/ Thematic",
 "count": 343,
-"avg": -3.47,
-"median": -3.86,
+"avg": -3.27,
+"median": -3.69,
 "best": {
 "name": "Motilal Oswal Digital India Fund - Direct Plan - Growth",
 "amc": "Motilal Oswal",
-"ret": 13.48,
+"ret": 13.27,
 "code": "152964"
 },
 "worst": {
 "name": "SBI CONSUMPTION OPPORTUNITIES FUND - Regular Plan - Growth",
 "amc": "SBI",
-"ret": -7.64,
+"ret": -7.28,
 "code": "120576"
 },
-"breadth": 8
+"breadth": 7
 },
 {
 "category": "Contra",
 "count": 7,
-"avg": -3.54,
-"median": -4.25,
+"avg": -3.37,
+"median": -4.13,
 "best": {
 "name": "Motilal Oswal Contra Fund - Regular Plan - Growth",
 "amc": "Motilal Oswal",
-"ret": -0.03,
+"ret": 0.7,
 "code": "154338"
 },
 "worst": {
 "name": "Kotak Contra Fund - Regular Plan - Growth",
 "amc": "Kotak Mahindra",
-"ret": -4.35,
+"ret": -4.54,
 "code": "103040"
 },
-"breadth": 0
-},
-{
-"category": "Mid Cap",
-"count": 66,
-"avg": -3.65,
-"median": -3.83,
-"best": {
-"name": "Helios Mid Cap Fund - Direct Plan - Growth",
-"amc": "Helios",
-"ret": -1.77,
-"code": "153326"
-},
-"worst": {
-"name": "Mahindra Manulife Mid Cap Fund - Regular Plan - Growth",
-"amc": "Mahindra Manulife",
-"ret": -5.96,
-"code": "142109"
-},
-"breadth": 0
-},
-{
-"category": "Flexi Cap",
-"count": 91,
-"avg": -3.81,
-"median": -3.96,
-"best": {
-"name": "Taurus Flexi Cap Fund - Direct Plan - Growth",
-"amc": "Taurus",
-"ret": -0.28,
-"code": "118883"
-},
-"worst": {
-"name": "Samco Flexi Cap Fund - Regular Plan - Growth",
-"amc": "Samco",
-"ret": -6.82,
-"code": "149449"
-},
-"breadth": 0
+"breadth": 14
 },
 {
 "category": "ELSS",
 "count": 47,
-"avg": -3.86,
-"median": -4.23,
+"avg": -3.6,
+"median": -4.08,
 "best": {
-"name": "Motilal Oswal ELSS Tax Saver Fund - Direct Plan - Growth",
-"amc": "Motilal Oswal",
-"ret": -0.31,
-"code": "133386"
+"name": "Taurus ELSS Tax Saver Fund - Direct Plan - Growth",
+"amc": "Taurus",
+"ret": -0.95,
+"code": "118866"
 },
 "worst": {
-"name": "Quantum ELSS Tax Saver Fund - Regular Plan - Growth Option",
-"amc": "Quantum",
-"ret": -5.62,
-"code": "141070"
+"name": "Sundaram ELSS Tax Saver Fund - Regular Plan - GROWTH",
+"amc": "Sundaram",
+"ret": -5.26,
+"code": "149569"
 },
 "breadth": 0
 },
 {
 "category": "Thematic",
 "count": 113,
-"avg": -3.88,
-"median": -3.79,
+"avg": -3.61,
+"median": -3.7,
 "best": {
 "name": "Samco Active Momentum Fund - Direct Plan - Growth",
 "amc": "Samco",
-"ret": 2.05,
+"ret": 2.06,
 "code": "151753"
 },
 "worst": {
 "name": "Bandhan Multi-Factor Fund - Regular Plan - Growth",
 "amc": "Bandhan",
-"ret": -7.49,
+"ret": -6.97,
 "code": "153721"
 },
-"breadth": 5
+"breadth": 6
+},
+{
+"category": "Flexi Cap",
+"count": 91,
+"avg": -3.61,
+"median": -3.68,
+"best": {
+"name": "Taurus Flexi Cap Fund - Direct Plan - Growth",
+"amc": "Taurus",
+"ret": 0.57,
+"code": "118883"
+},
+"worst": {
+"name": "Samco Flexi Cap Fund - Regular Plan - Growth",
+"amc": "Samco",
+"ret": -7.19,
+"code": "149449"
+},
+"breadth": 2
 },
 {
 "category": "Focused",
 "count": 56,
-"avg": -3.99,
-"median": -4.32,
+"avg": -3.77,
+"median": -4.1,
 "best": {
 "name": "Bandhan Focused Fund - Direct Plan - Growth",
 "amc": "Bandhan",
-"ret": 2.26,
+"ret": 1.98,
 "code": "118421"
 },
 "worst": {
 "name": "Kotak Focused Fund - Regular Plan - Growth Option",
 "amc": "Kotak Mahindra",
-"ret": -5.98,
+"ret": -5.62,
 "code": "147477"
 },
 "breadth": 4
 },
 {
-"category": "Large & Mid Cap",
-"count": 73,
-"avg": -3.99,
-"median": -4.27,
-"best": {
-"name": "ITI Large & Mid Cap Fund - Direct Plan - Growth Option",
-"amc": "ITI",
-"ret": -0.05,
-"code": "152821"
-},
-"worst": {
-"name": "ICICI Prudential Large & Mid Cap Fund - Regular Plan - Growth",
-"amc": "ICICI Prudential",
-"ret": -5.84,
-"code": "100349"
-},
-"breadth": 0
-},
-{
 "category": "Value",
 "count": 45,
-"avg": -3.99,
-"median": -3.95,
+"avg": -3.77,
+"median": -3.74,
 "best": {
 "name": "JM Value Fund - Direct Plan - Growth Option",
 "amc": "JM Financial",
-"ret": -2.31,
+"ret": -2.49,
 "code": "120486"
 },
 "worst": {
 "name": "NJ Value Fund - Regular Plan - Growth Option",
 "amc": "NJ",
-"ret": -5.65,
+"ret": -5.34,
 "code": "154458"
 },
 "breadth": 0
@@ -804,69 +766,107 @@
 {
 "category": "ELSS- Tax Saver",
 "count": 41,
-"avg": -4.11,
-"median": -4.19,
+"avg": -3.78,
+"median": -3.82,
 "best": {
-"name": "Invesco India ELSS Tax Saver Fund - Direct Plan - Growth",
-"amc": "Invesco",
-"ret": -2.15,
-"code": "120416"
+"name": "JM ELSS - Tax Saver Fund - Direct Plan - Growth Option",
+"amc": "JM Financial",
+"ret": -2.43,
+"code": "120494"
 },
 "worst": {
 "name": "Mahindra Manulife ELSS Tax Saver Fund - Regular Plan - Growth",
 "amc": "Mahindra Manulife",
-"ret": -5.71,
+"ret": -5.4,
 "code": "139783"
 },
 "breadth": 0
 },
 {
-"category": "Equity ETF",
-"count": 7,
-"avg": -4.44,
-"median": -5.09,
+"category": "Mid Cap",
+"count": 66,
+"avg": -3.85,
+"median": -4.0,
 "best": {
-"name": "HDFC Nifty Metal ETF - Growth Option",
-"amc": "HDFC",
-"ret": -2.09,
-"code": "154504"
+"name": "HSBC Midcap Fund - Direct Plan - Growth",
+"amc": "HSBC",
+"ret": -2.14,
+"code": "151036"
 },
 "worst": {
-"name": "UTI Nifty IT ETF - Direct Plan - Growth",
-"amc": "UTI",
-"ret": -5.72,
-"code": "152355"
+"name": "Mahindra Manulife Mid Cap Fund - Regular Plan - Growth",
+"amc": "Mahindra Manulife",
+"ret": -5.81,
+"code": "142109"
+},
+"breadth": 0
+},
+{
+"category": "Large & Mid Cap",
+"count": 73,
+"avg": -3.87,
+"median": -4.25,
+"best": {
+"name": "ITI Large & Mid Cap Fund - Direct Plan - Growth Option",
+"amc": "ITI",
+"ret": -0.29,
+"code": "152821"
+},
+"worst": {
+"name": "ICICI Prudential Large & Mid Cap Fund - Regular Plan - Growth",
+"amc": "ICICI Prudential",
+"ret": -5.99,
+"code": "100349"
 },
 "breadth": 0
 },
 {
 "category": "Large Cap",
 "count": 67,
-"avg": -4.63,
-"median": -4.83,
+"avg": -4.16,
+"median": -4.38,
 "best": {
-"name": "ITI Large Cap Fund - Direct Plan - Growth Option",
-"amc": "ITI",
-"ret": -1.09,
-"code": "148353"
+"name": "Taurus Large Cap Fund - Direct Plan - Growth",
+"amc": "Taurus",
+"ret": -0.84,
+"code": "118870"
 },
 "worst": {
 "name": "Mahindra Manulife Large Cap Fund - Regular Plan - Growth",
 "amc": "Mahindra Manulife",
-"ret": -5.62,
+"ret": -5.01,
 "code": "146551"
+},
+"breadth": 0
+},
+{
+"category": "Equity ETF",
+"count": 7,
+"avg": -4.21,
+"median": -4.58,
+"best": {
+"name": "UTI Nifty Bank ETF - Direct Plan - Growth",
+"amc": "UTI",
+"ret": -2.11,
+"code": "148173"
+},
+"worst": {
+"name": "UTI Nifty IT ETF - Direct Plan - Growth",
+"amc": "UTI",
+"ret": -5.56,
+"code": "152355"
 },
 "breadth": 0
 },
 {
 "category": "Equitys",
 "count": 116,
-"avg": -4.91,
-"median": -5.13,
+"avg": -4.62,
+"median": -4.62,
 "best": {
 "name": "UTI Nifty Private Bank Index Fund - Direct Plan - Growth",
 "amc": "UTI",
-"ret": -0.69,
+"ret": -0.15,
 "code": "152864"
 },
 "worst": {
@@ -882,368 +882,368 @@
 {
 "amc": "Motilal Oswal",
 "funds": 30,
-"avg": 0.94,
+"avg": 0.66,
 "pct_outperform": 93,
-"breadth": 33,
-"score": 71.2
+"breadth": 40,
+"score": 72.4
 },
 {
 "amc": "Samco",
 "funds": 18,
-"avg": -0.81,
+"avg": -0.9,
 "pct_outperform": 89,
 "breadth": 33,
-"score": 65.9
-},
-{
-"amc": "Trust",
-"funds": 10,
-"avg": -2.11,
-"pct_outperform": 100,
-"breadth": 10,
-"score": 64.1
+"score": 65.8
 },
 {
 "amc": "Helios",
 "funds": 10,
-"avg": -2.3,
+"avg": -2.46,
 "pct_outperform": 100,
 "breadth": 0,
-"score": 61.3
+"score": 61.1
 },
 {
-"amc": "quant",
-"funds": 44,
-"avg": -2.5,
-"pct_outperform": 89,
-"breadth": 18,
-"score": 59.3
+"amc": "Trust",
+"funds": 10,
+"avg": -2.49,
+"pct_outperform": 100,
+"breadth": 0,
+"score": 61.0
 },
 {
 "amc": "Bank of India",
 "funds": 28,
-"avg": -2.96,
+"avg": -2.71,
 "pct_outperform": 93,
 "breadth": 0,
-"score": 56.3
+"score": 56.7
 },
 {
-"amc": "Bajaj Finserv",
-"funds": 20,
-"avg": -2.57,
-"pct_outperform": 85,
-"breadth": 10,
-"score": 55.1
-},
-{
-"amc": "ITI",
-"funds": 26,
-"avg": -2.35,
-"pct_outperform": 81,
-"breadth": 8,
+"amc": "quant",
+"funds": 44,
+"avg": -2.43,
+"pct_outperform": 77,
+"breadth": 16,
 "score": 52.6
 },
 {
 "amc": "Mirae Asset",
 "funds": 32,
-"avg": -3.24,
-"pct_outperform": 75,
-"breadth": 12,
-"score": 49.2
-},
-{
-"amc": "JM Financial",
-"funds": 16,
-"avg": -3.45,
-"pct_outperform": 75,
-"breadth": 0,
-"score": 45.7
-},
-{
-"amc": "360 ONE",
-"funds": 8,
-"avg": -3.79,
-"pct_outperform": 75,
-"breadth": 0,
-"score": 45.2
-},
-{
-"amc": "HSBC",
-"funds": 33,
-"avg": -3.13,
-"pct_outperform": 73,
-"breadth": 0,
-"score": 45.0
+"avg": -2.98,
+"pct_outperform": 78,
+"breadth": 3,
+"score": 49.0
 },
 {
 "amc": "Taurus",
 "funds": 14,
-"avg": -2.77,
+"avg": -2.51,
 "pct_outperform": 71,
-"breadth": 0,
-"score": 44.9
+"breadth": 14,
+"score": 48.8
 },
 {
-"amc": "Abakkus",
-"funds": 6,
-"avg": -2.85,
-"pct_outperform": 67,
-"breadth": 0,
-"score": 42.1
+"amc": "ITI",
+"funds": 26,
+"avg": -2.43,
+"pct_outperform": 73,
+"breadth": 8,
+"score": 48.2
 },
 {
 "amc": "Bandhan",
 "funds": 34,
-"avg": -3.15,
-"pct_outperform": 65,
+"avg": -2.91,
+"pct_outperform": 74,
 "breadth": 6,
-"score": 42.0
+"score": 47.3
+},
+{
+"amc": "360 ONE",
+"funds": 8,
+"avg": -3.54,
+"pct_outperform": 75,
+"breadth": 0,
+"score": 45.6
+},
+{
+"amc": "HSBC",
+"funds": 33,
+"avg": -3.23,
+"pct_outperform": 73,
+"breadth": 0,
+"score": 44.8
+},
+{
+"amc": "Bajaj Finserv",
+"funds": 20,
+"avg": -2.72,
+"pct_outperform": 70,
+"breadth": 0,
+"score": 44.2
+},
+{
+"amc": "Abakkus",
+"funds": 6,
+"avg": -2.8,
+"pct_outperform": 67,
+"breadth": 0,
+"score": 42.2
 },
 {
 "amc": "PPFAS",
 "funds": 6,
-"avg": -3.87,
+"avg": -3.12,
 "pct_outperform": 67,
 "breadth": 0,
-"score": 40.5
-},
-{
-"amc": "Groww",
-"funds": 32,
-"avg": -3.78,
-"pct_outperform": 62,
-"breadth": 6,
-"score": 39.9
-},
-{
-"amc": "Edelweiss",
-"funds": 28,
-"avg": -3.57,
-"pct_outperform": 57,
-"breadth": 7,
-"score": 37.5
-},
-{
-"amc": "Axis",
-"funds": 64,
-"avg": -3.94,
-"pct_outperform": 59,
-"breadth": 3,
-"score": 37.1
-},
-{
-"amc": "PGIM India",
-"funds": 18,
-"avg": -3.06,
-"pct_outperform": 56,
-"breadth": 0,
-"score": 35.7
+"score": 41.7
 },
 {
 "amc": "Invesco",
 "funds": 41,
-"avg": -3.52,
-"pct_outperform": 56,
+"avg": -3.19,
+"pct_outperform": 66,
 "breadth": 0,
-"score": 35.2
+"score": 41.1
+},
+{
+"amc": "Groww",
+"funds": 32,
+"avg": -3.48,
+"pct_outperform": 62,
+"breadth": 6,
+"score": 40.4
+},
+{
+"amc": "Axis",
+"funds": 64,
+"avg": -3.78,
+"pct_outperform": 64,
+"breadth": 3,
+"score": 40.0
+},
+{
+"amc": "JM Financial",
+"funds": 16,
+"avg": -3.29,
+"pct_outperform": 62,
+"breadth": 0,
+"score": 39.1
 },
 {
 "amc": "WhiteOak Capital",
 "funds": 28,
-"avg": -3.5,
-"pct_outperform": 50,
+"avg": -3.24,
+"pct_outperform": 57,
 "breadth": 0,
-"score": 31.9
-},
-{
-"amc": "LIC",
-"funds": 32,
-"avg": -3.54,
-"pct_outperform": 47,
-"breadth": 6,
-"score": 31.7
-},
-{
-"amc": "Old Bridge",
-"funds": 4,
-"avg": -4.2,
-"pct_outperform": 50,
-"breadth": 0,
-"score": 30.8
+"score": 36.2
 },
 {
 "amc": "SBI",
 "funds": 56,
-"avg": -3.86,
-"pct_outperform": 43,
+"avg": -3.59,
+"pct_outperform": 46,
 "breadth": 4,
-"score": 28.3
+"score": 30.7
 },
 {
-"amc": "HDFC",
-"funds": 47,
-"avg": -3.91,
-"pct_outperform": 43,
-"breadth": 4,
-"score": 28.2
+"amc": "PGIM India",
+"funds": 18,
+"avg": -3.11,
+"pct_outperform": 44,
+"breadth": 0,
+"score": 29.5
 },
 {
-"amc": "Kotak Mahindra",
-"funds": 54,
-"avg": -3.91,
-"pct_outperform": 41,
-"breadth": 4,
-"score": 27.1
-},
-{
-"amc": "Jio BlackRock",
-"funds": 7,
-"avg": -4.48,
+"amc": "Edelweiss",
+"funds": 28,
+"avg": -3.53,
 "pct_outperform": 43,
 "breadth": 0,
-"score": 26.4
-},
-{
-"amc": "Mahindra Manulife",
-"funds": 30,
-"avg": -3.8,
-"pct_outperform": 37,
-"breadth": 7,
-"score": 25.8
+"score": 27.9
 },
 {
 "amc": "Tata",
 "funds": 38,
-"avg": -4.0,
-"pct_outperform": 37,
+"avg": -3.68,
+"pct_outperform": 42,
 "breadth": 0,
-"score": 23.9
+"score": 27.3
 },
 {
-"amc": "Aditya Birla Sun Life",
-"funds": 65,
-"avg": -4.22,
-"pct_outperform": 35,
+"amc": "Mahindra Manulife",
+"funds": 30,
+"avg": -3.51,
+"pct_outperform": 40,
+"breadth": 3,
+"score": 27.2
+},
+{
+"amc": "HDFC",
+"funds": 47,
+"avg": -3.65,
+"pct_outperform": 40,
+"breadth": 2,
+"score": 26.9
+},
+{
+"amc": "LIC",
+"funds": 32,
+"avg": -3.41,
+"pct_outperform": 41,
 "breadth": 0,
-"score": 22.7
+"score": 26.9
+},
+{
+"amc": "Jio BlackRock",
+"funds": 7,
+"avg": -4.23,
+"pct_outperform": 43,
+"breadth": 0,
+"score": 26.8
 },
 {
 "amc": "Baroda BNP Paribas",
 "funds": 40,
-"avg": -4.0,
-"pct_outperform": 32,
+"avg": -3.76,
+"pct_outperform": 40,
 "breadth": 0,
-"score": 21.5
+"score": 26.0
 },
 {
-"amc": "Navi",
-"funds": 6,
-"avg": -4.47,
-"pct_outperform": 33,
+"amc": "Aditya Birla Sun Life",
+"funds": 65,
+"avg": -4.05,
+"pct_outperform": 40,
 "breadth": 0,
-"score": 21.2
+"score": 25.5
 },
 {
-"amc": "DSP",
-"funds": 32,
+"amc": "Kotak Mahindra",
+"funds": 54,
 "avg": -3.8,
-"pct_outperform": 28,
-"breadth": 0,
-"score": 19.4
-},
-{
-"amc": "Sundaram",
-"funds": 33,
-"avg": -3.98,
-"pct_outperform": 27,
-"breadth": 0,
-"score": 18.6
-},
-{
-"amc": "UTI",
-"funds": 72,
-"avg": -4.75,
-"pct_outperform": 29,
-"breadth": 0,
-"score": 18.4
+"pct_outperform": 37,
+"breadth": 4,
+"score": 25.2
 },
 {
 "amc": "Franklin Templeton",
 "funds": 30,
-"avg": -4.18,
-"pct_outperform": 27,
+"avg": -3.97,
+"pct_outperform": 33,
 "breadth": 0,
-"score": 18.0
-},
-{
-"amc": "Canara Robeco",
-"funds": 26,
-"avg": -4.29,
-"pct_outperform": 27,
-"breadth": 0,
-"score": 17.9
-},
-{
-"amc": "NJ",
-"funds": 8,
-"avg": -4.41,
-"pct_outperform": 25,
-"breadth": 0,
-"score": 16.7
-},
-{
-"amc": "Nippon India",
-"funds": 42,
-"avg": -4.12,
-"pct_outperform": 24,
-"breadth": 0,
-"score": 16.5
+"score": 22.0
 },
 {
 "amc": "Union",
 "funds": 28,
-"avg": -3.55,
-"pct_outperform": 18,
+"avg": -3.4,
+"pct_outperform": 29,
 "breadth": 0,
-"score": 14.1
+"score": 20.3
 },
 {
-"amc": "ICICI Prudential",
-"funds": 62,
-"avg": -4.67,
-"pct_outperform": 16,
+"amc": "Canara Robeco",
+"funds": 26,
+"avg": -4.25,
+"pct_outperform": 31,
 "breadth": 0,
-"score": 11.4
+"score": 20.1
 },
 {
-"amc": "Quantum",
-"funds": 10,
-"avg": -4.37,
-"pct_outperform": 10,
+"amc": "UTI",
+"funds": 72,
+"avg": -4.46,
+"pct_outperform": 31,
 "breadth": 0,
-"score": 8.5
+"score": 19.7
+},
+{
+"amc": "DSP",
+"funds": 32,
+"avg": -3.58,
+"pct_outperform": 28,
+"breadth": 0,
+"score": 19.7
+},
+{
+"amc": "Nippon India",
+"funds": 42,
+"avg": -3.72,
+"pct_outperform": 24,
+"breadth": 5,
+"score": 18.3
+},
+{
+"amc": "Sundaram",
+"funds": 33,
+"avg": -3.86,
+"pct_outperform": 24,
+"breadth": 0,
+"score": 17.2
+},
+{
+"amc": "NJ",
+"funds": 8,
+"avg": -4.08,
+"pct_outperform": 25,
+"breadth": 0,
+"score": 17.2
+},
+{
+"amc": "Old Bridge",
+"funds": 4,
+"avg": -4.07,
+"pct_outperform": 25,
+"breadth": 0,
+"score": 17.2
 },
 {
 "amc": "The Wealth Company",
 "funds": 10,
-"avg": -3.94,
+"avg": -4.07,
+"pct_outperform": 20,
+"breadth": 0,
+"score": 14.5
+},
+{
+"amc": "ICICI Prudential",
+"funds": 62,
+"avg": -4.39,
+"pct_outperform": 19,
+"breadth": 0,
+"score": 13.6
+},
+{
+"amc": "Quantum",
+"funds": 10,
+"avg": -3.96,
 "pct_outperform": 0,
 "breadth": 0,
 "score": 3.7
 },
 {
-"amc": "Shriram",
+"amc": "Navi",
 "funds": 6,
-"avg": -4.94,
+"avg": -4.31,
 "pct_outperform": 0,
 "breadth": 0,
-"score": 2.1
+"score": 3.1
+},
+{
+"amc": "Shriram",
+"funds": 6,
+"avg": -4.46,
+"pct_outperform": 0,
+"breadth": 0,
+"score": 2.9
 }
 ],
 "insights": [
-"Small Cap led equity categories at +-1.1% (1-month NAV), outpacing Equitys (-4.9%) by 3.8 pts.",
-"The top 10 equity funds averaged +8.0% over 1 month, led by Motilal Oswal Digital India Fund - Direc (+13.5%).",
-"Across 1,290 equity Growth funds, 4% posted positive 1-month NAV returns.",
+"Equity Savings led equity categories at +-0.9% (1-month NAV), outpacing Equitys (-4.6%) by 3.7 pts.",
+"The top 10 equity funds averaged +7.8% over 1 month, led by Motilal Oswal Digital India Fund - Direc (+13.3%).",
+"Across 1,290 equity Growth funds, 3% posted positive 1-month NAV returns.",
 "Motilal Oswal ranks #1 on AMC quality (93% of its funds beat their category median)."
 ]
 }
