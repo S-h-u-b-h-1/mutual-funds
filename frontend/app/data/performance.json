@@ -1,6 +1,6 @@
 {
 "asOf": "2026-09-15",
-"universe": 1288,
+"universe": 1290,
 "source": "AMFI NAV history \u00b7 equity Direct/Growth plans \u00b7 point-to-point NAV returns",
 "windows": [
 "r1w",
@@ -79,30 +79,6 @@
 "r1w": -0.63,
 "r1m": 8.66,
 "r3m": 19.41,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "148634",
-"name": "Axis Innovation Fund - Direct Plan - Growth Option",
-"amc": "Axis",
-"category": "Thematic",
-"nav": 23.58,
-"r1w": 0.47,
-"r1m": 2.97,
-"r3m": 14.91,
-"r6m": null,
-"r1y": null
-},
-{
-"code": "148631",
-"name": "Axis Innovation Fund - Regular Plan - Growth Option",
-"amc": "Axis",
-"category": "Thematic",
-"nav": 21.97,
-"r1w": 0.46,
-"r1m": 2.9,
-"r3m": 14.67,
 "r6m": null,
 "r1y": null
 },
@@ -369,6 +345,30 @@
 "r3m": 12.49,
 "r6m": null,
 "r1y": null
+},
+{
+"code": "154102",
+"name": "Groww Small Cap Fund - Regular Plan - Growth",
+"amc": "Groww",
+"category": "Small Cap",
+"nav": 12.5427,
+"r1w": -2.52,
+"r1m": 0.8,
+"r3m": 9.37,
+"r6m": null,
+"r1y": null
+},
+{
+"code": "153155",
+"name": "Bajaj Finserv Healthcare Fund - Regular Plan - Growth",
+"amc": "Bajaj Finserv",
+"category": "Sectoral/ Thematic",
+"nav": 11.739,
+"r1w": -2.81,
+"r1m": 0.75,
+"r3m": 12.02,
+"r6m": null,
+"r1y": null
 }
 ],
 "bottom": [
@@ -595,7 +595,7 @@
 {
 "category": "Sectoral",
 "count": 38,
-"avg": -2.97,
+"avg": -3.04,
 "median": -3.29,
 "best": {
 "name": "WhiteOak Capital Pharma and Healthcare Fund - Direct Plan - Growth Option",
@@ -631,9 +631,28 @@
 "breadth": 0
 },
 {
+"category": "Sectoral/ Thematic",
+"count": 343,
+"avg": -3.47,
+"median": -3.86,
+"best": {
+"name": "Motilal Oswal Digital India Fund - Direct Plan - Growth",
+"amc": "Motilal Oswal",
+"ret": 13.48,
+"code": "152964"
+},
+"worst": {
+"name": "SBI CONSUMPTION OPPORTUNITIES FUND - Regular Plan - Growth",
+"amc": "SBI",
+"ret": -7.64,
+"code": "120576"
+},
+"breadth": 8
+},
+{
 "category": "Contra",
 "count": 7,
-"avg": -3.18,
+"avg": -3.54,
 "median": -4.25,
 "best": {
 "name": "Motilal Oswal Contra Fund - Regular Plan - Growth",
@@ -648,25 +667,6 @@
 "code": "103040"
 },
 "breadth": 0
-},
-{
-"category": "Sectoral/ Thematic",
-"count": 343,
-"avg": -3.38,
-"median": -3.85,
-"best": {
-"name": "Motilal Oswal Digital India Fund - Direct Plan - Growth",
-"amc": "Motilal Oswal",
-"ret": 13.48,
-"code": "152964"
-},
-"worst": {
-"name": "SBI CONSUMPTION OPPORTUNITIES FUND - Regular Plan - Growth",
-"amc": "SBI",
-"ret": -7.64,
-"code": "120576"
-},
-"breadth": 8
 },
 {
 "category": "Mid Cap",
@@ -690,7 +690,7 @@
 {
 "category": "Flexi Cap",
 "count": 91,
-"avg": -3.76,
+"avg": -3.81,
 "median": -3.96,
 "best": {
 "name": "Taurus Flexi Cap Fund - Direct Plan - Growth",
@@ -705,25 +705,6 @@
 "code": "149449"
 },
 "breadth": 0
-},
-{
-"category": "Thematic",
-"count": 113,
-"avg": -3.81,
-"median": -3.79,
-"best": {
-"name": "Axis Innovation Fund - Direct Plan - Growth Option",
-"amc": "Axis",
-"ret": 2.97,
-"code": "148634"
-},
-"worst": {
-"name": "Bandhan Multi-Factor Fund - Regular Plan - Growth",
-"amc": "Bandhan",
-"ret": -7.49,
-"code": "153721"
-},
-"breadth": 5
 },
 {
 "category": "ELSS",
@@ -745,28 +726,28 @@
 "breadth": 0
 },
 {
-"category": "Large & Mid Cap",
-"count": 73,
-"avg": -3.9,
-"median": -4.25,
+"category": "Thematic",
+"count": 113,
+"avg": -3.88,
+"median": -3.79,
 "best": {
-"name": "ITI Large & Mid Cap Fund - Direct Plan - Growth Option",
-"amc": "ITI",
-"ret": -0.05,
-"code": "152821"
+"name": "Samco Active Momentum Fund - Direct Plan - Growth",
+"amc": "Samco",
+"ret": 2.05,
+"code": "151753"
 },
 "worst": {
-"name": "ICICI Prudential Large & Mid Cap Fund - Regular Plan - Growth",
-"amc": "ICICI Prudential",
-"ret": -5.84,
-"code": "100349"
+"name": "Bandhan Multi-Factor Fund - Regular Plan - Growth",
+"amc": "Bandhan",
+"ret": -7.49,
+"code": "153721"
 },
-"breadth": 0
+"breadth": 5
 },
 {
 "category": "Focused",
 "count": 56,
-"avg": -3.92,
+"avg": -3.99,
 "median": -4.32,
 "best": {
 "name": "Bandhan Focused Fund - Direct Plan - Growth",
@@ -783,8 +764,27 @@
 "breadth": 4
 },
 {
+"category": "Large & Mid Cap",
+"count": 73,
+"avg": -3.99,
+"median": -4.27,
+"best": {
+"name": "ITI Large & Mid Cap Fund - Direct Plan - Growth Option",
+"amc": "ITI",
+"ret": -0.05,
+"code": "152821"
+},
+"worst": {
+"name": "ICICI Prudential Large & Mid Cap Fund - Regular Plan - Growth",
+"amc": "ICICI Prudential",
+"ret": -5.84,
+"code": "100349"
+},
+"breadth": 0
+},
+{
 "category": "Value",
-"count": 43,
+"count": 45,
 "avg": -3.99,
 "median": -3.95,
 "best": {
@@ -952,14 +952,6 @@
 "score": 49.2
 },
 {
-"amc": "HSBC",
-"funds": 31,
-"avg": -3.07,
-"pct_outperform": 77,
-"breadth": 0,
-"score": 47.7
-},
-{
 "amc": "JM Financial",
 "funds": 16,
 "avg": -3.45,
@@ -974,6 +966,14 @@
 "pct_outperform": 75,
 "breadth": 0,
 "score": 45.2
+},
+{
+"amc": "HSBC",
+"funds": 33,
+"avg": -3.13,
+"pct_outperform": 73,
+"breadth": 0,
+"score": 45.0
 },
 {
 "amc": "Taurus",
@@ -1002,10 +1002,10 @@
 {
 "amc": "PPFAS",
 "funds": 6,
-"avg": -3.78,
+"avg": -3.87,
 "pct_outperform": 67,
 "breadth": 0,
-"score": 40.6
+"score": 40.5
 },
 {
 "amc": "Groww",
@@ -1016,12 +1016,20 @@
 "score": 39.9
 },
 {
+"amc": "Edelweiss",
+"funds": 28,
+"avg": -3.57,
+"pct_outperform": 57,
+"breadth": 7,
+"score": 37.5
+},
+{
 "amc": "Axis",
 "funds": 64,
-"avg": -3.79,
+"avg": -3.94,
 "pct_outperform": 59,
 "breadth": 3,
-"score": 37.4
+"score": 37.1
 },
 {
 "amc": "PGIM India",
@@ -1030,14 +1038,6 @@
 "pct_outperform": 56,
 "breadth": 0,
 "score": 35.7
-},
-{
-"amc": "Edelweiss",
-"funds": 28,
-"avg": -3.54,
-"pct_outperform": 54,
-"breadth": 7,
-"score": 35.6
 },
 {
 "amc": "Invesco",
@@ -1074,18 +1074,26 @@
 {
 "amc": "SBI",
 "funds": 56,
-"avg": -3.6,
-"pct_outperform": 46,
+"avg": -3.86,
+"pct_outperform": 43,
 "breadth": 4,
-"score": 30.7
+"score": 28.3
 },
 {
 "amc": "HDFC",
 "funds": 47,
 "avg": -3.91,
-"pct_outperform": 40,
+"pct_outperform": 43,
 "breadth": 4,
-"score": 27.0
+"score": 28.2
+},
+{
+"amc": "Kotak Mahindra",
+"funds": 54,
+"avg": -3.91,
+"pct_outperform": 41,
+"breadth": 4,
+"score": 27.1
 },
 {
 "amc": "Jio BlackRock",
@@ -1096,14 +1104,6 @@
 "score": 26.4
 },
 {
-"amc": "Kotak Mahindra",
-"funds": 54,
-"avg": -3.84,
-"pct_outperform": 39,
-"breadth": 4,
-"score": 26.2
-},
-{
 "amc": "Mahindra Manulife",
 "funds": 30,
 "avg": -3.8,
@@ -1112,20 +1112,20 @@
 "score": 25.8
 },
 {
-"amc": "Aditya Birla Sun Life",
-"funds": 65,
-"avg": -4.1,
-"pct_outperform": 38,
-"breadth": 0,
-"score": 24.6
-},
-{
 "amc": "Tata",
 "funds": 38,
 "avg": -4.0,
 "pct_outperform": 37,
 "breadth": 0,
 "score": 23.9
+},
+{
+"amc": "Aditya Birla Sun Life",
+"funds": 65,
+"avg": -4.22,
+"pct_outperform": 35,
+"breadth": 0,
+"score": 22.7
 },
 {
 "amc": "Baroda BNP Paribas",
@@ -1146,18 +1146,18 @@
 {
 "amc": "DSP",
 "funds": 32,
-"avg": -3.64,
+"avg": -3.8,
 "pct_outperform": 28,
 "breadth": 0,
-"score": 19.6
+"score": 19.4
 },
 {
 "amc": "Sundaram",
 "funds": 33,
-"avg": -3.86,
+"avg": -3.98,
 "pct_outperform": 27,
 "breadth": 0,
-"score": 18.8
+"score": 18.6
 },
 {
 "amc": "UTI",
@@ -1170,10 +1170,18 @@
 {
 "amc": "Franklin Templeton",
 "funds": 30,
-"avg": -4.03,
+"avg": -4.18,
 "pct_outperform": 27,
 "breadth": 0,
-"score": 18.2
+"score": 18.0
+},
+{
+"amc": "Canara Robeco",
+"funds": 26,
+"avg": -4.29,
+"pct_outperform": 27,
+"breadth": 0,
+"score": 17.9
 },
 {
 "amc": "NJ",
@@ -1186,18 +1194,10 @@
 {
 "amc": "Nippon India",
 "funds": 42,
-"avg": -4.13,
+"avg": -4.12,
 "pct_outperform": 24,
 "breadth": 0,
 "score": 16.5
-},
-{
-"amc": "Canara Robeco",
-"funds": 26,
-"avg": -4.29,
-"pct_outperform": 23,
-"breadth": 0,
-"score": 15.8
 },
 {
 "amc": "Union",
@@ -1210,10 +1210,10 @@
 {
 "amc": "ICICI Prudential",
 "funds": 62,
-"avg": -4.53,
-"pct_outperform": 19,
+"avg": -4.67,
+"pct_outperform": 16,
 "breadth": 0,
-"score": 13.4
+"score": 11.4
 },
 {
 "amc": "Quantum",
@@ -1242,8 +1242,8 @@
 ],
 "insights": [
 "Small Cap led equity categories at +-1.1% (1-month NAV), outpacing Equitys (-4.9%) by 3.8 pts.",
-"The top 10 equity funds averaged +8.1% over 1 month, led by Motilal Oswal Digital India Fund - Direc (+13.5%).",
-"Across 1,288 equity Growth funds, 4% posted positive 1-month NAV returns.",
+"The top 10 equity funds averaged +8.0% over 1 month, led by Motilal Oswal Digital India Fund - Direc (+13.5%).",
+"Across 1,290 equity Growth funds, 4% posted positive 1-month NAV returns.",
 "Motilal Oswal ranks #1 on AMC quality (93% of its funds beat their category median)."
 ]
 }
