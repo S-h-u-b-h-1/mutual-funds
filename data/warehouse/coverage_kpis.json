@@ -1,10 +1,10 @@
 {
- "asOf": "2026-09-17",
+ "asOf": "2026-09-19",
  "scheme_coverage_pct": 100.0,
  "nav_coverage_pct": 98.32,
  "historical_coverage_pct": 0.0,
- "returns_coverage_pct": 98.62,
- "risk_coverage_pct": 98.84,
+ "returns_coverage_pct": 98.59,
+ "risk_coverage_pct": 98.87,
  "benchmark_coverage_pct": 75.33,
  "category_coverage_pct": 100.0,
  "metadata_coverage_pct": 6.15,
