@@ -1,5 +1,5 @@
 {
- "asOf": "2026-09-19",
+ "asOf": "2026-09-20",
  "live_amfi_fetched": true,
  "live_amfi_schemes": 14375,
  "mfpulse_schemes": 14375,
@@ -11,8 +11,8 @@
   "asset_class": {
    "Debt": 8066,
    "Equity": 3193,
-   "Other": 2119,
    "Hybrid": 852,
+   "Other": 2119,
    "Solution": 145
   },
   "scheme_type": {
@@ -22,9 +22,9 @@
   },
   "fund_type": {
    "Active/Other": 11994,
+   "Index Fund": 1312,
    "Fund of Fund": 709,
-   "ETF": 360,
-   "Index Fund": 1312
+   "ETF": 360
   },
   "international": 177,
   "commodity": 212
