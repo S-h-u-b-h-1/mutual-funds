@@ -937,7 +937,7 @@ export default function FundPageClient({
                 action={
                   <div className="text-[11px] text-accent-soft font-bold flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-accent-soft animate-pulse" />
-                    TradingView Synced Mode
+                    Synchronized NAV mode
                   </div>
                 }
               >

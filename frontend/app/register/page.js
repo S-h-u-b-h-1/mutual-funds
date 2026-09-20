@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { DEFAULT_PROFILE, PROFILE_OPTIONS } from "../lib/userProfile";
 import { saveResearchProfile } from "../lib/cloudSync";
+import { ADVISORY_DRAFT_KEY, buildRiskProfile, researchProfileFromAdvisoryAnswers } from "../lib/advisoryEngine";
 
 const inputClass =
   "w-full rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-ink-faint shadow-sm transition focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/10";
@@ -39,12 +40,23 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const [advisoryProfileLabel, setAdvisoryProfileLabel] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const next = new URLSearchParams(window.location.search).get("callbackUrl");
     if (next) setCallbackUrl(next);
+    try {
+      const stored = window.sessionStorage.getItem(ADVISORY_DRAFT_KEY);
+      const draft = stored ? JSON.parse(stored) : null;
+      if (draft?.version === 1 && draft.answers) {
+        setProfile(researchProfileFromAdvisoryAnswers(draft.answers));
+        setAdvisoryProfileLabel(buildRiskProfile(draft.answers).label);
+      }
+    } catch {
+      window.sessionStorage.removeItem(ADVISORY_DRAFT_KEY);
+    }
   }, []);
 
   function updateProfile(key, value) {
@@ -101,7 +113,9 @@ export default function RegisterPage() {
         <div className="eyebrow text-accent-soft">MF Pulse access</div>
         <h1 className="mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.06em] sm:text-5xl">Create your research profile.</h1>
         <p className="mt-5 text-sm leading-6 text-bg/72">
-          Signup captures the context MF Pulse needs to personalize your workspace: who you are, what you research, your experience, risk comfort, and horizon. Fund research itself never required an account — this unlocks your personal dashboard, portfolio tools, and saved analysis.
+          {advisoryProfileLabel
+            ? `Your ${advisoryProfileLabel.toLowerCase()} advisory profile is ready. Create an account to restore it and continue into your matched-fund comparison.`
+            : "Create an account to personalize your advisory workspace, portfolio tools, and saved analysis."}
         </p>
         <div className="mt-8 grid gap-3 text-sm">
           {["Unlock your personal dashboard and portfolio tools", "Keep navbar identity compact and clean", "Personalize portfolio and fund-fit surfaces"].map((item) => (
@@ -132,31 +146,41 @@ export default function RegisterPage() {
             <input type="password" required minLength={8} placeholder="Password (min. 8 characters)" value={password} onChange={(e) => setPassword(e.target.value)} className={`${inputClass} mt-2`} />
           </label>
 
-          <ChoiceGroup label="What best describes you?" value={profile.role} options={PROFILE_OPTIONS.roles} onChange={(value) => updateProfile("role", value)} />
-          <ChoiceGroup label="Primary goal" value={profile.primaryGoal} options={PROFILE_OPTIONS.goals} onChange={(value) => updateProfile("primaryGoal", value)} />
+          {advisoryProfileLabel ? (
+            <div className="rounded-2xl border border-accent/25 bg-accent/[0.08] p-4">
+              <div className="eyebrow text-accent">Advisory profile attached</div>
+              <div className="mt-2 text-base font-semibold text-ink">{advisoryProfileLabel} · answers ready to restore</div>
+              <p className="mt-2 text-xs leading-5 text-ink-muted">We mapped your landing-page answers to the account profile, so you do not need to complete the same questionnaire twice. Once saved, this profile is locked; future changes require an advisor-approved request.</p>
+            </div>
+          ) : (
+            <>
+              <ChoiceGroup label="What best describes you?" value={profile.role} options={PROFILE_OPTIONS.roles} onChange={(value) => updateProfile("role", value)} />
+              <ChoiceGroup label="Primary goal" value={profile.primaryGoal} options={PROFILE_OPTIONS.goals} onChange={(value) => updateProfile("primaryGoal", value)} />
 
-          <div className="grid gap-5 lg:grid-cols-2">
-            <ChoiceGroup label="Experience level" value={profile.experience} options={PROFILE_OPTIONS.experience} onChange={(value) => updateProfile("experience", value)} />
-            <ChoiceGroup label="Risk comfort" value={profile.riskComfort} options={PROFILE_OPTIONS.risk} onChange={(value) => updateProfile("riskComfort", value)} />
-          </div>
+              <div className="grid gap-5 lg:grid-cols-2">
+                <ChoiceGroup label="Experience level" value={profile.experience} options={PROFILE_OPTIONS.experience} onChange={(value) => updateProfile("experience", value)} />
+                <ChoiceGroup label="Risk comfort" value={profile.riskComfort} options={PROFILE_OPTIONS.risk} onChange={(value) => updateProfile("riskComfort", value)} />
+              </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm font-semibold text-ink">Investment horizon
-              <select value={profile.horizon} onChange={(e) => updateProfile("horizon", e.target.value)} required className={`${inputClass} mt-2`}>
-                <option value="">Select horizon</option>
-                {PROFILE_OPTIONS.horizons.map(([key, text]) => <option key={key} value={key}>{text}</option>)}
-              </select>
-            </label>
-            <label className="block text-sm font-semibold text-ink">Portfolio size
-              <select value={profile.aumBand} onChange={(e) => updateProfile("aumBand", e.target.value)} className={`${inputClass} mt-2`}>
-                {PROFILE_OPTIONS.aumBands.map(([key, text]) => <option key={key} value={key}>{text}</option>)}
-              </select>
-            </label>
-          </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-semibold text-ink">Investment horizon
+                  <select value={profile.horizon} onChange={(e) => updateProfile("horizon", e.target.value)} required className={`${inputClass} mt-2`}>
+                    <option value="">Select horizon</option>
+                    {PROFILE_OPTIONS.horizons.map(([key, text]) => <option key={key} value={key}>{text}</option>)}
+                  </select>
+                </label>
+                <label className="block text-sm font-semibold text-ink">Portfolio size
+                  <select value={profile.aumBand} onChange={(e) => updateProfile("aumBand", e.target.value)} className={`${inputClass} mt-2`}>
+                    {PROFILE_OPTIONS.aumBands.map(([key, text]) => <option key={key} value={key}>{text}</option>)}
+                  </select>
+                </label>
+              </div>
 
-          <label className="block text-sm font-semibold text-ink">Categories you care about
-            <input type="text" placeholder="Large cap, flexi cap, ELSS…" value={profile.preferredCategories} onChange={(e) => updateProfile("preferredCategories", e.target.value)} className={`${inputClass} mt-2`} />
-          </label>
+              <label className="block text-sm font-semibold text-ink">Categories you care about
+                <input type="text" placeholder="Large cap, flexi cap, ELSS…" value={profile.preferredCategories} onChange={(e) => updateProfile("preferredCategories", e.target.value)} className={`${inputClass} mt-2`} />
+              </label>
+            </>
+          )}
 
           {error && <p role="alert" className="rounded-2xl border border-neg/25 bg-neg/10 px-4 py-3 text-sm text-neg">{error}</p>}
           <button type="submit" disabled={busy} className={buttonClass}>{busy ? "Creating account…" : "Create account and unlock workspace"}</button>

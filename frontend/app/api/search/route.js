@@ -54,16 +54,9 @@ function researchResult(f, matchType = "Exact fund match") {
 }
 
 const STATIC_SEARCH_SURFACES = [
+  { name: "Wealth Advisory Agent", kind: "advisor", path: "/advisor", subtitle: "Risk profiling, matched-fund comparison and explainable advisory dialogue", keywords: ["advisor", "advisory", "risk", "profile", "suitability", "compare", "recommendation"] },
   { name: "Learn mutual funds", kind: "learn", path: "/learn", subtitle: "NAV, AUM, expense ratio, risk, SIP, redemption and switch basics", keywords: ["learn", "education", "mutual fund", "nav", "aum", "expense", "sip", "redemption", "switch", "xirr", "cagr"] },
-  { name: "Stocks research", kind: "workspace", path: "/stocks", subtitle: "Company research, screeners, sectors and learning", keywords: ["stocks", "equity", "company", "companies", "research"] },
-  { name: "Stock screener", kind: "tool", path: "/stocks/screener", subtitle: "ROCE, debt, growth, cash flow and dividend screens", keywords: ["screener", "screen", "roce", "debt", "growth", "dividend"] },
-  { name: "Stock sectors", kind: "workspace", path: "/stocks/sectors", subtitle: "Sector → companies → metrics → raw-material context", keywords: ["sector", "industry", "companies"] },
-  { name: "Raw materials", kind: "market", path: "/markets/raw-materials", subtitle: "Commodity context when licensed/public feeds exist", keywords: ["commodity", "commodities", "raw material", "bigmint", "steel", "cement"] },
-  { name: "Learn stock research", kind: "learn", path: "/learn/stocks", subtitle: "Annual reports, management, valuation, risks and thesis building", keywords: ["learn", "education", "annual report", "valuation", "management", "thesis"] },
-  { name: "Suasion Invest", kind: "invest", path: "/invest", subtitle: "Mutual-fund execution workspace", keywords: ["invest", "investment", "suasion", "kyc", "order"] },
-  { name: "Investment readiness", kind: "invest", path: "/invest/compliance", subtitle: "KYC, bank, nominee, FATCA and readiness steps", keywords: ["kyc", "readiness", "compliance", "bank", "fatca", "nominee"] },
   { name: "Portfolio", kind: "portfolio", path: "/portfolio", subtitle: "Mutual-fund portfolio import and intelligence", keywords: ["portfolio", "holdings", "gain", "loss", "xirr", "allocation"] },
-  { name: "Invest portfolio", kind: "portfolio", path: "/invest/portfolio", subtitle: "Authenticated portfolio, holdings and pending transactions", keywords: ["portfolio", "holdings", "transactions"] },
   { name: "Profile", kind: "account", path: "/profile", subtitle: "Account, preferences and setup", keywords: ["profile", "account", "settings", "preferences"] },
   { name: "Help Center", kind: "support", path: "/help", subtitle: "Get oriented, check data status and find support paths", keywords: ["help", "support", "stuck", "contact", "status"] },
   { name: "Service status", kind: "support", path: "/status", subtitle: "Application and data-service status", keywords: ["status", "outage", "service", "health"] },

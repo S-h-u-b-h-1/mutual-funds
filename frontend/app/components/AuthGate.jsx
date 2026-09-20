@@ -15,14 +15,11 @@ const AUTH_PAGES = new Set(["/login", "/register", "/forgot-password", "/reset-p
 // action within an otherwise-public page (those already degrade to a local-only save when
 // signed out — see cloudSync.js — never a hard failure).
 //
-// /advisor is a judgment call: today it's a "talk to an advisor" contact/lead form, not an
-// account-tied flow, so it's kept public rather than gated — revisit if it grows into something
-// that reads or writes personal account data.
 const PUBLIC_PATH_PREFIXES = [
   "/funds", "/fund", "/amc", "/categories", "/benchmark", "/manager",
   "/news", "/methodology", "/data-status", "/data-quality", "/status",
   "/performance", "/brief", "/market-map", "/signals", "/discover",
-  "/research", "/compare", "/about", "/advisor", "/help", "/learn",
+  "/research", "/compare", "/about", "/help", "/learn",
   // Stock Intelligence (Section 37: public company/sector research must be as openly readable as
   // mutual-fund research is above — same reasoning, new domain). Only the research surface is
   // public; user-specific stock pages (watchlists, stock portfolio, research notes) are not in
@@ -112,7 +109,7 @@ export default function AuthGate({ children }) {
     return (
       <GateShell
         title="Sign in required"
-        detail="Your personal dashboard, portfolio tools, and saved research need an account. Fund research, comparisons, and market news are open to everyone — no sign-in needed."
+        detail="Your advisory plan, personal dashboard, portfolio tools, and saved research need an account. Public fund evidence remains open so every number can still be verified."
         action={<a href={`/login?callbackUrl=${encodeURIComponent(target)}`} className="mt-6 inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-semibold text-white">Sign in to continue</a>}
       />
     );

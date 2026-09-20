@@ -9,9 +9,9 @@ import { getHistory } from "../lib/cloudSync";
 // call sites (context={`fund:${code}`}) keep working unchanged while new pages (compare, news)
 // get copy that matches what they're actually asking the reader to review.
 const HEADLINES = {
-  fund: "Need professional guidance on this fund?",
-  compare: "Need professional guidance on this comparison?",
-  news: "Need professional guidance on how this affects your portfolio?",
+  fund: "Want to test this fund against your risk profile?",
+  compare: "Want an explainable shortlist built around your risk profile?",
+  news: "Want to discuss how this evidence changes the trade-offs?",
 };
 
 // Engagement gate (Decision Support Phase 11): a first-touch visitor from a search engine
@@ -34,14 +34,14 @@ export default function AdvisorSoftCTA({ context }) {
   return (
     <div className="mt-7 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white/[0.015] px-4 py-3.5">
       <div className="text-[12.5px] text-ink-muted">
-        <span className="font-medium text-ink">{headline}</span> Talk to an advisor for a portfolio review.
+        <span className="font-medium text-ink">{headline}</span> Continue in the MFPulse advisory workspace.
       </div>
       <a
         href="/advisor"
         onClick={() => track("advisor_cta_click", { context })}
         className="shrink-0 rounded-lg border border-line-strong px-3.5 py-1.5 text-[12px] font-semibold text-ink transition-colors hover:border-accent hover:text-accent-soft"
       >
-        Talk to an advisor →
+        Open advisory agent →
       </a>
     </div>
   );

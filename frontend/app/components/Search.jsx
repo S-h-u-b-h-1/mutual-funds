@@ -16,14 +16,14 @@ const TRENDING_FUNDS = [
 ];
 
 const WORKSPACE_SHORTCUTS = [
-  { label: "Open Stocks Research", path: "/stocks", key: "/stocks" },
-  { label: "Run Stock Screener", path: "/stocks/screener", key: "/screener" },
-  { label: "Open Suasion Invest", path: "/invest", key: "/invest" },
-  { label: "Open Portfolio", path: "/portfolio", key: "/portfolio" },
-  { label: "Go to News & Regulatory Updates", path: "/news", key: "/news" },
-  { label: "Go to Compare & Allocations", path: "/compare", key: "/compare" },
+  { label: "Open Wealth Advisory Agent", path: "/advisor", key: "/advisor" },
+  { label: "Build a Risk Profile", path: "/advisor", key: "/risk-profile" },
+  { label: "Compare Mutual Funds", path: "/compare?mode=funds", key: "/compare-funds" },
+  { label: "Diagnose My Portfolio", path: "/portfolio", key: "/portfolio" },
+  { label: "Browse Fund Research", path: "/funds", key: "/funds" },
+  { label: "Learn Mutual Fund Basics", path: "/learn", key: "/learn" },
   { label: "Go to Data Status", path: "/data-status", key: "/status" },
-  { label: "Go to Performance Leaderboards", path: "/performance", key: "/performance" }
+  { label: "Review Methodology", path: "/methodology", key: "/methodology" }
 ];
 
 function formatSearchResultContext(result) {
