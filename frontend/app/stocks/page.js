@@ -20,6 +20,7 @@ async function safeCompanies(query) {
 }
 
 const workflows = [
+  ["Explore global equities", "Open Fiscal.ai-backed company reports with price history, standardized financials, ratios, and recent-news context.", "/stocks/global", "Global · live"],
   ["Research a company", "Start with business, sector, financial quality and source freshness before reading valuation.", "/stocks", "Research"],
   ["Open the research desk", "Track sourced company, sector and regulatory developments without mixing news with primary evidence.", "/stocks/research-desk", "Live evidence"],
   ["Explore the universe", "Browse the current official NIFTY 50 and BSE 100 constituent snapshots with identifiers.", "/stocks/universe", "150 records"],
@@ -51,23 +52,26 @@ export default async function StocksHome({ searchParams }) {
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
           <div>
             <div className="eyebrow text-accent">Stocks research</div>
-            <h1 className="page-title mt-3 max-w-4xl">Research Indian companies without turning MF Pulse into a stock broker.</h1>
+            <h1 className="page-title mt-3 max-w-4xl">Research Indian and global companies without turning MF Pulse into a stock broker.</h1>
             <p className="measure mt-4 text-sm leading-6 text-ink-muted">
-              Stocks is a separate research, discovery, portfolio-intelligence, watchlist and learning product area. No buy/sell/order controls are exposed because no stock execution backend exists.
+              Stocks is a separate research, discovery, portfolio-intelligence, watchlist and learning product area. Global company reports are now powered by Fiscal.ai; no buy/sell/order controls are exposed because no stock execution backend exists.
             </p>
             <form action="/stocks" className="mt-7 flex max-w-2xl flex-col gap-2 rounded-[1.4rem] border border-line bg-surface p-2 shadow-sm sm:flex-row" role="search">
               <label className="sr-only" htmlFor="stock-search">Search companies</label>
               <input id="stock-search" name="q" defaultValue={query} className="min-h-12 min-w-0 flex-1 rounded-2xl bg-transparent px-4 text-sm text-ink outline-none placeholder:text-ink-faint" placeholder="Search company, ticker, ISIN…" />
               <button className="min-h-12 rounded-full bg-ink px-5 text-sm font-semibold text-bg" type="submit">Search</button>
             </form>
-            <Link href="/stocks/demo" className="mt-3 inline-flex text-sm font-semibold text-accent">View the interactive stock-analysis demo →</Link>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+              <Link href="/stocks/global" className="inline-flex text-sm font-semibold text-accent">Explore global equities →</Link>
+              <Link href="/stocks/demo" className="inline-flex text-sm font-semibold text-accent">View the interactive stock-analysis demo →</Link>
+            </div>
           </div>
           <GlassPanel className="p-5">
             <SectionHeader eyebrow="Product boundary" title="What Stocks can do today" />
             <div className="grid gap-3 text-sm text-ink-muted">
               <div className="rounded-2xl bg-surface-2 p-4"><Badge tone="accent">Research</Badge><p className="mt-2">Company pages, screens, sectors, learning and private notes.</p></div>
               <div className="rounded-2xl bg-surface-2 p-4"><Badge tone="neutral">No trading</Badge><p className="mt-2">No Buy, Sell, Place Order, SIP, pledge or broker execution language.</p></div>
-              <div className="rounded-2xl bg-surface-2 p-4"><Badge tone="warn">Data-gated</Badge><p className="mt-2">Missing financial, price, commodity or event contracts show unavailable states.</p></div>
+              <div className="rounded-2xl bg-surface-2 p-4"><Badge tone="warn">Data-gated</Badge><p className="mt-2">Global coverage reflects the connected Fiscal.ai plan; missing datasets show unavailable states.</p></div>
             </div>
           </GlassPanel>
         </section>
