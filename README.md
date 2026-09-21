@@ -36,3 +36,9 @@ tests/       parser data-quality tests
 
 ## Known constraints
 - dbt-core 1.9 doesn't run on Python 3.14 yet — use Python 3.12/3.13 or the dbt Docker image.
+
+## Pulse AI (feature branch)
+Grounded mutual-fund research at `/ai`, layered over existing deterministic analytics.
+Server-only SiliconFlow integration, evidence citations, dated sources and explicit SAMPLE flow labels.
+Disabled until a verified free model/key is configured. See [AI integration and setup](docs/AI_INTEGRATION.md).
+Run frontend checks with `cd frontend && npm test && npm run build` (existing public Supabase settings required for the homepage build).

@@ -1,5 +1,5 @@
 export const NAV_GROUPS = [
-  { label: "Advisory", links: [["Wealth Advisory Agent", "/advisor"], ["Risk Profile", "/advisor"], ["Compare Matched Funds", "/compare?mode=funds"]] },
+  { label: "Advisory", links: [["Pulse AI Advisor", "/ai"], ["Wealth Advisory Agent", "/advisor"], ["Risk Profile", "/advisor"], ["Compare Matched Funds", "/compare?mode=funds"]] },
   { label: "Mutual Funds", links: [["Research Home", "/funds"], ["Compare Funds", "/compare"], ["Categories", "/categories"], ["AMCs", "/amc"], ["Morning Brief", "/brief"]] },
   { label: "Portfolio", links: [["Portfolio Diagnosis", "/portfolio"], ["Dashboard", "/dashboard"], ["Watchlist", "/dashboard#watchlist"], ["Research Notebook", "/dashboard#notebook"]] },
   { label: "Learn", links: [["Learning Home", "/learn"], ["Mutual Fund Basics", "/learn#mutual-funds"], ["Methodology", "/methodology"], ["Data Quality", "/data-quality"], ["Data Status", "/data-status"]] },

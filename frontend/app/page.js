@@ -2,6 +2,7 @@ import Nav from "./components/Nav";
 import Footer from "./components/Footer";
 import Tracker from "./components/Tracker";
 import WealthAdvisorWorkspace from "./components/WealthAdvisorWorkspace";
+import AskPulseAI from "./components/ai/AskPulseAI";
 import { advisoryCandidateSet } from "./lib/advisoryCandidates";
 import { asOf } from "./lib/funds";
 
@@ -25,6 +26,7 @@ export default function HomePage() {
             </div>
             <h1 className="mt-5 max-w-4xl text-[2.35rem] font-semibold leading-[1.02] tracking-[-0.055em] text-ink sm:text-[3.4rem]">From “which fund?” to a decision you can understand.</h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-ink-muted">Create a provisional risk profile, compare matched mutual funds, and question every trade-off. No opaque score and no sales handoff.</p>
+            <div className="mt-5"><AskPulseAI>Ask Pulse AI</AskPulseAI></div>
           </div>
           <div className="grid grid-cols-3 gap-2 rounded-2xl border border-line bg-surface p-3 shadow-glass">
             {[["01", "Profile"], ["02", "Compare"], ["03", "Discuss"]].map(([number, label]) => <div key={number} className="rounded-xl bg-surface-2 p-3"><div className="financial-number text-sm font-semibold text-accent">{number}</div><div className="mt-2 text-[11px] font-semibold text-ink">{label}</div></div>)}

@@ -6,6 +6,7 @@ import Sparkline from "./Sparkline";
 import { ComparisonBars, RiskReturnMap } from "./ui/ResearchCharts";
 import { track } from "../lib/track";
 import { getComparisons, saveComparison, deleteComparison, saveWatchlist } from "../lib/cloudSync";
+import AskPulseAI from "./ai/AskPulseAI";
 
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(n || 0);
 const pct = (n) => n == null || Number.isNaN(Number(n)) ? "Unavailable" : `${Number(n).toFixed(1)}%`;
@@ -224,6 +225,7 @@ export default function CompareClient({ amcs, meta = {} }) {
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setSel([])} className="min-h-11 rounded-full border border-line px-4 text-sm font-semibold text-ink-muted hover:text-ink">Clear</button>
             <button type="button" onClick={copyLink} disabled={sel.length < 1} className="min-h-11 rounded-full border border-line px-4 text-sm font-semibold text-ink-muted hover:text-ink disabled:opacity-45">{copied ? "Copied" : "Copy link"}</button>
+            <AskPulseAI type="compare" amcs={sel}>Ask about this comparison</AskPulseAI>
             {selectedFunds.length >= 2 && <a href={`/compare?funds=${selectedFunds.join(",")}`} className="inline-flex min-h-11 items-center rounded-full bg-accent px-4 text-sm font-semibold text-white">Compare selected funds</a>}
           </div>
         </div>
