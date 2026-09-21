@@ -27,6 +27,7 @@ from ingestion.db import connect
 ALLOWED_EVENTS = {
     "page_view", "search", "search_click", "amc_view",
     "watchlist_add", "watchlist_remove", "alert_signup",
+    "ai_open", "ai_question", "ai_suggested_prompt", "ai_error", "ai_context_fund",
 }
 
 # Error tracking — no-op unless SENTRY_DSN is set.
