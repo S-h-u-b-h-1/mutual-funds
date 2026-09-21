@@ -16,15 +16,15 @@
    "Solution": 145
   },
   "scheme_type": {
-   "Close Ended Schemes": 4711,
    "Open Ended Schemes": 9627,
+   "Close Ended Schemes": 4711,
    "Interval Fund Schemes": 41
   },
   "fund_type": {
    "Active/Other": 11998,
-   "Fund of Fund": 709,
    "Index Fund": 1312,
-   "ETF": 360
+   "ETF": 360,
+   "Fund of Fund": 709
   },
   "international": 177,
   "commodity": 212

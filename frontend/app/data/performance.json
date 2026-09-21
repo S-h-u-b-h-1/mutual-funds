@@ -557,7 +557,7 @@
 {
 "category": "Small Cap",
 "count": 71,
-"avg": 0.05,
+"avg": 0.04,
 "median": -0.28,
 "best": {
 "name": "Samco Small Cap Fund - Direct Plan - Growth",
@@ -595,7 +595,7 @@
 {
 "category": "Sectoral",
 "count": 38,
-"avg": -1.59,
+"avg": -1.61,
 "median": -2.1,
 "best": {
 "name": "WhiteOak Capital Pharma and Healthcare Fund - Direct Plan - Growth Option",
@@ -614,7 +614,7 @@
 {
 "category": "Multi Cap",
 "count": 63,
-"avg": -1.62,
+"avg": -1.63,
 "median": -1.56,
 "best": {
 "name": "Samco Multi Cap Fund - Direct Plan - Growth",
@@ -652,7 +652,7 @@
 {
 "category": "Mid Cap",
 "count": 66,
-"avg": -1.85,
+"avg": -1.86,
 "median": -2.05,
 "best": {
 "name": "Taurus Mid Cap Fund - Direct Plan - Growth",
@@ -661,17 +661,17 @@
 "code": "118872"
 },
 "worst": {
-"name": "Sundaram Mid Cap Fund - Regular Plan - GROWTH",
-"amc": "Sundaram",
-"ret": -3.25,
-"code": "101539"
+"name": "Mahindra Manulife Mid Cap Fund - Regular Plan - Growth",
+"amc": "Mahindra Manulife",
+"ret": -3.71,
+"code": "142109"
 },
 "breadth": 3
 },
 {
 "category": "Thematic",
 "count": 114,
-"avg": -1.89,
+"avg": -1.9,
 "median": -2.32,
 "best": {
 "name": "Nippon India Taiwan Equity Fund - Direct Plan - Growth Option",
@@ -785,7 +785,7 @@
 {
 "category": "ELSS- Tax Saver",
 "count": 41,
-"avg": -2.42,
+"avg": -2.41,
 "median": -2.49,
 "best": {
 "name": "JM ELSS - Tax Saver Fund - Direct Plan - Growth Option",
@@ -796,7 +796,7 @@
 "worst": {
 "name": "Mahindra Manulife ELSS Tax Saver Fund - Regular Plan - Growth",
 "amc": "Mahindra Manulife",
-"ret": -3.91,
+"ret": -3.68,
 "code": "139783"
 },
 "breadth": 0
@@ -804,7 +804,7 @@
 {
 "category": "Value",
 "count": 45,
-"avg": -2.58,
+"avg": -2.57,
 "median": -2.9,
 "best": {
 "name": "LIC MF Value Fund - Direct Plan - Growth",
@@ -823,7 +823,7 @@
 {
 "category": "Large Cap",
 "count": 68,
-"avg": -2.84,
+"avg": -2.83,
 "median": -3.1,
 "best": {
 "name": "Taurus Large Cap Fund - Direct Plan - Growth",
@@ -834,7 +834,7 @@
 "worst": {
 "name": "Mahindra Manulife Large Cap Fund - Regular Plan - Growth",
 "amc": "Mahindra Manulife",
-"ret": -3.91,
+"ret": -3.78,
 "code": "146551"
 },
 "breadth": 4
@@ -1122,10 +1122,10 @@
 {
 "amc": "Mahindra Manulife",
 "funds": 30,
-"avg": -2.29,
+"avg": -2.36,
 "pct_outperform": 37,
 "breadth": 7,
-"score": 28.2
+"score": 28.1
 },
 {
 "amc": "Edelweiss",
@@ -1241,7 +1241,7 @@
 }
 ],
 "insights": [
-"Small Cap led equity categories at +0.1% (1-month NAV), outpacing Equitys (-2.9%) by 3.0 pts.",
+"Small Cap led equity categories at +0.0% (1-month NAV), outpacing Equitys (-2.9%) by 3.0 pts.",
 "The top 10 equity funds averaged +9.1% over 1 month, led by Motilal Oswal Digital India Fund - Direc (+12.4%).",
 "Across 1,299 equity Growth funds, 10% posted positive 1-month NAV returns.",
 "Motilal Oswal ranks #1 on AMC quality (93% of its funds beat their category median)."
