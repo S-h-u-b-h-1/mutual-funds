@@ -9,10 +9,10 @@
  "delisted_count": 0,
  "universe": {
   "asset_class": {
-   "Debt": 8066,
-   "Hybrid": 852,
-   "Equity": 3193,
    "Other": 2119,
+   "Debt": 8066,
+   "Equity": 3193,
+   "Hybrid": 852,
    "Solution": 145
   },
   "scheme_type": {
@@ -21,9 +21,9 @@
    "Interval Fund Schemes": 41
   },
   "fund_type": {
+   "ETF": 360,
    "Active/Other": 11994,
    "Index Fund": 1312,
-   "ETF": 360,
    "Fund of Fund": 709
   },
   "international": 177,
