@@ -9,7 +9,7 @@
   {
    "check": "Every scheme routable (funds.json == our universe)",
    "pass": true,
-   "detail": "14389 vs 14389"
+   "detail": "14393 vs 14393"
   },
   {
    "check": "No orphan funds outside source",
