@@ -1,30 +1,30 @@
 {
- "asOf": "2026-09-21",
+ "asOf": "2026-09-22",
  "live_amfi_fetched": true,
- "live_amfi_schemes": 14379,
- "mfpulse_schemes": 14379,
- "covered": 14379,
+ "live_amfi_schemes": 14389,
+ "mfpulse_schemes": 14389,
+ "covered": 14389,
  "coverage_pct": 100.0,
  "missing_count": 0,
  "delisted_count": 0,
  "universe": {
   "asset_class": {
    "Debt": 8066,
-   "Equity": 3197,
    "Other": 2119,
-   "Hybrid": 852,
-   "Solution": 145
+   "Equity": 3207,
+   "Solution": 145,
+   "Hybrid": 852
   },
   "scheme_type": {
-   "Open Ended Schemes": 9627,
-   "Interval Fund Schemes": 41,
-   "Close Ended Schemes": 4711
+   "Open Ended Schemes": 9637,
+   "Close Ended Schemes": 4711,
+   "Interval Fund Schemes": 41
   },
   "fund_type": {
-   "Active/Other": 11998,
-   "ETF": 360,
-   "Index Fund": 1312,
-   "Fund of Fund": 709
+   "Active/Other": 12002,
+   "Index Fund": 1318,
+   "Fund of Fund": 709,
+   "ETF": 360
   },
   "international": 177,
   "commodity": 212
@@ -33,22 +33,22 @@
  "delisted_schemes": [],
  "kpis": {
   "scheme_coverage_pct": 100.0,
-  "nav_coverage_pct": 98.32,
+  "nav_coverage_pct": 98.33,
   "historical_coverage_pct": 0.0,
-  "returns_coverage_pct": 98.78,
-  "risk_coverage_pct": 98.84,
-  "benchmark_coverage_pct": 75.33,
+  "returns_coverage_pct": 98.62,
+  "risk_coverage_pct": 98.7,
+  "benchmark_coverage_pct": 75.31,
   "category_coverage_pct": 100.0,
-  "metadata_coverage_pct": 6.15,
-  "aum_coverage_pct": 6.15,
+  "metadata_coverage_pct": 6.14,
+  "aum_coverage_pct": 6.14,
   "expense_ratio_coverage_pct": 1.19,
   "manager_coverage_pct": 5.37,
-  "holdings_coverage_pct": 1.68,
-  "portfolio_coverage_pct": 0.77,
-  "document_coverage_pct": 6.15,
+  "holdings_coverage_pct": 1.67,
+  "portfolio_coverage_pct": 0.76,
+  "document_coverage_pct": 6.14,
   "isin_coverage_pct": 98.82,
   "structure_coverage_pct": 100.0,
-  "performance_completeness_avg_investable": 75.7,
+  "performance_completeness_avg_investable": 75.6,
   "fund_completeness_avg_investable": 50.8,
   "research_readiness_avg_investable": 53.1
  }
