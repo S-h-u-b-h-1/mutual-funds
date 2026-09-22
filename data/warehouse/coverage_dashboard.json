@@ -17,13 +17,13 @@
   },
   "scheme_type": {
    "Open Ended Schemes": 9627,
-   "Close Ended Schemes": 4711,
-   "Interval Fund Schemes": 41
+   "Interval Fund Schemes": 41,
+   "Close Ended Schemes": 4711
   },
   "fund_type": {
    "Active/Other": 11998,
-   "Index Fund": 1312,
    "ETF": 360,
+   "Index Fund": 1312,
    "Fund of Fund": 709
   },
   "international": 177,
