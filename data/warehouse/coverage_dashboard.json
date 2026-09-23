@@ -9,10 +9,10 @@
  "delisted_count": 0,
  "universe": {
   "asset_class": {
-   "Debt": 8067,
    "Equity": 3211,
-   "Hybrid": 852,
+   "Debt": 8067,
    "Other": 2119,
+   "Hybrid": 852,
    "Solution": 145
   },
   "scheme_type": {
