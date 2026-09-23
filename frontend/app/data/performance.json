@@ -529,26 +529,26 @@
 "r1y": null
 },
 {
-"code": "117620",
-"name": "ICICI Prudential US Bluechip Equity Fund - Regular Plan - Growth",
-"amc": "ICICI Prudential",
+"code": "100064",
+"name": "Aditya Birla Sun Life MNC Fund - Regular Plan - GROWTH",
+"amc": "Aditya Birla Sun Life",
 "category": "Sectoral/ Thematic",
-"nav": 79.13,
-"r1w": -0.74,
-"r1m": -4.94,
-"r3m": 8.49,
+"nav": 1265.69,
+"r1w": 0.78,
+"r1m": -4.91,
+"r3m": -1.39,
 "r6m": null,
 "r1y": null
 },
 {
-"code": "120186",
-"name": "ICICI Prudential US Bluechip Equity Fund - Direct Plan - Growth",
+"code": "147345",
+"name": "ICICI Prudential MNC Fund - Regular Plan - Growth",
 "amc": "ICICI Prudential",
 "category": "Sectoral/ Thematic",
-"nav": 89.21,
-"r1w": -0.72,
-"r1m": -4.87,
-"r3m": 8.7,
+"nav": 29.65,
+"r1w": 0.99,
+"r1m": -4.85,
+"r3m": -1.27,
 "r6m": null,
 "r1y": null
 }
@@ -614,8 +614,8 @@
 {
 "category": "Sectoral/ Thematic",
 "count": 343,
-"avg": -1.76,
-"median": -2.32,
+"avg": -1.77,
+"median": -2.43,
 "best": {
 "name": "Motilal Oswal Digital India Fund - Direct Plan - Growth",
 "amc": "Motilal Oswal",
@@ -628,12 +628,12 @@
 "ret": -5.77,
 "code": "153153"
 },
-"breadth": 17
+"breadth": 18
 },
 {
 "category": "Sectoral",
 "count": 38,
-"avg": -1.84,
+"avg": -1.88,
 "median": -2.25,
 "best": {
 "name": "WhiteOak Capital Pharma and Healthcare Fund - Direct Plan - Growth Option",
@@ -647,26 +647,7 @@
 "ret": -4.47,
 "code": "150717"
 },
-"breadth": 21
-},
-{
-"category": "Contra",
-"count": 7,
-"avg": -1.87,
-"median": -2.49,
-"best": {
-"name": "Motilal Oswal Contra Fund - Regular Plan - Growth",
-"amc": "Motilal Oswal",
-"ret": 2.06,
-"code": "154338"
-},
-"worst": {
-"name": "Invesco India Contra Fund - Regular Plan - Growth",
-"amc": "Invesco",
-"ret": -3.2,
-"code": "105460"
-},
-"breadth": 14
+"breadth": 18
 },
 {
 "category": "Mid Cap",
@@ -688,6 +669,25 @@
 "breadth": 3
 },
 {
+"category": "Contra",
+"count": 7,
+"avg": -1.94,
+"median": -2.49,
+"best": {
+"name": "Motilal Oswal Contra Fund - Regular Plan - Growth",
+"amc": "Motilal Oswal",
+"ret": 2.06,
+"code": "154338"
+},
+"worst": {
+"name": "Invesco India Contra Fund - Regular Plan - Growth",
+"amc": "Invesco",
+"ret": -3.2,
+"code": "105460"
+},
+"breadth": 14
+},
+{
 "category": "Thematic",
 "count": 114,
 "avg": -1.98,
@@ -704,7 +704,7 @@
 "ret": -4.8,
 "code": "153721"
 },
-"breadth": 16
+"breadth": 14
 },
 {
 "category": "ELSS",
@@ -747,7 +747,7 @@
 {
 "category": "Large & Mid Cap",
 "count": 73,
-"avg": -2.32,
+"avg": -2.33,
 "median": -2.65,
 "best": {
 "name": "ITI Large & Mid Cap Fund - Direct Plan - Growth Option",
@@ -960,20 +960,20 @@
 "score": 52.2
 },
 {
+"amc": "Union",
+"funds": 28,
+"avg": -1.65,
+"pct_outperform": 64,
+"breadth": 21,
+"score": 48.1
+},
+{
 "amc": "Bandhan",
 "funds": 34,
 "avg": -1.55,
 "pct_outperform": 62,
 "breadth": 24,
 "score": 47.4
-},
-{
-"amc": "Union",
-"funds": 28,
-"avg": -1.65,
-"pct_outperform": 61,
-"breadth": 21,
-"score": 46.1
 },
 {
 "amc": "LIC",
@@ -994,10 +994,10 @@
 {
 "amc": "PPFAS",
 "funds": 6,
-"avg": -1.88,
+"avg": -1.98,
 "pct_outperform": 67,
 "breadth": 0,
-"score": 43.7
+"score": 43.5
 },
 {
 "amc": "Abakkus",
@@ -1026,10 +1026,10 @@
 {
 "amc": "Axis",
 "funds": 64,
-"avg": -2.38,
+"avg": -2.36,
 "pct_outperform": 59,
 "breadth": 3,
-"score": 39.6
+"score": 39.7
 },
 {
 "amc": "Tata",
@@ -1040,20 +1040,20 @@
 "score": 36.6
 },
 {
+"amc": "Kotak Mahindra",
+"funds": 54,
+"avg": -1.76,
+"pct_outperform": 46,
+"breadth": 15,
+"score": 36.3
+},
+{
 "amc": "Invesco",
 "funds": 43,
 "avg": -2.16,
 "pct_outperform": 51,
 "breadth": 5,
 "score": 35.8
-},
-{
-"amc": "Kotak Mahindra",
-"funds": 54,
-"avg": -1.8,
-"pct_outperform": 46,
-"breadth": 11,
-"score": 35.4
 },
 {
 "amc": "360 ONE",
@@ -1064,14 +1064,6 @@
 "score": 34.0
 },
 {
-"amc": "SBI",
-"funds": 56,
-"avg": -2.35,
-"pct_outperform": 46,
-"breadth": 7,
-"score": 33.6
-},
-{
 "amc": "Old Bridge",
 "funds": 4,
 "avg": -2.72,
@@ -1080,20 +1072,12 @@
 "score": 33.2
 },
 {
-"amc": "Aditya Birla Sun Life",
-"funds": 65,
-"avg": -2.41,
-"pct_outperform": 46,
-"breadth": 6,
-"score": 33.1
-},
-{
-"amc": "Nippon India",
-"funds": 42,
-"avg": -1.82,
-"pct_outperform": 38,
-"breadth": 19,
-"score": 32.8
+"amc": "SBI",
+"funds": 56,
+"avg": -2.38,
+"pct_outperform": 45,
+"breadth": 7,
+"score": 32.5
 },
 {
 "amc": "HDFC",
@@ -1102,6 +1086,22 @@
 "pct_outperform": 43,
 "breadth": 9,
 "score": 31.9
+},
+{
+"amc": "Nippon India",
+"funds": 42,
+"avg": -1.85,
+"pct_outperform": 38,
+"breadth": 14,
+"score": 31.6
+},
+{
+"amc": "Aditya Birla Sun Life",
+"funds": 65,
+"avg": -2.44,
+"pct_outperform": 43,
+"breadth": 6,
+"score": 31.3
 },
 {
 "amc": "Jio BlackRock",
@@ -1120,14 +1120,6 @@
 "score": 28.5
 },
 {
-"amc": "DSP",
-"funds": 32,
-"avg": -2.45,
-"pct_outperform": 38,
-"breadth": 6,
-"score": 28.3
-},
-{
 "amc": "Mahindra Manulife",
 "funds": 30,
 "avg": -2.59,
@@ -1138,10 +1130,18 @@
 {
 "amc": "Edelweiss",
 "funds": 28,
-"avg": -2.39,
+"avg": -2.42,
 "pct_outperform": 36,
 "breadth": 7,
 "score": 27.6
+},
+{
+"amc": "DSP",
+"funds": 32,
+"avg": -2.5,
+"pct_outperform": 38,
+"breadth": 3,
+"score": 27.4
 },
 {
 "amc": "NJ",
@@ -1178,10 +1178,18 @@
 {
 "amc": "Franklin Templeton",
 "funds": 30,
-"avg": -2.44,
+"avg": -2.42,
 "pct_outperform": 27,
 "breadth": 0,
 "score": 20.8
+},
+{
+"amc": "ICICI Prudential",
+"funds": 62,
+"avg": -3.02,
+"pct_outperform": 27,
+"breadth": 0,
+"score": 20.2
 },
 {
 "amc": "UTI",
@@ -1190,14 +1198,6 @@
 "pct_outperform": 26,
 "breadth": 3,
 "score": 20.1
-},
-{
-"amc": "ICICI Prudential",
-"funds": 62,
-"avg": -3.02,
-"pct_outperform": 26,
-"breadth": 0,
-"score": 19.4
 },
 {
 "amc": "Canara Robeco",
@@ -1219,9 +1219,9 @@
 "amc": "Sundaram",
 "funds": 33,
 "avg": -2.73,
-"pct_outperform": 15,
+"pct_outperform": 18,
 "breadth": 0,
-"score": 14.0
+"score": 15.6
 },
 {
 "amc": "Quantum",
