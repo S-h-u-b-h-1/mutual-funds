@@ -10,10 +10,10 @@
  "universe": {
   "asset_class": {
    "Equity": 3211,
-   "Debt": 8067,
-   "Other": 2119,
    "Hybrid": 852,
-   "Solution": 145
+   "Debt": 8067,
+   "Solution": 145,
+   "Other": 2119
   },
   "scheme_type": {
    "Open Ended Schemes": 9642,
