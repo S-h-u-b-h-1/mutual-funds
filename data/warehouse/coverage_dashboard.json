@@ -12,12 +12,12 @@
    "Debt": 8069,
    "Equity": 3211,
    "Other": 2119,
-   "Solution": 145,
-   "Hybrid": 852
+   "Hybrid": 852,
+   "Solution": 145
   },
   "scheme_type": {
-   "Open Ended Schemes": 9644,
    "Close Ended Schemes": 4711,
+   "Open Ended Schemes": 9644,
    "Interval Fund Schemes": 41
   },
   "fund_type": {
