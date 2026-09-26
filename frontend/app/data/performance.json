@@ -614,7 +614,7 @@
 {
 "category": "Sectoral/ Thematic",
 "count": 343,
-"avg": -2.84,
+"avg": -2.83,
 "median": -3.34,
 "best": {
 "name": "Motilal Oswal Digital India Fund - Direct Plan - Growth",
@@ -652,7 +652,7 @@
 {
 "category": "Flexi Cap",
 "count": 92,
-"avg": -3.1,
+"avg": -3.08,
 "median": -3.26,
 "best": {
 "name": "Taurus Flexi Cap Fund - Direct Plan - Growth",
@@ -747,8 +747,8 @@
 {
 "category": "Focused",
 "count": 56,
-"avg": -3.64,
-"median": -3.9,
+"avg": -3.63,
+"median": -3.87,
 "best": {
 "name": "Bandhan Focused Fund - Direct Plan - Growth",
 "amc": "Bandhan",
@@ -766,7 +766,7 @@
 {
 "category": "Sectoral",
 "count": 38,
-"avg": -3.8,
+"avg": -3.81,
 "median": -4.97,
 "best": {
 "name": "WhiteOak Capital Pharma and Healthcare Fund - Direct Plan - Growth Option",
@@ -785,7 +785,7 @@
 {
 "category": "Large & Mid Cap",
 "count": 73,
-"avg": -3.86,
+"avg": -3.85,
 "median": -4.08,
 "best": {
 "name": "ITI Large & Mid Cap Fund - Direct Plan - Growth Option",
@@ -1002,10 +1002,10 @@
 {
 "amc": "PPFAS",
 "funds": 6,
-"avg": -2.81,
+"avg": -2.68,
 "pct_outperform": 67,
 "breadth": 0,
-"score": 42.2
+"score": 42.4
 },
 {
 "amc": "Taurus",
@@ -1018,15 +1018,15 @@
 {
 "amc": "SBI",
 "funds": 56,
-"avg": -3.22,
+"avg": -3.16,
 "pct_outperform": 62,
 "breadth": 4,
-"score": 40.1
+"score": 40.2
 },
 {
 "amc": "Kotak Mahindra",
 "funds": 56,
-"avg": -2.52,
+"avg": -2.53,
 "pct_outperform": 55,
 "breadth": 11,
 "score": 39.1
@@ -1064,14 +1064,6 @@
 "score": 32.6
 },
 {
-"amc": "DSP",
-"funds": 32,
-"avg": -3.29,
-"pct_outperform": 50,
-"breadth": 0,
-"score": 32.2
-},
-{
 "amc": "360 ONE",
 "funds": 8,
 "avg": -3.29,
@@ -1082,10 +1074,18 @@
 {
 "amc": "Aditya Birla Sun Life",
 "funds": 65,
-"avg": -3.16,
+"avg": -3.14,
 "pct_outperform": 48,
 "breadth": 3,
-"score": 31.9
+"score": 32.0
+},
+{
+"amc": "DSP",
+"funds": 32,
+"avg": -3.31,
+"pct_outperform": 47,
+"breadth": 0,
+"score": 30.5
 },
 {
 "amc": "HDFC",
@@ -1098,7 +1098,7 @@
 {
 "amc": "Nippon India",
 "funds": 42,
-"avg": -2.85,
+"avg": -2.84,
 "pct_outperform": 38,
 "breadth": 5,
 "score": 27.6
@@ -1130,7 +1130,7 @@
 {
 "amc": "Edelweiss",
 "funds": 28,
-"avg": -3.61,
+"avg": -3.6,
 "pct_outperform": 36,
 "breadth": 0,
 "score": 23.9
@@ -1162,10 +1162,10 @@
 {
 "amc": "ICICI Prudential",
 "funds": 62,
-"avg": -3.78,
+"avg": -3.73,
 "pct_outperform": 29,
 "breadth": 2,
-"score": 20.3
+"score": 20.4
 },
 {
 "amc": "Jio BlackRock",
