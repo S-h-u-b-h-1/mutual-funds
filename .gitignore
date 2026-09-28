@@ -17,3 +17,8 @@ sql/neon/export/
 .vercel
 .env.local
 .env.*.local
+
+# Local credentials for all services; keep documented examples versioned.
+.env.*
+!.env.example
+!frontend/.env.example

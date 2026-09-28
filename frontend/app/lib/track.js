@@ -63,7 +63,7 @@ export function track(eventType, payload = {}) {
       entity_type,
       entity_id,
       page_path: typeof location !== "undefined" ? location.pathname : null,
-      referrer: typeof document !== "undefined" ? document.referrer || null : null,
+      referrer: eventType.startsWith("ai_") ? null : typeof document !== "undefined" ? document.referrer || null : null,
       device_type: deviceType(),
     };
     fetch(`${URL}/rest/v1/user_events`, {
