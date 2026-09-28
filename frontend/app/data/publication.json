@@ -1,32 +1,32 @@
 {
   "schemaVersion": 1,
-  "publicationId": "2026-09-25-f2280d91872f",
-  "createdAt": "2026-09-28T18:53:06.867279+00:00",
+  "publicationId": "2026-09-25-0714530cf3aa",
+  "createdAt": "2026-09-28T18:56:22.547672+00:00",
   "sourceAsOf": "2026-09-25",
   "source": "AMFI official NAV publication and history",
   "sourceRowCounts": {
     "total": 14402,
     "priced": 14161,
     "active": 8642,
-    "with30d": 4260,
-    "with90d": 4165,
-    "with180d": 4018,
-    "with1y": 3775,
-    "with3y": 2861,
-    "with5y": 2056,
-    "withRisk": 4246,
+    "with30d": 4070,
+    "with90d": 3975,
+    "with180d": 3824,
+    "with1y": 3595,
+    "with3y": 2723,
+    "with5y": 1922,
+    "withRisk": 4055,
     "missingLatest": 5551,
     "stale7d": 5519,
     "equity": 3195,
-    "directGrowth": 1807,
-    "regularGrowth": 1883,
-    "growth": 3690,
-    "idcw": 4647,
+    "directGrowth": 1820,
+    "regularGrowth": 1900,
+    "growth": 3720,
+    "idcw": 4908,
     "direct": 4253,
     "noCategory": 0,
-    "coveragePct": 29,
-    "activeEligible": 4270,
-    "activeEligibleWith30d": 4200,
+    "coveragePct": 28,
+    "activeEligible": 4079,
+    "activeEligibleWith30d": 4010,
     "openable": 14402,
     "searchable": 14402,
     "routablePct": 100,
@@ -41,8 +41,8 @@
   },
   "outputs": {
     "funds.json": {
-      "sha256": "c05a92ccd6526505de52b209923b847cfecb8318c8effaf0358923f78b005e90",
-      "bytes": 11514476
+      "sha256": "314070dd1b6e2aebc751fce40f484e24034411f97316ff970c697581c26909a4",
+      "bytes": 11479291
     },
     "performance.json": {
       "sha256": "3bab9d64c74efc6c188829ce464062eb181eeb0de1f9c5a19e5e5fe1bec0715e",
@@ -65,17 +65,17 @@
       "bytes": 3538
     }
   },
-  "checksum": "f2280d91872f3e1ff00782c46133257f0cebb269be9f86ad304abf4f29cc8de5",
+  "checksum": "0714530cf3aa65b637a8434159f47693e87d7c99ae6eb8ff06fdd722b0cec695",
   "requiredCoverage": {
-    "eligible": 4270,
-    "r1m": 4200,
-    "r3m": 4108,
-    "r6m": 4005,
-    "r1y": 3762,
-    "r3y": 2854,
-    "r5y": 2055,
-    "vol90": 4216
+    "eligible": 4079,
+    "r1m": 4010,
+    "r3m": 3918,
+    "r6m": 3824,
+    "r1y": 3595,
+    "r3y": 2723,
+    "r5y": 1922,
+    "vol90": 4025
   },
   "pipelineStatus": "verified",
-  "buildCommit": "d79b408ed5c467a1ffe3f2049e154106ecfdbda0"
+  "buildCommit": "841003c64ec88491a9f9d90b56a9445f1f66d421"
 }

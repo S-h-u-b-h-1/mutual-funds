@@ -39,12 +39,12 @@ SQRT252 = 252 ** 0.5
 
 def is_growth(n):
     n = n.lower()
-    return "growth" in n and not any(b in n for b in ("idcw", "dividend", "bonus", "payout"))
+    return "growth" in n and not any(b in n for b in ("idcw", "income distribution", "dividend", "bonus", "payout"))
 
 
 def is_idcw(n):
     n = n.lower()
-    return any(b in n for b in ("idcw", "dividend", "bonus", "payout"))
+    return any(b in n for b in ("idcw", "income distribution", "dividend", "bonus", "payout"))
 
 
 def clean_category(cat):

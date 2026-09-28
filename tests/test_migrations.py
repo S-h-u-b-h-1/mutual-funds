@@ -102,7 +102,7 @@ def test_research_profile_table_exists_with_correct_columns():
     # The exact bug this test exists to catch: an earlier apply of 005 used goal/experience_level/
     # risk_comfort_label/horizon_band/free_text_categories instead of these names, and every
     # research-profile API call 500'd until 006_research_profile_column_fix.sql corrected it.
-    expected = {"user_id", "role", "primary_goal", "experience", "risk_comfort", "horizon", "aum_band", "preferred_categories", "created_at", "updated_at"}
+    expected = {"user_id", "role", "primary_goal", "experience", "risk_comfort", "horizon", "aum_band", "preferred_categories", "advisory_answers", "risk_score", "risk_profile", "locked_at", "created_at", "updated_at"}
     assert actual == expected, f"research_profile columns drifted — expected {expected}, got {actual}"
     stale = {"goal", "experience_level", "risk_comfort_label", "horizon_band", "free_text_categories"}
     assert not (actual & stale), f"research_profile still has pre-006-fix column names: {actual & stale}"
