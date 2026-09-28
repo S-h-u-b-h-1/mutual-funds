@@ -110,7 +110,7 @@
 "code": "152586",
 "name": "Samco Special Opportunities Fund - Direct Plan - Growth",
 "amc": "Samco",
-"category": "Sectoral/ Thematic",
+"category": "Thematic",
 "nav": 9.49,
 "r1w": -0.63,
 "r1m": 3.6,
@@ -122,7 +122,7 @@
 "code": "152587",
 "name": "Samco Special Opportunities Fund - Regular Plan - Growth",
 "amc": "Samco",
-"category": "Sectoral/ Thematic",
+"category": "Thematic",
 "nav": 9.15,
 "r1w": -0.65,
 "r1m": 3.51,
@@ -613,8 +613,8 @@
 },
 {
 "category": "Sectoral/ Thematic",
-"count": 343,
-"avg": -2.83,
+"count": 341,
+"avg": -2.86,
 "median": -3.34,
 "best": {
 "name": "Motilal Oswal Digital India Fund - Direct Plan - Growth",
@@ -632,8 +632,8 @@
 },
 {
 "category": "Thematic",
-"count": 114,
-"avg": -3.0,
+"count": 118,
+"avg": -2.91,
 "median": -3.67,
 "best": {
 "name": "Nippon India Taiwan Equity Fund - Direct Plan - Growth Option",
@@ -647,13 +647,13 @@
 "ret": -6.68,
 "code": "152086"
 },
-"breadth": 7
+"breadth": 8
 },
 {
 "category": "Flexi Cap",
-"count": 92,
-"avg": -3.08,
-"median": -3.26,
+"count": 90,
+"avg": -3.07,
+"median": -3.23,
 "best": {
 "name": "Taurus Flexi Cap Fund - Direct Plan - Growth",
 "amc": "Taurus",
@@ -688,25 +688,6 @@
 "breadth": 14
 },
 {
-"category": "ELSS",
-"count": 47,
-"avg": -3.18,
-"median": -3.18,
-"best": {
-"name": "Samco ELSS Tax Saver Fund - Direct Plan - Growth",
-"amc": "Samco",
-"ret": 0.87,
-"code": "150838"
-},
-"worst": {
-"name": "SBI Long Term Advantage Fund - Series IV - Regular Plan - Growth",
-"amc": "SBI",
-"ret": -5.55,
-"code": "140488"
-},
-"breadth": 4
-},
-{
 "category": "Value",
 "count": 45,
 "avg": -3.26,
@@ -726,15 +707,34 @@
 "breadth": 4
 },
 {
-"category": "ELSS- Tax Saver",
-"count": 41,
-"avg": -3.57,
-"median": -3.59,
+"category": "ELSS",
+"count": 45,
+"avg": -3.36,
+"median": -3.39,
 "best": {
-"name": "JM ELSS - Tax Saver Fund - Direct Plan - Growth Option",
-"amc": "JM Financial",
-"ret": -1.87,
-"code": "120494"
+"name": "Taurus ELSS Tax Saver Fund - Direct Plan - Growth",
+"amc": "Taurus",
+"ret": -0.46,
+"code": "118866"
+},
+"worst": {
+"name": "SBI Long Term Advantage Fund - Series IV - Regular Plan - Growth",
+"amc": "SBI",
+"ret": -5.55,
+"code": "140488"
+},
+"breadth": 0
+},
+{
+"category": "ELSS- Tax Saver",
+"count": 43,
+"avg": -3.37,
+"median": -3.5,
+"best": {
+"name": "Samco ELSS Tax Saver Fund - Direct Plan - Growth",
+"amc": "Samco",
+"ret": 0.87,
+"code": "150838"
 },
 "worst": {
 "name": "Edelweiss ELSS Tax Saver Fund - Regular Plan - Growth",
@@ -742,7 +742,7 @@
 "ret": -5.18,
 "code": "111638"
 },
-"breadth": 0
+"breadth": 5
 },
 {
 "category": "Focused",
@@ -931,9 +931,9 @@
 "amc": "Bajaj Finserv",
 "funds": 20,
 "avg": -2.54,
-"pct_outperform": 80,
+"pct_outperform": 75,
 "breadth": 10,
-"score": 52.4
+"score": 49.7
 },
 {
 "amc": "Helios",
@@ -960,20 +960,28 @@
 "score": 46.9
 },
 {
-"amc": "Bandhan",
-"funds": 34,
-"avg": -2.57,
-"pct_outperform": 68,
-"breadth": 15,
-"score": 46.8
-},
-{
 "amc": "HSBC",
 "funds": 33,
 "avg": -3.15,
 "pct_outperform": 76,
 "breadth": 0,
 "score": 46.6
+},
+{
+"amc": "PGIM India",
+"funds": 18,
+"avg": -2.41,
+"pct_outperform": 72,
+"breadth": 0,
+"score": 45.9
+},
+{
+"amc": "Bandhan",
+"funds": 34,
+"avg": -2.57,
+"pct_outperform": 65,
+"breadth": 15,
+"score": 45.1
 },
 {
 "amc": "Groww",
@@ -990,14 +998,6 @@
 "pct_outperform": 56,
 "breadth": 25,
 "score": 43.2
-},
-{
-"amc": "PGIM India",
-"funds": 18,
-"avg": -2.41,
-"pct_outperform": 67,
-"breadth": 0,
-"score": 42.8
 },
 {
 "amc": "PPFAS",
@@ -1160,20 +1160,20 @@
 "score": 21.0
 },
 {
-"amc": "ICICI Prudential",
-"funds": 62,
-"avg": -3.73,
-"pct_outperform": 29,
-"breadth": 2,
-"score": 20.4
-},
-{
 "amc": "Jio BlackRock",
 "funds": 14,
 "avg": -3.69,
 "pct_outperform": 29,
 "breadth": 0,
 "score": 19.8
+},
+{
+"amc": "ICICI Prudential",
+"funds": 62,
+"avg": -3.73,
+"pct_outperform": 27,
+"breadth": 2,
+"score": 19.5
 },
 {
 "amc": "Canara Robeco",
