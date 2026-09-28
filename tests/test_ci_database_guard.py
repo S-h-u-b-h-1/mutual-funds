@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 from scripts.ci_database_guard import EXPECTED, HOST, assert_url, assert_connection, safe_failure_category
 
@@ -54,3 +57,9 @@ def test_connected_identity_fails_closed(position):
 ])
 def test_failure_category_does_not_disclose_driver_details(error, category):
     assert safe_failure_category(error) == category
+
+
+def test_profile_governance_tables_keep_ci_crud_privileges():
+    grants = json.loads((Path(__file__).parents[1] / "scripts/ci_database_privileges.json").read_text())
+    for operation in ("select", "insert", "update", "delete"):
+        assert {"audit_log", "profile_change_requests"} <= set(grants[operation])
