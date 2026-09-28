@@ -16,7 +16,7 @@ const TRENDING_FUNDS = [
 ];
 
 const WORKSPACE_SHORTCUTS = [
-  { label: "Open Wealth Advisory Agent", path: "/advisor", key: "/advisor" },
+  { label: "Ask Pulse AI Advisor", path: "/ai?type=profile", key: "/ai" },
   { label: "Build a Risk Profile", path: "/advisor", key: "/risk-profile" },
   { label: "Compare Mutual Funds", path: "/compare?mode=funds", key: "/compare-funds" },
   { label: "Diagnose My Portfolio", path: "/portfolio", key: "/portfolio" },

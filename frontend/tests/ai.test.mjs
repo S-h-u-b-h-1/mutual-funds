@@ -285,6 +285,29 @@ test("categories use existing ranked summaries; unsupported requests report limi
   const unknown = await buildContext(ask("Who won the world cup?"), deps, now);
   assert.equal(unknown.intent, "unsupported");
 });
+test("profile and portfolio questions use only server supplied personal evidence", async () => {
+  const personalContext = async () => ({
+    authenticated: true,
+    profile: { primaryGoal: "portfolio", riskProfile: "balanced", horizon: "5+" },
+    profileAsOf: "2026-09-27",
+    portfolio: { holdingsCount: 4, healthScore: 78, categoryAllocation: [{ label: "Equity", weight: 60 }] },
+    portfolioAsOf: "2026-09-25",
+    shortlist: [{ code: "123456", name: "Evidence Fund", fitScore: 84 }],
+    shortlistAsOf: "2026-09-25",
+  });
+  const c = await buildContext(
+    ask("What deserves attention in my portfolio?", { type: "portfolio" }),
+    { ...deps, personalContext },
+    now,
+  );
+  assert.equal(c.intent, "portfolio");
+  assert.deepEqual(
+    c.evidence.filter((item) => item.type.startsWith("portfolio") || item.type.includes("profile")).map((item) => item.type),
+    ["investor_profile", "portfolio_summary", "profile_shortlist"],
+  );
+  assert.ok(!JSON.stringify(c.evidence).includes("email"));
+  assert.equal(validateRequest({ message: "help", pageContext: { type: "profile" } }).pageContext.type, "profile");
+});
 test("provider uses only server settings, limits output and disables tools/thinking", async () => {
   let captured;
   const result = await complete([{ role: "user", content: "question" }], {

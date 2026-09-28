@@ -19,7 +19,7 @@ const OPTIONS = [
   { key: "news", icon: "📰", title: "Read market news", desc: "What happened, and which funds it may affect", href: "/news" },
   { key: "best", icon: "🏆", title: "Find the best funds", desc: "Real 30-day NAV performance leaders by category", href: "/performance" },
   { key: "compare", icon: "⇄", title: "Compare AMCs", desc: "Side-by-side fund-house performance and coverage", href: "/compare" },
-  { key: "advisor", icon: "💬", title: "Talk to an advisor", desc: "Get help interpreting a fund or portfolio", href: "/advisor" },
+  { key: "advisor", icon: "✦", title: "Ask Pulse AI", desc: "Get profile-aware fund and portfolio insights", href: "/ai?type=profile" },
 ];
 
 export default function GuidedJourney() {

@@ -36,7 +36,7 @@ export function validateRequest(raw) {
   const c = raw.pageContext ?? { type: "market" };
   if (
     !object(c) ||
-    !["market", "fund", "comparison", "amc", "signal"].includes(c.type)
+    !["market", "fund", "comparison", "amc", "signal", "profile", "portfolio"].includes(c.type)
   )
     throw new AIError("invalid_request", 400);
   const codes = c.codes ?? [],
@@ -144,7 +144,7 @@ export function safetyReply(message) {
   )
     return "Pulse AI cannot reveal private configuration or override its evidence rules. Ask about MF Pulse data or methodology.";
   if (
-    /\b(buy|sell|invest|allocate)\b.*\b(for me|my money|my savings|my portfolio)\b|guarantee.*return|execute.*trade/i.test(
+    /\b(what|which|how much)\b.{0,40}\b(buy|sell|invest|allocate)\b|guarantee.*return|execute.*trade/i.test(
       message,
     )
   )

@@ -67,6 +67,29 @@ export async function buildContext(request, deps, now = Date.now()) {
   const retrievalQuestion = `${previous} ${request.message}`;
   const q = normal(retrievalQuestion);
   const pc = request.pageContext;
+  const wantsPersonal =
+    ["profile", "portfolio"].includes(pc.type) ||
+    /\b(my|profile|portfolio|recommend|advisor|advice|shortlist|goal|allocation|holding|update)\b/.test(q);
+  let personal = null;
+  if (wantsPersonal && deps.personalContext) {
+    try {
+      personal = await deps.personalContext();
+    } catch {
+      limitations.push("Saved profile and portfolio context could not be loaded for this answer.");
+    }
+  }
+  if (personal?.authenticated === false) {
+    limitations.push("Sign in to let Pulse AI use your saved research profile and portfolio summary.");
+  } else if (personal) {
+    if (personal.profile)
+      add("investor_profile", personal.profile, personal.profileAsOf, "/profile", false, "Saved MF Pulse research profile");
+    else limitations.push("No saved research profile is available. Complete the risk profile before asking for profile-based guidance.");
+    if (personal.portfolio)
+      add("portfolio_summary", personal.portfolio, personal.portfolioAsOf, "/invest/portfolio", false, "MF Pulse portfolio analytics");
+    else limitations.push("No usable portfolio is available. Connect or import holdings for portfolio-specific guidance.");
+    if (personal.shortlist?.length)
+      add("profile_shortlist", personal.shortlist, personal.shortlistAsOf, "/advisor", false, "Deterministic MF Pulse advisory ranking");
+  }
   let codes = [...pc.codes],
     amcs = [...pc.amcs];
   // Explicit codes from current message override prior page context; never accept client metrics.
@@ -232,6 +255,8 @@ export async function buildContext(request, deps, now = Date.now()) {
         "Supabase scheme mix is unavailable; only dated bundled AMC analytics can be explained.",
       );
     }
+  } else if (wantsPersonal) {
+    intent = pc.type === "portfolio" || /\bportfolio|allocation|holding\b/.test(q) ? "portfolio" : "profile";
   } else if (
     pc.type === "signal" ||
     /\b(flow|flows|signal|signals|z score)\b/.test(q)
@@ -349,7 +374,7 @@ export async function buildContext(request, deps, now = Date.now()) {
     }
   } else {
     limitations.push(
-      "MF Pulse does not currently have enough data for this question. Ask about market breadth, categories, AMCs, flow signals, methodology, or specify a six-digit fund code. External news, causes, forecasts and personal recommendations are not available.",
+      "MF Pulse does not currently have enough data for this question. Ask about your saved profile or portfolio, market breadth, categories, AMCs, flow signals, methodology, or specify a six-digit fund code. External news, causes and forecasts are not available.",
     );
   }
   if (

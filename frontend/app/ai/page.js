@@ -6,7 +6,7 @@ import { validateRequest } from "../lib/ai/safety.mjs";
 import daily from "../data/daily.json";
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "Pulse AI — Grounded mutual fund research",
+  title: "Pulse AI Advisor — Personalised fund research",
   robots: { index: false, follow: true },
 };
 export default function PulseAIPage({ searchParams = {} }) {
@@ -34,6 +34,8 @@ export default function PulseAIPage({ searchParams = {} }) {
     comparison: "Explain this comparison.",
     signal: "Explain the strongest flow signal.",
     amc: "Explain this AMC’s recent performance.",
+    profile: "What fund research fits my saved profile?",
+    portfolio: "What deserves attention in my portfolio?",
   };
   return (
     <>
@@ -42,13 +44,13 @@ export default function PulseAIPage({ searchParams = {} }) {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-soft">
-              MF Pulse · Research copilot
+              MF Pulse · Advisor agent
             </div>
             <h1 className="mt-2 text-[32px] font-bold tracking-tightest text-ink sm:text-[40px]">
               Pulse AI
             </h1>
             <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
-              AI-powered explanations grounded in MF Pulse market data.
+              Profile-aware fund insights, portfolio reviews and updates grounded in MF Pulse data.
             </p>
           </div>
           <span className="rounded-full border border-line px-3 py-1.5 text-xs text-ink-muted">

@@ -34,14 +34,14 @@ export default function AdvisorSoftCTA({ context }) {
   return (
     <div className="mt-7 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white/[0.015] px-4 py-3.5">
       <div className="text-[12.5px] text-ink-muted">
-        <span className="font-medium text-ink">{headline}</span> Continue in the MFPulse advisory workspace.
+        <span className="font-medium text-ink">{headline}</span> Ask Pulse AI using MF Pulse evidence.
       </div>
       <a
-        href="/advisor"
+        href="/ai?type=profile"
         onClick={() => track("advisor_cta_click", { context })}
         className="shrink-0 rounded-lg border border-line-strong px-3.5 py-1.5 text-[12px] font-semibold text-ink transition-colors hover:border-accent hover:text-accent-soft"
       >
-        Open advisory agent →
+        Ask Pulse AI →
       </a>
     </div>
   );

@@ -27,7 +27,19 @@ export default function PulseAIChat({
     controller = useRef(null);
   const contextType = initialContext.type;
   const prompts =
-    contextType === "fund"
+    contextType === "profile"
+      ? [
+          "What fund research fits my saved profile?",
+          "Explain my risk profile and its trade-offs.",
+          "Show the evidence behind my fund shortlist.",
+        ]
+      : contextType === "portfolio"
+        ? [
+            "What deserves attention in my portfolio?",
+            "Explain my portfolio strengths and weaknesses.",
+            "How does my portfolio compare with my saved profile?",
+          ]
+        : contextType === "fund"
       ? [
           "Explain this fund’s recent performance.",
           "Compare recent vs longer-term momentum.",
@@ -142,12 +154,12 @@ export default function PulseAIChat({
                 ✦
               </span>
               <h2 className="mt-4 text-xl font-semibold tracking-tight text-ink">
-                Understand the numbers behind the signal.
+                Your finance research advisor, grounded in evidence.
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-muted">
-                Ask about market breadth, category momentum, a fund or an AMC
-                comparison. Each explanation brings its evidence, source dates
-                and limitations with it.
+                Ask about your saved profile, portfolio, fund insights or market
+                updates. Each explanation includes its evidence, source dates
+                and limitations.
               </p>
               <div className="mt-5 flex flex-wrap gap-2 text-[11px] text-ink-muted">
                 <span className="rounded-full border border-line px-3 py-1.5">
@@ -246,9 +258,10 @@ export default function PulseAIChat({
             id="pulse-privacy"
             className="mt-3 text-[11px] leading-relaxed text-ink-muted"
           >
-            Your question and recent conversation are sent to SiliconFlow when
-            you ask. Avoid personal or account details. Conversations are kept
-            in this tab only.
+            Your question, recent conversation and a de-identified summary of
+            your saved profile or portfolio may be sent to SiliconFlow. Names,
+            email, folios, balances and transaction amounts are excluded.
+            Conversations are kept in this tab only.
           </p>
         </form>
       </section>
