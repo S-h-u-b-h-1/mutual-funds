@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "publicationId": "2026-09-25-51469cefe56e",
-  "createdAt": "2026-09-28T14:27:38.462Z",
+  "publicationId": "2026-09-25-f2280d91872f",
+  "createdAt": "2026-09-28T18:53:06.867279+00:00",
   "sourceAsOf": "2026-09-25",
-  "source": "AMFI official NAV refresh with previously verified long-term return history retained",
+  "source": "AMFI official NAV publication and history",
   "sourceRowCounts": {
     "total": 14402,
     "priced": 14161,
@@ -65,17 +65,17 @@
       "bytes": 3538
     }
   },
-  "checksum": "51469cefe56e995a6f5855828a28a8b98ec903b5fd9b23b3dd73fa967f6087c9",
+  "checksum": "f2280d91872f3e1ff00782c46133257f0cebb269be9f86ad304abf4f29cc8de5",
   "requiredCoverage": {
     "eligible": 4270,
     "r1m": 4200,
-    "r3m": 4165,
-    "r6m": 4018,
-    "r1y": 3775,
-    "r3y": 2861,
-    "r5y": 2056,
-    "vol90": 4246
+    "r3m": 4108,
+    "r6m": 4005,
+    "r1y": 3762,
+    "r3y": 2854,
+    "r5y": 2055,
+    "vol90": 4216
   },
-  "pipelineStatus": "verified_merged_history",
-  "buildCommit": "d48899310e39c4a718cd525f005d5857c95bfd16"
+  "pipelineStatus": "verified",
+  "buildCommit": "d79b408ed5c467a1ffe3f2049e154106ecfdbda0"
 }

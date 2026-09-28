@@ -109,14 +109,14 @@ def test_research_profile_table_exists_with_correct_columns():
 
 
 def test_research_profile_matches_api_route_contract():
-    """Reads the live schema AND the live route file (not a hardcoded copy of either) so this
-    test fails if either side drifts in the future, not just if today's specific bug recurs."""
-    route_path = ROOT / "frontend/app/api/v1/sync/research-profile/route.js"
-    source = route_path.read_text()
-    match = re.search(r"const COLUMNS = \{([^}]+)\};", source)
-    assert match, f"could not find COLUMNS mapping in {route_path} — has the route been restructured?"
-    api_columns = set(re.findall(r':\s*"([a-z_]+)"', match.group(1)))
-    assert api_columns, f"parsed zero columns out of COLUMNS mapping in {route_path}"
+    """The route delegates persistence to the governance service, so compare that service's
+    selected columns with the live schema."""
+    service_path = ROOT / "frontend/app/lib/profileGovernanceService.js"
+    source = service_path.read_text()
+    match = re.search(r"const PROFILE_SELECT = `([^`]+)`;", source)
+    assert match, f"could not find PROFILE_SELECT in {service_path}"
+    api_columns = set(re.findall(r"\b[a-z][a-z_]+\b", match.group(1)))
+    assert api_columns, f"parsed zero columns out of PROFILE_SELECT in {service_path}"
 
     with neon_db.connect() as conn:
         db_columns = set(_columns(conn, "research_profile"))
