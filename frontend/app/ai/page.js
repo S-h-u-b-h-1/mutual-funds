@@ -9,7 +9,8 @@ export const metadata = {
   title: "Pulse AI Advisor — Personalised fund research",
   robots: { index: false, follow: true },
 };
-export default function PulseAIPage({ searchParams = {} }) {
+export default async function PulseAIPage({ searchParams }) {
+  searchParams = await searchParams;
   const arr = (value) =>
     value == null ? [] : Array.isArray(value) ? value : [value];
   let initialContext = { type: "market", codes: [], amcs: [] };
