@@ -165,7 +165,17 @@ export function validateAnswer(answer, evidence) {
     )
   )
     throw new AIError("invalid_answer", 502);
-  const citations = [...answer.matchAll(/\[(MF-[^\]]+)\]/g)].map((m) => m[1]);
+  const citationIds = (text) => {
+    const groups = [...text.matchAll(/\[([^\]]*MF-[^\]]*)\]/g)].map((m) => m[1]);
+    if (
+      groups.some(
+        (group) => !/^MF-\d{3}(?:\s*,\s*MF-\d{3})*$/.test(group),
+      )
+    )
+      throw new AIError("invalid_answer", 502);
+    return groups.flatMap((group) => group.split(/\s*,\s*/));
+  };
+  const citations = citationIds(answer);
   const supplied = new Map(evidence.map((e) => [e.id, e]));
   if (!citations.length || citations.some((id) => !supplied.has(id)))
     throw new AIError("invalid_answer", 502);
@@ -176,7 +186,7 @@ export function validateAnswer(answer, evidence) {
       (n) => String(Number(n.replaceAll(",", ""))),
     );
   for (const paragraph of answer.trim().split(/\n\s*\n/)) {
-    const ids = [...paragraph.matchAll(/\[(MF-[^\]]+)\]/g)].map((m) => m[1]);
+    const ids = citationIds(paragraph);
     if (!ids.length) throw new AIError("invalid_answer", 502);
     const support = ids.map((id) => supplied.get(id));
     const known = new Set(

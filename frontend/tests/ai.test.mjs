@@ -138,6 +138,13 @@ test("citations reject invented IDs, unsupported numbers and uncited paragraphs"
   assert.equal(validateAnswer("Breadth was 3% [MF-001].", e).length, 1);
   assert.equal(
     validateAnswer(
+      "Breadth was 3% [MF-001, MF-002].",
+      [e[0], { ...e[0], id: "MF-002" }],
+    ).length,
+    2,
+  );
+  assert.equal(
+    validateAnswer(
       "There were 1,324 funds [MF-001].",
       [{ ...e[0], text: `${e[0].text} 1324 funds.` }],
     ).length,
@@ -146,6 +153,8 @@ test("citations reject invented IDs, unsupported numbers and uncited paragraphs"
   for (const bad of [
     "Breadth 3%.",
     "Breadth 3% [MF-999].",
+    "Breadth 3% [MF-001, MF-999].",
+    "Breadth 3% [MF-001 and MF-002].",
     "Breadth 99% [MF-001].",
     "Breadth 3% [MF-001].\n\nBuy now.",
     "See https://evil.test [MF-001].",
