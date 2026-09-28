@@ -153,18 +153,23 @@ export function safetyReply(message) {
 }
 // IDs are request-local. Reject the whole answer instead of laundering unknown citations.
 export function validateAnswer(answer, evidence) {
+  const reject = (reason) => {
+    const error = new AIError("invalid_answer", 502);
+    error.reason = reason;
+    throw error;
+  };
   if (
     typeof answer !== "string" ||
     !answer.trim() ||
     answer.length > LIMITS.answer
   )
-    throw new AIError("invalid_answer", 502);
+    reject("shape");
   if (
     /https?:\/\/|<[^>]+>|\bsk-[a-z0-9_-]{8,}|\bguaranteed?\s+(returns?|profit|to (rise|fall))|\byou should (buy|sell|invest)/i.test(
       answer,
     )
   )
-    throw new AIError("invalid_answer", 502);
+    reject("forbidden_content");
   const citationIds = (text) => {
     const groups = [...text.matchAll(/\[([^\]]*MF-[^\]]*)\]/g)].map((m) => m[1]);
     if (
@@ -172,13 +177,13 @@ export function validateAnswer(answer, evidence) {
         (group) => !/^MF-\d{3}(?:\s*,\s*MF-\d{3})*$/.test(group),
       )
     )
-      throw new AIError("invalid_answer", 502);
+      reject("citation_format");
     return groups.flatMap((group) => group.split(/\s*,\s*/));
   };
   const citations = citationIds(answer);
   const supplied = new Map(evidence.map((e) => [e.id, e]));
   if (!citations.length || citations.some((id) => !supplied.has(id)))
-    throw new AIError("invalid_answer", 502);
+    reject("missing_or_unknown_citation");
   // Each paragraph needs support; numerical tokens must occur in that paragraph's cited evidence.
   // This is a conservative consistency check, not semantic proof that a claim follows from a source.
   const numbers = (s) =>
@@ -187,13 +192,13 @@ export function validateAnswer(answer, evidence) {
     );
   for (const paragraph of answer.trim().split(/\n\s*\n/)) {
     const ids = citationIds(paragraph);
-    if (!ids.length) throw new AIError("invalid_answer", 502);
+    if (!ids.length) reject("uncited_paragraph");
     const support = ids.map((id) => supplied.get(id));
     const known = new Set(
       numbers(support.map((e) => `${e.asOf || ""} ${e.text}`).join(" ")),
     );
     if (numbers(paragraph).some((n) => !known.has(n)))
-      throw new AIError("invalid_answer", 502);
+      reject("unsupported_number");
   }
   return [...new Set(citations)].map((id) => supplied.get(id));
 }
