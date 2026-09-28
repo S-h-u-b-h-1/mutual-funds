@@ -9,15 +9,18 @@ for `/brief`, the explanation engine, or fund calculations.
 
 - Next.js 14 App Router, JavaScript, React 18, Tailwind; financial-terminal design
   tokens, panels, badges, navigation and mobile menu are reused.
-- Production reads Supabase PostgREST directly. FastAPI exists but is not needed on
-  the serving path. No new service, vector database, schema migration or SDK is added.
+- Public market views read Supabase PostgREST; authenticated portfolio and account
+  features also use the repository's existing Neon-backed server path. Pulse AI reads
+  only public research data and needs neither service-role access nor a new database.
+  FastAPI is not needed on its serving path. No new service, vector database, schema
+  migration or provider SDK is added.
 - Python ingests AMFI NAV, SEBI-style monthly exports and official AMC factsheets.
   Postgres stores scheme/NAV/flow facts, pipeline health, append-only observations,
   and events. dbt and pipeline quality gates remain untouched.
 - `funds.json`, `performance.json`, `daily.json`, and `amc_trend.json` are real-data,
   generated snapshots, not automatically fresh just because Supabase is fresh.
-  At implementation, daily/performance snapshots end on **2026-06-23**, while the
-  AMC trend window ends **2026-06-19**. Source dates are preserved.
+  At integration, daily/performance/fund snapshots end on **2026-09-25**, while the
+  bundled AMC trend series currently ends **2026-06-30**. Source dates are preserved.
 - `/compare` compares **AMCs**, not individual schemes. Pulse AI sends selected AMC
   identifiers and reloads their data server-side. For a two-fund comparison, enter
   two six-digit scheme codes, or use the fund page's contextual link for one fund.
@@ -39,16 +42,17 @@ flowchart TD
   G --> A[AI explanation plus evidence and server disclosures]
 ```
 
-## Provider research — checked 21 September 2026
+## Provider research — rechecked 28 September 2026
 
 Selected: **SiliconFlow**, Chinese provider, exact model **`Qwen/Qwen3.5-4B`**.
 Endpoint: **`https://api.siliconflow.cn/v1/chat/completions`**.
 
-The official [pricing catalogue](https://www.siliconflow.cn/pricing) was opened in
-an interactive browser. Searching `Qwen3.5-4B` and selecting its result exposed the
-exact model row under chat models with **免费** (free) for both input and output.
-This is free-priced inference, not merely a new-user token credit. It is a current
-pricing observation, **not a promise that pricing will remain free forever**.
+SiliconFlow's official Qwen3.5 launch notice identifies the 4B model as free, and
+current official integration documentation continues to list `Qwen/Qwen3.5-4B`
+among free hosted models. The public pricing catalogue uses a collapsed model list,
+so an operator must still open the exact model in Model Square and confirm its live
+input/output price before enabling this feature. This is free-priced inference,
+not merely a new-user token credit, and **not a promise that pricing will remain free**.
 [Chat API documentation](https://docs.siliconflow.cn/docs/api/chat-completions-post)
 confirms the Bearer-authenticated endpoint and completion controls.
 
@@ -200,7 +204,7 @@ not deploy or change production configuration.
 ```sh
 cd frontend
 npm ci
-npm test
+npm run test:ai
 npm run build
 npm run dev -- --hostname 127.0.0.1
 ```
@@ -214,9 +218,13 @@ Verify evidence dates and actual zero cost in the provider bill before a demo.
 
 ```sh
 .venv/bin/python -m pytest tests/ -q
-npm test --prefix frontend
+npm run test:ai --prefix frontend
 cd frontend && npm run build
 ```
+
+The repository-wide Vitest suite also requires the isolated Postgres test branch
+described in `docs/TEST_DATABASE_AND_CI.md`; it deliberately refuses to run when
+`DATABASE_URL` is absent. CI runs that suite when `TEST_DATABASE_URL` is configured.
 
 The Node built-in test runner covers schema limits, context bounds, real snapshot
 selection, sample flags, missing config, no paid fallback, malicious history,
