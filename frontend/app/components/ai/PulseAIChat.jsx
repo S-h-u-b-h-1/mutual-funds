@@ -259,7 +259,7 @@ export default function PulseAIChat({
             className="mt-3 text-[11px] leading-relaxed text-ink-muted"
           >
             Your question, recent conversation and a de-identified summary of
-            your saved profile or portfolio may be sent to SiliconFlow. Names,
+            your saved profile or portfolio may be sent to OpenRouter. Names,
             email, folios, balances and transaction amounts are excluded.
             Conversations are kept in this tab only.
           </p>

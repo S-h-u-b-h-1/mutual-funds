@@ -101,7 +101,7 @@ export async function handleChat(
     return json({
       answer,
       model: MODEL,
-      provider: "SiliconFlow",
+      provider: config.provider,
       asOf: context.asOf,
       evidence: context.evidence,
       citedEvidenceIds: used.map((e) => e.id),

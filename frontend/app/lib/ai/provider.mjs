@@ -1,26 +1,20 @@
 import { AIError } from "./safety.mjs";
-export const MODEL = "Qwen/Qwen3.5-4B";
-export const BASE_URL = "https://api.siliconflow.cn/v1";
-export function providerConfig(env = process.env, now = Date.now()) {
+export const MODEL = "inclusionai/ling-3.0-flash-fin";
+export const BASE_URL = "https://openrouter.ai/api/v1";
+export const PROVIDER = "OpenRouter";
+export function providerConfig(env = process.env) {
   if (env.AI_FEATURE_ENABLED !== "true") throw new AIError("disabled");
-  if (!env.SILICONFLOW_API_KEY?.trim()) throw new AIError("missing_key");
+  if (!env.OPENROUTER_API_KEY?.trim()) throw new AIError("missing_key");
   if (
-    (env.SILICONFLOW_MODEL || MODEL) !== MODEL ||
-    (env.SILICONFLOW_BASE_URL || BASE_URL).replace(/\/$/, "") !== BASE_URL
+    (env.OPENROUTER_MODEL || MODEL) !== MODEL ||
+    (env.OPENROUTER_BASE_URL || BASE_URL).replace(/\/$/, "") !== BASE_URL
   )
     throw new AIError("unapproved_provider");
-  // Pricing is external policy. Require a recent operator check and fail closed after 7 days.
-  const checked = Date.parse(`${env.AI_FREE_MODEL_VERIFIED_ON}T00:00:00Z`);
-  if (
-    !Number.isFinite(checked) ||
-    checked > now ||
-    now - checked > 7 * 86400000
-  )
-    throw new AIError("pricing_verification_required");
   return {
     model: MODEL,
     baseURL: BASE_URL,
-    key: env.SILICONFLOW_API_KEY.trim(),
+    key: env.OPENROUTER_API_KEY.trim(),
+    provider: PROVIDER,
   };
 }
 export async function complete(
@@ -28,7 +22,7 @@ export async function complete(
   { config = providerConfig(), fetcher = fetch } = {},
 ) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 18000);
+  const timer = setTimeout(() => controller.abort(), 24000);
   try {
     const response = await fetcher(`${config.baseURL}/chat/completions`, {
       method: "POST",
@@ -38,13 +32,15 @@ export async function complete(
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.key}`,
+        "HTTP-Referer": "https://mf-pulse.vercel.app",
+        "X-Title": "MF Pulse",
       },
       body: JSON.stringify({
         model: config.model,
         messages,
         stream: false,
-        enable_thinking: false,
-        max_tokens: 900,
+        reasoning: { enabled: false },
+        max_tokens: 600,
         temperature: 0.1,
       }),
     });

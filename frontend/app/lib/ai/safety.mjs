@@ -172,8 +172,8 @@ export function validateAnswer(answer, evidence) {
   // Each paragraph needs support; numerical tokens must occur in that paragraph's cited evidence.
   // This is a conservative consistency check, not semantic proof that a claim follows from a source.
   const numbers = (s) =>
-    (s.replace(/\[MF-[^\]]+\]/g, "").match(/-?\d+(?:\.\d+)?/g) || []).map((n) =>
-      String(Number(n)),
+    (s.replace(/\[MF-[^\]]+\]/g, "").match(/-?\d[\d,]*(?:\.\d+)?/g) || []).map(
+      (n) => String(Number(n.replaceAll(",", ""))),
     );
   for (const paragraph of answer.trim().split(/\n\s*\n/)) {
     const ids = [...paragraph.matchAll(/\[(MF-[^\]]+)\]/g)].map((m) => m[1]);
