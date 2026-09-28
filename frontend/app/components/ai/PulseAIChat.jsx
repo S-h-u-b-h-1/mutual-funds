@@ -236,7 +236,7 @@ export default function PulseAIChat({
             </button>
             <button
               type="submit"
-              disabled={busy || !draft.trim()}
+              disabled={busy || !draft.trim() || !availability}
               className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent/90 disabled:opacity-40"
             >
               {busy ? "Checking evidence…" : "Ask Pulse AI →"}

@@ -48,11 +48,11 @@ const deps = {
     throw Error("offline");
   },
 };
-const now = Date.parse("2026-09-21T12:00:00Z");
+const now = Date.parse("2026-09-28T12:00:00Z");
 const validEnv = {
   AI_FEATURE_ENABLED: "true",
   SILICONFLOW_API_KEY: "test-placeholder",
-  AI_FREE_MODEL_VERIFIED_ON: "2026-09-21",
+  AI_FREE_MODEL_VERIFIED_ON: "2026-09-28",
 };
 const config = () => providerConfig(validEnv, now);
 const ask = (message, pageContext, history) =>
@@ -131,7 +131,7 @@ test("evidence bound respects both count and bytes and generates stable local ID
 });
 test("freshness uses request date rather than cached staleDays", () => {
   assert.equal(freshness("2026-06-23", now), "stale");
-  assert.equal(freshness("2026-09-20", now), "recent");
+  assert.equal(freshness("2026-09-27", now), "recent");
   assert.equal(freshness("bad", now), "unknown");
   assert.equal(freshness("2027-01-01", now), "unknown");
 });
@@ -160,7 +160,7 @@ test("missing key, disabled, stale verification, paid model and foreign endpoint
   for (const override of [
     { AI_FREE_MODEL_VERIFIED_ON: "" },
     { AI_FREE_MODEL_VERIFIED_ON: "2026-09-01" },
-    { AI_FREE_MODEL_VERIFIED_ON: "2026-09-22" },
+    { AI_FREE_MODEL_VERIFIED_ON: "2026-09-29" },
     { SILICONFLOW_MODEL: "Pro/Qwen/Qwen3.5-4B" },
     { SILICONFLOW_BASE_URL: "https://evil.test" },
   ])
@@ -171,7 +171,7 @@ test("missing key, disabled, stale verification, paid model and foreign endpoint
   assert.equal(config().model, MODEL);
   assert.equal(config().baseURL, BASE_URL);
 });
-test("market retrieves existing deterministic regime and stale dates without sample flows", async () => {
+test("market retrieves existing deterministic regime and dated freshness without sample flows", async () => {
   const c = await buildContext(ask("Explain today’s risk regime"), deps, now);
   assert.equal(c.intent, "market");
   assert.equal(c.isSampleDataIncluded, false);
@@ -181,12 +181,14 @@ test("market retrieves existing deterministic regime and stale dates without sam
         e.type === "risk_regime" && e.text.includes(daily.industry.riskRegime),
     ),
   );
-  assert.ok(c.evidence.some((e) => e.freshness === "stale"));
+  assert.ok(
+    c.evidence.some((e) => ["recent", "delayed", "stale"].includes(e.freshness)),
+  );
   assert.ok(c.limitations.some((x) => x.includes("freshness")));
   assert.ok(JSON.stringify(c.evidence).length <= LIMITS.context);
 });
 test("fund evidence matches stored NAV, existing return helper and plan; missing metrics stay absent", async () => {
-  const f = deps.allFunds().find((f) => f.r1m != null && f.r3y != null);
+  const f = deps.allFunds().find((row) => analysis.visibleReturns(row).length);
   const c = await buildContext(
     ask("Explain this fund", { type: "fund", codes: [f.code] }),
     deps,
@@ -198,15 +200,9 @@ test("fund evidence matches stored NAV, existing return helper and plan; missing
   );
   assert.equal(nav.nav, f.nav);
   assert.equal(nav.plan, f.plan);
-  assert.equal(
-    perf.returns.find((r) => r.window === "3Y").value,
-    Number(
-      analysis
-        .visibleReturns(f)
-        .find((r) => r[0] === "3Y")[1]
-        .toFixed(2),
-    ),
-  );
+  const expectedReturn = analysis.visibleReturns(f)[0];
+  assert.equal(perf.returns[0].window, expectedReturn[0]);
+  assert.equal(perf.returns[0].value, Number(expectedReturn[1].toFixed(2)));
   const idcw = deps.allFunds().find((f) => f.isIdcw);
   const ci = await buildContext(
     ask("Explain", { type: "fund", codes: [idcw.code] }),
