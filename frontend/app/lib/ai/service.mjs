@@ -101,7 +101,7 @@ export async function handleChat(
     return json({
       answer,
       model: MODEL,
-      provider: "SiliconFlow",
+      provider: config.provider,
       asOf: context.asOf,
       evidence: context.evidence,
       citedEvidenceIds: used.map((e) => e.id),
@@ -111,6 +111,8 @@ export async function handleChat(
       kind: "explanation",
     });
   } catch (e) {
+    if (e?.code === "invalid_answer")
+      console.error("Pulse AI validation rejected:", e.reason || "unknown");
     const { status, ...body } = safeError(e);
     return json(body, status);
   } finally {

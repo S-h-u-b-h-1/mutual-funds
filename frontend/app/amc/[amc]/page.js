@@ -16,7 +16,8 @@ import trendData from "../../data/amc_trend.json";
 const fmt = (n) => new Intl.NumberFormat("en-IN").format(Number(n || 0));
 const pct = (n, digits = 1) => n == null ? "Not available" : `${Number(n).toFixed(digits)}%`;
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata(props) {
+  const params = await props.params;
   return { title: decodeURIComponent(params.amc) };
 }
 
@@ -70,12 +71,13 @@ function Distribution({ summary, total }) {
   );
 }
 
-export default async function AmcPage({ params }) {
+export default async function AmcPage(props) {
+  const params = await props.params;
   const amc = decodeURIComponent(params.amc);
   const enc = encodeURIComponent(amc);
   const shortName = amc.replace(" Mutual Fund", "");
   const [summary, schemes, news] = await Promise.all([
-    sb(`mv_amc_summary?amc_name=eq.${enc}&select=asset_class,schemes&order=schemes.desc`),
+    sb(`v_public_amc_summary?amc_name=eq.${enc}&select=asset_class,schemes&order=schemes.desc`),
     sb(`dim_scheme?amc_name=eq.${enc}&asset_class=eq.Equity&select=scheme_code,scheme_name,asset_class&limit=40`),
     getArticlesForEntity({ entityType: "amc", entityName: shortName, limit: 3 }),
   ]);

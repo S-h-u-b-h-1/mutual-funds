@@ -29,7 +29,8 @@ const SORTS = {
   consistency: { label: "Consistency", get: (fund) => fund.consistency, direction: -1 },
 };
 
-export default function FundsPage({ searchParams }) {
+export default async function FundsPage(props) {
+  const searchParams = await props.searchParams;
   const universe = allFunds();
   const q = (searchParams?.q || "").toLowerCase().trim();
   const plan = searchParams?.plan || "all";

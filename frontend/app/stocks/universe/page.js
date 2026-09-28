@@ -94,7 +94,7 @@ export default async function StockUniversePage({ searchParams }) {
         <section className="mt-6 grid gap-3 md:grid-cols-3">
           <GlassPanel className="p-5"><div className="eyebrow">Identity reconciliation</div><p className="mt-2 text-sm leading-6 text-ink-muted">Cross-index records are joined through exchange identifiers or a conservative, unambiguous normalized-name prefix. Ambiguous names remain separate rather than being guessed.</p></GlassPanel>
           <GlassPanel className="p-5"><div className="eyebrow">Next enrichment</div><p className="mt-2 text-sm leading-6 text-ink-muted">Each company will receive a verified investor-relations root, document catalogue and filing timeline.</p></GlassPanel>
-          <GlassPanel className="p-5"><div className="eyebrow">Open data</div><p className="mt-2 text-sm leading-6 text-ink-muted">The same snapshot is available as structured JSON through <a className="font-semibold text-accent" href="/api/v1/stocks/universe">the universe API</a>.</p></GlassPanel>
+          <GlassPanel className="p-5"><div className="eyebrow">Open data</div><p className="mt-2 text-sm leading-6 text-ink-muted">The same snapshot is available as structured JSON through <Link className="font-semibold text-accent" href="/api/v1/stocks/universe">the universe API</Link>.</p></GlassPanel>
         </section>
       </main>
       <Footer note={<span>Index membership is factual context, not a recommendation. Constituents can change after the displayed source or retrieval date.</span>} />

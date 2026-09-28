@@ -10,7 +10,7 @@ async function handleGET() {
   const withLatestPrice = await Promise.all(
     commodities.map(async (c) => ({ ...c, latestPrice: await getLatestCommodityPrice(c.id) }))
   );
-  return Response.json({ commodities: withLatestPrice });
+  return Response.json({ commodities: withLatestPrice, status: commodities.length ? "available" : "unavailable", reason: commodities.length ? null : "data_source_not_connected" });
 }
 
 export const GET = withObservability("GET /api/v1/commodities", handleGET);

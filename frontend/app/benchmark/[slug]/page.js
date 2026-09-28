@@ -15,7 +15,8 @@ import { short } from "../../lib/format";
 
 export const revalidate = 3600;
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata(props) {
+  const params = await props.params;
   const b = getBenchmark(params.slug);
   return { title: b ? `${b.name} — Benchmark` : "Benchmark" };
 }
@@ -38,7 +39,8 @@ const cols = [
   { key: "r1y", label: "1Y", align: "right", render: (r) => pct(r.r1y) },
 ];
 
-export default function BenchmarkPage({ params }) {
+export default async function BenchmarkPage(props) {
+  const params = await props.params;
   const b = getBenchmark(params.slug);
   if (!b) notFound();
 

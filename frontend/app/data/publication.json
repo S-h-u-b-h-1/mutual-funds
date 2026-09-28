@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "publicationId": "2026-09-25-0714530cf3aa",
+  "createdAt": "2026-09-28T18:56:22.547672+00:00",
+  "sourceAsOf": "2026-09-25",
+  "source": "AMFI official NAV publication and history",
+  "sourceRowCounts": {
+    "total": 14402,
+    "priced": 14161,
+    "active": 8642,
+    "with30d": 4070,
+    "with90d": 3975,
+    "with180d": 3824,
+    "with1y": 3595,
+    "with3y": 2723,
+    "with5y": 1922,
+    "withRisk": 4055,
+    "missingLatest": 5551,
+    "stale7d": 5519,
+    "equity": 3195,
+    "directGrowth": 1820,
+    "regularGrowth": 1900,
+    "growth": 3720,
+    "idcw": 4908,
+    "direct": 4253,
+    "noCategory": 0,
+    "coveragePct": 28,
+    "activeEligible": 4079,
+    "activeEligibleWith30d": 4010,
+    "openable": 14402,
+    "searchable": 14402,
+    "routablePct": 100,
+    "dormant": 0,
+    "staleListed": 5551,
+    "unpriced": 241,
+    "isin": 14232,
+    "structure": 14402
+  },
+  "outputRowCounts": {
+    "funds": 14402
+  },
+  "outputs": {
+    "funds.json": {
+      "sha256": "314070dd1b6e2aebc751fce40f484e24034411f97316ff970c697581c26909a4",
+      "bytes": 11479291
+    },
+    "performance.json": {
+      "sha256": "3bab9d64c74efc6c188829ce464062eb181eeb0de1f9c5a19e5e5fe1bec0715e",
+      "bytes": 20666
+    },
+    "metadata.json": {
+      "sha256": "c418c048c8cd019c7f4d95548f1510d50ff3c533f40a32eef58e60dc86f9e856",
+      "bytes": 939500
+    },
+    "daily.json": {
+      "sha256": "9149c81e18e0650a171fba5ee215e5726a5e82d0b37ef1b2a69b3d8624bb1f6c",
+      "bytes": 17979
+    },
+    "amc_trend.json": {
+      "sha256": "8c5255ee10901221c891ca5da7769525acd37e0e62a40cbffdd5f827a0e1a917",
+      "bytes": 26830
+    },
+    "fieldCoverage.json": {
+      "sha256": "449a82dd5c7fe8a2ae541229b6ff7c03f7667b8eb51c9d3eba2ea550eddc68ad",
+      "bytes": 3538
+    }
+  },
+  "checksum": "0714530cf3aa65b637a8434159f47693e87d7c99ae6eb8ff06fdd722b0cec695",
+  "requiredCoverage": {
+    "eligible": 4079,
+    "r1m": 4010,
+    "r3m": 3918,
+    "r6m": 3824,
+    "r1y": 3595,
+    "r3y": 2723,
+    "r5y": 1922,
+    "vol90": 4025
+  },
+  "pipelineStatus": "verified",
+  "buildCommit": "841003c64ec88491a9f9d90b56a9445f1f66d421"
+}

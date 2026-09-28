@@ -11,9 +11,15 @@ import { NAV_GROUPS } from "../lib/navLinks";
 
 const group = (label) => NAV_GROUPS.find((item) => item.label === label);
 const NAV_MENUS = [
-  { ...group("Mutual Funds"), shortLabel: "Funds" },
-  group("Stocks"),
-  group("Markets"),
+  {
+    label: "Advisory",
+    links: [
+      ["Wealth Advisory Agent", "/advisor"],
+      ["Risk Profile", "/advisor"],
+      ["Compare Matched Funds", "/compare?mode=funds"],
+    ],
+  },
+  { ...group("Mutual Funds"), shortLabel: "Fund research" },
   group("Portfolio"),
   {
     label: "Research",
@@ -26,7 +32,6 @@ const NAV_MENUS = [
       ["Help Center", "/help"],
     ],
   },
-  group("Invest"),
 ].filter(Boolean);
 
 export default function Nav({ active }) {
@@ -40,7 +45,7 @@ export default function Nav({ active }) {
       </span>
       <span className="leading-none">
         <span className="block text-[13px] font-bold tracking-[-0.025em] text-ink">MF Pulse</span>
-        <span className="mt-1.5 hidden text-[8.5px] font-semibold uppercase tracking-[0.16em] text-ink-faint sm:block">Evidence-led research</span>
+        <span className="mt-1.5 hidden text-[8.5px] font-semibold uppercase tracking-[0.16em] text-ink-faint sm:block">Wealth intelligence</span>
       </span>
     </Link>
   );

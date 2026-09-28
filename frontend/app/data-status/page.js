@@ -7,6 +7,7 @@ import SectionHeader from "../components/ui/SectionHeader";
 import StatStrip from "../components/ui/StatStrip";
 import DataTable from "../components/ui/DataTable";
 import { getFreshnessSummary } from "../lib/freshnessService";
+import { allFunds } from "../lib/funds";
 
 export const metadata = { title: "Data Status" };
 export const revalidate = 60;
@@ -29,7 +30,7 @@ export default async function DataStatus() {
     [health, runs, byClass, flow] = await Promise.all([
       sb("v_latest_health?select=*", { revalidate: 60 }),
       sb("v_recent_runs?select=*&limit=10", { revalidate: 60 }),
-      sb("mv_asset_class_summary?select=*", { revalidate: 60 }),
+      sb("v_public_asset_class_summary?select=*", { revalidate: 60 }),
       sb("v_flow_headline?select=*", { revalidate: 60 }),
     ]);
   } catch {
@@ -55,7 +56,9 @@ export default async function DataStatus() {
     freshness = await getFreshnessSummary();
   } catch {}
   const latestNav = byClass.map((r) => r.latest_nav_date).sort().at(-1);
-  const totalSchemes = byClass.reduce((s, r) => s + Number(r.schemes), 0);
+  const publishedFunds = allFunds();
+  const totalSchemes = publishedFunds.length;
+  const totalAmcs = new Set(publishedFunds.map(fund => fund.amc).filter(Boolean)).size;
   const stale = daysSince(latestNav);
   // 2026-08-11 incident fix: this used to be calendar-days-since-MAX-date only — exactly the
   // blind spot that missed the real incident (fact_nav_daily's max date WAS "today", so `stale`
@@ -97,8 +100,10 @@ export default async function DataStatus() {
   ];
 
   const stats = [
-    { label: "Total schemes", value: fmt(totalSchemes) },
-    { label: "AMC houses", value: byClass.length ? "51" : "—" },
+    { label: "Published unique schemes", value: fmt(totalSchemes) },
+    { label: "AMC houses", value: fmt(totalAmcs) },
+    { label: "Active schemes", value: fmt(publishedFunds.filter(fund => fund.active).length) },
+    { label: "Priced schemes", value: fmt(publishedFunds.filter(fund => fund.nav > 0).length) },
     { label: "NAV rows", value: h.total_nav_rows ? fmt(h.total_nav_rows) : "—" },
     { label: "Events", value: h.total_events != null ? fmt(h.total_events) : "—" },
     { label: "Latest NAV", value: latestNav || "—" },

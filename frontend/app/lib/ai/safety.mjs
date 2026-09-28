@@ -36,7 +36,7 @@ export function validateRequest(raw) {
   const c = raw.pageContext ?? { type: "market" };
   if (
     !object(c) ||
-    !["market", "fund", "comparison", "amc", "signal"].includes(c.type)
+    !["market", "fund", "comparison", "amc", "signal", "profile", "portfolio"].includes(c.type)
   )
     throw new AIError("invalid_request", 400);
   const codes = c.codes ?? [],
@@ -144,7 +144,7 @@ export function safetyReply(message) {
   )
     return "Pulse AI cannot reveal private configuration or override its evidence rules. Ask about MF Pulse data or methodology.";
   if (
-    /\b(buy|sell|invest|allocate)\b.*\b(for me|my money|my savings|my portfolio)\b|guarantee.*return|execute.*trade/i.test(
+    /\b(what|which|how much)\b.{0,40}\b(buy|sell|invest|allocate)\b|guarantee.*return|execute.*trade/i.test(
       message,
     )
   )
@@ -153,37 +153,52 @@ export function safetyReply(message) {
 }
 // IDs are request-local. Reject the whole answer instead of laundering unknown citations.
 export function validateAnswer(answer, evidence) {
+  const reject = (reason) => {
+    const error = new AIError("invalid_answer", 502);
+    error.reason = reason;
+    throw error;
+  };
   if (
     typeof answer !== "string" ||
     !answer.trim() ||
     answer.length > LIMITS.answer
   )
-    throw new AIError("invalid_answer", 502);
+    reject("shape");
   if (
     /https?:\/\/|<[^>]+>|\bsk-[a-z0-9_-]{8,}|\bguaranteed?\s+(returns?|profit|to (rise|fall))|\byou should (buy|sell|invest)/i.test(
       answer,
     )
   )
-    throw new AIError("invalid_answer", 502);
-  const citations = [...answer.matchAll(/\[(MF-[^\]]+)\]/g)].map((m) => m[1]);
+    reject("forbidden_content");
+  const citationIds = (text) => {
+    const groups = [...text.matchAll(/\[([^\]]*MF-[^\]]*)\]/g)].map((m) => m[1]);
+    if (
+      groups.some(
+        (group) => !/^MF-\d{3}(?:\s*,\s*MF-\d{3})*$/.test(group),
+      )
+    )
+      reject("citation_format");
+    return groups.flatMap((group) => group.split(/\s*,\s*/));
+  };
+  const citations = citationIds(answer);
   const supplied = new Map(evidence.map((e) => [e.id, e]));
   if (!citations.length || citations.some((id) => !supplied.has(id)))
-    throw new AIError("invalid_answer", 502);
+    reject("missing_or_unknown_citation");
   // Each paragraph needs support; numerical tokens must occur in that paragraph's cited evidence.
   // This is a conservative consistency check, not semantic proof that a claim follows from a source.
   const numbers = (s) =>
-    (s.replace(/\[MF-[^\]]+\]/g, "").match(/-?\d+(?:\.\d+)?/g) || []).map((n) =>
-      String(Number(n)),
+    (s.replace(/\[MF-[^\]]+\]/g, "").match(/-?\d[\d,]*(?:\.\d+)?/g) || []).map(
+      (n) => String(Number(n.replaceAll(",", ""))),
     );
   for (const paragraph of answer.trim().split(/\n\s*\n/)) {
-    const ids = [...paragraph.matchAll(/\[(MF-[^\]]+)\]/g)].map((m) => m[1]);
-    if (!ids.length) throw new AIError("invalid_answer", 502);
+    const ids = citationIds(paragraph);
+    if (!ids.length) reject("uncited_paragraph");
     const support = ids.map((id) => supplied.get(id));
     const known = new Set(
       numbers(support.map((e) => `${e.asOf || ""} ${e.text}`).join(" ")),
     );
     if (numbers(paragraph).some((n) => !known.has(n)))
-      throw new AIError("invalid_answer", 502);
+      reject("unsupported_number");
   }
   return [...new Set(citations)].map((id) => supplied.get(id));
 }

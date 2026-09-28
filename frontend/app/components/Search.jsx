@@ -1,8 +1,9 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { track } from "../lib/track";
 import { saveSearch, getSearchHistory, getHistory, saveHistory } from "../lib/cloudSync";
-import { SUPA } from "../lib/supabase";
 
 // Predefined suggestion data for a premium experience
 const SUGGESTED_AMCS = ["SBI Mutual Fund", "HDFC Mutual Fund", "ICICI Prudential Mutual Fund", "Nippon India Mutual Fund", "Axis Mutual Fund", "Quant Mutual Fund"];
@@ -15,14 +16,14 @@ const TRENDING_FUNDS = [
 ];
 
 const WORKSPACE_SHORTCUTS = [
-  { label: "Open Stocks Research", path: "/stocks", key: "/stocks" },
-  { label: "Run Stock Screener", path: "/stocks/screener", key: "/screener" },
-  { label: "Open Suasion Invest", path: "/invest", key: "/invest" },
-  { label: "Open Portfolio", path: "/portfolio", key: "/portfolio" },
-  { label: "Go to News & Regulatory Updates", path: "/news", key: "/news" },
-  { label: "Go to Compare & Allocations", path: "/compare", key: "/compare" },
+  { label: "Ask Pulse AI Advisor", path: "/ai?type=profile", key: "/ai" },
+  { label: "Build a Risk Profile", path: "/advisor", key: "/risk-profile" },
+  { label: "Compare Mutual Funds", path: "/compare?mode=funds", key: "/compare-funds" },
+  { label: "Diagnose My Portfolio", path: "/portfolio", key: "/portfolio" },
+  { label: "Browse Fund Research", path: "/funds", key: "/funds" },
+  { label: "Learn Mutual Fund Basics", path: "/learn", key: "/learn" },
   { label: "Go to Data Status", path: "/data-status", key: "/status" },
-  { label: "Go to Performance Leaderboards", path: "/performance", key: "/performance" }
+  { label: "Review Methodology", path: "/methodology", key: "/methodology" }
 ];
 
 function formatSearchResultContext(result) {
@@ -56,7 +57,10 @@ export function SearchLauncher({ className = "inline-flex w-full", compact = fal
   return (
     <button
       type="button"
-      onClick={() => window.dispatchEvent(new Event("mfp-open-search"))}
+      onClick={() => {
+        window.__mfpPendingSearch = true;
+        window.dispatchEvent(new Event("mfp-open-search"));
+      }}
       aria-label="Open global search"
       className={`${className} items-center justify-between rounded-full border border-line/80 bg-surface px-3 py-2 text-left text-[12.5px] font-semibold text-ink-muted shadow-sm transition-all hover:border-accent/30 hover:bg-surface-2 hover:text-ink focus:outline-none focus:ring-2 focus:ring-accent/40`}
     >
@@ -73,6 +77,9 @@ export function SearchLauncher({ className = "inline-flex w-full", compact = fal
 }
 
 export default function Search({ listenForOpenRequest = false, triggerClassName = "inline-flex", compact = true }) {
+  const router = useRouter();
+  const [portalReady, setPortalReady] = useState(false);
+  useEffect(() => { setPortalReady(true); }, []);
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
@@ -88,6 +95,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
   const inputRef = useRef(null);
   const dialogRef = useRef(null);
   const triggerRef = useRef(null);
+  const openerRef = useRef(null);
   const listRef = useRef(null);
 
   // Sync recent, popular, pinned and recent visits from storage
@@ -116,12 +124,8 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
 
   useEffect(() => {
     syncStorage();
-    fetch(`${SUPA.URL}/rest/v1/v_top_searches?select=query,searches&limit=5`, {
-      headers: { apikey: SUPA.KEY, Authorization: `Bearer ${SUPA.KEY}` }
-    })
-      .then((r) => r.json())
-      .then((d) => setPopular(Array.isArray(d) ? d : []))
-      .catch(() => {});
+    // Raw visitor queries are private. Suggested entities below are curated catalog entries.
+    setPopular([]);
   }, [open, syncStorage]);
 
   // Toggle pinning an item
@@ -145,6 +149,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
 
   // Open and close dialog helpers
   const openPalette = useCallback(() => {
+    openerRef.current = document.activeElement;
     setOpen(true);
     syncStorage();
     if (dialogRef.current && !dialogRef.current.open) dialogRef.current.showModal();
@@ -159,12 +164,21 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
     setQ("");
     setResults([]);
     setActiveIndex(0);
+    openerRef.current?.focus?.();
   }, []);
 
   useEffect(() => {
+    if (open && portalReady && dialogRef.current && !dialogRef.current.open) {
+      dialogRef.current.showModal();
+      inputRef.current?.focus();
+    }
+  }, [open, portalReady]);
+
+  useEffect(() => {
     if (!listenForOpenRequest) return undefined;
-    function handleOpenRequest() { openPalette(); }
+    function handleOpenRequest() { window.__mfpPendingSearch = false; openPalette(); }
     window.addEventListener("mfp-open-search", handleOpenRequest);
+    if (window.__mfpPendingSearch) handleOpenRequest();
     return () => window.removeEventListener("mfp-open-search", handleOpenRequest);
   }, [listenForOpenRequest, openPalette]);
 
@@ -195,21 +209,12 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
 
     const handleOutsideClick = (e) => {
       if (e.target !== dialog) return;
-      const rect = dialog.getBoundingClientRect();
-      const isInside = (
-        rect.top <= e.clientY &&
-        e.clientY <= rect.top + rect.height &&
-        rect.left <= e.clientX &&
-        e.clientX <= rect.left + rect.width
-      );
-      if (!isInside) {
-        closePalette();
-      }
+      closePalette();
     };
 
     dialog.addEventListener("click", handleOutsideClick);
     return () => dialog.removeEventListener("click", handleOutsideClick);
-  }, [closePalette]);
+  }, [closePalette, portalReady]);
 
   function runSearch(term) {
     setQ(term);
@@ -303,17 +308,17 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
     } else if (item.type === "fund") {
       track("search_click", { scheme_code: item.payload, name: item.value });
       saveHistory({ type: "fund", id: item.payload, name: item.value });
-      window.location.href = `/fund/${item.payload}`;
       closePalette();
+      router.push(`/fund/${item.payload}`);
     } else if (item.type === "result") {
       const result = item.payload || {};
       track("search_click", { code: result.code, name: item.value, kind: result.kind || "fund" });
       if ((result.kind || "fund") === "fund") saveHistory({ type: "fund", id: result.code, name: item.value });
-      window.location.href = result.path || `/fund/${result.code}`;
       closePalette();
+      router.push(result.path || `/fund/${result.code}`);
     } else if (item.type === "pinned" || item.type === "visit" || item.type === "shortcut") {
-      window.location.href = item.payload;
       closePalette();
+      router.push(item.payload);
     }
   };
 
@@ -340,10 +345,14 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
       </button>
 
       {/* dialog command palette */}
-      <dialog
+      {portalReady && createPortal(<dialog
         ref={dialogRef}
         closedby="any"
-        onClose={closePalette}
+        onClose={() => {
+          // Native close events are queued. A previous close (including before Back)
+          // must not dismiss a dialog the user has already reopened.
+          if (!dialogRef.current?.open) closePalette();
+        }}
         aria-labelledby="global-search-title"
         className="cmd-dialog fixed inset-0 z-50 m-0 hidden h-full w-full max-h-none max-w-none overflow-hidden bg-transparent p-0 pt-[8vh] outline-none open:flex open:items-start open:justify-center"
       >
@@ -757,7 +766,7 @@ export default function Search({ listenForOpenRequest = false, triggerClassName 
           </div>
 
         </div>
-      </dialog>
+      </dialog>, document.body)}
     </div>
   );
 }

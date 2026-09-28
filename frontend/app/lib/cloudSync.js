@@ -70,8 +70,14 @@ async function currentUser() {
 
 async function cloudFetch(path, options) {
   const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
-  if (!res.ok) throw new Error(`${path} -> ${res.status}`);
-  return res.status === 204 ? null : res.json();
+  const payload = res.status === 204 ? null : await res.json().catch(() => null);
+  if (!res.ok) {
+    const error = new Error(payload?.error || `${path} -> ${res.status}`);
+    error.status = res.status;
+    error.payload = payload;
+    throw error;
+  }
+  return payload;
 }
 
 export async function getSyncStatus() {
@@ -411,7 +417,12 @@ export async function getResearchProfile() {
   const user = await currentUser();
   if (!user) return null;
   try {
-    return await cloudFetch("/api/v1/sync/research-profile");
+    const profile = await cloudFetch("/api/v1/sync/research-profile");
+    if (profile) {
+      const { saveStoredProfile } = await import("./userProfile");
+      saveStoredProfile(user, profile);
+    }
+    return profile;
   } catch {
     const { getStoredProfile } = await import("./userProfile");
     return getStoredProfile(user);
@@ -420,27 +431,53 @@ export async function getResearchProfile() {
 
 export async function saveResearchProfile(sessionUser, profile) {
   const { saveStoredProfile } = await import("./userProfile");
-
-  let saved = null;
-  try {
-    saved = saveStoredProfile(sessionUser, profile);
-  } catch {
-    /* localStorage write itself failed (full/disabled) — saved stays null */
-  }
-
   const user = await currentUser();
   if (!user) {
     // Logged out: pure-local is the actual, honest contract here (unchanged from every other
     // resource in this file) — there is no cloud leg to have failed.
+    let saved = null;
+    try {
+      saved = saveStoredProfile(sessionUser, profile);
+    } catch {
+      /* localStorage write itself failed (full/disabled) — saved stays null */
+    }
     return { profile: saved, syncState: saved ? "local-only" : "failed" };
   }
 
   try {
     const cloudProfile = await cloudFetch("/api/v1/sync/research-profile", { method: "PUT", body: JSON.stringify(profile) });
+    const saved = saveStoredProfile(user, cloudProfile || profile);
     return { profile: cloudProfile ?? saved, syncState: "synced" };
-  } catch {
+  } catch (error) {
+    if (error.status === 409 && error.payload?.code === "PROFILE_LOCKED" && error.payload.profile) {
+      saveStoredProfile(user, error.payload.profile);
+      return { profile: error.payload.profile, syncState: "locked" };
+    }
+    let saved = null;
+    try {
+      saved = saveStoredProfile(sessionUser, profile);
+    } catch {
+      /* localStorage write itself failed (full/disabled) — saved stays null */
+    }
     return { profile: saved, syncState: saved ? "local-only" : "failed" };
   }
+}
+
+export async function getProfileGovernanceState() {
+  const state = await cloudFetch("/api/v1/profile-change-requests");
+  const user = await currentUser();
+  if (state?.profile && user) {
+    const { saveStoredProfile } = await import("./userProfile");
+    saveStoredProfile(user, state.profile);
+  }
+  return state;
+}
+
+export async function requestResearchProfileChange(requestedProfile, reason) {
+  return cloudFetch("/api/v1/profile-change-requests", {
+    method: "POST",
+    body: JSON.stringify({ requestedProfile, reason }),
+  });
 }
 
 // ---------------------------------------------------------------- Migration

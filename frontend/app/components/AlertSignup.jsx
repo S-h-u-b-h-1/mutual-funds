@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { track } from "../lib/track";
-import { SUPA } from "../lib/supabase";
 
 // Email capture for daily flow alerts. Persists to `alerts` (anon INSERT only)
 // and logs an analytics event. Delivery activates when a Resend key is set.
@@ -16,18 +15,16 @@ export default function AlertSignup() {
     setBusy(true);
     setState("idle");
     try {
-      const response = await fetch(`${SUPA.URL}/rest/v1/alerts`, {
+      const response = await fetch("/api/newsletter", {
         method: "POST",
         headers: {
-          apikey: SUPA.KEY,
-          Authorization: `Bearer ${SUPA.KEY}`,
           "Content-Type": "application/json",
           Prefer: "return=minimal",
         },
         body: JSON.stringify({ email, alert_type: "daily_summary" }),
       });
       if (!response.ok) throw new Error("subscription_failed");
-      track("alert_signup", { email });
+      track("alert_signup", { status: "received" });
       setState("ok");
       setEmail("");
     } catch {
@@ -46,7 +43,7 @@ export default function AlertSignup() {
         <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-accent/10 blur-3xl" />
         <div className="relative">
           <h3 className="text-base font-semibold text-ink">Daily flow alerts</h3>
-          <p className="mt-1 text-[13px] text-ink-muted">The headline equity &amp; debt numbers in your inbox each evening. Free.</p>
+          <p className="mt-1 text-[13px] text-ink-muted">Register interest in daily flow alerts. Email delivery is not active yet.</p>
         </div>
         <div className="relative flex w-full sm:w-auto gap-2">
           <input
@@ -62,7 +59,7 @@ export default function AlertSignup() {
             disabled={busy}
             className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-soft whitespace-nowrap shadow-glow disabled:cursor-not-allowed disabled:opacity-55"
           >
-            {busy ? "Subscribing…" : state === "ok" ? "Subscribed ✓" : "Subscribe"}
+            {busy ? "Saving…" : state === "ok" ? "Request received ✓" : "Register interest"}
           </button>
         </div>
         {state === "err" && <span role="alert" className="relative basis-full text-[12px] text-neg">We could not save this subscription. Check the email and your connection, then try again.</span>}

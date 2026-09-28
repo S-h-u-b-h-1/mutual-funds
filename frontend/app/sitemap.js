@@ -1,6 +1,7 @@
 import trendData from "./data/amc_trend.json";
 
-const SITE = "https://frontend-six-beta-20.vercel.app";
+import { siteUrl } from "./lib/siteUrl";
+const SITE = siteUrl();
 
 export default function sitemap() {
   const amcs = Object.keys(trendData.amcs).map((a) => ({

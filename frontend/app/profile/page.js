@@ -13,7 +13,7 @@ export default function ProfilePage() {
           <div>
             <div className="eyebrow text-accent-soft">Profile</div>
             <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">Account and research preferences</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-bg/70">Manage the investor context used by the frontend experience. Long names and email addresses stay here, not in the navbar.</p>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-bg/70">Review the risk metrics and goals that shape your advisory experience. Completed profiles stay locked; material changes follow an approval workflow.</p>
           </div>
           <a href="/dashboard" className="inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-ink">Open dashboard</a>
         </section>

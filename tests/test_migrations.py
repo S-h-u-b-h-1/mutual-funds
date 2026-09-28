@@ -21,6 +21,13 @@ ROOT = Path(__file__).resolve().parents[1]
 pytestmark = pytest.mark.skipif(not neon_db.neon_enabled(), reason="DATABASE_URL not set — no live database to check schema against")
 
 
+def test_current_release_prerequisites():
+    from scripts.check_release_schema import missing_objects
+    with neon_db.connect() as conn:
+        missing = missing_objects(conn)
+    assert not missing, f"Release blocked: missing application schema objects {missing}"
+
+
 def _columns(conn, table):
     with conn.cursor() as cur:
         cur.execute(
@@ -95,21 +102,21 @@ def test_research_profile_table_exists_with_correct_columns():
     # The exact bug this test exists to catch: an earlier apply of 005 used goal/experience_level/
     # risk_comfort_label/horizon_band/free_text_categories instead of these names, and every
     # research-profile API call 500'd until 006_research_profile_column_fix.sql corrected it.
-    expected = {"user_id", "role", "primary_goal", "experience", "risk_comfort", "horizon", "aum_band", "preferred_categories", "created_at", "updated_at"}
+    expected = {"user_id", "role", "primary_goal", "experience", "risk_comfort", "horizon", "aum_band", "preferred_categories", "advisory_answers", "risk_score", "risk_profile", "locked_at", "created_at", "updated_at"}
     assert actual == expected, f"research_profile columns drifted — expected {expected}, got {actual}"
     stale = {"goal", "experience_level", "risk_comfort_label", "horizon_band", "free_text_categories"}
     assert not (actual & stale), f"research_profile still has pre-006-fix column names: {actual & stale}"
 
 
 def test_research_profile_matches_api_route_contract():
-    """Reads the live schema AND the live route file (not a hardcoded copy of either) so this
-    test fails if either side drifts in the future, not just if today's specific bug recurs."""
-    route_path = ROOT / "frontend/app/api/v1/sync/research-profile/route.js"
-    source = route_path.read_text()
-    match = re.search(r"const COLUMNS = \{([^}]+)\};", source)
-    assert match, f"could not find COLUMNS mapping in {route_path} — has the route been restructured?"
-    api_columns = set(re.findall(r':\s*"([a-z_]+)"', match.group(1)))
-    assert api_columns, f"parsed zero columns out of COLUMNS mapping in {route_path}"
+    """The route delegates persistence to the governance service, so compare that service's
+    selected columns with the live schema."""
+    service_path = ROOT / "frontend/app/lib/profileGovernanceService.js"
+    source = service_path.read_text()
+    match = re.search(r"const PROFILE_SELECT = `([^`]+)`;", source)
+    assert match, f"could not find PROFILE_SELECT in {service_path}"
+    api_columns = set(re.findall(r"\b[a-z][a-z_]+\b", match.group(1)))
+    assert api_columns, f"parsed zero columns out of PROFILE_SELECT in {service_path}"
 
     with neon_db.connect() as conn:
         db_columns = set(_columns(conn, "research_profile"))

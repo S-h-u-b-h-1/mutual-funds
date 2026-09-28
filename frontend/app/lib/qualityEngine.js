@@ -14,7 +14,7 @@ import { insightConfidence } from "./decisionEngine";
 
 export function qualityEngine(f, meta) {
   const health = fundHealth(f);
-  if (!health) return null;
+  if (!health?.eligible) return null;
   const pick = (k) => health.breakdown.find((b) => b.key === k)?.score ?? null;
   const pRisk = portfolioRisk(meta);
   const completeness = fundCompleteness(f, meta);

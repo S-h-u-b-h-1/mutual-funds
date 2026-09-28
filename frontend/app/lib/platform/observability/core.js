@@ -97,10 +97,23 @@ export async function captureException(err, extra = {}) {
 // surface to the caller as an opaque platform-level 500 with zero server-side record of why.
 export function withObservability(routeName, handler) {
   return async function observedRouteHandler(request, ctx) {
-    const correlationId = request?.headers?.get?.("x-correlation-id") || crypto.randomUUID();
+    const suppliedId = request?.headers?.get?.("x-correlation-id");
+    const correlationId = /^[A-Za-z0-9_.-]{1,100}$/.test(suppliedId || "") ? suppliedId : crypto.randomUUID();
     const start = Date.now();
     return als.run({ correlationId }, async () => {
       try {
+        // Public stock/sector APIs use UUIDs. Reject a symbol or malformed identifier before
+        // it reaches a Postgres UUID cast. Symbol-based browsing has its own company route.
+        if (/\/api\/v1\/(stocks|sectors)\/\[id\]/.test(routeName)) {
+          const params = await ctx?.params;
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params?.id || "")) {
+            return Response.json({ error: "A valid UUID identifier is required.", correlationId }, { status: 400 });
+          }
+          if (routeName.startsWith("GET ") && routeName.includes("/stocks/[id]/") && !/\/(alerts|research-notes)/.test(routeName)) {
+            const { getCompanyById } = await import("../../stocks/companyService.js");
+            if (!await getCompanyById(params.id)) return Response.json({ error: "Company not found", correlationId }, { status: 404 });
+          }
+        }
         const response = await handler(request, ctx);
         logInfo({
           event: "request_completed",
@@ -110,6 +123,14 @@ export function withObservability(routeName, handler) {
           durationMs: Date.now() - start,
         });
         response?.headers?.set?.("x-correlation-id", correlationId);
+        if (/\/api\/v1\/(invest|portfolio|sync)\//.test(routeName)) response?.headers?.set?.("cache-control", "private, no-store");
+        if (routeName.includes("/api/v1/invest/")) response?.headers?.set?.("x-provider-mode", "sandbox");
+        if (routeName.includes("/api/v1/invest/") && response?.headers?.get?.("content-type")?.includes("application/json") && response.status !== 204) {
+          const payload = await response.clone().json();
+          if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+            return Response.json({ ...payload, providerMode: "sandbox", executionMode: "simulated", realMoneyExecution: false }, { status: response.status, headers: response.headers });
+          }
+        }
         return response;
       } catch (err) {
         await captureException(err, { route: routeName, method: request?.method, durationMs: Date.now() - start });

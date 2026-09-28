@@ -89,6 +89,18 @@ describe("portfolioService (integration, real Neon, disposable investment-ready 
   });
 
   describe("connectMockPortfolio (explicit, user-initiated demo holdings)", () => {
+    it("does not present an unresolved-only portfolio as zero assets", async () => {
+      const id = await createTestUser("unresolved-only");
+      try {
+        await query("insert into portfolio_unresolved_holdings(user_id,raw_scheme_name,resolution_status) values($1,'Unmatched test scheme','unresolved')", [id]);
+        const result = await portfolioService.getPortfolio(id);
+        expect(result.summary.totalValue).toBeNull();
+        expect(result.summary.investedValue).toBeNull();
+        expect(result.dataQuality.unresolvedCount).toBe(1);
+        expect((await portfolioService.getPortfolioSummary(id)).gainLoss).toBeNull();
+        expect((await portfolioService.getPortfolioAllocation(id)).status).toBe("unavailable");
+      } finally { await deleteTestUser(id); }
+    });
     it("creates 3-6 real-scheme holdings tagged source='mock-connected', then reports non-empty getPortfolio", async () => {
       const result = await portfolioService.connectMockPortfolio(connectUserId);
       expect(result.alreadyConnected).toBe(false);
@@ -260,17 +272,25 @@ describe("portfolioService (integration, real Neon, disposable investment-ready 
       expect(holding.rows.length).toBe(0);
     });
 
-    it("getPortfolioPerformance returns a real numeric currentValue for a non-empty portfolio, not undefined", async () => {
-      // Regression test: getPortfolioPerformance() previously read valuation.totalCurrentValue, a
-      // field revaluePortfolio() has never returned (the real field is totalMarketValue) — so this
-      // API's valuation.currentValue silently serialized as undefined (JSON.stringify drops it
-      // entirely) for every user with real holdings. reconcileUserId has real holdings by this
-      // point in the describe block (from the REAL_SCHEME_CODE/_2/_3 tests above), so this exercises
-      // the actual non-empty-portfolio path the empty-state test above can't reach.
+    it("getPortfolioPerformance returns the exact common-date value for a valid portfolio", async () => {
+      // Do not share the deliberately negative-unit redemption fixture above: that position
+      // must fail valuation, not be quietly priced to satisfy this unrelated regression.
+      const id = await createTestUser("valid-performance");
+      try {
+        await query("insert into portfolio_holdings(user_id,scheme_code,units,avg_cost,source,folio_number) values($1,$2,10,100,'manual','test')", [id, REAL_SCHEME_CODE]);
+        const perf = await portfolioService.getPortfolioPerformance(id);
+        expect(perf.valuation).not.toBeNull();
+        expect(perf.valuation.complete).toBe(true);
+        expect(perf.valuation.currentValue).toBe(+(10 * getFund(REAL_SCHEME_CODE).nav).toFixed(2));
+        expect(perf.valuation.valuationDate).toBe(getFund(REAL_SCHEME_CODE).navDate);
+      } finally { await deleteTestUser(id); }
+    });
+
+    it("does not publish a value for the deliberately negative-unit redemption fixture", async () => {
       const perf = await portfolioService.getPortfolioPerformance(reconcileUserId);
-      expect(perf.valuation).not.toBeNull();
-      expect(typeof perf.valuation.currentValue).toBe("number");
-      expect(perf.valuation.currentValue).toBeGreaterThan(0);
+      expect(perf.valuation.complete).toBe(false);
+      expect(perf.valuation.currentValue).toBeNull();
+      expect(perf.valuation.xirr).toBeNull();
     });
 
     it("avg_cost blends as a weighted average across purchases at different NAVs, not frozen at the first order's price", async () => {

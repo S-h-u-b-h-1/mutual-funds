@@ -1,4 +1,4 @@
-import { getRecentArticles, getIngestionRuns, getSimilarPastArticles } from "../lib/news";
+import { getRecentArticles, getIngestionRuns, getSimilarPastArticles, getNewsSourceHealth } from "../lib/news";
 import { newsStatus } from "../lib/newsStatus";
 import { impactChainsFor, themesFor, impactScoreFor, researchLinksFor, fundsWorthResearching, sectorExposure, THEMES } from "../lib/marketImpact";
 import Nav from "../components/Nav";
@@ -54,10 +54,12 @@ export default async function News() {
   const referenceNow = new Date().toISOString();
   let articles = [];
   let runs = [];
+  let sources = null;
   try {
-    [articles, runs] = await Promise.all([
+    [articles, runs, sources] = await Promise.all([
       getRecentArticles({ limit: 120 }),
       getIngestionRuns({ limit: 20 }),
+      getNewsSourceHealth(),
     ]);
   } catch {
     articles = [];
@@ -75,9 +77,7 @@ export default async function News() {
 
   // "Sources active" = distinct sources with at least one successful ingestion run in the
   // fetched run history — a real, traceable count from news_ingestion_runs, not a guess.
-  const activeSources = new Set(
-    runs.filter((r) => r.status === "success" && r.news_sources?.name).map((r) => r.news_sources.name)
-  ).size;
+  const activeSources = sources ? sources.filter(s => s.state === "healthy").length : "Unavailable";
 
   const lastFetchedLabel = status.lastSuccessAt
     ? new Date(status.lastSuccessAt).toLocaleString("en-IN", {
@@ -109,7 +109,7 @@ export default async function News() {
             </div>
             <div>
               <div className="text-[10px] font-medium uppercase tracking-[0.09em] text-ink-faint">
-                Sources active
+                Healthy sources
               </div>
               <div className="mt-1 text-[14px] font-semibold tnum text-ink">{activeSources}</div>
             </div>
@@ -140,9 +140,17 @@ export default async function News() {
         <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Market impact overview">
           <div className="research-surface p-4"><div className="eyebrow">Articles</div><div className="financial-number mt-2 text-xl font-semibold text-ink">{articles.length}</div><p className="mt-1 text-xs text-ink-faint">Current fetched window</p></div>
           <div className="research-surface p-4"><div className="eyebrow">Themes</div><div className="financial-number mt-2 text-xl font-semibold text-ink">{Object.values(themeCounts).filter(Boolean).length}</div><p className="mt-1 text-xs text-ink-faint">Themes with matching articles</p></div>
-          <div className="research-surface p-4"><div className="eyebrow">Sources active</div><div className="financial-number mt-2 text-xl font-semibold text-ink">{activeSources}</div><p className="mt-1 text-xs text-ink-faint">Successful recent ingestion</p></div>
+          <div className="research-surface p-4"><div className="eyebrow">Healthy sources</div><div className="financial-number mt-2 text-xl font-semibold text-ink">{activeSources}</div><p className="mt-1 text-xs text-ink-faint">Recent success and dated content</p></div>
           <div className="research-surface p-4"><div className="eyebrow">Method</div><div className="mt-2 text-sm font-semibold text-ink">Rule-based links</div><p className="mt-1 text-xs text-ink-faint">No generative classification</p></div>
         </section>
+
+        <details className="research-surface mt-4 p-4">
+          <summary className="cursor-pointer text-sm font-semibold">Source-by-source health</summary>
+          <p className="mt-2 text-xs text-ink-faint">Recent ingestion does not make old articles current. Health uses the last 20 runs per source, a one-hour success window and a 48-hour article-age threshold. Undated or future-dated articles are degraded.</p>
+          {sources ? <ul className="mt-3 space-y-2 text-xs">{sources.map(source => <li key={source.name}>
+            <strong>{source.name}</strong> — {source.state}; {source.failedRuns}/{source.sampledRuns} sampled runs failed; latest article: {source.lastArticleAt || "date unavailable"}
+          </li>)}</ul> : <p className="mt-3 text-sm">Source health is unavailable.</p>}
+        </details>
 
         <div className="mt-10">
           <NewsClient articles={articles} runs={runs} themeCounts={themeCounts} allThemes={THEMES} referenceNow={referenceNow} />

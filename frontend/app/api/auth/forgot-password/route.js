@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { siteUrl } from "../../../lib/siteUrl";
 import { hasDatabaseUrl, query } from "../../../lib/db";
 import { hasResendKey, sendPasswordResetEmail } from "../../../lib/email";
 import { checkRateLimit, rateLimitResponse, getClientIp } from "../../../lib/platform/rateLimit/core";
@@ -16,7 +17,7 @@ const EMAIL_LIMIT = { limit: 3, windowSeconds: 60 * 60 };
 // own Host/URL. That's forgeable via a spoofed Host or X-Forwarded-Host header, which would let
 // an attacker redirect a real user's reset link — and its embedded token — to an attacker-
 // controlled domain (password-reset-poisoning; full account takeover on click).
-const TRUSTED_ORIGIN = process.env.NEXTAUTH_URL || "https://frontend-six-beta-20.vercel.app";
+const TRUSTED_ORIGIN = siteUrl();
 
 function hashToken(raw) {
   return crypto.createHash("sha256").update(raw).digest("hex");

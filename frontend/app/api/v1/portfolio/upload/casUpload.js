@@ -106,19 +106,15 @@ export async function handleCasUpload({ user, filename, buffer, selectedStatemen
   const status = holdings.length === 0 ? "failed" : errors.length > 0 ? "partial" : "success";
   const identityNote = buildIdentityCheckNote(parsed.investor.email, user.email);
 
-  // Duplicate-upload detection: has this exact file content already been successfully imported
-  // by this user? Checked by checksum, not filename (a re-downloaded copy of the same statement
-  // may have a different filename but identical content). This deliberately runs AFTER parsing:
-  // summary PDFs have no transaction ledger, so reprocessing the same statement is safe and useful
-  // when parser mapping improves (holdings are upserted). Ledger PDFs are still blocked because
-  // blindly replaying the same transaction rows would duplicate portfolio_transactions.
+  // The route supplies one transaction. Serialize competing imports for this user/checksum
+  // before checking history; preserve historical duplicates without adding new ones.
+  await query("select pg_advisory_xact_lock(hashtextextended($1, 0))", [`cas:${user.id}:${checksum}`]);
   const priorMatch = await query(
     `select id, uploaded_at, status from portfolio_uploads where user_id = $1 and content_sha256 = $2 and status in ('success', 'partial') order by uploaded_at desc limit 1`,
     [user.id, checksum]
   );
   if (priorMatch.rows[0]) {
     const prior = priorMatch.rows[0];
-    if (transactions.length > 0) {
       return Response.json(
         {
           error: `This exact statement was already imported on ${new Date(prior.uploaded_at).toISOString().slice(0, 10)}. Upload a newer statement, or re-download a fresh copy if you believe your holdings have changed.`,
@@ -128,8 +124,6 @@ export async function handleCasUpload({ user, filename, buffer, selectedStatemen
         },
         { status: 409 }
       );
-    }
-    warnings.push(`This exact portfolio summary was already imported on ${new Date(prior.uploaded_at).toISOString().slice(0, 10)}. It was reprocessed to refresh statement-derived values; existing holdings were updated, not duplicated.`);
   }
 
   const expectedProvider = EXPECTED_PROVIDER[selectedStatementType];
@@ -211,18 +205,7 @@ export async function handleCasUpload({ user, filename, buffer, selectedStatemen
       { status: 201 }
     );
   } catch (error) {
-    try {
-      await insertUploadRow(query, {
-        userId: user.id, filename, status: "failed", rowsParsed: 0, rowsImported: 0, rowsSkipped: 0,
-        errors: [{ reason: "Unexpected error while processing this statement." }], warnings: [],
-        checksum, fileSize: buffer.length, provider: parsed.provider, identityNote: null,
-      });
-    } catch {
-      // Best-effort audit row, same as the CSV path's failure handler.
-    }
-    return Response.json(
-      { error: "This statement could not be fully processed. Please try again or contact support if the problem persists.", imported: 0, holdings: [], errors: [{ reason: String(error?.message || error) }], warnings: [] },
-      { status: 400 }
-    );
+    // Propagate so the enclosing transaction rolls back ALL portfolio writes.
+    throw error;
   }
 }

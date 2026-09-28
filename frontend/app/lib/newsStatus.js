@@ -9,6 +9,23 @@
 const LIVE_MAX_HOURS = 1;
 const IST_OFFSET_MIN = 330;
 
+export function sourceHealth(source, nowMs = Date.now()) {
+  const runs = [...(source.news_ingestion_runs || [])].sort((a, b) => Date.parse(b.finished_at) - Date.parse(a.finished_at));
+  const lastSuccess = runs.find(r => r.status === "success");
+  const article = source.news_articles?.[0];
+  const published = Date.parse(article?.published_at);
+  const age = (nowMs - published) / 3600000;
+  const recentSuccess = lastSuccess && nowMs - Date.parse(lastSuccess.finished_at) <= 3600000;
+  const failures = runs.filter(r => r.status !== "success").length;
+  let state = "healthy";
+  if (source.active === false) state = "disabled";
+  else if (!article || (Number.isFinite(age) && age > 48)) state = "stale";
+  else if (!recentSuccess || runs[0]?.status !== "success" || !Number.isFinite(age) || age < -0.25 || failures / runs.length > .2) state = "degraded";
+  return { name: source.name, state, lastSuccessAt: lastSuccess?.finished_at || null,
+    lastArticleAt: article?.published_at || null, lastFetchedAt: article?.fetched_at || null,
+    sampledRuns: runs.length, failedRuns: failures };
+}
+
 function toIST(d) {
   return new Date(d.getTime() + IST_OFFSET_MIN * 60000);
 }

@@ -15,7 +15,8 @@ import { short } from "../../lib/format";
 
 export const revalidate = 3600;
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata(props) {
+  const params = await props.params;
   const m = getManager(params.slug);
   return { title: m ? `${m.name} — Fund Manager` : "Manager" };
 }
@@ -39,7 +40,8 @@ const cols = [
   { key: "catPct", label: "Cat %ile", align: "right", render: (r) => (r.catPct == null ? <span className="text-ink-faint">—</span> : <span className="tnum text-ink-muted">{r.catPct}</span>) },
 ];
 
-export default function ManagerPage({ params }) {
+export default async function ManagerPage(props) {
+  const params = await props.params;
   const mgr = getManager(params.slug);
   if (!mgr) notFound();
 

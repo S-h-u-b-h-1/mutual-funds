@@ -10,13 +10,24 @@ Source of truth: `frontend/app/lib/userProfile.js`'s `PROFILE_OPTIONS`, `sql/neo
 
 | Field | Purpose | Optional? | Sensitive? | Retention | User-visible? | Editable? | Delete behavior | Personalization consumer |
 |---|---|---|---|---|---|---|---|---|
-| `role` | Which persona to tailor language/depth for (individual / advisor / analyst / family office) | No (required at signup) | No — a broad self-description, not identity data | Until account deletion or explicit profile reset | Yes, shown on `/profile` | Yes | Cleared on profile delete (see below) | Not yet consumed by any UI surface — collected ahead of the personalization work that will use it (honest: no feature reads this today) |
-| `primary_goal` | What the visitor is here to do (research / compare / portfolio / news) | No | No | Same as above | Yes | Yes | Same | Same — collected, not yet consumed |
-| `experience` | Self-reported investing experience level | No | No | Same as above | Yes | Yes | Same | `AuthStatus.jsx`'s account menu displays it via `optionLabel()`; not yet used to adjust content depth anywhere |
-| `risk_comfort` | Self-reported risk tolerance label (not a computed risk score) | No | Low — a preference label, not financial data | Same as above | Yes | Yes | Same | `AuthStatus.jsx` account menu; not yet used to filter/rank research |
-| `horizon` | Investment time horizon **band** (0-1 / 1-3 / 3-5 / 5+ years) | No | No | Same as above | Yes | Yes | Same | Collected, not yet consumed |
-| `aum_band` | Portfolio size **band**, explicit "prefer not to say" default | Yes | Low — a wide range, not a figure, and opt-out by default | Same as above | Yes | Yes | Same | Collected, not yet consumed |
-| `preferred_categories` | Free-text fund categories the user cares about | Yes | No | Same as above | Yes | Yes | Same | Collected, not yet consumed |
+| `role` | Which persona to tailor language/depth for (individual / advisor / analyst / family office) | No (required at signup) | No — a broad self-description, not identity data | Until account deletion | Yes, shown on `/profile` | Approval only after first save | Cleared on account delete (see below) | Account and research-context surfaces |
+| `primary_goal` | What the visitor is here to do (research / compare / portfolio / news) | No | No | Same as above | Yes | Approval only | Same | Advisory context and saved profile summary |
+| `experience` | Self-reported investing experience level | No | No | Same as above | Yes | Approval only | Same | Advisory scoring and account menu |
+| `risk_comfort` | Derived risk-tolerance label | No | Low — a preference label, not financial data | Same as above | Yes | Approval only | Same | Advisory scoring and fund matching |
+| `horizon` | Investment time horizon **band** (0-1 / 1-3 / 3-5 / 5+ years) | No | No | Same as above | Yes | Approval only | Same | Advisory scoring and fund matching |
+| `aum_band` | Portfolio size **band**, explicit "prefer not to say" default | Yes | Low — a wide range, not a figure, and opt-out by default | Same as above | Yes | Approval only | Same | Saved research context |
+| `preferred_categories` | Free-text fund categories the user cares about | Yes | No | Same as above | Yes | Approval only | Same | Saved research context |
+| `advisory_answers` | The five goal, horizon, loss-response, capacity, and experience selections | Optional for legacy profiles; required for landing-page advisory profiles | Low | Same as above | Yes | Approval only | Same | Reproducible risk scoring and suitability explanation |
+| `risk_score` / `risk_profile` | Deterministic result derived server-side from `advisory_answers` | Optional for legacy profiles | Low | Same as above | Yes | Never directly editable | Same | Risk profile summary and product matching |
+
+## Change governance
+
+The first complete profile write sets `locked_at`. Subsequent direct writes return
+`PROFILE_LOCKED`; they cannot overwrite the active profile. A user may submit one pending row in
+`profile_change_requests`, including the proposed profile and a reason. Only a user whose server-
+side role is `advisor` or `admin` can approve or reject it. Approval updates `research_profile`
+and the request status in one database transaction, and both submission and decision are written
+to `audit_log`. The current profile remains active while review is pending.
 
 **Honest note on "personalization consumer":** most of these fields are collected but not yet
 read by any feature. That's not a defect to hide — it's the actual current state, and it directly

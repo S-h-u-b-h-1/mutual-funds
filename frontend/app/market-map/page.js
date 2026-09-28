@@ -1,4 +1,3 @@
-import dynamic from "next/dynamic";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import Tracker from "../components/Tracker";
@@ -8,7 +7,7 @@ import Badge from "../components/ui/Badge";
 import { allFunds, asOf } from "../lib/funds";
 import { fundHealth } from "../lib/fundHealth";
 
-const MarketMapChart = dynamic(() => import("../components/MarketMapChart"), { ssr: false });
+import MarketMapChart from "../components/MarketMapChart";
 
 export const metadata = { title: "Market Map" };
 export const revalidate = 3600;

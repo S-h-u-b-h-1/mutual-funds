@@ -58,8 +58,8 @@ export default function MobileNav({ active }) {
                 <div className="flex items-center justify-between border-b border-line/70 px-5 py-4">
                   <div>
                     <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">Explore MF Pulse</div>
-                    <div className="mt-1 text-base font-semibold tracking-[-0.025em] text-ink">Research and portfolio workspace</div>
-                    <div className="mt-1 text-xs text-ink-faint">Funds, stocks, markets, evidence and account tools</div>
+                    <div className="mt-1 text-base font-semibold tracking-[-0.025em] text-ink">Wealth advisory workspace</div>
+                    <div className="mt-1 text-xs text-ink-faint">Risk profile, fund comparison, evidence and portfolio tools</div>
                   </div>
                   <button type="button" onClick={close} className="grid h-10 w-10 place-items-center rounded-full border border-line/80 bg-surface-2 text-lg text-ink-muted hover:text-ink" aria-label="Close navigation">×</button>
                 </div>

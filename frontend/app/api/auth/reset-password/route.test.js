@@ -24,12 +24,16 @@ async function deleteUser(id) {
 
 describe("POST /api/auth/reset-password (integration, real Neon, disposable test user)", () => {
   let user;
+  // Documentation-only IPv6 range with a unique suffix per run. Do not share the real
+  // durable limiter's 'unknown' bucket across CI jobs/repos, or disable rate limiting.
+  const testIp = `2001:db8:${crypto.randomBytes(12).toString("hex").match(/.{4}/g).join(":")}`;
 
   beforeAll(async () => {
     user = await createUser("stamp");
   });
 
   afterAll(async () => {
+    await query("delete from verification_tokens where identifier = $1", [user.email]);
     await deleteUser(user.id);
   });
 
@@ -42,6 +46,7 @@ describe("POST /api/auth/reset-password (integration, real Neon, disposable test
 
     const res = await POST(new Request("http://x", {
       method: "POST",
+      headers: { "x-forwarded-for": testIp },
       body: JSON.stringify({ email: user.email, token: rawToken, password: "a-new-strong-password" }),
     }));
     expect(res.status).toBe(200);
@@ -55,11 +60,17 @@ describe("POST /api/auth/reset-password (integration, real Neon, disposable test
 
     const res = await POST(new Request("http://x", {
       method: "POST",
+      headers: { "x-forwarded-for": testIp },
       body: JSON.stringify({ email: user.email, token: "not-a-real-token", password: "another-strong-password" }),
     }));
     expect(res.status).toBe(400);
 
     const after = await query(`select security_stamp from users where id = $1`, [user.id]);
     expect(after.rows[0].security_stamp).toBe(before.rows[0].security_stamp);
+  });
+
+  it("still records both attempts in the durable rate limiter", async () => {
+    const result = await query("select sum(count)::int as count from rate_limit_buckets where bucket_key = $1", [`reset-password-ip:${testIp}`]);
+    expect(result.rows[0].count).toBe(2);
   });
 });

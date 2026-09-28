@@ -11,6 +11,7 @@
 import { asOf } from "../../lib/funds";
 import { getFreshnessSummary } from "../../lib/freshnessService";
 import { allMetadata } from "../../lib/metadata";
+import publication from "../../data/publication.json";
 
 export const dynamic = "force-dynamic"; // deployment identity must reflect the running instance on every request, never a build-time-frozen response
 
@@ -31,5 +32,5 @@ export async function GET() {
     schemes: allMetadata().length,
     amcs: new Set(allMetadata().map((m) => m.amc).filter(Boolean)).size,
   };
-  return Response.json({ asOf, deployedCommitSha, branch, environment, factsheetCoverage, ...summary });
+  return Response.json({ asOf, deployedCommitSha, branch, environment, factsheetCoverage, publication, ...summary });
 }

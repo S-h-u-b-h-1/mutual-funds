@@ -6,7 +6,8 @@ import { fundHealth } from "../lib/fundHealth";
 
 export const metadata = { title: "Strategy Workspace" };
 
-export default function Research({ searchParams }) {
+export default async function Research(props) {
+  const searchParams = await props.searchParams;
   const requestedCodes = String(searchParams?.import_funds || "").split(",").map((code) => code.trim()).filter(Boolean).slice(0, 20);
   const initialFunds = requestedCodes
     .map((code) => getFund(code))

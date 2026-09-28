@@ -86,7 +86,7 @@ function directConnectionString() {
 let client;
 
 export async function acquireClaimTestLock() {
-  client = new pg.Client({ connectionString: directConnectionString() });
+  client = new pg.Client({ connectionString: directConnectionString(), connectionTimeoutMillis: 15000, query_timeout: 15000, application_name: "mfpulse-ci-claim-lock" });
   await client.connect();
   const deadline = Date.now() + MAX_WAIT_MS;
   for (;;) {

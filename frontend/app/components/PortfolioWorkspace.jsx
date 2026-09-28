@@ -821,6 +821,7 @@ export default function PortfolioWorkspace() {
 
   return (
     <div className="portfolio-shell">
+      {holdings.some(holding => ["mock-connected", "invest-order"].includes(holding.source)) && <div role="status" className="rounded-xl border border-warn bg-warn/10 p-4 text-sm text-ink"><strong>Demo / Sandbox portfolio — contains simulated positions.</strong> Totals include mock-connected or simulated order holdings and must not be treated as your real invested assets. No real investment is executed.</div>}
       <PortfolioHeader holdings={holdings} summary={summary} computedAt={computedAt} latestImportedAt={latestImportedAt} onUpload={openImport} />
       {loadingPortfolio ? <div className="portfolio-section"><div className="skeleton h-36 rounded-[1.35rem]" /><div className="grid portfolio-grid-gap sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, index) => <div key={index} className="skeleton h-36 rounded-[1.15rem]" />)}</div></div> : (
         <>

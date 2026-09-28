@@ -8,6 +8,7 @@ def test_growth_vs_idcw_classification():
     assert is_growth("HDFC Top 100 Fund - Direct Plan - Growth Option")
     assert not is_growth("HDFC Top 100 Fund - Direct Plan - IDCW")
     assert is_idcw("SBI Bluechip Fund - Regular - IDCW Payout")
+    assert is_idcw("ITI Liquid Fund - Income Distribution cum Capital Withdrawal Option")
     assert is_idcw("Axis Midcap - Dividend")
     # a dividend/growth-named idcw plan must NOT count as growth
     assert not is_growth("Some Fund - Growth Dividend Option")

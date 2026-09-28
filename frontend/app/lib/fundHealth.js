@@ -58,7 +58,16 @@ export function fundHealth(f) {
     f.quality?.has1y && f.quality?.has90d && f.quality?.status === "ok" ? "high"
       : f.quality?.has90d ? "medium" : "low";
 
-  return { overall, grade: gradeOf(overall), confidence, costAvailable, breakdown, explanation: explain(f, overall, breakdown) };
+  const missingFactors = [];
+  if (!f.quality?.has1y || f.r1y == null) missingFactors.push("1-year history");
+  if (!f.quality?.has90d || f.vol90 == null || f.maxdd90 == null) missingFactors.push("90-day risk history");
+  if (f.quality?.status !== "ok") missingFactors.push("current NAV");
+  if (f.isIdcw) missingFactors.push("distribution-adjusted returns");
+  const eligible = missingFactors.length === 0;
+  return { overall: eligible ? overall : null, score: overall, grade: eligible ? gradeOf(overall) : "INSUFFICIENT HISTORY", eligible,
+    evidenceCoveragePct: Math.round(totalW / 108 * 100), missingFactors,
+    confidence, costAvailable, breakdown,
+    explanation: eligible ? explain(f, overall, breakdown) : `Provisional score ${overall}/100. Not eligible for a health grade or health ranking: missing ${missingFactors.join(", ")}.` };
 }
 
 export function gradeOf(s) {

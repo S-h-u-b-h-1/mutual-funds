@@ -165,7 +165,6 @@ function explainXirrUnavailability(flows, value) {
  * working) — `portfolioStatus`/`byStatus` are additive, for callers that need the reason.
  */
 export function computePortfolioXirr(transactions, holdings) {
-  const today = new Date().toISOString().slice(0, 10);
   const byScheme = {};
   const byStatus = {};
   const portfolioFlows = [];
@@ -176,21 +175,34 @@ export function computePortfolioXirr(transactions, holdings) {
     byCode.get(txn.schemeCode).push(txn);
   }
 
+  const groupedHoldings = new Map();
   for (const holding of holdings) {
-    const flows = (byCode.get(holding.schemeCode) || [])
-      .filter((t) => OUTFLOW_TYPES.has(t.transactionType) || INFLOW_TYPES.has(t.transactionType))
+    if (!groupedHoldings.has(holding.schemeCode)) groupedHoldings.set(holding.schemeCode, []);
+    groupedHoldings.get(holding.schemeCode).push(holding);
+  }
+  const dates = new Set(holdings.map(h => h.navDate).filter(Boolean));
+  let complete = holdings.length > 0 && dates.size === 1;
+  for (const [schemeCode, schemeHoldings] of groupedHoldings) {
+    const flows = (byCode.get(schemeCode) || [])
+      .filter((t) => Number.isFinite(t.amount) && (OUTFLOW_TYPES.has(t.transactionType) || INFLOW_TYPES.has(t.transactionType)))
       .map((t) => ({ date: t.transactionDate, amount: OUTFLOW_TYPES.has(t.transactionType) ? -Math.abs(t.amount) : Math.abs(t.amount) }));
     portfolioFlows.push(...flows);
-    if (holding.currentValue != null) {
-      flows.push({ date: today, amount: holding.currentValue });
-      portfolioFlows.push({ date: today, amount: holding.currentValue });
+    const schemeDates = new Set(schemeHoldings.map(h => h.navDate).filter(Boolean));
+    const valuationDate = schemeDates.size === 1 ? [...schemeDates][0] : null;
+    const priced = valuationDate && schemeHoldings.every(h => Number.isFinite(h.currentValue) && h.navDate === valuationDate);
+    const futureFlows = valuationDate && flows.some(f => new Date(f.date) > new Date(valuationDate));
+    complete = complete && Boolean(priced) && !futureFlows;
+    if (priced) {
+      const terminal = { date: valuationDate, amount: schemeHoldings.reduce((sum, h) => sum + h.currentValue, 0) };
+      flows.push(terminal);
+      portfolioFlows.push(terminal);
     }
-    const value = computeXirr(flows);
-    byScheme[holding.schemeCode] = value;
-    byStatus[holding.schemeCode] = { available: value != null, value, reason: explainXirrUnavailability(flows, value) };
+    const value = priced && !futureFlows ? computeXirr(flows) : null;
+    byScheme[schemeCode] = value;
+    byStatus[schemeCode] = { available: value != null, value, reason: explainXirrUnavailability(flows, value) };
   }
 
-  const portfolioValue = computeXirr(portfolioFlows);
+  const portfolioValue = complete ? computeXirr(portfolioFlows) : null;
   return {
     portfolio: portfolioValue,
     byScheme,

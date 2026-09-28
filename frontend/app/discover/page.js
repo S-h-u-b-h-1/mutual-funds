@@ -24,7 +24,7 @@ function Chip({ href, children }) {
 
 export default async function DiscoverPage() {
   const [searches, funds, cats, amcs, compared, watchlisted] = await Promise.all([
-    sb("v_top_searches?select=*", { revalidate: 900 }).catch(() => []),
+    Promise.resolve([]), // raw visitor queries are private
     sb("v_top_funds_viewed?select=*", { revalidate: 900 }).catch(() => []),
     sb("v_top_categories_viewed?select=*", { revalidate: 900 }).catch(() => []),
     sb("v_top_amcs_viewed?select=*", { revalidate: 900 }).catch(() => []),

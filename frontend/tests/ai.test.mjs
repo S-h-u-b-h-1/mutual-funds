@@ -51,8 +51,7 @@ const deps = {
 const now = Date.parse("2026-09-28T12:00:00Z");
 const validEnv = {
   AI_FEATURE_ENABLED: "true",
-  SILICONFLOW_API_KEY: "test-placeholder",
-  AI_FREE_MODEL_VERIFIED_ON: "2026-09-28",
+  OPENROUTER_API_KEY: "test-placeholder",
 };
 const config = () => providerConfig(validEnv, now);
 const ask = (message, pageContext, history) =>
@@ -137,9 +136,25 @@ test("freshness uses request date rather than cached staleDays", () => {
 });
 test("citations reject invented IDs, unsupported numbers and uncited paragraphs", () => {
   assert.equal(validateAnswer("Breadth was 3% [MF-001].", e).length, 1);
+  assert.equal(
+    validateAnswer(
+      "Breadth was 3% [MF-001, MF-002].",
+      [e[0], { ...e[0], id: "MF-002" }],
+    ).length,
+    2,
+  );
+  assert.equal(
+    validateAnswer(
+      "There were 1,324 funds [MF-001].",
+      [{ ...e[0], text: `${e[0].text} 1324 funds.` }],
+    ).length,
+    1,
+  );
   for (const bad of [
     "Breadth 3%.",
     "Breadth 3% [MF-999].",
+    "Breadth 3% [MF-001, MF-999].",
+    "Breadth 3% [MF-001 and MF-002].",
     "Breadth 99% [MF-001].",
     "Breadth 3% [MF-001].\n\nBuy now.",
     "See https://evil.test [MF-001].",
@@ -148,21 +163,18 @@ test("citations reject invented IDs, unsupported numbers and uncited paragraphs"
   ])
     assert.throws(() => validateAnswer(bad, e), AIError);
 });
-test("missing key, disabled, stale verification, paid model and foreign endpoint fail closed", () => {
+test("missing key, disabled, foreign model and endpoint fail closed", () => {
   assert.throws(
     () => providerConfig({}, now),
     (err) => err.code === "disabled",
   );
   assert.throws(
-    () => providerConfig({ ...validEnv, SILICONFLOW_API_KEY: "" }, now),
+    () => providerConfig({ ...validEnv, OPENROUTER_API_KEY: "" }, now),
     (err) => err.code === "missing_key",
   );
   for (const override of [
-    { AI_FREE_MODEL_VERIFIED_ON: "" },
-    { AI_FREE_MODEL_VERIFIED_ON: "2026-09-01" },
-    { AI_FREE_MODEL_VERIFIED_ON: "2026-09-29" },
-    { SILICONFLOW_MODEL: "Pro/Qwen/Qwen3.5-4B" },
-    { SILICONFLOW_BASE_URL: "https://evil.test" },
+    { OPENROUTER_MODEL: "paid/model" },
+    { OPENROUTER_BASE_URL: "https://evil.test" },
   ])
     assert.throws(
       () => providerConfig({ ...validEnv, ...override }, now),
@@ -285,6 +297,29 @@ test("categories use existing ranked summaries; unsupported requests report limi
   const unknown = await buildContext(ask("Who won the world cup?"), deps, now);
   assert.equal(unknown.intent, "unsupported");
 });
+test("profile and portfolio questions use only server supplied personal evidence", async () => {
+  const personalContext = async () => ({
+    authenticated: true,
+    profile: { primaryGoal: "portfolio", riskProfile: "balanced", horizon: "5+" },
+    profileAsOf: "2026-09-27",
+    portfolio: { holdingsCount: 4, healthScore: 78, categoryAllocation: [{ label: "Equity", weight: 60 }] },
+    portfolioAsOf: "2026-09-25",
+    shortlist: [{ code: "123456", name: "Evidence Fund", fitScore: 84 }],
+    shortlistAsOf: "2026-09-25",
+  });
+  const c = await buildContext(
+    ask("What deserves attention in my portfolio?", { type: "portfolio" }),
+    { ...deps, personalContext },
+    now,
+  );
+  assert.equal(c.intent, "portfolio");
+  assert.deepEqual(
+    c.evidence.filter((item) => item.type.startsWith("portfolio") || item.type.includes("profile")).map((item) => item.type),
+    ["investor_profile", "portfolio_summary", "profile_shortlist"],
+  );
+  assert.ok(!JSON.stringify(c.evidence).includes("email"));
+  assert.equal(validateRequest({ message: "help", pageContext: { type: "profile" } }).pageContext.type, "profile");
+});
 test("provider uses only server settings, limits output and disables tools/thinking", async () => {
   let captured;
   const result = await complete([{ role: "user", content: "question" }], {
@@ -305,8 +340,8 @@ test("provider uses only server settings, limits output and disables tools/think
   assert.equal(captured.url, `${BASE_URL}/chat/completions`);
   const body = JSON.parse(captured.options.body);
   assert.equal(body.model, MODEL);
-  assert.equal(body.max_tokens, 900);
-  assert.equal(body.enable_thinking, false);
+  assert.equal(body.max_tokens, 600);
+  assert.deepEqual(body.reasoning, { enabled: false });
   assert.equal(body.tools, undefined);
   assert.equal(captured.options.redirect, "error");
 });
@@ -430,7 +465,7 @@ test("end-to-end mocked completion retains exact evidence, as-of and server-auth
   );
   assert.equal(res.status, 200);
   const body = await res.json();
-  assert.equal(body.provider, "SiliconFlow");
+  assert.equal(body.provider, "OpenRouter");
   assert.equal(body.isSampleDataIncluded, true);
   assert.ok(body.warnings.some((w) => w.includes("SAMPLE")));
   assert.ok(body.warnings.some((w) => w.includes("stale")));
@@ -439,7 +474,7 @@ test("end-to-end mocked completion retains exact evidence, as-of and server-auth
   assert.equal(sent.length, 2);
   assert.equal(sent[0].role, "system");
   assert.ok(sent[1].content.includes("untrusted_history"));
-  assert.ok(!JSON.stringify(sent).includes(validEnv.SILICONFLOW_API_KEY));
+  assert.ok(!JSON.stringify(sent).includes(validEnv.OPENROUTER_API_KEY));
 });
 test("load guard caps parallel work and releases idempotently", () => {
   const first = acquireSlot(now + 1000000),
@@ -478,7 +513,7 @@ test("provider timeout aborts external request and returns only a safe code", as
         ),
       ),
   });
-  t.mock.timers.tick(18000);
+  t.mock.timers.tick(24000);
   await assert.rejects(
     pending,
     (e) => e.code === "timeout" && !e.message.includes("private"),

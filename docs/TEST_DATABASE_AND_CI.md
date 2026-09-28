@@ -1,5 +1,17 @@
 # Test Database Isolation & CI
 
+## 8 September 2026 credential-isolation update
+
+Do not upload the old local test URL to CI: although it targets the test endpoint, its password was also accepted by production. Separate endpoint configuration was not credential isolation. The original local/production credentials have not been changed.
+
+The approved new SQL-created role `mf_pulse_ci_20260908` exists only on test branch `br-weathered-star-atigraez` in project `super-surf-43536488`, database `neondb`, endpoint `ep-bitter-union-atj8og0c`. It has no superuser/createdb/createrole/replication/bypass-RLS privileges, role memberships, database/table ownership, or public-schema CREATE permission. Its newly generated password stays in provisioning-process memory until sent to encrypted GitHub secret storage; no credential file is created. Production explicitly rejected authentication with SQLSTATE `28P01`; the test rollback-only CRUD probe passed.
+
+`scripts/ci_database_privileges.json` is the reviewed, operation-specific table allowlist. Sequence USAGE is limited to sequences attached to tables needing INSERT. There is no blanket ALL PRIVILEGES, future-object default grant, schema DDL permission or administrative membership. The migration suite validates existing schema read-only; it does not need to own or alter tables. New table/operation permissions require a reviewed manifest change.
+
+CI sets `MFPULSE_CI_DATABASE_GUARD=1`. Before any fixture or cleanup, frontend/global setup and Python session setup require matching URLs, the exact allowed host/database and CI role, then query native `neon.project_id`, `neon.branch_id`, `neon.endpoint_id`, `current_database()` and `current_user` inside the connection. Missing or mismatched identity fails closed. Python checks every subsequent guarded database connection; authenticated browser fixtures check before inserting a user. Public checks on a hosted site never create authenticated fixtures.
+
+`.github/workflows/ci.yml` uses the secret only through environment variables, never shell interpolation or connection-string output. It can run on the remediation branch without merging main. `frontend/vercel.json` disables automatic deployment for that specific branch, so a CI push is not a release. These updates supersede the older manual-secret instructions below. Current execution status is recorded separately in the CI isolation report; do not infer upload/hosted-CI success from configuration alone.
+
 How the automated test suite gets a database, why it previously didn't have an isolated one, and
 the guard that now makes that structurally impossible to repeat by accident.
 
