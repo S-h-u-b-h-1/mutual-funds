@@ -13,6 +13,7 @@ import GlassPanel from "../../components/ui/GlassPanel";
 import Badge from "../../components/ui/Badge";
 import AdvisorSoftCTA from "../../components/AdvisorSoftCTA";
 import WatchButton from "../../components/WatchButton";
+import AskPulseAI from "../../components/ai/AskPulseAI";
 import NextActions from "../../components/NextActions";
 import ResearchNotes from "../../components/ResearchNotes";
 import MetricTooltip from "../../components/ui/MetricTooltip";
@@ -257,6 +258,7 @@ export default async function FundPage({ params }) {
       <Nav active="/funds" />
       <Tracker event="fund_view" payload={{ code: f.code, category: f.category, amc: f.amc }} view={{ type: "fund", id: f.code, name: f.name.replace(/ - (Direct|Regular).*/i, ""), amc: f.amc, category: f.category }} />
       <FundPageClient fund={f} cohort={cohort} history={history} sig={sig} rets={rets} bench={bench} meta={meta} port={port} health={health} notice={notice} fTone={fTone} fLabel={fLabel} sharpe={sharpe} sortino={sortino} riskStats={riskStats} calReturns={calReturns} rollReturns={rollReturns} comparisons={comparisons} relatedNews={relatedNews} priority={priority} attentionReasons={attentionReasons} completeness={completeness} readiness={readiness} aRank={aRank} asOf={asOf} categoryAvgR1y={categoryAvgR1y} categoryAvgVol={categoryAvgVol} categoryAvgDvol={categoryAvgDvol} categoryAvgMaxdd={categoryAvgMaxdd} categoryAvgConsistency={categoryAvgConsistency} thesis={thesis} strengthsWeak={strengthsWeak} fit={fit} priceContext={priceContext} dna={dna} quality={quality} decisionSupport={decisionSupport} newsInsights={newsInsights} similarPastEvents={similarPastEvents} report={report} />
+      <div className="container-px pb-8"><AskPulseAI type="fund" codes={[f.code]}>Ask about this fund</AskPulseAI></div>
       <Footer note={<span>NAV as of {f.navDate} · daily data, not real-time · past performance ≠ future returns · source AMFI / MFAPI. Platform as of {asOf}.</span>} />
     </>
   );

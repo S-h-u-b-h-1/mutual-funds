@@ -8,6 +8,7 @@ import GlassPanel from "./components/ui/GlassPanel";
 import Badge from "./components/ui/Badge";
 import { AllocationDonut, RiskReturnMap } from "./components/ui/ResearchCharts";
 import { SearchLauncher } from "./components/Search";
+import AskPulseAI from "./components/ai/AskPulseAI";
 import { allFunds, asOf } from "./lib/funds";
 import { getTopHeadlines } from "./lib/news";
 import { marketStatus } from "./lib/marketStatus";
@@ -180,6 +181,7 @@ export default async function HomePage() {
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                   <Link href="/compare" className="btn-premium-primary min-h-12 px-6">Compare mutual funds <span className="ml-2" aria-hidden="true">→</span></Link>
                   <Link href="/portfolio" className="btn-premium-secondary min-h-12 px-6">Check portfolio health</Link>
+                  <AskPulseAI>Ask Pulse AI</AskPulseAI>
                 </div>
                 <div className="mt-7 grid max-w-2xl grid-cols-3 gap-2 sm:gap-3">
                   {[[fmt(funds.length), "schemes tracked"], [fmt(amcCount), "fund houses"], [asOf || "—", "latest NAV date"]].map(([value, label]) => (

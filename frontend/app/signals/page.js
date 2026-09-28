@@ -1,3 +1,4 @@
+import AskPulseAI from "../components/ai/AskPulseAI";
 import { sb } from "../lib/supabase";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
@@ -25,6 +26,7 @@ export default async function Signals() {
           Months where industry-wide net flow into a fund category deviated sharply from its trailing average
           (z-score ≥ 1.8). Computed from AMFI&rsquo;s Monthly Report — real, refreshed every month.
         </p>
+        <div className="mt-4"><AskPulseAI type="signal">Explain flow signals</AskPulseAI></div>
         <section className="mt-8">
           {signals.length ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

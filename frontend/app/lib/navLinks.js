@@ -1,5 +1,5 @@
 export const NAV_GROUPS = [
-  { label: "Mutual Funds", links: [["Research Home", "/funds"], ["Compare Funds", "/compare"], ["Categories", "/categories"], ["AMCs", "/amc"], ["Morning Brief", "/brief"]] },
+  { label: "Mutual Funds", links: [["Research Home", "/funds"], ["Compare Funds", "/compare"], ["Pulse AI", "/ai"], ["Categories", "/categories"], ["AMCs", "/amc"], ["Morning Brief", "/brief"]] },
   { label: "Stocks", links: [["Stocks Home", "/stocks"], ["Research Desk", "/stocks/research-desk"], ["NIFTY 50 + BSE 100", "/stocks/universe"], ["Strategy Lab", "/stocks/strategies"], ["Company Screener", "/stocks/screener"], ["Sectors", "/stocks/sectors"], ["Data Sources", "/stocks/sources"], ["Stock Learning", "/learn/stocks"]] },
   { label: "Markets", links: [["Market Overview", "/markets"], ["Market Map", "/market-map"], ["Raw Materials", "/markets/raw-materials"], ["News", "/news"], ["Signals", "/signals"]] },
   { label: "Portfolio", links: [["Mutual Fund Portfolio", "/portfolio"], ["Invest Portfolio", "/invest/portfolio"], ["Dashboard", "/dashboard"], ["Watchlist", "/dashboard#watchlist"], ["Research Notebook", "/dashboard#notebook"]] },
